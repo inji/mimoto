@@ -74,21 +74,22 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
             String userLocale) {
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+        List<String> orderedKeys = credentialsSupportedResponse.getOrder();
 
+        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(null);
         // LDP VC format — display config is in "credential_definition.credential_subject"
         if (credentialsSupportedResponse.getCredentialDefinition() == null ||
                 credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject() == null) {
-            log.warn("Missing credential definition or credential subject for LDP VC format");
-            return displayProperties;
+            log.info("Issuer well-known has no credential definition or credential subject for LDP VC format; falling back to claim-based display properties");
+            return buildFallbackDisplayProperties(credentialProperties, orderedKeys, userLocale);
         }
 
         Map<String, CredentialDisplayResponseDto> displayConfigMap =
                 credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject();
-        List<String> orderedKeys = credentialsSupportedResponse.getOrder();
 
         if (displayConfigMap == null) {
-            log.warn("No display configuration found for LDP VC format");
-            return displayProperties;
+            log.info("No display configuration found in issuer well-known for LDP VC format; falling back to claim-based display properties");
+            return buildFallbackDisplayProperties(credentialProperties, orderedKeys, userLocale);
         }
 
         String resolvedLocale = LocaleUtils.resolveLocaleWithFallback(displayConfigMap, userLocale);
@@ -116,6 +117,65 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
             if (display != null && value != null) {
                 displayProperties.put(key, Map.of(display, value));
             }
+        }
+
+        return displayProperties;
+    }
+
+    private LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> buildFallbackDisplayProperties(
+            Map<String, Object> credentialProperties,
+            List<String> orderedKeys, String userLocale) {
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+
+        // Determine field order (prefer issuer-provided 'order' if any)
+        List<String> fieldKeys = (orderedKeys != null && !orderedKeys.isEmpty())
+                ? new ArrayList<>(orderedKeys)
+                : new ArrayList<>(credentialProperties.keySet());
+
+        // Exclude non-claim metadata
+        fieldKeys.remove("id");
+
+        // Build default display entries from claims
+        for (String key : fieldKeys) {
+            Object value = credentialProperties.get(key);
+            if (value == null) {
+                continue;
+            }
+
+            CredentialIssuerDisplayResponse display = null;
+
+            // Check if value is a Map containing display information
+            if (value instanceof Map) {
+                Map<String, Object> valueMap = (Map<String, Object>) value;
+                Object displayObj = valueMap.get("display");
+
+                if (displayObj instanceof List) {
+                    List<Map<String, Object>> displayList = (List<Map<String, Object>>) displayObj;
+
+                    if (!displayList.isEmpty()) {
+                        // Try to find matching locale
+                        Optional<Map<String, Object>> matchingDisplay = displayList.stream()
+                                .filter(d -> LocaleUtils.matchesLocale((String) d.get("locale"), userLocale))
+                                .findFirst();
+
+                        Map<String, Object> selectedDisplay = matchingDisplay.orElse(displayList.get(0));
+
+                        display = new CredentialIssuerDisplayResponse();
+                        display.setName((String) selectedDisplay.get("name"));
+                        display.setLocale((String) selectedDisplay.get("locale"));
+                    }
+                }
+            }
+
+            // Fallback to default display if no nested display found
+            if (display == null) {
+                display = new CredentialIssuerDisplayResponse();
+                display.setName(camelToTitleCase(key));
+                display.setLocale("en");
+            }
+
+            displayProperties.put(key, Map.of(display, value));
         }
 
         return displayProperties;

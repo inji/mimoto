@@ -19,7 +19,6 @@ public class CredentialDefinitionResponseDto {
     @Schema(description = "Type of the Credential Definition")
     private List<@NotEmpty String> type;
 
-    @NotEmpty
     @Valid
     @SerializedName("credentialSubject")
     @JsonProperty("credentialSubject")

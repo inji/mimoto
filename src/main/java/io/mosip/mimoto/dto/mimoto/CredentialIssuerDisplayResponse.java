@@ -9,13 +9,11 @@ import lombok.Data;
 @Data
 public class CredentialIssuerDisplayResponse {
 
-    @NotBlank
     @SerializedName("name")
     @JsonProperty("name")
     @Schema(description = "Name of the Credential Issuer")
     private String name;
 
-    @NotBlank
     @SerializedName("locale")
     @JsonProperty("locale")
     @Schema(description = "Locale of the Credential Issuer")
