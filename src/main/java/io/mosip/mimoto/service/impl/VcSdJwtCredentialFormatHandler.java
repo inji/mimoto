@@ -55,6 +55,21 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
 
+        // Start with ordered fields
+        Set<String> orderedKeys = Optional.ofNullable(credentialsSupportedResponse.getOrder())
+                .map(LinkedHashSet::new) // preserve order
+                .orElse(new LinkedHashSet<>());
+
+        // Add remaining keys from credentialProperties that are not already in orderedKeys
+        for (String key : credentialProperties.keySet()) {
+            orderedKeys.add(key); // Set ensures no duplicates
+        }
+
+        if (credentialsSupportedResponse.getClaims() == null || credentialsSupportedResponse.getClaims().isEmpty()) {
+            log.info("Issuer well-known has no claims for SD-JWT format; falling back to claim-based display properties");
+            return buildFallbackDisplayProperties(credentialProperties, orderedKeys, userLocale);
+        }
+
         // Extract raw claims and convert to DTOs
         Map<String, Object> rawClaims = Optional.ofNullable(credentialsSupportedResponse.getClaims())
                 .map(map -> (map.size() == 1 && map.values().iterator().next() instanceof Map)
@@ -69,7 +84,8 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
                 ));
 
         if (convertedClaimsMap.isEmpty()) {
-            log.warn("No display configuration found for SD-JWT format");
+            log.info("No display configuration found for SD-JWT format");
+            return buildFallbackDisplayProperties(credentialProperties, orderedKeys, userLocale);
         }
 
         String resolvedLocale = LocaleUtils.resolveLocaleWithFallback(convertedClaimsMap, userLocale);
@@ -82,16 +98,6 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
                         .findFirst()
                         .ifPresent(display -> localizedDisplayMap.put(key, display));
             });
-        }
-
-        // Start with ordered fields
-        Set<String> orderedKeys = Optional.ofNullable(credentialsSupportedResponse.getOrder())
-                .map(LinkedHashSet::new) // preserve order
-                .orElse(new LinkedHashSet<>());
-
-        // Add remaining keys from credentialProperties that are not already in orderedKeys
-        for (String key : credentialProperties.keySet()) {
-            orderedKeys.add(key); // Set ensures no duplicates
         }
 
         for (String key : orderedKeys) {
@@ -162,5 +168,62 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
             log.error("Unexpected error processing SD-JWT", e);
             return Collections.emptyMap();
         }
+    }
+
+    private LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> buildFallbackDisplayProperties(
+            Map<String, Object> credentialProperties,
+            Set<String> orderedKeys, String userLocale) {
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+
+        // Use ordered keys from parameter (already includes all fields)
+        List<String> fieldKeys = new ArrayList<>(orderedKeys);
+
+        // Exclude non-claim metadata
+        fieldKeys.remove("id");
+
+        // Build default display entries from claims
+        for (String key : fieldKeys) {
+            Object value = credentialProperties.get(key);
+            if (value == null) {
+                continue;
+            }
+
+            CredentialIssuerDisplayResponse display = null;
+
+            // Check if value is a Map containing display information
+            if (value instanceof Map) {
+                Map<String, Object> valueMap = (Map<String, Object>) value;
+                Object displayObj = valueMap.get("display");
+
+                if (displayObj instanceof List) {
+                    List<Map<String, Object>> displayList = (List<Map<String, Object>>) displayObj;
+
+                    if (!displayList.isEmpty()) {
+                        // Try to find matching locale
+                        Optional<Map<String, Object>> matchingDisplay = displayList.stream()
+                                .filter(d -> LocaleUtils.matchesLocale((String) d.get("locale"), userLocale))
+                                .findFirst();
+
+                        Map<String, Object> selectedDisplay = matchingDisplay.orElse(displayList.get(0));
+
+                        display = new CredentialIssuerDisplayResponse();
+                        display.setName((String) selectedDisplay.get("name"));
+                        display.setLocale((String) selectedDisplay.get("locale"));
+                    }
+                }
+            }
+
+            // Fallback to default display if no nested display found
+            if (display == null) {
+                display = new CredentialIssuerDisplayResponse();
+                display.setName(camelToTitleCase(key));
+                display.setLocale("en");
+            }
+
+            displayProperties.put(key, Map.of(display, value));
+        }
+
+        return displayProperties;
     }
 }

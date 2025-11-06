@@ -76,7 +76,6 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
         List<String> orderedKeys = credentialsSupportedResponse.getOrder();
 
-        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(null);
         // LDP VC format — display config is in "credential_definition.credential_subject"
         if (credentialsSupportedResponse.getCredentialDefinition() == null ||
                 credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject() == null) {

@@ -454,6 +454,239 @@ class VcSdJwtCredentialFormatHandlerTest {
         assertEquals(CredentialFormat.VC_SD_JWT.getFormat(), result);
     }
 
+    @Test
+    void buildFallbackDisplayPropertiesWithOrderedKeysShouldRespectOrder() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+        credentialProperties.put("lastName", "Doe");
+        credentialProperties.put("email", "john@example.com");
+
+        List<String> orderedKeys = Arrays.asList("email", "lastName", "firstName");
+        credentialsSupportedResponse.setOrder(orderedKeys);
+        credentialsSupportedResponse.setClaims(null); // Trigger fallback
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(3, result.size());
+
+        // Verify order is preserved
+        List<String> resultKeys = new ArrayList<>(result.keySet());
+        assertEquals("email", resultKeys.get(0));
+        assertEquals("lastName", resultKeys.get(1));
+        assertEquals("firstName", resultKeys.get(2));
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithNestedDisplayInfoShouldUseIt() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+
+        // Create nested display structure
+        Map<String, Object> addressValue = new HashMap<>();
+        List<Map<String, Object>> displayList = new ArrayList<>();
+        Map<String, Object> display = new HashMap<>();
+        display.put("name", "Home Address");
+        display.put("locale", "en");
+        displayList.add(display);
+        addressValue.put("display", displayList);
+
+        credentialProperties.put("address", addressValue);
+        credentialProperties.put("firstName", "John");
+
+        credentialsSupportedResponse.setClaims(null); // Trigger fallback
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        // Verify nested display was used
+        CredentialIssuerDisplayResponse addressDisplay = result.get("address").keySet().iterator().next();
+        assertEquals("Home Address", addressDisplay.getName());
+        assertEquals("en", addressDisplay.getLocale());
+
+        // Verify standard fallback for firstName
+        CredentialIssuerDisplayResponse firstNameDisplay = result.get("firstName").keySet().iterator().next();
+        assertEquals("First Name", firstNameDisplay.getName());
+        assertEquals("en", firstNameDisplay.getLocale());
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithLocaleMatchingShouldUseMatchingLocale() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+
+        // Create nested display with multiple locales
+        Map<String, Object> cityValue = new HashMap<>();
+        List<Map<String, Object>> displayList = new ArrayList<>();
+
+        Map<String, Object> enDisplay = new HashMap<>();
+        enDisplay.put("name", "City");
+        enDisplay.put("locale", "en");
+        displayList.add(enDisplay);
+
+        Map<String, Object> frDisplay = new HashMap<>();
+        frDisplay.put("name", "Ville");
+        frDisplay.put("locale", "fr");
+        displayList.add(frDisplay);
+
+        cityValue.put("display", displayList);
+        credentialProperties.put("city", cityValue);
+
+        credentialsSupportedResponse.setClaims(null);
+
+        try (MockedStatic<LocaleUtils> mockedLocaleUtils = mockStatic(LocaleUtils.class)) {
+            mockedLocaleUtils.when(() -> LocaleUtils.matchesLocale("fr", "fr"))
+                    .thenReturn(true);
+            mockedLocaleUtils.when(() -> LocaleUtils.matchesLocale("en", "fr"))
+                    .thenReturn(false);
+
+            // When
+            LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                    vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                            credentialProperties, credentialsSupportedResponse, "fr");
+
+            // Then
+            assertNotNull(result);
+            assertEquals(1, result.size());
+
+            CredentialIssuerDisplayResponse cityDisplay = result.get("city").keySet().iterator().next();
+            assertEquals("Ville", cityDisplay.getName());
+            assertEquals("fr", cityDisplay.getLocale());
+        }
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithEmptyDisplayListShouldUseDefaultFallback() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+
+        Map<String, Object> countryValue = new HashMap<>();
+        countryValue.put("display", new ArrayList<>()); // Empty display list
+        credentialProperties.put("country", countryValue);
+
+        credentialsSupportedResponse.setClaims(null);
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+
+        CredentialIssuerDisplayResponse countryDisplay = result.get("country").keySet().iterator().next();
+        assertEquals("Country", countryDisplay.getName()); // Fallback to camelToTitleCase
+        assertEquals("en", countryDisplay.getLocale());
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithNullValuesShouldSkipFields() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+        credentialProperties.put("middleName", null);
+        credentialProperties.put("lastName", "Doe");
+
+        credentialsSupportedResponse.setClaims(null);
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.size()); // middleName should be skipped
+        assertTrue(result.containsKey("firstName"));
+        assertTrue(result.containsKey("lastName"));
+        assertFalse(result.containsKey("middleName"));
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithIdFieldShouldExcludeIt() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("id", "12345");
+        credentialProperties.put("firstName", "John");
+
+        credentialsSupportedResponse.setClaims(null);
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertFalse(result.containsKey("id")); // id should be excluded
+        assertTrue(result.containsKey("firstName"));
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithNonMapDisplayValueShouldUseDefaultFallback() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+
+        Map<String, Object> ageValue = new HashMap<>();
+        ageValue.put("display", "Invalid Display Value"); // Not a List
+        credentialProperties.put("age", ageValue);
+
+        credentialsSupportedResponse.setClaims(null);
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+
+        CredentialIssuerDisplayResponse ageDisplay = result.get("age").keySet().iterator().next();
+        assertEquals("Age", ageDisplay.getName()); // Fallback to camelToTitleCase
+        assertEquals("en", ageDisplay.getLocale());
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithEmptyClaimsShouldTriggerFallback() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+        credentialProperties.put("lastName", "Doe");
+
+        credentialsSupportedResponse.setClaims(new HashMap<>()); // Empty claims
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        CredentialIssuerDisplayResponse firstNameDisplay = result.get("firstName").keySet().iterator().next();
+        assertEquals("First Name", firstNameDisplay.getName());
+        assertEquals("en", firstNameDisplay.getLocale());
+
+        CredentialIssuerDisplayResponse lastNameDisplay = result.get("lastName").keySet().iterator().next();
+        assertEquals("Last Name", lastNameDisplay.getName());
+        assertEquals("en", lastNameDisplay.getLocale());
+    }
+
     // Helper methods
     private Map<String, Object> createSampleClaims() {
         Map<String, Object> claims = new HashMap<>();
