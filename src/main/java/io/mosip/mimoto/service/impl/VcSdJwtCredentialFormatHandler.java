@@ -155,7 +155,7 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
             }
 
             // Remove standard JWT claims and SD-JWT metadata
-            List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg");
+            List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg", "id");
             metadataKeys.forEach(claims::remove);
 
             // Return claims directly as result
