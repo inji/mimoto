@@ -67,7 +67,7 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
 
         if (credentialsSupportedResponse.getClaims() == null || credentialsSupportedResponse.getClaims().isEmpty()) {
             log.info("Issuer well-known has no claims for SD-JWT format; falling back to claim-based display properties");
-            return buildFallbackDisplayProperties(credentialProperties, orderedKeys, userLocale);
+            return buildFallbackDisplayProperties(credentialProperties, orderedKeys);
         }
 
         // Extract raw claims and convert to DTOs
@@ -85,7 +85,7 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
 
         if (convertedClaimsMap.isEmpty()) {
             log.info("No display configuration found for SD-JWT format");
-            return buildFallbackDisplayProperties(credentialProperties, orderedKeys, userLocale);
+            return buildFallbackDisplayProperties(credentialProperties, orderedKeys);
         }
 
         String resolvedLocale = LocaleUtils.resolveLocaleWithFallback(convertedClaimsMap, userLocale);
@@ -126,7 +126,7 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
     public Map<String, Object> extractClaimsFromSdJwt(String sdJwtString) {
         try {
             SDJWT sdJwt = SDJWT.parse(sdJwtString);
-            Map<String, Object> claims = new HashMap<>();
+            Map<String, Object> claims = new LinkedHashMap<>();
 
             // Parse JWT payload
             String credentialJwt = sdJwt.getCredentialJwt();
@@ -172,15 +172,12 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
 
     private LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> buildFallbackDisplayProperties(
             Map<String, Object> credentialProperties,
-            Set<String> orderedKeys, String userLocale) {
+            Set<String> orderedKeys) {
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
 
         // Use ordered keys from parameter (already includes all fields)
         List<String> fieldKeys = new ArrayList<>(orderedKeys);
-
-        // Exclude non-claim metadata
-        fieldKeys.remove("id");
 
         // Build default display entries from claims
         for (String key : fieldKeys) {
@@ -189,41 +186,13 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
                 continue;
             }
 
-            CredentialIssuerDisplayResponse display = null;
-
-            // Check if value is a Map containing display information
-            if (value instanceof Map) {
-                Map<String, Object> valueMap = (Map<String, Object>) value;
-                Object displayObj = valueMap.get("display");
-
-                if (displayObj instanceof List) {
-                    List<Map<String, Object>> displayList = (List<Map<String, Object>>) displayObj;
-
-                    if (!displayList.isEmpty()) {
-                        // Try to find matching locale
-                        Optional<Map<String, Object>> matchingDisplay = displayList.stream()
-                                .filter(d -> LocaleUtils.matchesLocale((String) d.get("locale"), userLocale))
-                                .findFirst();
-
-                        Map<String, Object> selectedDisplay = matchingDisplay.orElse(displayList.get(0));
-
-                        display = new CredentialIssuerDisplayResponse();
-                        display.setName((String) selectedDisplay.get("name"));
-                        display.setLocale((String) selectedDisplay.get("locale"));
-                    }
-                }
-            }
-
-            // Fallback to default display if no nested display found
-            if (display == null) {
-                display = new CredentialIssuerDisplayResponse();
-                display.setName(camelToTitleCase(key));
-                display.setLocale("en");
-            }
+            // Generate fallback display using claims keys
+            CredentialIssuerDisplayResponse display = new CredentialIssuerDisplayResponse();
+            display.setName(camelToTitleCase(key));
+            display.setLocale("en");
 
             displayProperties.put(key, Map.of(display, value));
         }
-
         return displayProperties;
     }
 }
