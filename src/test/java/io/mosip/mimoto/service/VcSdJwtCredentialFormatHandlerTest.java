@@ -521,7 +521,7 @@ class VcSdJwtCredentialFormatHandlerTest {
 
         // Then
         assertNotNull(result);
-        assertEquals(2, result.size());
+        assertEquals(1, result.size());
         assertTrue(result.containsKey("firstName"));
     }
 

@@ -179,6 +179,8 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
         // Use ordered keys from parameter (already includes all fields)
         List<String> fieldKeys = new ArrayList<>(orderedKeys);
 
+        fieldKeys.remove("id");
+
         // Build default display entries from claims
         for (String key : fieldKeys) {
             Object value = credentialProperties.get(key);
