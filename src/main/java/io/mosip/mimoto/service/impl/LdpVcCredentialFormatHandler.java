@@ -74,22 +74,24 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
             String userLocale) {
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
-        List<String> orderedKeys = credentialsSupportedResponse.getOrder();
+        Set<String> orderedKeys = Optional.ofNullable(credentialsSupportedResponse.getOrder())
+                .map(LinkedHashSet::new) // preserve order
+                .orElse(new LinkedHashSet<>());
+
+        // Add remaining keys from credentialProperties that are not already in orderedKeys
+        for (String key : credentialProperties.keySet()) {
+            orderedKeys.add(key);
+        }
 
         // LDP VC format — display config is in "credential_definition.credential_subject"
         if (credentialsSupportedResponse.getCredentialDefinition() == null ||
                 credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject() == null) {
             log.info("Issuer well-known has no credential definition or credential subject for LDP VC format; falling back to claim-based display properties");
-            return buildFallbackDisplayProperties(credentialProperties, orderedKeys);
+            return buildFallbackDisplayProperties(credentialProperties, new ArrayList<>(orderedKeys));
         }
 
         Map<String, CredentialDisplayResponseDto> displayConfigMap =
                 credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject();
-
-        if (displayConfigMap == null) {
-            log.info("No display configuration found in issuer well-known for LDP VC format; falling back to claim-based display properties");
-            return buildFallbackDisplayProperties(credentialProperties, orderedKeys);
-        }
 
         String resolvedLocale = LocaleUtils.resolveLocaleWithFallback(displayConfigMap, userLocale);
 
@@ -107,7 +109,7 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
         addFallbackDisplayProperties(credentialProperties, localizedDisplayMap, resolvedLocale);
 
         List<String> fieldKeys = (orderedKeys != null && !orderedKeys.isEmpty())
-                ? orderedKeys
+                ? new ArrayList<>(orderedKeys)
                 : new ArrayList<>(localizedDisplayMap.keySet());
 
         for (String key : fieldKeys) {
