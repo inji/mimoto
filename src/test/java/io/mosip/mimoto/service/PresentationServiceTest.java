@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.ErrorDTO;
-import io.mosip.mimoto.dto.VerifiablePresentationResponseDTO;
+import io.mosip.mimoto.dto.VPResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponseProof;
@@ -230,9 +230,9 @@ public class PresentationServiceTest {
             when(mockOpenID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest, preRegisteredVerifiers, false))
                     .thenReturn(getPresentationAuthorizationRequest(clientId, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response"));
 
-            VerifiablePresentationResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("test-clientId", "test-clientId", null, true, true, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
+            VPResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("test-clientId", "test-clientId", null, true, true, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
 
-            VerifiablePresentationResponseDTO actualPresentationResponseDTO =
+            VPResponseDTO actualPresentationResponseDTO =
                     presentationService.handleVPAuthorizationRequest(urlEncodedVPAuthorizationRequest, walletId);
 
             assertEquals(expectedPresentationResponseDTO, actualPresentationResponseDTO);
@@ -255,9 +255,9 @@ public class PresentationServiceTest {
             when(mockOpenID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest, preRegisteredVerifiers, false))
                     .thenReturn(getPresentationAuthorizationRequest(clientId, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response"));
 
-            VerifiablePresentationResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("test-clientId", "test-clientId", null, false, true, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
+            VPResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("test-clientId", "test-clientId", null, false, true, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
 
-            VerifiablePresentationResponseDTO actualPresentationResponseDTO =
+            VPResponseDTO actualPresentationResponseDTO =
                     presentationService.handleVPAuthorizationRequest(urlEncodedVPAuthorizationRequest, walletId);
 
             assertEquals(expectedPresentationResponseDTO, actualPresentationResponseDTO);
@@ -281,9 +281,9 @@ public class PresentationServiceTest {
             when(mockOpenID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest, preRegisteredVerifiers, false))
                     .thenReturn(getPresentationAuthorizationRequest(clientId, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response"));
 
-            VerifiablePresentationResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("unknown-clientId", "unknown-clientId", null, false, false, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
+            VPResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("unknown-clientId", "unknown-clientId", null, false, false, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
 
-            VerifiablePresentationResponseDTO actualPresentationResponseDTO =
+            VPResponseDTO actualPresentationResponseDTO =
                     presentationService.handleVPAuthorizationRequest(urlEncodedVPAuthorizationRequest, walletId);
 
             assertEquals(expectedPresentationResponseDTO, actualPresentationResponseDTO);

@@ -67,5 +67,9 @@ public class OpenID4VPConstants {
     
     // Credential selection keys
     public static final String SELECTED_CREDENTIALS = "selectedCredentials";
+    
+    // URL query parameter names for OpenID4VP authorization requests
+    public static final String CLIENT_ID_PARAM = "client_id";
+    public static final String RESPONSE_URI_PARAM = "response_uri";
 }
 

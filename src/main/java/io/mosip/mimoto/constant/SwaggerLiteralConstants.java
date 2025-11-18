@@ -98,4 +98,60 @@ public class SwaggerLiteralConstants {
     /* OAuth2 ID Token Authentication Controller */
     public static final String ID_TOKEN_AUTHENTICATION_NAME = "OAuth2 ID Token Authentication";
     public static final String ID_TOKEN_AUTHENTICATION_DESCRIPTION = "All the OAuth2 ID Token Authentication related endpoints";
+
+    /* Wallet Presentations Controller */
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_SUMMARY = "Processes Verifiable Presentation Authorization Request and provides details about the verifier and presentation.";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_DESCRIPTION = "This API is secured using session-based authentication. Upon receiving a request, the session is first retrieved using the session ID extracted from the Cookie header to authenticate the user. Once authenticated, the API processes the received Verifiable Presentation Authorization Request from the Verifier for a specific wallet. It validates the session, verifies the authenticity of the request, and checks if the Verifier is pre-registered and trusted by the wallet. If all validations pass, the API returns a response containing the presentation details; otherwise, an appropriate error response is returned.";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_REQ_EXAMPLE_NAME = "Verifier Verifiable Presentation Authorization Request";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_REQ_EXAMPLE_VALUE = "{ \"authorizationRequestUrl\": \"client_id=mock-client&presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D\" }";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_SUCCESS_EXAMPLE_NAME = "Success response";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_SUCCESS_EXAMPLE_VALUE = "{ \"presentationId\": \"123e4567-e89b-12d3-a456-426614174000\", \"verifier\": { \"id\": \"mock-client\", \"name\": \"Requester name\", \"logo\": \"https://api.collab.mosip.net/inji/verifier-logo.png\", \"isTrusted\": true, \"isPreregisteredWithWallet\": true, \"redirectUri\": \"https://injiverify.collab.mosip.net/redirect\" } }";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_MISSING_RESPONSE_TYPE_NAME = "response_type is missing in Authorization request";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_MISSING_RESPONSE_TYPE_VALUE = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Missing Input: response_type param is required\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_INVALID_WALLET_ID_NAME = "Invalid Wallet ID";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_INVALID_WALLET_ID_VALUE = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Invalid Wallet ID. Session and request Wallet ID do not match\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_WALLET_LOCKED_NAME = "Wallet ID not found in session";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_WALLET_LOCKED_VALUE = "{\"errorCode\": \"wallet_locked\", \"errorMessage\": \"Wallet is locked\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_401_USER_NOT_FOUND_NAME = "User ID is not present in session";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_401_USER_NOT_FOUND_VALUE = "{\"errorCode\": \"unauthorized\", \"errorMessage\": \"User ID not found in session\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_VERIFIERS_FETCH_FAILED_NAME = "Failed to fetch pre-registered trusted verifiers";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_VERIFIERS_FETCH_FAILED_VALUE = "{\"errorCode\": \"RESIDENT-APP-026\", \"errorMessage\": \"Api not accessible failure\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_SERVER_ERROR_NAME = "Unexpected Server Error";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_SERVER_ERROR_VALUE = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_INVALID_URI_SYNTAX_NAME = "Invalid URI syntax";
+    public static final String WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_INVALID_URI_SYNTAX_VALUE = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Incorrect URI parameters in the request\"}";
+
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_SUMMARY = "Get matching credentials for a presentation request";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_DESCRIPTION = "This API retrieves credentials from the wallet that match the presentation definition requirements. It returns available credentials that can satisfy the presentation request along with any missing claims that are required but not available.";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_SUCCESS_EXAMPLE_NAME = "Success response";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_SUCCESS_EXAMPLE_VALUE = "{ \"availableCredentials\": [{ \"credentialId\": \"cred-123\", \"credentialTypeDisplayName\": \"Mock Verifiable Credential (SD-JWT)\", \"credentialTypeLogo\": \"https://mosip.github.io/inji-config/logos/mosipid-logo.png\", \"type\": [\"IDCredential\"], \"claims\": { \"birthdate\": \"1990-01-01\" } }], \"missingClaims\": [] }";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_400_INVALID_WALLET_ID_NAME = "Invalid Wallet ID";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_400_INVALID_WALLET_ID_VALUE = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Invalid Wallet ID. Session and request Wallet ID do not match\"}";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_400_PRESENTATION_NOT_FOUND_NAME = "Presentation not found";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_400_PRESENTATION_NOT_FOUND_VALUE = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Presentation not found in session\"}";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_401_USER_NOT_FOUND_NAME = "User ID is not present in session";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_401_USER_NOT_FOUND_VALUE = "{\"errorCode\": \"unauthorized\", \"errorMessage\": \"User ID not found in session\"}";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_500_SERVER_ERROR_NAME = "Unexpected Server Error";
+    public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_500_SERVER_ERROR_VALUE = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}";
+
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_SUMMARY = "Submit presentation or reject verifier";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_DESCRIPTION = "This API handles both presentation submission and verifier rejection based on the request content. For submission: include selectedCredentials array. For rejection: include errorCode and errorMessage fields.";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_EXAMPLE_NAME = "Submit Presentation";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_EXAMPLE_VALUE = "{ \"selectedCredentials\": [\"cred-123\", \"cred-456\"] }";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_REJECT_EXAMPLE_NAME = "Reject Verifier";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_REJECT_EXAMPLE_VALUE = "{ \"errorCode\": \"access_denied\", \"errorMessage\": \"User denied authorization to share credentials\" }";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_200_SUBMITTED_NAME = "Presentation submitted";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_200_SUBMITTED_VALUE = "{ \"presentationId\": \"presentation-123\", \"status\": \"SUCCESS\", \"message\": \"Presentation successfully submitted and shared with verifier\" }";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_200_REJECTED_NAME = "Verifier rejected";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_200_REJECTED_VALUE = "{\"status\": \"success\", \"message\": \"Presentation request rejected. An OpenID4VP error response has been sent to the verifier.\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_400_INVALID_FORMAT_NAME = "Invalid request format";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_400_INVALID_FORMAT_VALUE = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Request must contain either selectedCredentials or both errorCode and errorMessage\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_400_INVALID_WALLET_ID_NAME = "Invalid Wallet ID";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_400_INVALID_WALLET_ID_VALUE = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Invalid Wallet ID. Session and request Wallet ID do not match\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_400_PRESENTATION_NOT_FOUND_NAME = "Presentation not found";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_400_PRESENTATION_NOT_FOUND_VALUE = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Presentation not found in session\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_401_UNAUTHORIZED_NAME = "unauthorized";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_401_UNAUTHORIZED_VALUE = "{\"errorCode\": \"unauthorized\", \"errorMessage\": \"User ID not found in session\"}";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_500_SERVER_ERROR_NAME = "Server error";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_500_SERVER_ERROR_VALUE = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}";
 }

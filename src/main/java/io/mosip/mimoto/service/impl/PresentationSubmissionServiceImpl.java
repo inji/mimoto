@@ -433,7 +433,7 @@ public class PresentationSubmissionServiceImpl implements PresentationSubmission
             // Since authorizationRequest is a URL, we need to extract client_id from URL parameters
             if (sessionData.getAuthorizationRequest() != null) {
                 String authRequestUrl = sessionData.getAuthorizationRequest();
-                return UrlParameterUtils.extractClientIdFromUrl(authRequestUrl);
+                return UrlParameterUtils.extractQueryParameter(authRequestUrl, OpenID4VPConstants.CLIENT_ID_PARAM);
             }
         } catch (Exception e) {
             log.warn("Failed to extract verifier ID", e);
