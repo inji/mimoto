@@ -229,6 +229,13 @@ public class PresentationServiceImpl implements PresentationService {
                     postRequest,
                     Map.class
             );
+
+            // Use request's redirectUri if it's non-blank
+            if (redirectUri != null && !redirectUri.isBlank()) {
+                log.info("Using redirectUri from request: {}", redirectUri);
+                return redirectUri;
+            }
+
             log.info("Response from verifier after POST: {}", postResponse);
 
             // Check for redirect_uri in response first
@@ -237,12 +244,6 @@ public class PresentationServiceImpl implements PresentationService {
                 if (responseRedirectUri != null && !responseRedirectUri.isEmpty()) {
                     return responseRedirectUri;
                 }
-            }
-
-            // Use request's redirectUri if it's non-blank
-            if (redirectUri != null && !redirectUri.isBlank()) {
-                log.info("Using redirectUri from request: {}", redirectUri);
-                return redirectUri;
             }
 
             // Fallback behavior if redirect_uri is not provided

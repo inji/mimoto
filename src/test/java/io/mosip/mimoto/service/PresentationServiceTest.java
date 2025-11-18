@@ -428,6 +428,29 @@ public class PresentationServiceTest {
 
         String result = presentationService.authorizePresentation(presentationRequestDTO);
 
+        assertEquals("test_redirect_uri", result);
+        verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void testDirectPostResponseModeWithNoRedirectURIParam() throws Exception {
+        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
+        PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        presentationRequestDTO.setResponseMode("direct_post");
+        presentationRequestDTO.setResponseUri("https://verifier.example.com/response");
+        presentationRequestDTO.setState("test-state");
+        presentationRequestDTO.setNonce("test-nonce");
+        presentationRequestDTO.setRedirectUri("");
+
+        Map<String, Object> mockResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockResponse);
+
+        String result = presentationService.authorizePresentation(presentationRequestDTO);
+
         assertEquals("https://verifier.example.com/success", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
