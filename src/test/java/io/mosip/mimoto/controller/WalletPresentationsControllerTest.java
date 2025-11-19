@@ -5,7 +5,6 @@ import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
-import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.PresentationActionService;
 import io.mosip.mimoto.service.WalletPresentationService;
 import io.mosip.mimoto.service.impl.SessionManager;
@@ -61,9 +60,6 @@ public class WalletPresentationsControllerTest {
 
     @MockBean
     private SessionManager sessionManager;
-
-    @MockBean
-    private CredentialMatchingService credentialMatchingService;
 
     @MockBean
     private PresentationActionService presentationActionService;
@@ -178,7 +174,7 @@ public class WalletPresentationsControllerTest {
                 presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenThrow(new ApiNotAccessibleException("Error occurred while fetching credentials"));
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)
@@ -197,7 +193,7 @@ public class WalletPresentationsControllerTest {
                 presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenThrow(new IOException("Error occurred while processing credentials"));
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)
@@ -216,7 +212,7 @@ public class WalletPresentationsControllerTest {
                 presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenThrow(new VPNotCreatedException("Error occurred while creating VP"));
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)
@@ -235,7 +231,7 @@ public class WalletPresentationsControllerTest {
                 presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenThrow(new IllegalArgumentException("Invalid argument provided"));
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)
@@ -415,7 +411,7 @@ public class WalletPresentationsControllerTest {
         matchingCredentials.setMatchingCredentials(java.util.Collections.emptyList());
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenReturn(matchingCredentials);
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)
@@ -435,7 +431,7 @@ public class WalletPresentationsControllerTest {
                 presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenThrow(new IllegalArgumentException("Invalid argument"));
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)
@@ -453,7 +449,7 @@ public class WalletPresentationsControllerTest {
                 presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenThrow(new ApiNotAccessibleException("API not accessible"));
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)
@@ -471,7 +467,7 @@ public class WalletPresentationsControllerTest {
                 presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenThrow(new java.io.IOException("IO error"));
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)
@@ -489,7 +485,7 @@ public class WalletPresentationsControllerTest {
                 presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
-        when(credentialMatchingService.getMatchingCredentials(sessionData, walletId, walletKey))
+        when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
                 .thenThrow(new VPNotCreatedException("VP_ERROR", "VP creation failed"));
 
         mockMvc.perform(get("/wallets/{walletId}/presentations/{presentationId}/credentials", walletId, presentationId)

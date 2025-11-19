@@ -12,11 +12,13 @@ import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.constant.OpenID4VPConstants;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.*;
+import io.mosip.mimoto.dto.MatchingCredentialsDTO;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.VerifiablePresentation;
 import io.mosip.mimoto.repository.VerifiablePresentationsRepository;
+import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.service.WalletPresentationService;
@@ -76,6 +78,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     private KeyPairRetrievalService keyPairService;
 
     @Autowired
+    private CredentialMatchingService credentialMatchingService;
+
+    @Autowired
     private VerifiablePresentationsRepository verifiablePresentationsRepository;
 
     @Override
@@ -91,6 +96,12 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         VerifiablePresentationVerifierDTO verifiablePresentationVerifierDTO = createVPResponseVerifierDTO(preRegisteredVerifiers, authorizationRequest, walletId);
 
         return new VPResponseDTO(presentationId, verifiablePresentationVerifierDTO);
+    }
+
+    @Override
+    public MatchingCredentialsDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {
+        log.debug("Getting matching credentials for walletId: {}, presentationId: {}", walletId, sessionData != null ? sessionData.getPresentationId() : "null");
+        return credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
     }
 
     @Override

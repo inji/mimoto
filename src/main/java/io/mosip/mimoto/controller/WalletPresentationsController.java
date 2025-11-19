@@ -12,7 +12,6 @@ import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
-import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.WalletPresentationService;
 import io.mosip.mimoto.service.impl.SessionManager;
 import io.mosip.mimoto.util.Utilities;
@@ -48,9 +47,6 @@ public class WalletPresentationsController {
 
     @Autowired
     private WalletPresentationService walletPresentationService;
-
-    @Autowired
-    private CredentialMatchingService credentialMatchingService;
 
     @Autowired
     private SessionManager sessionManager;
@@ -143,7 +139,7 @@ public class WalletPresentationsController {
         }
         try {
             VerifiablePresentationSessionData sessionData = sessionManager.getPresentationSessionData(httpSession, walletId, presentationId);
-            MatchingCredentialsDTO matchingCredentials = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+            MatchingCredentialsDTO matchingCredentials = walletPresentationService.getMatchingCredentials(sessionData, walletId, base64Key);
             // Store the matching credentials and pre-filtered matched credentials in session cache before returning
             sessionManager.storeMatchingWalletCredentialsInPresentationSessionData(httpSession, walletId, sessionData, matchingCredentials.getMatchingCredentials());
             return ResponseEntity.status(HttpStatus.OK).body(matchingCredentials.getMatchingCredentialsResponse());
