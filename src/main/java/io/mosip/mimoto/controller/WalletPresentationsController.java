@@ -13,7 +13,7 @@ import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.CredentialMatchingService;
-import io.mosip.mimoto.service.PresentationService;
+import io.mosip.mimoto.service.WalletPresentationService;
 import io.mosip.mimoto.service.impl.SessionManager;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.WalletUtil;
@@ -47,7 +47,7 @@ import static io.mosip.mimoto.exception.ErrorConstants.*;
 public class WalletPresentationsController {
 
     @Autowired
-    private PresentationService presentationService;
+    private WalletPresentationService walletPresentationService;
 
     @Autowired
     private CredentialMatchingService credentialMatchingService;
@@ -95,7 +95,7 @@ public class WalletPresentationsController {
         try {
             WalletUtil.validateWalletId(httpSession, walletId);
 
-            VPResponseDTO verifiablePresentationResponseDTO = presentationService.handleVPAuthorizationRequest(vpAuthorizationRequest.getAuthorizationRequestUrl(), walletId);
+            VPResponseDTO verifiablePresentationResponseDTO = walletPresentationService.handleVPAuthorizationRequest(vpAuthorizationRequest.getAuthorizationRequestUrl(), walletId);
 
             VerifiablePresentationSessionData verifiablePresentationSessionData = new VerifiablePresentationSessionData(verifiablePresentationResponseDTO.getPresentationId(),
                     vpAuthorizationRequest.getAuthorizationRequestUrl(), Instant.now(),
@@ -220,7 +220,7 @@ public class WalletPresentationsController {
                 return Utilities.getErrorResponseEntityFromPlatformErrorMessage(UNAUTHORIZED_ACCESS, HttpStatus.UNAUTHORIZED, MediaType.APPLICATION_JSON);
             }
 
-            return presentationService.handlePresentationAction(walletId, presentationId, request, vpSessionData, base64Key);
+            return walletPresentationService.handlePresentationAction(walletId, presentationId, request, vpSessionData, base64Key);
 
         }
         catch (IllegalArgumentException exception){

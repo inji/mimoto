@@ -7,7 +7,7 @@ import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.PresentationActionService;
-import io.mosip.mimoto.service.PresentationService;
+import io.mosip.mimoto.service.WalletPresentationService;
 import io.mosip.mimoto.service.impl.SessionManager;
 import io.mosip.mimoto.util.GlobalExceptionHandler;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
@@ -54,7 +54,7 @@ public class WalletPresentationsControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private PresentationService presentationService;
+    private WalletPresentationService walletPresentationService;
 
     @Mock
     private HttpSession httpSession;
@@ -88,7 +88,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "client_id=mock-client&presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(presentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenReturn(presentationResponseDTO);
+        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenReturn(presentationResponseDTO);
         String expectedResponse = new ObjectMapper().writeValueAsString(presentationResponseDTO);
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
@@ -108,7 +108,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(presentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new OpenID4VPExceptions.MissingInput(List.of("client_id"), "client_id request param is Missing", "AuthorizationRequest"));
+        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new OpenID4VPExceptions.MissingInput(List.of("client_id"), "client_id request param is Missing", "AuthorizationRequest"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -126,7 +126,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(presentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new ApiNotAccessibleException("Error occurred while fetching trusted verifiers"));
+        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new ApiNotAccessibleException("Error occurred while fetching trusted verifiers"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -144,7 +144,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(presentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new RuntimeException("Error occurred while creating presentation in openid4vp flow"));
+        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new RuntimeException("Error occurred while creating presentation in openid4vp flow"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -371,7 +371,7 @@ public class WalletPresentationsControllerTest {
         VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         
-        when(presentationService.handleVPAuthorizationRequest(authorizationRequestUrl, walletId))
+        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequestUrl, walletId))
                 .thenThrow(new java.net.URISyntaxException("invalid://url with spaces", "Invalid URI"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
@@ -390,7 +390,7 @@ public class WalletPresentationsControllerTest {
         VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         
-        when(presentationService.handleVPAuthorizationRequest(authorizationRequestUrl, walletId))
+        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequestUrl, walletId))
                 .thenThrow(new VPNotCreatedException("Failed to create VP"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)

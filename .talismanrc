@@ -122,7 +122,7 @@ fileignoreconfig:
 - filename: src/main/resources/application-default.properties
   checksum: 05110c9a04d4b8013c15d4c9294ebe589f00d1917be3e9b9f40996974c6cba3a
 - filename: src/main/resources/application-local.properties
-  checksum: 9f28cff2323b911e29d62510e11e68662fde473adb96dff0cc65409d80c6d828
+  checksum: ebb1d0c711bd6c2fec344a1a50786dbe46f06916419198546077a975e67d3933
 - filename: docker-compose/config/mimoto-default.properties
   checksum: 7fefcbd53ef6f34696c96be682dbb0d2d5535cea337d3ccb60f85a9cb9805cd1
 - filename: README.md
@@ -159,9 +159,9 @@ fileignoreconfig:
 - filename: src/main/java/io/mosip/mimoto/util/ClientValidationUtils.java
   checksum: ef0cb7c9f0295ad7b5f25f4a73c998f55b2ed847922527929860b75eead7103c
 - filename: src/main/java/io/mosip/mimoto/service/PresentationService.java
-  checksum: 3c08b0732807ca7cd2b3d73e2c5a1ecefb6a45e4dc9de70139c96b2563cd46a6
+  checksum: 9053ee654c595c0dd6087ab7284e57da20746734a4a02dca2c04d5fe42f061e6
 - filename: src/main/java/io/mosip/mimoto/service/impl/PresentationServiceImpl.java
-  checksum: e258d3390d78d513df61c46e37c0cd860af81d6b56848edd6c12779ba42dfee1
+  checksum: 9053ee654c595c0dd6087ab7284e57da20746734a4a02dca2c04d5fe42f061e6
 - filename: src/main/java/io/mosip/mimoto/service/CredentialMatchingService.java
   checksum: b2ceada5c81b9dadb6e7780604c68b7ae2d4272d2f67442fab0f5a45bd33727e
 - filename: src/main/java/io/mosip/mimoto/service/impl/CredentialMatchingServiceImpl.java
@@ -198,4 +198,6 @@ fileignoreconfig:
   checksum: 14ac202ae6b04f89b61708ea81bbc59a1819ad164800d0d016c1f6051e68a0d6
 - filename: src/main/java/io/mosip/mimoto/constant/SwaggerLiteralConstants.java
   checksum: 34db30e6de4ea8e9eb939b584293284a5aef702d681116185467103669c0604a
+- filename: src/test/java/io/mosip/mimoto/service/WalletPresentationServiceTest.java
+  checksum: 85c68b90c7aa05655dbb2ef95ab20fe21c59c0f98a817be6766c31fde82475ae
 version: ""
