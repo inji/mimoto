@@ -6,7 +6,7 @@ import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.dto.MatchingCredentialsResponseDTO;
 import io.mosip.mimoto.dto.MatchingCredentialsDTO;
 import io.mosip.mimoto.dto.SubmitPresentationRequestDTO;
-import io.mosip.mimoto.dto.VPAuthorizationRequest;
+import io.mosip.mimoto.dto.VPAuthorizationRequestDTO;
 import io.mosip.mimoto.dto.VPResponseDTO;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
@@ -70,7 +70,7 @@ public class WalletPresentationsController {
                     description = "Request body containing the Verifiable Presentation Authorization Request parameters.",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = VPAuthorizationRequest.class),
+                            schema = @Schema(implementation = VPAuthorizationRequestDTO.class),
                             examples = @ExampleObject(
                                     name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_REQ_EXAMPLE_NAME,
                                     value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_REQ_EXAMPLE_VALUE
@@ -91,7 +91,7 @@ public class WalletPresentationsController {
             @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_INVALID_URI_SYNTAX_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_INVALID_URI_SYNTAX_VALUE)
     }))
     @PostMapping
-    public ResponseEntity<VPResponseDTO> handleVPAuthorizationRequest(@PathVariable("walletId") String walletId, HttpSession httpSession, @RequestBody VPAuthorizationRequest vpAuthorizationRequest) {
+    public ResponseEntity<VPResponseDTO> handleVPAuthorizationRequest(@PathVariable("walletId") String walletId, HttpSession httpSession, @RequestBody VPAuthorizationRequestDTO vpAuthorizationRequest) {
         try {
             WalletUtil.validateWalletId(httpSession, walletId);
 
