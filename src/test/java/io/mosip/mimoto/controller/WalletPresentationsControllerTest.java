@@ -86,7 +86,7 @@ public class WalletPresentationsControllerTest {
     @Test
     public void testCreatePresentationSuccess() throws Exception {
         String authorizationRequestUrl = "client_id=mock-client&presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
-        VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
+        VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenReturn(presentationResponseDTO);
         String expectedResponse = new ObjectMapper().writeValueAsString(presentationResponseDTO);
@@ -106,7 +106,7 @@ public class WalletPresentationsControllerTest {
     @Test
     public void shouldThrowExceptionWhenBadAuthorizationRequestIsReceivedFromVerifier() throws Exception {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
-        VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
+        VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new OpenID4VPExceptions.MissingInput(List.of("client_id"), "client_id request param is Missing", "AuthorizationRequest"));
 
@@ -124,7 +124,7 @@ public class WalletPresentationsControllerTest {
     @Test
     public void shouldThrowSpecificErrorCodeAndMessageWhenAnyCustomExceptionIsThrown() throws Exception {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
-        VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
+        VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new ApiNotAccessibleException("Error occurred while fetching trusted verifiers"));
 
@@ -142,7 +142,7 @@ public class WalletPresentationsControllerTest {
     @Test
     public void shouldThrowWalletCreateExceptionWhenAnyUnexpectedErrorOccurs() throws Exception {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
-        VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
+        VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new RuntimeException("Error occurred while creating presentation in openid4vp flow"));
 
@@ -368,7 +368,7 @@ public class WalletPresentationsControllerTest {
     @Test
     public void testHandleVPAuthorizationRequestWithURISyntaxException() throws Exception {
         String authorizationRequestUrl = "invalid://url with spaces";
-        VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
+        VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         
         when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequestUrl, walletId))
@@ -387,7 +387,7 @@ public class WalletPresentationsControllerTest {
     @Test
     public void testHandleVPAuthorizationRequestWithVPNotCreatedException() throws Exception {
         String authorizationRequestUrl = "client_id=test&response_type=vp_token";
-        VPAuthorizationRequest authorizationRequest = new VPAuthorizationRequest();
+        VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         
         when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequestUrl, walletId))
