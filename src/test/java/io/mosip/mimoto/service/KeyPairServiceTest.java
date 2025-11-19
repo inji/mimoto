@@ -6,7 +6,7 @@ import io.mosip.mimoto.exception.KeyGenerationException;
 import io.mosip.mimoto.model.ProofSigningKey;
 import io.mosip.mimoto.model.Wallet;
 import io.mosip.mimoto.repository.ProofSigningKeyRepository;
-import io.mosip.mimoto.service.impl.KeyPairServiceImpl;
+import io.mosip.mimoto.service.impl.KeyPairRetrievalServiceImpl;
 import io.mosip.mimoto.util.EncryptionDecryptionUtil;
 import io.mosip.mimoto.util.KeyGenerationUtil;
 import org.junit.Before;
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.*;
 public class KeyPairServiceTest {
 
     @InjectMocks
-    private KeyPairServiceImpl keyPairService;
+    private KeyPairRetrievalServiceImpl keyPairService;
 
     @Mock
     private ProofSigningKeyRepository proofSigningKeyRepository;

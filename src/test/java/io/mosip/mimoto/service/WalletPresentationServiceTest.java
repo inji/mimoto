@@ -64,7 +64,7 @@ public class WalletPresentationServiceTest {
     private ObjectMapper objectMapper;
 
     @Mock
-    private KeyPairService keyPairService;
+    private KeyPairRetrievalService keyPairService;
 
     @Mock
     private VerifiablePresentationsRepository verifiablePresentationsRepository;

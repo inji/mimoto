@@ -17,7 +17,7 @@ import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.VerifiablePresentation;
 import io.mosip.mimoto.repository.VerifiablePresentationsRepository;
-import io.mosip.mimoto.service.KeyPairService;
+import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.service.WalletPresentationService;
 import io.mosip.mimoto.util.Base64Util;
@@ -73,7 +73,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     private ObjectMapper objectMapper;
 
     @Autowired
-    private KeyPairService keyPairService;
+    private KeyPairRetrievalService keyPairService;
 
     @Autowired
     private VerifiablePresentationsRepository verifiablePresentationsRepository;
