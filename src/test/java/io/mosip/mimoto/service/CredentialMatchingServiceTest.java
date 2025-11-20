@@ -8,6 +8,7 @@ import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.model.CredentialMetadata;
 import io.mosip.mimoto.service.impl.CredentialMatchingServiceImpl;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
@@ -82,7 +83,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(issuerConfig);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -190,7 +191,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(Collections.emptyList());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -210,7 +211,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(walletCredentials);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -228,7 +229,7 @@ public class CredentialMatchingServiceTest {
 
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -251,7 +252,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithMapData());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -273,7 +274,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(credentialsWithDifferentFormat);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -295,7 +296,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockVCCredentialPropertiesWithProof());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -313,7 +314,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithMapData());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -331,7 +332,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithMapData());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -349,7 +350,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithSubject());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -367,7 +368,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(walletCredentials); // credentials without matching subject
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -386,7 +387,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithMapData());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -404,7 +405,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithMapData());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -431,7 +432,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(mockIssuerConfig);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -468,7 +469,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(mockIssuerConfig);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -492,7 +493,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(walletCredentials);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -510,7 +511,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithMapData());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -528,7 +529,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(walletCredentials);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -536,7 +537,7 @@ public class CredentialMatchingServiceTest {
         assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
-    @Test
+    @Test(expected = InvalidRequestException.class)
     public void testGetMatchingCredentialsWithSdJwtFormat() throws Exception {
         // Arrange
         PresentationDefinition pd = createMockPresentationDefinition();
@@ -546,18 +547,11 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithSdJwtFormat());
         
         
-        // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert
-        assertNotNull(result);
-        // For VC+SD-JWT format, the static extractJwtPayloadFromSdJwt method may not work in unit tests
-        // So we verify that the result is not null and the missing claims are properly handled
-        assertNotNull(result.getMatchingCredentialsResponse());
+        // Act & Assert - Should throw InvalidRequestException for unsupported SD-JWT format
+        credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
     }
 
-    @Test
+    @Test(expected = InvalidRequestException.class)
     public void testGetMatchingCredentialsWithDcSdJwtFormat() throws Exception {
         // Arrange
         PresentationDefinition pd = createMockPresentationDefinition();
@@ -569,15 +563,8 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(dcSdJwtCredentials);
         
         
-        // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert
-        assertNotNull(result);
-        // For DC+SD-JWT format, the static extractJwtPayloadFromSdJwt method may not work in unit tests
-        // So we verify that the result is not null and the missing claims are properly handled
-        assertNotNull(result.getMatchingCredentialsResponse());
+        // Act & Assert - Should throw InvalidRequestException for unsupported DC+SD-JWT format
+        credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
     }
 
     @Test
@@ -591,7 +578,7 @@ public class CredentialMatchingServiceTest {
                 .thenThrow(new InvalidIssuerIdException());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -612,7 +599,7 @@ public class CredentialMatchingServiceTest {
                 .thenThrow(new ApiNotAccessibleException());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -632,7 +619,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(createMockWalletCredentialsWithMultipleCredentials());
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -640,7 +627,7 @@ public class CredentialMatchingServiceTest {
         assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
         // Should deduplicate credentials by ID
         Set<String> credentialIds = result.getMatchingCredentialsResponse().getAvailableCredentials()
-                .stream().map(SelectableCredentialDTO::getCredentialId).collect(Collectors.toSet());
+                .stream().map(CredentialDTO::getCredentialId).collect(Collectors.toSet());
         assertEquals(2, credentialIds.size()); // Should have 2 unique credentials
     }
 
@@ -1049,7 +1036,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(mockIssuerConfig);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert - This tests that the JSON path evaluation works correctly
@@ -1087,7 +1074,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(mockIssuerConfig);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -1119,7 +1106,7 @@ public class CredentialMatchingServiceTest {
         
         
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert - Should not match due to non-existent path
@@ -1160,7 +1147,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(mockIssuerConfig);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -1195,7 +1182,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(mockIssuerConfig);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
@@ -1264,7 +1251,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(pdWithNullFields);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert - Should handle null fields gracefully
@@ -1288,7 +1275,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(credentials);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert - Should handle null format gracefully
@@ -1309,7 +1296,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(credentials);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert - Should handle null matches gracefully
@@ -1334,7 +1321,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(credentials);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert - Should handle null filter gracefully
@@ -1359,7 +1346,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(credentials);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert - Should handle null path gracefully
@@ -1384,7 +1371,7 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(credentials);
 
         // Act
-        MatchingCredentialsWithWalletDataDTO result = credentialMatchingService
+        MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert - Should handle blank path gracefully

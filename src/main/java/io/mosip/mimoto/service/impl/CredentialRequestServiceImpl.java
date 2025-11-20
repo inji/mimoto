@@ -6,7 +6,7 @@ import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.service.CredentialFormatHandler;
 import io.mosip.mimoto.service.CredentialFormatHandlerFactory;
 import io.mosip.mimoto.service.CredentialRequestService;
-import io.mosip.mimoto.service.KeyPairService;
+import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.util.JwtGeneratorUtil;
 import io.mosip.mimoto.util.KeyGenerationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,7 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
     private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
 
     @Autowired
-    private KeyPairService keyPairService;
+    private KeyPairRetrievalService keyPairService;
 
     @Override
     public VCCredentialRequest buildRequest(IssuerDTO issuerDTO,

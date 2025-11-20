@@ -495,7 +495,7 @@ public class TestUtilities {
         return passcodeControl;
     }
 
-    public static VerifiablePresentationResponseDTO getVerifiablePresentationResponseDTO(String clientId, String clientName, String clientLogo, boolean isTrusted, boolean isPreRegisteredWithWallet, String redirectUri, OpenID4VP openID4VP, Instant time) {
+    public static VPResponseDTO getVerifiablePresentationResponseDTO(String clientId, String clientName, String clientLogo, boolean isTrusted, boolean isPreRegisteredWithWallet, String redirectUri, OpenID4VP openID4VP, Instant time) {
         VerifiablePresentationVerifierDTO presentationVerifierDTO = new VerifiablePresentationVerifierDTO(
                 clientId,
                 clientName,
@@ -506,7 +506,7 @@ public class TestUtilities {
         );
         VerifiablePresentationSessionData presentationSessionData = new VerifiablePresentationSessionData("123e4567-e89b-12d3-a456-426614174000", "authorizationRequest", time, true,  null);
 
-        VerifiablePresentationResponseDTO presentationResponseDTO = new VerifiablePresentationResponseDTO(presentationSessionData.getPresentationId(), presentationVerifierDTO);
+        VPResponseDTO presentationResponseDTO = new VPResponseDTO(presentationSessionData.getPresentationId(), presentationVerifierDTO);
 
         return presentationResponseDTO;
     }

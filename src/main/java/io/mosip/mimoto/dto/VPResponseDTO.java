@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class VerifiablePresentationResponseDTO {
+public class VPResponseDTO {
 
     @Schema(description = "Unique identifier for the Verifiable Presentation")
     String presentationId;
