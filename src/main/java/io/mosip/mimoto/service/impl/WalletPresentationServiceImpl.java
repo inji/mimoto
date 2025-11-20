@@ -22,11 +22,12 @@ import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.service.WalletPresentationService;
-import io.mosip.mimoto.util.Base64Util;
+import io.mosip.mimoto.util.EncryptionDecryptionUtil;
 import io.mosip.mimoto.util.JwtGeneratorUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.openID4VP.OpenID4VP;
+import io.mosip.openID4VP.common.EncoderKt;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
 import io.mosip.openID4VP.authorizationRequest.clientMetadata.ClientMetadata;
@@ -46,6 +47,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.lang.IllegalArgumentException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -82,6 +84,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
     @Autowired
     private VerifiablePresentationsRepository verifiablePresentationsRepository;
+
+    @Autowired
+    private EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     @Override
     public VPResponseDTO handleVPAuthorizationRequest(String urlEncodedVPAuthorizationRequest, String walletId) throws ApiNotAccessibleException, IOException, URISyntaxException {
@@ -312,14 +317,12 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.EdDSA).criticalParams(Set.of(OpenID4VPConstants.JWT_CRITICAL_PARAM_B64)).base64URLEncodePayload(false).build();
 
-        byte[] vpTokenBytes = Base64Util.decodeFlexible(dataToSign);
-
-        // Create header bytes for signing input
+        // Create detached JWT signing input using EncryptionDecryptionUtil
         String headerJson = header.toString();
-        String header64 = Base64Util.encode(headerJson);
-
-        // Create input bytes for detached JWT signing: header + '.' + payload
-        byte[] inputBytes = Base64Util.createDetachedJwtSigningInput(header64, vpTokenBytes);
+        byte[] inputBytes = encryptionDecryptionUtil.createDetachedJwtSigningInput(headerJson, dataToSign);
+        
+        // Get Base64URL encoded header for proof construction
+        String header64 = EncoderKt.encodeToBase64Url(headerJson.getBytes(StandardCharsets.UTF_8));
 
         // Sign using the provided JWSSigner
         Base64URL signatureBase64URL = jwsSigner.sign(header, inputBytes);
@@ -376,7 +379,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         String jwkJson = objectMapper.writeValueAsString(jwk.toPublicJWK().toJSONObject());
 
         // Base64URL encode the JWK JSON
-        String base64UrlEncodedJwk = Base64Util.encode(jwkJson);
+        String base64UrlEncodedJwk = EncoderKt.encodeToBase64Url(jwkJson.getBytes(StandardCharsets.UTF_8));
 
         // Construct holderId: did:jwk:{base64url(jwk)}#0
         return OpenID4VPConstants.DID_JWK_PREFIX + base64UrlEncodedJwk + OpenID4VPConstants.DID_KEY_FRAGMENT;
