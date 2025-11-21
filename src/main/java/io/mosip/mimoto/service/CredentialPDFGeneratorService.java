@@ -13,6 +13,7 @@ import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
 import com.itextpdf.kernel.pdf.PdfWriter;
+import io.mosip.injivcrenderer.InjiVcRenderer;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerDisplayResponse;
@@ -22,12 +23,13 @@ import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
 import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
+import io.mosip.mimoto.util.Base64Util;
 import io.mosip.mimoto.util.LocaleUtils;
+import io.mosip.mimoto.util.SvgFixerUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.pixelpass.PixelPass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +45,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import java.util.Map;
-import java.util.Properties;
 
 @Slf4j
 @Service
@@ -68,6 +67,12 @@ public class CredentialPDFGeneratorService {
     @Autowired
     private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
 
+    @Autowired
+    private InjiVcRenderer injiVcRenderer;
+
+    @Autowired
+    private SvgFixerUtil svgFixerUtil;
+
     @Value("${mosip.inji.ovp.qrdata.pattern}")
     private String ovpQRDataPattern;
 
@@ -87,20 +92,27 @@ public class CredentialPDFGeneratorService {
     private boolean maskDisclosures;
 
     public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
-        // Get the appropriate processor based on format
-        CredentialFormatHandler processor = credentialFormatHandlerFactory.getHandler(vcCredentialResponse.getFormat());
+        // Check if this is a v2 data model credential
+        if (isV2DataModel(vcCredentialResponse)) {
+            log.info("Detected v2 data model for credential, using InjiVcRenderer");
+            return generatePdfForV2Credential(vcCredentialResponse, credentialsSupportedResponse);
+        } else {
+            log.info("Using v1 data model flow for credential");
+            // Get the appropriate processor based on format
+            CredentialFormatHandler processor = credentialFormatHandlerFactory.getHandler(vcCredentialResponse.getFormat());
 
-        // Extract credential properties using the specific processor
-        Map<String, Object> credentialProperties = processor.extractCredentialClaims(vcCredentialResponse);
+            // Extract credential properties using the specific processor
+            Map<String, Object> credentialProperties = processor.extractCredentialClaims(vcCredentialResponse);
 
-        // Load display properties using the specific processor
-        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties =
-                processor.loadDisplayPropertiesFromWellknown(credentialProperties, credentialsSupportedResponse, locale);
+            // Load display properties using the specific processor
+            LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties =
+                    processor.loadDisplayPropertiesFromWellknown(credentialProperties, credentialsSupportedResponse, locale);
 
-        Map<String, Object> data = getPdfResourceFromVcProperties(displayProperties, credentialsSupportedResponse,
-                vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity);
+            Map<String, Object> data = getPdfResourceFromVcProperties(displayProperties, credentialsSupportedResponse,
+                    vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity);
 
-        return renderVCInCredentialTemplate(data, issuerDTO.getIssuer_id(), credentialConfigurationId);
+            return renderVCInCredentialTemplate(data, issuerDTO.getIssuer_id(), credentialConfigurationId);
+        }
     }
 
     private Map<String, Object> getPdfResourceFromVcProperties(
@@ -151,7 +163,7 @@ public class CredentialPDFGeneratorService {
                 if (disclosures.contains(key)) {
                     disclosuresProps.put(key, displayName);
                     if (maskDisclosures) {
-                        strVal = utilities.maskValue(strVal);
+                        strVal = Utilities.maskValue(strVal);
                     }
                 }
                 if (!isFaceKey && displayName != null) {
@@ -211,7 +223,9 @@ public class CredentialPDFGeneratorService {
             List<?> list = (List<?>) val;
             if (list.isEmpty()) return "";
             if (list.getFirst() instanceof String) {
-                return String.join(", ", (List<String>) list);
+                @SuppressWarnings("unchecked")
+                List<String> stringList = (List<String>) list;
+                return String.join(", ", stringList);
             } else if (list.getFirst() instanceof Map<?, ?>) {
                 return list.stream()
                         .filter(Objects::nonNull)
@@ -275,5 +289,54 @@ public class CredentialPDFGeneratorService {
         BufferedImage qrImage = MatrixToImageWriter.toBufferedImage(bitMatrix);
         return Utilities.encodeToString(qrImage, "png");
     }
-}
 
+    private boolean isV2DataModel(VCCredentialResponse vcCredentialResponse) {
+        // Extract credential data based on format
+        Object credentialPayload = vcCredentialResponse.getCredential();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> credentialPayloadMap = (Map<String, Object>) credentialPayload;
+        Object contextField = credentialPayloadMap.get("@context");
+
+        if (contextField instanceof List<?> contextEntries) {
+            return contextEntries.stream().anyMatch(entry -> entry.toString().contains("v2"));
+        } else if (contextField instanceof String) {
+            String contextFieldString = contextField.toString();
+            return contextFieldString.contains("v2");
+        }
+        return false;
+    }
+
+    private ByteArrayInputStream generatePdfForV2Credential(VCCredentialResponse vcCredentialResponse, CredentialsSupportedResponse credentialsSupportedResponse) throws Exception {
+        try {
+            // Convert credential to JSON string for InjiVcRenderer
+            String credentialJsonString = objectMapper.writeValueAsString(vcCredentialResponse.getCredential());
+
+            // LDP VC format — wellKnown is in "credential_definition.credential_subject" of CredentialsSupportedResponse
+            String wellKnownJson = null;
+            if (credentialsSupportedResponse.getCredentialDefinition() != null &&
+                    credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject() != null) {
+                wellKnownJson = objectMapper.writeValueAsString(
+                        credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject());
+            }
+
+            // Generate credential display content using InjiVcRenderer
+            List<Object> generatedSvgObjects = injiVcRenderer.generateCredentialDisplayContent(
+                    io.mosip.injivcrenderer.constants.CredentialFormat.LDP_VC, wellKnownJson, credentialJsonString);
+
+            List<String> svgStrings = generatedSvgObjects.stream()
+                    .map(Object::toString)
+                    .map(svgFixerUtil::addMissingOffsetToStopElements)
+                    .toList();
+
+            log.debug("Fixed {} SVG elements for PDF conversion", svgStrings.size());
+
+            String base64PdfContent = injiVcRenderer.convertSvgToPdf(svgStrings);
+            byte[] decodedPdfBytes = Base64Util.decode(base64PdfContent);
+            return new ByteArrayInputStream(decodedPdfBytes);
+        } catch (Exception e) {
+            log.error("Error generating PDF for v2 credential using InjiVcRenderer: {}", e.getMessage(), e);
+            throw new Exception("Failed to generate PDF for v2 credential: " + e.getMessage(), e);
+        }
+    }
+}
