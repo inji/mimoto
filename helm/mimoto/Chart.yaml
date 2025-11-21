@@ -2,7 +2,7 @@ apiVersion: v2
 name: mimoto
 description: A Helm chart for MOSIP mimoto Application
 type: application
-version: 0.0.1-develop
+version: 0.20.0-develop
 appVersion: ""
 dependencies:
   - name: common

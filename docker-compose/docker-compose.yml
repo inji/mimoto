@@ -52,7 +52,7 @@ services:
 
   mimoto-service:
     container_name: 'mimoto-service'
-    image: 'mosipdev/mimoto:develop'
+    image: 'mosipqa/mimoto:0.15.x'
     user: root
     ports:
       - '8099:8099'
