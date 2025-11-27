@@ -454,6 +454,104 @@ class VcSdJwtCredentialFormatHandlerTest {
         assertEquals(CredentialFormat.VC_SD_JWT.getFormat(), result);
     }
 
+    @Test
+    void buildFallbackDisplayPropertiesWithOrderedKeysShouldRespectOrder() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+        credentialProperties.put("lastName", "Doe");
+        credentialProperties.put("email", "john@example.com");
+
+        List<String> orderedKeys = Arrays.asList("email", "lastName", "firstName");
+        credentialsSupportedResponse.setOrder(orderedKeys);
+        credentialsSupportedResponse.setClaims(null); // Trigger fallback
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(3, result.size());
+
+        // Verify order is preserved
+        List<String> resultKeys = new ArrayList<>(result.keySet());
+        assertEquals("email", resultKeys.get(0));
+        assertEquals("lastName", resultKeys.get(1));
+        assertEquals("firstName", resultKeys.get(2));
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithNullValuesShouldSkipFields() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+        credentialProperties.put("middleName", null);
+        credentialProperties.put("lastName", "Doe");
+
+        credentialsSupportedResponse.setClaims(null);
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.size()); // middleName should be skipped
+        assertTrue(result.containsKey("firstName"));
+        assertTrue(result.containsKey("lastName"));
+        assertFalse(result.containsKey("middleName"));
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithIdFieldShouldExcludeIt() {
+        // Given
+        Map<String, Object> credentialProperties = new LinkedHashMap<>();
+        credentialProperties.put("id", "12345");
+        credentialProperties.put("firstName", "John");
+
+        credentialsSupportedResponse.setClaims(null);
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey("firstName"));
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithEmptyClaimsShouldTriggerFallback() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+        credentialProperties.put("lastName", "Doe");
+
+        credentialsSupportedResponse.setClaims(new HashMap<>()); // Empty claims
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        CredentialIssuerDisplayResponse firstNameDisplay = result.get("firstName").keySet().iterator().next();
+        assertEquals("First Name", firstNameDisplay.getName());
+        assertEquals("en", firstNameDisplay.getLocale());
+
+        CredentialIssuerDisplayResponse lastNameDisplay = result.get("lastName").keySet().iterator().next();
+        assertEquals("Last Name", lastNameDisplay.getName());
+        assertEquals("en", lastNameDisplay.getLocale());
+    }
+
     // Helper methods
     private Map<String, Object> createSampleClaims() {
         Map<String, Object> claims = new HashMap<>();

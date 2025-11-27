@@ -55,6 +55,21 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
 
+        // Start with ordered fields
+        Set<String> orderedKeys = Optional.ofNullable(credentialsSupportedResponse.getOrder())
+                .map(LinkedHashSet::new) // preserve order
+                .orElse(new LinkedHashSet<>());
+
+        // Add remaining keys from credentialProperties that are not already in orderedKeys
+        for (String key : credentialProperties.keySet()) {
+            orderedKeys.add(key); // Set ensures no duplicates
+        }
+
+        if (credentialsSupportedResponse.getClaims() == null || credentialsSupportedResponse.getClaims().isEmpty()) {
+            log.info("Issuer well-known has no claims for SD-JWT format; falling back to claim-based display properties");
+            return buildFallbackDisplayProperties(credentialProperties, orderedKeys);
+        }
+
         // Extract raw claims and convert to DTOs
         Map<String, Object> rawClaims = Optional.ofNullable(credentialsSupportedResponse.getClaims())
                 .map(map -> (map.size() == 1 && map.values().iterator().next() instanceof Map)
@@ -69,7 +84,8 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
                 ));
 
         if (convertedClaimsMap.isEmpty()) {
-            log.warn("No display configuration found for SD-JWT format");
+            log.info("No display configuration found for SD-JWT format");
+            return buildFallbackDisplayProperties(credentialProperties, orderedKeys);
         }
 
         String resolvedLocale = LocaleUtils.resolveLocaleWithFallback(convertedClaimsMap, userLocale);
@@ -82,16 +98,6 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
                         .findFirst()
                         .ifPresent(display -> localizedDisplayMap.put(key, display));
             });
-        }
-
-        // Start with ordered fields
-        Set<String> orderedKeys = Optional.ofNullable(credentialsSupportedResponse.getOrder())
-                .map(LinkedHashSet::new) // preserve order
-                .orElse(new LinkedHashSet<>());
-
-        // Add remaining keys from credentialProperties that are not already in orderedKeys
-        for (String key : credentialProperties.keySet()) {
-            orderedKeys.add(key); // Set ensures no duplicates
         }
 
         for (String key : orderedKeys) {
@@ -120,7 +126,7 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
     public Map<String, Object> extractClaimsFromSdJwt(String sdJwtString) {
         try {
             SDJWT sdJwt = SDJWT.parse(sdJwtString);
-            Map<String, Object> claims = new HashMap<>();
+            Map<String, Object> claims = new LinkedHashMap<>();
 
             // Parse JWT payload
             String credentialJwt = sdJwt.getCredentialJwt();
@@ -149,7 +155,7 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
             }
 
             // Remove standard JWT claims and SD-JWT metadata
-            List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg");
+            List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg", "id");
             metadataKeys.forEach(claims::remove);
 
             // Return claims directly as result
@@ -162,5 +168,33 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
             log.error("Unexpected error processing SD-JWT", e);
             return Collections.emptyMap();
         }
+    }
+
+    private LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> buildFallbackDisplayProperties(
+            Map<String, Object> credentialProperties,
+            Set<String> orderedKeys) {
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+
+        // Use ordered keys from parameter (already includes all fields)
+        List<String> fieldKeys = new ArrayList<>(orderedKeys);
+
+        fieldKeys.remove("id");
+
+        // Build default display entries from claims
+        for (String key : fieldKeys) {
+            Object value = credentialProperties.get(key);
+            if (value == null) {
+                continue;
+            }
+
+            // Generate fallback display using claims keys
+            CredentialIssuerDisplayResponse display = new CredentialIssuerDisplayResponse();
+            display.setName(camelToTitleCase(key));
+            display.setLocale("en");
+
+            displayProperties.put(key, Map.of(display, value));
+        }
+        return displayProperties;
     }
 }

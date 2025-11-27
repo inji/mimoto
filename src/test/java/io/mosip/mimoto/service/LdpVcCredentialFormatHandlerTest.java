@@ -140,9 +140,14 @@ class LdpVcCredentialFormatHandlerTest {
                 ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
                         credentialProperties, credentialsSupportedResponse, "en");
 
-        // Then
+        // Then - now returns fallback for firstName
         assertNotNull(result);
-        assertTrue(result.isEmpty());
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey("firstName"));
+
+        CredentialIssuerDisplayResponse display = result.get("firstName").keySet().iterator().next();
+        assertEquals("First Name", display.getName());
+        assertEquals("en", display.getLocale());
     }
 
     @Test
@@ -159,9 +164,14 @@ class LdpVcCredentialFormatHandlerTest {
                 ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
                         credentialProperties, credentialsSupportedResponse, "en");
 
-        // Then
+        // Then - now returns fallback for firstName
         assertNotNull(result);
-        assertTrue(result.isEmpty());
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey("firstName"));
+
+        CredentialIssuerDisplayResponse display = result.get("firstName").keySet().iterator().next();
+        assertEquals("First Name", display.getName());
+        assertEquals("en", display.getLocale());
     }
 
     @Test
@@ -178,9 +188,14 @@ class LdpVcCredentialFormatHandlerTest {
                 ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
                         credentialProperties, credentialsSupportedResponse, "en");
 
-        // Then
+        // Then - now returns fallback for firstName
         assertNotNull(result);
-        assertTrue(result.isEmpty());
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey("firstName"));
+
+        CredentialIssuerDisplayResponse display = result.get("firstName").keySet().iterator().next();
+        assertEquals("First Name", display.getName());
+        assertEquals("en", display.getLocale());
     }
 
     @Test
@@ -484,5 +499,77 @@ class LdpVcCredentialFormatHandlerTest {
             assertEquals("Mobile", mobileDisplay.getName()); // Generated fallback
             assertEquals("en", mobileDisplay.getLocale());
         }
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithOrderedKeysShouldRespectOrder() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+        credentialProperties.put("lastName", "Doe");
+        credentialProperties.put("email", "john@example.com");
+
+        List<String> orderedKeys = Arrays.asList("email", "lastName", "firstName");
+        credentialsSupportedResponse.setOrder(orderedKeys);
+        credentialsSupportedResponse.setCredentialDefinition(null); // Trigger fallback
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(3, result.size());
+
+        // Verify order is preserved
+        List<String> resultKeys = new ArrayList<>(result.keySet());
+        assertEquals("email", resultKeys.get(0));
+        assertEquals("lastName", resultKeys.get(1));
+        assertEquals("firstName", resultKeys.get(2));
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithNullValuesShouldSkipFields() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+        credentialProperties.put("middleName", null);
+        credentialProperties.put("lastName", "Doe");
+
+        credentialsSupportedResponse.setCredentialDefinition(null);
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.size()); // middleName should be skipped
+        assertTrue(result.containsKey("firstName"));
+        assertTrue(result.containsKey("lastName"));
+        assertFalse(result.containsKey("middleName"));
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWithIdFieldShouldExcludeIt() {
+        // Given
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("id", "12345");
+        credentialProperties.put("firstName", "John");
+
+        credentialsSupportedResponse.setCredentialDefinition(null);
+
+        // When
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertFalse(result.containsKey("id")); // id should be excluded
+        assertTrue(result.containsKey("firstName"));
     }
 }

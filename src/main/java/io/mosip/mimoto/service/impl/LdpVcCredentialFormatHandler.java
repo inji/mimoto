@@ -74,22 +74,24 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
             String userLocale) {
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+        Set<String> orderedKeys = Optional.ofNullable(credentialsSupportedResponse.getOrder())
+                .map(LinkedHashSet::new) // preserve order
+                .orElse(new LinkedHashSet<>());
+
+        // Add remaining keys from credentialProperties that are not already in orderedKeys
+        for (String key : credentialProperties.keySet()) {
+            orderedKeys.add(key);
+        }
 
         // LDP VC format — display config is in "credential_definition.credential_subject"
         if (credentialsSupportedResponse.getCredentialDefinition() == null ||
                 credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject() == null) {
-            log.warn("Missing credential definition or credential subject for LDP VC format");
-            return displayProperties;
+            log.info("Issuer well-known has no credential definition or credential subject for LDP VC format; falling back to claim-based display properties");
+            return buildFallbackDisplayProperties(credentialProperties, new ArrayList<>(orderedKeys));
         }
 
         Map<String, CredentialDisplayResponseDto> displayConfigMap =
                 credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject();
-        List<String> orderedKeys = credentialsSupportedResponse.getOrder();
-
-        if (displayConfigMap == null) {
-            log.warn("No display configuration found for LDP VC format");
-            return displayProperties;
-        }
 
         String resolvedLocale = LocaleUtils.resolveLocaleWithFallback(displayConfigMap, userLocale);
 
@@ -107,7 +109,7 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
         addFallbackDisplayProperties(credentialProperties, localizedDisplayMap, resolvedLocale);
 
         List<String> fieldKeys = (orderedKeys != null && !orderedKeys.isEmpty())
-                ? orderedKeys
+                ? new ArrayList<>(orderedKeys)
                 : new ArrayList<>(localizedDisplayMap.keySet());
 
         for (String key : fieldKeys) {
@@ -118,6 +120,37 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
             }
         }
 
+        return displayProperties;
+    }
+
+    private LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> buildFallbackDisplayProperties(
+            Map<String, Object> credentialProperties,
+            List<String> orderedKeys) {
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+
+        // Determine field order (prefer issuer-provided 'order' if any)
+        List<String> fieldKeys = (orderedKeys != null && !orderedKeys.isEmpty())
+                ? new ArrayList<>(orderedKeys)
+                : new ArrayList<>(credentialProperties.keySet());
+
+        // Exclude non-claim metadata
+        fieldKeys.remove("id");
+
+        // Build default display entries from claims
+        for (String key : fieldKeys) {
+            Object value = credentialProperties.get(key);
+            if (value == null) {
+                continue;
+            }
+
+            // Generate fallback display using vc keys
+            CredentialIssuerDisplayResponse display = new CredentialIssuerDisplayResponse();
+            display.setName(camelToTitleCase(key));
+            display.setLocale("en");
+
+            displayProperties.put(key, Map.of(display, value));
+        }
         return displayProperties;
     }
 }
