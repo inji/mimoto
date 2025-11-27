@@ -4391,7 +4391,7 @@
                                             "availableCredentials": [
                                                 {
                                                     "credentialId": "cred-123",
-                                                    "credentialTypeDisplayName": "Mock Verifiable Credential (SD-JWT)",
+                                                    "credentialTypeDisplayName": "W3C VC",
                                                     "credentialTypeLogo": "https://mosip.github.io/inji-config/logos/mosipid-logo.png",
                                                     "format": "ldp_vc"
                                                 }
@@ -4523,7 +4523,7 @@
                                 "examples": {
                                     "Success response": {
                                         "value": {
-                                            "id": "uuid"
+                                            "id": "2d598dfc-7218-cb7a7afd5a07"
                                         }
                                     }
                                 }
@@ -5265,7 +5265,7 @@
                 "properties": {
                     "id": {
                         "type": "string",
-                        "description": "UUID of the trusted verifier"
+                        "description": "Unique ID generated after creating database record for the verifier"
                     }
                 },
                 "required": [
