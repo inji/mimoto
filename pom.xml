@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.mosip</groupId>
     <artifactId>mimoto</artifactId>
-    <version>0.20.0-SNAPSHOT</version>
+    <version>0.20.0</version>
     <name>mimoto</name>
     <url>https://github.com/mosip/mimoto</url>
     <description>Mobile server backend supporting Inji.</description>
@@ -144,7 +144,7 @@
         <dependency>
             <groupId>io.mosip</groupId>
             <artifactId>inji-openid4vp-jar</artifactId>
-            <version>0.6.0-SNAPSHOT</version>
+            <version>0.6.0</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
