@@ -22,6 +22,7 @@ on:
       - MOSIP*
       - qa-develop
       - inji*-*
+      - patch*
 
 jobs:
   build-mimoto:
