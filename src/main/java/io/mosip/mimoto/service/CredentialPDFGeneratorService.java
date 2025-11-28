@@ -92,8 +92,8 @@ public class CredentialPDFGeneratorService {
     private boolean maskDisclosures;
 
     public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
-        // Check if this is a v2 data model credential
-        if (isV2DataModel(vcCredentialResponse)) {
+        // Check if this is a v2 data model credential with template in the renderMethod
+        if (hasV2ContextWithSvgTemplate(vcCredentialResponse)) {
             log.info("Detected v2 data model for credential, using InjiVcRenderer");
             return generatePdfForV2Credential(vcCredentialResponse, credentialsSupportedResponse);
         } else {
@@ -290,20 +290,44 @@ public class CredentialPDFGeneratorService {
         return Utilities.encodeToString(qrImage, "png");
     }
 
-    private boolean isV2DataModel(VCCredentialResponse vcCredentialResponse) {
+    private boolean hasV2ContextWithSvgTemplate(VCCredentialResponse vcCredentialResponse) {
         // Extract credential data based on format
         Object credentialPayload = vcCredentialResponse.getCredential();
 
+        // For SD-JWT credentialPayload is String
+        if (!(credentialPayload instanceof Map<?, ?>)) return false;
+
         @SuppressWarnings("unchecked")
         Map<String, Object> credentialPayloadMap = (Map<String, Object>) credentialPayload;
-        Object contextField = credentialPayloadMap.get("@context");
 
-        if (contextField instanceof List<?> contextEntries) {
-            return contextEntries.stream().anyMatch(entry -> entry.toString().contains("v2"));
-        } else if (contextField instanceof String) {
-            String contextFieldString = contextField.toString();
-            return contextFieldString.contains("v2");
+        return containsV2Context(credentialPayloadMap)
+                && containsSvgTemplate(credentialPayloadMap);
+    }
+
+    private boolean containsV2Context(Map<String, Object> credentialPayloadMap) {
+        Object contextField = credentialPayloadMap.get("@context");
+        if (contextField instanceof List<?> contextFieldList) {
+            return contextFieldList.stream()
+                    .anyMatch(entry -> entry.toString().contains("v2"));
         }
+        if (contextField instanceof String contextFieldString) return contextFieldString.contains("v2");
+
+        return false;
+    }
+
+    private boolean containsSvgTemplate(Map<String, Object> payload) {
+        Object renderMethod = payload.get("renderMethod");
+        if (renderMethod instanceof List<?> renderMethodList) {
+            return renderMethodList.stream().allMatch(entry -> {
+                if (!(entry instanceof Map<?, ?> renderMethodProperties)) return false;
+
+                return renderMethodProperties.containsKey("template");
+            });
+        }
+        if (renderMethod instanceof Map<?, ?> renderMethodMap) {
+            return renderMethodMap.containsKey("template");
+        }
+
         return false;
     }
 
@@ -311,14 +335,7 @@ public class CredentialPDFGeneratorService {
         try {
             // Convert credential to JSON string for InjiVcRenderer
             String credentialJsonString = objectMapper.writeValueAsString(vcCredentialResponse.getCredential());
-
-            // LDP VC format — wellKnown is in "credential_definition.credential_subject" of CredentialsSupportedResponse
-            String wellKnownJson = null;
-            if (credentialsSupportedResponse.getCredentialDefinition() != null &&
-                    credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject() != null) {
-                wellKnownJson = objectMapper.writeValueAsString(
-                        credentialsSupportedResponse.getCredentialDefinition().getCredentialSubject());
-            }
+            String wellKnownJson = objectMapper.writeValueAsString(credentialsSupportedResponse);
 
             // Generate credential display content using InjiVcRenderer
             List<Object> generatedSvgObjects = injiVcRenderer.generateCredentialDisplayContent(
