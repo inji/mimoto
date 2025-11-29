@@ -102,7 +102,9 @@ public class MosipTestRunner {
 			PartnerRegistration.deviceGeneration();
 
 			// Generating biometric details with mock MDS
+			BaseTestCase.domain=".mosip.net";
 			BiometricDataProvider.generateBiometricTestData("Registration");
+			BaseTestCase.domain = System.getProperty("env.endpoint", "localhost").replaceFirst("^https?://", "").replaceAll("/$", "");
 			
 			String testCasesToExecuteString = MimotoConfigManager.getproperty("testCasesToExecute");
 
