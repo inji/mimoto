@@ -7,7 +7,7 @@ if [ $# -ge 1 ] ; then
 fi
 
 NS=injiweb
-CHART_VERSION=0.20.0-develop
+CHART_VERSION=0.20.0
 KEYGEN_CHART_VERSION=1.3.0-beta.2
 SOFTHSM_NS=softhsm
 SOFTHSM_CHART_VERSION=1.3.0-beta.2

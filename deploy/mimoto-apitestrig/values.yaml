@@ -2,6 +2,6 @@ modules:
   mimoto:
     enabled: true
     image:
-      repository: mosipqa/apitest-mimoto
-      tag: 0.20.x
+      repository: mosipid/apitest-mimoto
+      tag: 0.20.0
       pullPolicy: Always
