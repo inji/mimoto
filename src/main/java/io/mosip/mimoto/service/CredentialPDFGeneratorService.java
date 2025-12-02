@@ -91,11 +91,13 @@ public class CredentialPDFGeneratorService {
     @Value("${mosip.injiweb.mask.disclosures:true}")
     private boolean maskDisclosures;
 
+    private static final String V2_CONTEXT_URL = "https://www.w3.org/ns/credentials/v2";
+
     public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
-        // Check if this is a v2 data model credential with template in the renderMethod
+        // Check if credential is a v2 data model credential with template in the renderMethod
         if (hasV2ContextWithSvgTemplate(vcCredentialResponse)) {
-            log.info("Detected v2 data model for credential, using InjiVcRenderer");
-            return generatePdfForV2Credential(vcCredentialResponse, credentialsSupportedResponse);
+            log.info("Detected v2 data model with render method and template for credential, using InjiVcRenderer");
+            return generatePdfForV2Credential(vcCredentialResponse, credentialsSupportedResponse, issuerDTO, dataShareUrl);
         } else {
             log.info("Using v1 data model flow for credential");
             // Get the appropriate processor based on format
@@ -291,10 +293,11 @@ public class CredentialPDFGeneratorService {
     }
 
     private boolean hasV2ContextWithSvgTemplate(VCCredentialResponse vcCredentialResponse) {
-        // Extract credential data based on format
-        Object credentialPayload = vcCredentialResponse.getCredential();
+        if (!CredentialFormat.LDP_VC.getFormat().equals(vcCredentialResponse.getFormat())) {
+            return false;
+        }
 
-        // For SD-JWT credentialPayload is String
+        Object credentialPayload = vcCredentialResponse.getCredential();
         if (!(credentialPayload instanceof Map<?, ?>)) return false;
 
         @SuppressWarnings("unchecked")
@@ -306,11 +309,11 @@ public class CredentialPDFGeneratorService {
 
     private boolean containsV2Context(Map<String, Object> credentialPayloadMap) {
         Object contextField = credentialPayloadMap.get("@context");
-        if (contextField instanceof List<?> contextFieldList) {
-            return contextFieldList.stream()
-                    .anyMatch(entry -> entry.toString().contains("v2"));
-        }
-        if (contextField instanceof String contextFieldString) return contextFieldString.contains("v2");
+
+        if (contextField instanceof List<?> contextList)
+            return contextList.stream().anyMatch(entry -> V2_CONTEXT_URL.equals(entry.toString()));
+        if (contextField instanceof String contextString)
+            return V2_CONTEXT_URL.equals(contextString);
 
         return false;
     }
@@ -331,15 +334,32 @@ public class CredentialPDFGeneratorService {
         return false;
     }
 
-    private ByteArrayInputStream generatePdfForV2Credential(VCCredentialResponse vcCredentialResponse, CredentialsSupportedResponse credentialsSupportedResponse) throws Exception {
+    private ByteArrayInputStream generatePdfForV2Credential(VCCredentialResponse vcCredentialResponse, CredentialsSupportedResponse credentialsSupportedResponse, IssuerDTO issuerDTO, String dataShareUrl) throws Exception {
         try {
+            // Get the ldp_vc credential as a Map
+            @SuppressWarnings("unchecked")
+            Map<String, Object> credentialMap = (Map<String, Object>) vcCredentialResponse.getCredential();
+
+            // Adding the QR code image to the credential map
+            String qrCodeImage = "";
+            if (QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type())) {
+                qrCodeImage = constructQRCodeWithAuthorizeRequest(vcCredentialResponse, dataShareUrl);
+            } else if (QRCodeType.EmbeddedVC.equals(issuerDTO.getQr_code_type())) {
+                qrCodeImage = constructQRCodeWithVCData(vcCredentialResponse);
+            }
+            credentialMap.put("qrCodeImage", qrCodeImage);
+
             // Convert credential to JSON string for InjiVcRenderer
-            String credentialJsonString = objectMapper.writeValueAsString(vcCredentialResponse.getCredential());
+            String credentialJsonString = objectMapper.writeValueAsString(credentialMap);
             String wellKnownJson = objectMapper.writeValueAsString(credentialsSupportedResponse);
 
             // Generate credential display content using InjiVcRenderer
             List<Object> generatedSvgObjects = injiVcRenderer.generateCredentialDisplayContent(
                     io.mosip.injivcrenderer.constants.CredentialFormat.LDP_VC, wellKnownJson, credentialJsonString);
+
+            if (generatedSvgObjects.isEmpty()) {
+                 throw new Exception("No SVG content generated for v2 credential");
+            }
 
             List<String> svgStrings = generatedSvgObjects.stream()
                     .map(Object::toString)
