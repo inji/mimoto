@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.mosip</groupId>
     <artifactId>mimoto</artifactId>
-    <version>0.20.0-SNAPSHOT</version>
+    <version>0.21.0-SNAPSHOT</version>
     <name>mimoto</name>
     <url>https://github.com/mosip/mimoto</url>
     <description>Mobile server backend supporting Inji.</description>

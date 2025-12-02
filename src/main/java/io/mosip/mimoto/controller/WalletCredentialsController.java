@@ -258,7 +258,15 @@ public class WalletCredentialsController {
             log.error("Error processing credential for walletId: {} and credentialId: {}", walletId, credentialId, exception);
             return Utilities.getErrorResponseEntityWithoutWrapper(
                     exception, exception.getErrorCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
+        } catch (Exception exception){
+            log.error("Unexpected error processing credential for walletId: {} and credentialId: {}", walletId, credentialId, exception);
+            return Utilities.getErrorResponseEntityWithoutWrapper(
+                    new CredentialProcessingException(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(), "We are unable to process request now"),
+                    ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(),
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    MediaType.APPLICATION_JSON);
         }
+
     }
 
     /**

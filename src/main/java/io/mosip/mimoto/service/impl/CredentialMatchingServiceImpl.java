@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
 import io.mosip.mimoto.dto.MatchingCredentialsResponseDTO;
-import io.mosip.mimoto.dto.MatchingCredentialsWithWalletDataDTO;
-import io.mosip.mimoto.dto.SelectableCredentialDTO;
+import io.mosip.mimoto.dto.MatchingCredentialsDTO;
+import io.mosip.mimoto.dto.CredentialDTO;
 import io.mosip.mimoto.dto.mimoto.IssuerConfig;
 import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
@@ -14,6 +14,8 @@ import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
+import io.mosip.mimoto.exception.InvalidRequestException;
+import static io.mosip.mimoto.exception.ErrorConstants.UNSUPPORTED_FORMAT;
 import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
@@ -28,8 +30,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import static io.mosip.mimoto.util.JwtUtils.extractJwtPayloadFromSdJwt;
 
 @Slf4j
 @Service
@@ -52,7 +52,8 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     @Autowired
     private WalletCredentialService walletCredentialService;
 
-    public MatchingCredentialsWithWalletDataDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {
+    @Override
+    public MatchingCredentialsDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {
         log.info("Getting matching credentials with wallet data for walletId: {}", walletId);
 
         // Extract presentation definition from the session data
@@ -68,20 +69,20 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         List<DecryptedCredentialDTO> decryptedCredentials = walletCredentialService.getDecryptedCredentials(walletId, base64Key);
         if (decryptedCredentials.isEmpty()) {
             MatchingCredentialsResponseDTO emptyResponse = createEmptyResponseWithMissingClaims(presentationDefinition);
-            return MatchingCredentialsWithWalletDataDTO.builder()
+            return MatchingCredentialsDTO.builder()
                     .matchingCredentialsResponse(emptyResponse)
                     .matchingCredentials(new ArrayList<>())
                     .build();
         }
 
         List<InputDescriptor> descriptors = presentationDefinition.getInputDescriptors();
-        Map<Integer, List<SelectableCredentialDTO>> matchingCredentialsByDescriptor = new HashMap<>();
+        Map<Integer, List<CredentialDTO>> matchingCredentialsByDescriptor = new HashMap<>();
         Set<String> missingClaims = new HashSet<>();
 
         IntStream.range(0, descriptors.size())
                 .forEach(i -> {
                     InputDescriptor descriptor = descriptors.get(i);
-                    List<SelectableCredentialDTO> matches = decryptedCredentials.stream()
+                    List<CredentialDTO> matches = decryptedCredentials.stream()
                             .filter(decrypted -> matchesInputDescriptor(decrypted.getCredential(), descriptor))
                             .map(this::buildAvailableCredential)
                             .collect(Collectors.toList());
@@ -95,7 +96,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         // Flatten all matching credentials into a single list, removing duplicates by credential ID
         Set<String> addedCredentialIds = new HashSet<>();
-        List<SelectableCredentialDTO> availableCredentials = matchingCredentialsByDescriptor.values().stream()
+        List<CredentialDTO> availableCredentials = matchingCredentialsByDescriptor.values().stream()
                 .flatMap(List::stream)
                 .filter(credential -> addedCredentialIds.add(credential.getCredentialId()))
                 .collect(Collectors.toList());
@@ -104,12 +105,12 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         // Filter decrypted credentials to only include matched ones
         Set<String> matchedCredentialIds = availableCredentials.stream()
-                .map(SelectableCredentialDTO::getCredentialId)
+                .map(CredentialDTO::getCredentialId)
                 .collect(Collectors.toSet());
 
         List<DecryptedCredentialDTO> matchingCredentials = decryptedCredentials.stream().filter(credential -> matchedCredentialIds.contains(credential.getId())).collect(Collectors.toList());
 
-        return MatchingCredentialsWithWalletDataDTO.builder()
+        return MatchingCredentialsDTO.builder()
                 .matchingCredentialsResponse(matchingCredentialsResponse)
                 .matchingCredentials(matchingCredentials)
                 .build();
@@ -259,8 +260,8 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 return objectMapper.convertValue(credentialData, VCCredentialProperties.class);
             }
         } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format) || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
-            String credential = objectMapper.convertValue(vc.getCredential(), String.class);
-            return extractJwtPayloadFromSdJwt(credential);
+            throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), 
+                "SD-JWT credential format (" + format + ") is not supported for credential matching");
         }
 
         return vc.getCredential();
@@ -360,7 +361,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         return tail;
     }
 
-    private SelectableCredentialDTO buildAvailableCredential(DecryptedCredentialDTO decryptedCredentialDTO) {
+    private CredentialDTO buildAvailableCredential(DecryptedCredentialDTO decryptedCredentialDTO) {
         String issuerId = decryptedCredentialDTO.getCredentialMetadata().getIssuerId();
         String credentialType = decryptedCredentialDTO.getCredentialMetadata().getCredentialType();
 
@@ -378,7 +379,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
         }
 
-        return SelectableCredentialDTO.builder()
+        return CredentialDTO.builder()
                 .credentialId(decryptedCredentialDTO.getId())
                 .credentialTypeDisplayName(credentialTypeDisplayName)
                 .credentialTypeLogo(credentialTypeLogo)

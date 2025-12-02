@@ -1,19 +1,18 @@
 package io.mosip.mimoto.controller;
 
 import io.mosip.mimoto.constant.SessionKeys;
+import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.dto.MatchingCredentialsResponseDTO;
-import io.mosip.mimoto.dto.MatchingCredentialsWithWalletDataDTO;
+import io.mosip.mimoto.dto.MatchingCredentialsDTO;
 import io.mosip.mimoto.dto.SubmitPresentationRequestDTO;
-import io.mosip.mimoto.dto.VerifiablePresentationAuthorizationRequest;
-import io.mosip.mimoto.dto.VerifiablePresentationResponseDTO;
+import io.mosip.mimoto.dto.VPAuthorizationRequestDTO;
+import io.mosip.mimoto.dto.VPResponseDTO;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
-import io.mosip.mimoto.service.CredentialMatchingService;
-import io.mosip.mimoto.service.PresentationService;
-import io.mosip.mimoto.service.PresentationActionService;
+import io.mosip.mimoto.service.WalletPresentationService;
 import io.mosip.mimoto.service.impl.SessionManager;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.WalletUtil;
@@ -47,16 +46,10 @@ import static io.mosip.mimoto.exception.ErrorConstants.*;
 public class WalletPresentationsController {
 
     @Autowired
-    private PresentationService presentationService;
-
-    @Autowired
-    private CredentialMatchingService credentialMatchingService;
+    private WalletPresentationService walletPresentationService;
 
     @Autowired
     private SessionManager sessionManager;
-
-    @Autowired
-    private PresentationActionService presentationActionService;
 
     /**
      * Processes the Verifiable Presentation Authorization Request for a specific wallet.
@@ -66,39 +59,39 @@ public class WalletPresentationsController {
      * @param vpAuthorizationRequest The Verifiable Presentation Authorization Request parameters.
      * @return The processed Verifiable Presentation details, including information about the verifier.
      */
-    @Operation(summary = "Processes Verifiable Presentation Authorization Request and provides details about the verifier and presentation.", description = "This API is secured using session-based authentication. Upon receiving a request, the session is first retrieved using the session ID extracted from the Cookie header to authenticate the user. Once authenticated, the API processes the received Verifiable Presentation Authorization Request from the Verifier for a specific wallet. It validates the session, verifies the authenticity of the request, and checks if the Verifier is pre-registered and trusted by the wallet. If all validations pass, the API returns a response containing the presentation details; otherwise, an appropriate error response is returned.", operationId = "processVPAuthorizationRequest", security = @SecurityRequirement(name = "SessionAuth"), parameters = {
+    @Operation(summary = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_SUMMARY, description = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_DESCRIPTION, operationId = "processVPAuthorizationRequest", security = @SecurityRequirement(name = "SessionAuth"), parameters = {
             @Parameter(name = "walletId", in = ParameterIn.PATH, required = true, description = "The unique identifier of the Wallet.", schema = @Schema(type = "string"))},
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
                     description = "Request body containing the Verifiable Presentation Authorization Request parameters.",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = VerifiablePresentationAuthorizationRequest.class),
+                            schema = @Schema(implementation = VPAuthorizationRequestDTO.class),
                             examples = @ExampleObject(
-                                    name = "Verifier Verifiable Presentation Authorization Request",
-                                    value = "{ \"authorizationRequestUrl\": \"client_id=mock-client&presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D\" }"
+                                    name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_REQ_EXAMPLE_NAME,
+                                    value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_REQ_EXAMPLE_VALUE
                             )
                     )
             )
     )
-    @ApiResponse(responseCode = "200", description = "Successfully processed the Verifiable Presentation Authorization Request.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VerifiablePresentationResponseDTO.class), examples = @ExampleObject(name = "Success response", value = "{ \"presentationId\": \"123e4567-e89b-12d3-a456-426614174000\", \"verifier\": { \"id\": \"mock-client\", \"name\": \"Requester name\", \"logo\": \"https://api.collab.mosip.net/inji/verifier-logo.png\", \"isTrusted\": true, \"isPreregisteredWithWallet\": true, \"redirectUri\": \"https://injiverify.collab.mosip.net/redirect\" } }")))
+    @ApiResponse(responseCode = "200", description = "Successfully processed the Verifiable Presentation Authorization Request.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = VPResponseDTO.class), examples = @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_SUCCESS_EXAMPLE_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_SUCCESS_EXAMPLE_VALUE)))
     @ApiResponse(responseCode = "400", description = "Invalid request or missing required parameters.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = {
-            @ExampleObject(name = "response_type is missing in Authorization request", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Missing Input: response_type param is required\"}"),
-            @ExampleObject(name = "Invalid Wallet ID", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Invalid Wallet ID. Session and request Wallet ID do not match\"}"),
-            @ExampleObject(name = "Wallet ID not found in session", value = "{\"errorCode\": \"wallet_locked\", \"errorMessage\": \"Wallet is locked\"}")
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_MISSING_RESPONSE_TYPE_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_MISSING_RESPONSE_TYPE_VALUE),
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_INVALID_WALLET_ID_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_INVALID_WALLET_ID_VALUE),
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_WALLET_LOCKED_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_400_WALLET_LOCKED_VALUE)
     }))
-    @ApiResponse(responseCode = "401", description = "Unauthorized user performing the Verifiable Presentation flow", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = "User ID is not present in session", value = "{\"errorCode\": \"unauthorized\", \"errorMessage\": \"User ID not found in session\"}")))
+    @ApiResponse(responseCode = "401", description = "Unauthorized user performing the Verifiable Presentation flow", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_401_USER_NOT_FOUND_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_401_USER_NOT_FOUND_VALUE)))
     @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = {
-            @ExampleObject(name = "Failed to fetch pre-registered trusted verifiers", value = "{\"errorCode\": \"RESIDENT-APP-026\", \"errorMessage\": \"Api not accessible failure\"}"),
-            @ExampleObject(name = "Unexpected Server Error", value = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}"),
-            @ExampleObject(name = "Invalid URI syntax", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Incorrect URI parameters in the request\"}")
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_VERIFIERS_FETCH_FAILED_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_VERIFIERS_FETCH_FAILED_VALUE),
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_SERVER_ERROR_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_SERVER_ERROR_VALUE),
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_INVALID_URI_SYNTAX_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_AUTHORIZATION_500_INVALID_URI_SYNTAX_VALUE)
     }))
     @PostMapping
-    public ResponseEntity<VerifiablePresentationResponseDTO> handleVPAuthorizationRequest(@PathVariable("walletId") String walletId, HttpSession httpSession, @RequestBody VerifiablePresentationAuthorizationRequest vpAuthorizationRequest) {
+    public ResponseEntity<VPResponseDTO> handleVPAuthorizationRequest(@PathVariable("walletId") String walletId, HttpSession httpSession, @RequestBody VPAuthorizationRequestDTO vpAuthorizationRequest) {
         try {
             WalletUtil.validateWalletId(httpSession, walletId);
 
-            VerifiablePresentationResponseDTO verifiablePresentationResponseDTO = presentationService.handleVPAuthorizationRequest(vpAuthorizationRequest.getAuthorizationRequestUrl(), walletId);
+            VPResponseDTO verifiablePresentationResponseDTO = walletPresentationService.handleVPAuthorizationRequest(vpAuthorizationRequest.getAuthorizationRequestUrl(), walletId);
 
             VerifiablePresentationSessionData verifiablePresentationSessionData = new VerifiablePresentationSessionData(verifiablePresentationResponseDTO.getPresentationId(),
                     vpAuthorizationRequest.getAuthorizationRequestUrl(), Instant.now(),
@@ -129,11 +122,11 @@ public class WalletPresentationsController {
      * @return The matching credentials response with available credentials and
      * missing claims.
      */
-    @Operation(summary = "Get matching credentials for a presentation request", description = "This API retrieves credentials from the wallet that match the presentation definition requirements. It returns available credentials that can satisfy the presentation request along with any missing claims that are required but not available.", operationId = "getMatchingCredentials", security = @SecurityRequirement(name = "SessionAuth"), parameters = {@Parameter(name = "walletId", in = ParameterIn.PATH, required = true, description = "The unique identifier of the Wallet.", schema = @Schema(type = "string")), @Parameter(name = "presentationId", in = ParameterIn.PATH, required = true, description = "The unique identifier of the Presentation.", schema = @Schema(type = "string"))})
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved matching credentials.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = MatchingCredentialsResponseDTO.class), examples = @ExampleObject(name = "Success response", value = "{ \"availableCredentials\": [{ \"credentialId\": \"cred-123\", \"credentialTypeDisplayName\": \"Mock Verifiable Credential (SD-JWT)\", \"credentialTypeLogo\": \"https://mosip.github.io/inji-config/logos/mosipid-logo.png\", \"type\": [\"IDCredential\"], \"claims\": { \"birthdate\": \"1990-01-01\" } }], \"missingClaims\": [] }")))
-    @ApiResponse(responseCode = "400", description = "Invalid request or missing required parameters.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = {@ExampleObject(name = "Invalid Wallet ID", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Invalid Wallet ID. Session and request Wallet ID do not match\"}"), @ExampleObject(name = "Presentation not found", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Presentation not found in session\"}")}))
-    @ApiResponse(responseCode = "401", description = "Unauthorized user performing the Verifiable Presentation flow", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = "User ID is not present in session", value = "{\"errorCode\": \"unauthorized\", \"errorMessage\": \"User ID not found in session\"}")))
-    @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = "Unexpected Server Error", value = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}")))
+    @Operation(summary = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_SUMMARY, description = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_DESCRIPTION, operationId = "getMatchingCredentials", security = @SecurityRequirement(name = "SessionAuth"), parameters = {@Parameter(name = "walletId", in = ParameterIn.PATH, required = true, description = "The unique identifier of the Wallet.", schema = @Schema(type = "string")), @Parameter(name = "presentationId", in = ParameterIn.PATH, required = true, description = "The unique identifier of the Presentation.", schema = @Schema(type = "string"))})
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved matching credentials.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = MatchingCredentialsResponseDTO.class), examples = @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_SUCCESS_EXAMPLE_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_SUCCESS_EXAMPLE_VALUE)))
+    @ApiResponse(responseCode = "400", description = "Invalid request or missing required parameters.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = {@ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_400_INVALID_WALLET_ID_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_400_INVALID_WALLET_ID_VALUE), @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_400_PRESENTATION_NOT_FOUND_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_400_PRESENTATION_NOT_FOUND_VALUE)}))
+    @ApiResponse(responseCode = "401", description = "Unauthorized user performing the Verifiable Presentation flow", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_401_USER_NOT_FOUND_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_401_USER_NOT_FOUND_VALUE)))
+    @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_500_SERVER_ERROR_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_500_SERVER_ERROR_VALUE)))
     @GetMapping("/{presentationId}/credentials")
     public ResponseEntity<MatchingCredentialsResponseDTO> getMatchingCredentials(@PathVariable("walletId") String walletId, @PathVariable("presentationId") String presentationId, HttpSession httpSession) {
 
@@ -146,10 +139,10 @@ public class WalletPresentationsController {
         }
         try {
             VerifiablePresentationSessionData sessionData = sessionManager.getPresentationSessionData(httpSession, walletId, presentationId);
-            MatchingCredentialsWithWalletDataDTO matchingCredentialsWithWalletData = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+            MatchingCredentialsDTO matchingCredentials = walletPresentationService.getMatchingCredentials(sessionData, walletId, base64Key);
             // Store the matching credentials and pre-filtered matched credentials in session cache before returning
-            sessionManager.storeMatchingWalletCredentialsInPresentationSessionData(httpSession, walletId, sessionData, matchingCredentialsWithWalletData.getMatchingCredentials());
-            return ResponseEntity.status(HttpStatus.OK).body(matchingCredentialsWithWalletData.getMatchingCredentialsResponse());
+            sessionManager.storeMatchingWalletCredentialsInPresentationSessionData(httpSession, walletId, sessionData, matchingCredentials.getMatchingCredentials());
+            return ResponseEntity.status(HttpStatus.OK).body(matchingCredentials.getMatchingCredentialsResponse());
         } catch (ApiNotAccessibleException | IOException | VPNotCreatedException exception) {
             return Utilities.getErrorResponseEntityWithoutWrapper(
                     exception, WALLET_CREATE_VP_EXCEPTION.getErrorCode(), HttpStatus.INTERNAL_SERVER_ERROR, MediaType.APPLICATION_JSON);
@@ -172,10 +165,8 @@ public class WalletPresentationsController {
      * @return Response indicating success/failure of the operation.
      */
     @Operation(
-            summary = "Submit presentation or reject verifier",
-            description = "This API handles both presentation submission and verifier rejection based on the request content. " +
-                    "For submission: include selectedCredentials array. " +
-                    "For rejection: include errorCode and errorMessage fields.",
+            summary = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_SUMMARY,
+            description = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_DESCRIPTION,
             operationId = "handlePresentationAction",
             security = @SecurityRequirement(name = "SessionAuth"),
             parameters = {
@@ -189,23 +180,23 @@ public class WalletPresentationsController {
                             mediaType = "application/json",
                             schema = @Schema(implementation = SubmitPresentationRequestDTO.class),
                             examples = {
-                                    @ExampleObject(name = "Submit Presentation", value = "{ \"selectedCredentials\": [\"cred-123\", \"cred-456\"] }"),
-                                    @ExampleObject(name = "Reject Verifier", value = "{ \"errorCode\": \"access_denied\", \"errorMessage\": \"User denied authorization to share credentials\" }")
+                                    @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_EXAMPLE_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_EXAMPLE_VALUE),
+                                    @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_REJECT_EXAMPLE_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_REJECT_EXAMPLE_VALUE)
                             }
                     )
             )
     )
     @ApiResponse(responseCode = "200", description = "Successfully processed the request.", content = @Content(mediaType = "application/json", examples = {
-            @ExampleObject(name = "Presentation submitted", value = "{ \"presentationId\": \"presentation-123\", \"status\": \"SUCCESS\", \"message\": \"Presentation successfully submitted and shared with verifier\" }"),
-            @ExampleObject(name = "Verifier rejected", value = "{\"status\": \"success\", \"message\": \"Presentation request rejected. An OpenID4VP error response has been sent to the verifier.\"}")
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_200_SUBMITTED_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_200_SUBMITTED_VALUE),
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_200_REJECTED_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_200_REJECTED_VALUE)
     }))
     @ApiResponse(responseCode = "400", description = "Invalid request or missing required parameters.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = {
-            @ExampleObject(name = "Invalid request format", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Request must contain either selectedCredentials or both errorCode and errorMessage\"}"),
-            @ExampleObject(name = "Invalid Wallet ID", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Invalid Wallet ID. Session and request Wallet ID do not match\"}"),
-            @ExampleObject(name = "Presentation not found", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Presentation not found in session\"}")
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_400_INVALID_FORMAT_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_400_INVALID_FORMAT_VALUE),
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_400_INVALID_WALLET_ID_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_400_INVALID_WALLET_ID_VALUE),
+            @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_400_PRESENTATION_NOT_FOUND_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_400_PRESENTATION_NOT_FOUND_VALUE)
     }))
-    @ApiResponse(responseCode = "401", description = "Unauthorized user", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = "unauthorized", value = "{\"errorCode\": \"unauthorized\", \"errorMessage\": \"User ID not found in session\"}")))
-    @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = "Server error", value = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}")))
+    @ApiResponse(responseCode = "401", description = "Unauthorized user", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_401_UNAUTHORIZED_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_401_UNAUTHORIZED_VALUE)))
+    @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_500_SERVER_ERROR_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_500_SERVER_ERROR_VALUE)))
     @PatchMapping("/{presentationId}")
     public ResponseEntity<?> handlePresentationAction(@PathVariable("walletId") String walletId, HttpSession httpSession, @PathVariable("presentationId") String presentationId, @Valid @RequestBody SubmitPresentationRequestDTO request) {
 
@@ -225,7 +216,7 @@ public class WalletPresentationsController {
                 return Utilities.getErrorResponseEntityFromPlatformErrorMessage(UNAUTHORIZED_ACCESS, HttpStatus.UNAUTHORIZED, MediaType.APPLICATION_JSON);
             }
 
-            return presentationActionService.handlePresentationAction(walletId, presentationId, request, vpSessionData, base64Key);
+            return walletPresentationService.handlePresentationAction(walletId, presentationId, request, vpSessionData, base64Key);
 
         }
         catch (IllegalArgumentException exception){

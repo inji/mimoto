@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MatchingCredentialsWithWalletDataDTO {
+public class MatchingCredentialsDTO {
 
     private MatchingCredentialsResponseDTO matchingCredentialsResponse;
     

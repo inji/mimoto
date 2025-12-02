@@ -5,7 +5,7 @@ import io.mosip.mimoto.exception.DecryptionException;
 import io.mosip.mimoto.exception.KeyGenerationException;
 import io.mosip.mimoto.model.ProofSigningKey;
 import io.mosip.mimoto.repository.ProofSigningKeyRepository;
-import io.mosip.mimoto.service.KeyPairService;
+import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.util.EncryptionDecryptionUtil;
 import io.mosip.mimoto.util.KeyGenerationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
-public class KeyPairServiceImpl implements KeyPairService {
+public class KeyPairRetrievalServiceImpl implements KeyPairRetrievalService {
 
     @Autowired
     private ProofSigningKeyRepository proofSigningKeyRepository;

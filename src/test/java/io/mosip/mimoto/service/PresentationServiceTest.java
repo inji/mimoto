@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.ErrorDTO;
-import io.mosip.mimoto.dto.VerifiablePresentationResponseDTO;
+import io.mosip.mimoto.dto.VPResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponseProof;
@@ -214,81 +214,7 @@ public class PresentationServiceTest {
         }
     }
 
-    @Test
-    public void testHandleVPAuthorizationRequest_successful() throws Exception {
-        try (MockedStatic<UUID> mockedStatic = mockStatic(UUID.class);
-             MockedStatic<Instant> mockedInstant = mockStatic(Instant.class)) {
-
-            mockedStatic.when(UUID::randomUUID).thenReturn(fixedUuid);
-            mockedInstant.when(Instant::now).thenReturn(fixedInstant);
-
-            when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);
-            when(verifierService.isVerifierTrustedByWallet(clientId, walletId)).thenReturn(true);
-
-            OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-            when(openID4VPService.create(anyString())).thenReturn(mockOpenID4VP);
-            when(mockOpenID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest, preRegisteredVerifiers, false))
-                    .thenReturn(getPresentationAuthorizationRequest(clientId, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response"));
-
-            VerifiablePresentationResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("test-clientId", "test-clientId", null, true, true, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
-
-            VerifiablePresentationResponseDTO actualPresentationResponseDTO =
-                    presentationService.handleVPAuthorizationRequest(urlEncodedVPAuthorizationRequest, walletId);
-
-            assertEquals(expectedPresentationResponseDTO, actualPresentationResponseDTO);
-        }
-    }
-
-    @Test
-    public void testHandleVPAuthorizationRequest_untrustedVerifier() throws Exception {
-        try (MockedStatic<UUID> mockedStatic = mockStatic(UUID.class);
-             MockedStatic<Instant> mockedInstant = mockStatic(Instant.class)) {
-
-            mockedStatic.when(UUID::randomUUID).thenReturn(fixedUuid);
-            mockedInstant.when(Instant::now).thenReturn(fixedInstant);
-
-            when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);
-            when(verifierService.isVerifierTrustedByWallet(clientId, walletId)).thenReturn(false);
-
-            OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-            when(openID4VPService.create(anyString())).thenReturn(mockOpenID4VP);
-            when(mockOpenID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest, preRegisteredVerifiers, false))
-                    .thenReturn(getPresentationAuthorizationRequest(clientId, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response"));
-
-            VerifiablePresentationResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("test-clientId", "test-clientId", null, false, true, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
-
-            VerifiablePresentationResponseDTO actualPresentationResponseDTO =
-                    presentationService.handleVPAuthorizationRequest(urlEncodedVPAuthorizationRequest, walletId);
-
-            assertEquals(expectedPresentationResponseDTO, actualPresentationResponseDTO);
-        }
-    }
-
-    @Test
-    public void testHandleVPAuthorizationRequest_verifierNotPreRegisteredWithWallet() throws Exception {
-        clientId = "unknown-clientId";
-        try (MockedStatic<UUID> mockedStatic = mockStatic(UUID.class);
-             MockedStatic<Instant> mockedInstant = mockStatic(Instant.class)) {
-
-            mockedStatic.when(UUID::randomUUID).thenReturn(fixedUuid);
-            mockedInstant.when(Instant::now).thenReturn(fixedInstant);
-
-            when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);
-            when(verifierService.isVerifierTrustedByWallet(clientId, walletId)).thenReturn(false);
-
-            OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-            when(openID4VPService.create(anyString())).thenReturn(mockOpenID4VP);
-            when(mockOpenID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest, preRegisteredVerifiers, false))
-                    .thenReturn(getPresentationAuthorizationRequest(clientId, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response"));
-
-            VerifiablePresentationResponseDTO expectedPresentationResponseDTO = getVerifiablePresentationResponseDTO("unknown-clientId", "unknown-clientId", null, false, false, "https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response", mockOpenID4VP, fixedInstant);
-
-            VerifiablePresentationResponseDTO actualPresentationResponseDTO =
-                    presentationService.handleVPAuthorizationRequest(urlEncodedVPAuthorizationRequest, walletId);
-
-            assertEquals(expectedPresentationResponseDTO, actualPresentationResponseDTO);
-        }
-    }
+    // Tests for handleVPAuthorizationRequest removed - method moved to WalletPresentationService
 
     // Helper methods
     private VCCredentialResponse createSDJwtCredentialResponse(String format) {
@@ -418,6 +344,29 @@ public class PresentationServiceTest {
         presentationRequestDTO.setResponseUri("https://verifier.example.com/response");
         presentationRequestDTO.setState("test-state");
         presentationRequestDTO.setNonce("test-nonce");
+
+        Map<String, Object> mockResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockResponse);
+
+        String result = presentationService.authorizePresentation(presentationRequestDTO);
+
+        assertEquals("test_redirect_uri", result);
+        verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void testDirectPostResponseModeWithNoRedirectURIParam() throws Exception {
+        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
+        PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        presentationRequestDTO.setResponseMode("direct_post");
+        presentationRequestDTO.setResponseUri("https://verifier.example.com/response");
+        presentationRequestDTO.setState("test-state");
+        presentationRequestDTO.setNonce("test-nonce");
+        presentationRequestDTO.setRedirectUri("");
 
         Map<String, Object> mockResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
 
@@ -679,115 +628,6 @@ public class PresentationServiceTest {
         assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(), exception.getMessage());
     }
 
-    @Test
-    public void testRejectVerifierSuccess() throws Exception {
-        String walletId = "wallet-123";
-        ErrorDTO payload = new ErrorDTO("access_denied", "User denied authorization");
-
-        // Create session data using the actual constructor (presentationId, authorizationRequest, createdAt, isPreregisteredWithWallet, matchedCredentials)
-        String presentationId = "presentation-123";
-        String authorizationRequest = "authorization-request";
-        VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId,
-                authorizationRequest,
-                Instant.now(),
-                true,
-                null
-        );
-
-        VerifierResponse mockResponse = mock(VerifierResponse.class);
-        when(mockResponse.getRedirectUri()).thenReturn("https://verifier.example.com/redirect");
-        when(openID4VPService.sendErrorToVerifier(eq(sessionData), eq(payload))).thenReturn(mockResponse);
-
-        // Should not throw
-        SubmitPresentationResponseDTO result = presentationService.rejectVerifier(walletId, sessionData, payload);
-
-        assertNotNull(result);
-        assertEquals("https://verifier.example.com/redirect", result.getRedirectUri());
-        assertEquals(REJECTED_VERIFIER.getErrorCode(), result.getStatus());
-        verify(openID4VPService).sendErrorToVerifier(eq(sessionData), eq(payload));
-    }
-
-    @Test(expected = VPErrorNotSentException.class)
-    public void testRejectVerifierNullOpenID4VPInstance() throws Exception {
-        String walletId = "wallet-123";
-        ErrorDTO payload = new ErrorDTO("access_denied", "User denied authorization");
-
-        // Create session data that would cause underlying OpenID4VP to fail (simulate by making the mocked service throw)
-        String presentationId = "presentation-123";
-        String authorizationRequest = "authorization-request";
-        VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId,
-                authorizationRequest,
-                Instant.now(),
-                false,
-                null
-        );
-
-        // Simulate underlying service throwing an exception which PresentationServiceImpl should wrap into VPErrorNotSentException
-        doThrow(new IllegalArgumentException("OpenID4VP instance is null")).when(openID4VPService).sendErrorToVerifier(eq(sessionData), eq(payload));
-
-        presentationService.rejectVerifier(walletId, sessionData, payload);
-    }
-
-    @Test(expected = VPErrorNotSentException.class)
-    public void testRejectVerifierMissingOpenID4VPInstance() throws Exception {
-        String walletId = "wallet-123";
-        ErrorDTO payload = new ErrorDTO("access_denied", "User denied authorization");
-
-        String presentationId = "presentation-456";
-        String authorizationRequest = "authorization-request-2";
-        VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId,
-                authorizationRequest,
-                Instant.now(),
-                true,
-                null
-        );
-
-        // Simulate sendErrorToVerifier throwing IOException
-        doThrow(new IOException("network failure")).when(openID4VPService).sendErrorToVerifier(eq(sessionData), eq(payload));
-
-        presentationService.rejectVerifier(walletId, sessionData, payload);
-    }
-
-    @Test(expected = VPErrorNotSentException.class)
-    public void testRejectVerifierNullSessionData() throws Exception {
-        String walletId = "wallet-123";
-        ErrorDTO payload = new ErrorDTO("access_denied", "User denied authorization");
-
-        // Configure mock to throw when sendErrorToVerifier is invoked with null sessionData and the same payload instance
-        doThrow(new IllegalArgumentException("Invalid presentation session data"))
-                .when(openID4VPService).sendErrorToVerifier(isNull(), eq(payload));
-
-        // Call the service with null session data — PresentationServiceImpl should catch the underlying exception
-        // and rethrow VPErrorNotSentException, which this test now expects.
-        presentationService.rejectVerifier(walletId, null, payload);
-    }
-
-    @Test
-    public void testRejectVerifierWithDifferentErrorCodes() throws Exception {
-        String walletId = "wallet-123";
-        String presentationId = "presentation-789";
-        String authorizationRequest = "authorization-request-3";
-        VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId,
-                authorizationRequest,
-                Instant.now(),
-                true,
-                null
-        );
-
-        ErrorDTO payload = new ErrorDTO("interaction_required", "Interaction required from user");
-        VerifierResponse mockResponse = mock(VerifierResponse.class);
-        when(mockResponse.getRedirectUri()).thenReturn("https://verifier.example.com/redirect");
-        when(openID4VPService.sendErrorToVerifier(eq(sessionData), eq(payload))).thenReturn(mockResponse);
-
-        SubmitPresentationResponseDTO result = presentationService.rejectVerifier(walletId, sessionData, payload);
-
-        assertNotNull(result);
-        assertEquals("https://verifier.example.com/redirect", result.getRedirectUri());
-        verify(openID4VPService).sendErrorToVerifier(eq(sessionData), eq(payload));
-    }
+    // Tests for rejectVerifier removed - method moved to WalletPresentationService
 
 }

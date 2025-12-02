@@ -9,6 +9,7 @@ import io.mosip.mimoto.exception.ErrorConstants;
 import io.mosip.mimoto.exception.InvalidVerifierException;
 import io.mosip.mimoto.repository.VerifierRepository;
 import io.mosip.mimoto.service.VerifierService;
+import io.mosip.mimoto.constant.OpenID4VPConstants;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
@@ -97,8 +98,9 @@ public class VerifierServiceImpl implements VerifierService {
             return false;
         }
 
-        String clientId = UrlParameterUtils.extractClientIdFromUrl(urlEncodedVPAuthorizationRequest);
-        List<String> responseUris = UrlParameterUtils.extractResponseUrisFromUrl(urlEncodedVPAuthorizationRequest);
+        String clientId = UrlParameterUtils.extractQueryParameter(urlEncodedVPAuthorizationRequest, OpenID4VPConstants.CLIENT_ID_PARAM);
+        String responseUriValue = UrlParameterUtils.extractQueryParameter(urlEncodedVPAuthorizationRequest, OpenID4VPConstants.RESPONSE_URI_PARAM);
+        List<String> responseUris = responseUriValue != null ? List.of(responseUriValue) : List.of();
 
         if (clientId == null || clientId.trim().isEmpty()) {
             log.warn("No client_id found in the authorization request URL");

@@ -8,8 +8,9 @@ import io.mosip.kernel.cryptomanager.dto.CryptomanagerResponseDto;
 import io.mosip.kernel.cryptomanager.service.CryptomanagerService;
 import io.mosip.mimoto.exception.DecryptionException;
 import io.mosip.mimoto.exception.EncryptionException;
+import io.mosip.openID4VP.common.DecoderKt;
+import io.mosip.openID4VP.common.EncoderKt;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -42,7 +43,6 @@ public class EncryptionDecryptionUtil {
     @Value("${mosip.inji.app.id:MIMOTO}")
     private String appId;
 
-    @Autowired
     public EncryptionDecryptionUtil(CryptomanagerService cryptomanagerService) {
         this.cryptomanagerService = cryptomanagerService;
     }
@@ -378,5 +378,49 @@ public class EncryptionDecryptionUtil {
             return null;
         }
         return new String(data, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Creates a detached JWT signing input by encoding the header and concatenating it with the payload bytes.
+     * This is used for creating the input to sign for detached JWTs where the payload is not included in the final JWT.
+     * Uses OpenID4VP library utilities for Base64URL encoding/decoding.
+     * Format: base64url(header) + '.' + payload_bytes
+     *
+     * @param headerJson The JWT header as a JSON string.
+     * @param payloadBase64Url The Base64URL encoded payload string to decode.
+     * @return byte array containing header bytes + '.' + payload bytes for signing
+     * @throws IllegalArgumentException if headerJson or payloadBase64Url is null
+     */
+    public byte[] createDetachedJwtSigningInput(String headerJson, String payloadBase64Url) {
+        if (headerJson == null) {
+            log.error("Header JSON cannot be null");
+            throw new IllegalArgumentException("Header JSON cannot be null");
+        }
+        if (payloadBase64Url == null) {
+            log.error("Payload Base64URL string cannot be null");
+            throw new IllegalArgumentException("Payload Base64URL string cannot be null");
+        }
+
+        try {
+            // Decode the Base64URL encoded payload
+            byte[] payloadBytes = DecoderKt.decodeFromBase64Url(payloadBase64Url);
+
+            // Encode the header JSON to Base64URL
+            String header64 = EncoderKt.encodeToBase64Url(headerJson.getBytes(StandardCharsets.UTF_8));
+
+            // Create input bytes for detached JWT signing: header + '.' + payload
+            byte[] headerBytes = header64.getBytes(StandardCharsets.UTF_8);
+            byte[] inputBytes = new byte[headerBytes.length + 1 + payloadBytes.length];
+            System.arraycopy(headerBytes, 0, inputBytes, 0, headerBytes.length);
+            inputBytes[headerBytes.length] = (byte) '.';
+            System.arraycopy(payloadBytes, 0, inputBytes, headerBytes.length + 1, payloadBytes.length);
+
+            log.debug("Detached JWT signing input created successfully, header length: {}, payload length: {}", 
+                    headerBytes.length, payloadBytes.length);
+            return inputBytes;
+        } catch (Exception e) {
+            log.error("Failed to create detached JWT signing input", e);
+            throw new RuntimeException("Failed to create detached JWT signing input", e);
+        }
     }
 }

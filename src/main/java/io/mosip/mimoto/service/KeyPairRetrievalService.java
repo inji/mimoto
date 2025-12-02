@@ -9,7 +9,7 @@ import java.security.KeyPair;
 /**
  * Service interface for managing key pairs from database
  */
-public interface KeyPairService {
+public interface KeyPairRetrievalService {
 
     /**
      * Retrieves a key pair from the database for the given wallet ID and signing algorithm

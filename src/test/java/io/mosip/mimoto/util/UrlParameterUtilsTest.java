@@ -2,9 +2,6 @@ package io.mosip.mimoto.util;
 
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UrlParameterUtilsTest {
@@ -14,206 +11,165 @@ public class UrlParameterUtilsTest {
     private static final String VALID_RESPONSE_URI = "https://example.com/callback";
     private static final String ENCODED_RESPONSE_URI = "https%3A%2F%2Fexample.com%2Fcallback";
 
-    /**
-     * Helper method to safely invoke methods and cast results without unchecked
-     * warnings
-     */
-    @SuppressWarnings("unchecked")
-    private static <T> T invokeMethod(Class<?> clazz, String methodName, Class<?>[] paramTypes, Object... args) throws Exception {
-        Method method = clazz.getMethod(methodName, paramTypes);
-        method.setAccessible(true);
-        return (T) method.invoke(null, args);
-    }
-
     @Test
-    public void testExtractClientIdFromUrlWithValidClientId() throws Exception {
+    public void testExtractQueryParameterWithValidClientId() throws Exception {
         String url = "https://example.com?client_id=" + ENCODED_CLIENT_ID + "&other_param=value";
 
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
 
         assertEquals(VALID_CLIENT_ID, result);
     }
 
     @Test
-    public void testExtractClientIdFromUrlWithNoQueryParameters() throws Exception {
+    public void testExtractQueryParameterWithNoQueryParameters() throws Exception {
         String url = "https://example.com";
 
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
 
         assertNull(result);
     }
 
     @Test
-    public void testExtractClientIdFromUrlWithNoClientIdParameter() throws Exception {
+    public void testExtractQueryParameterWithNoParameter() throws Exception {
         String url = "https://example.com?other_param=value&another_param=value2";
 
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
 
         assertNull(result);
     }
 
     @Test
-    public void testExtractClientIdFromUrlWithMalformedParameter() throws Exception {
+    public void testExtractQueryParameterWithMalformedParameter() throws Exception {
         String url = "https://example.com?client_id&other_param=value";
 
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
 
         assertNull(result);
     }
 
     @Test
-    public void testExtractClientIdFromUrlWithNullInput() throws Exception {
+    public void testExtractQueryParameterWithNullInput() throws Exception {
         String url = null;
 
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
 
         assertNull(result);
     }
 
     @Test
-    public void testExtractClientIdFromUrlWithEmptyValue() throws Exception {
+    public void testExtractQueryParameterWithEmptyValue() throws Exception {
         String url = "https://example.com?client_id=&other_param=value";
 
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
 
         assertEquals("", result);
     }
 
     @Test
-    public void testExtractResponseUrisFromUrlWithValidResponseUri() throws Exception {
+    public void testExtractQueryParameterWithValidResponseUri() throws Exception {
         String url = "https://example.com?response_uri=" + ENCODED_RESPONSE_URI + "&other_param=value";
 
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
 
-        assertEquals(1, result.size());
-        assertEquals(VALID_RESPONSE_URI, result.get(0));
+        assertEquals(VALID_RESPONSE_URI, result);
     }
 
     @Test
-    public void testExtractResponseUrisFromUrlWithNoQueryParameters() throws Exception {
-        String url = "https://example.com";
-
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
-
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    public void testExtractResponseUrisFromUrlWithNoResponseUriParameter() throws Exception {
+    public void testExtractQueryParameterWithNoResponseUriParameter() throws Exception {
         String url = "https://example.com?other_param=value&another_param=value2";
 
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
 
-        assertTrue(result.isEmpty());
+        assertNull(result);
     }
 
     @Test
-    public void testExtractResponseUrisFromUrlWithMalformedParameter() throws Exception {
+    public void testExtractQueryParameterWithMalformedResponseUri() throws Exception {
         String url = "https://example.com?response_uri&other_param=value";
 
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
 
-        assertTrue(result.isEmpty());
+        assertNull(result);
     }
 
     @Test
-    public void testExtractResponseUrisFromUrlWithNullInput() throws Exception {
-        String url = null;
-
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
-
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    public void testExtractResponseUrisFromUrlWithEmptyValue() throws Exception {
+    public void testExtractQueryParameterWithEmptyResponseUri() throws Exception {
         String url = "https://example.com?response_uri=&other_param=value";
 
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
 
-        assertEquals(1, result.size());
-        assertEquals("", result.get(0));
+        assertEquals("", result);
     }
 
     @Test
-    public void testExtractResponseUrisFromUrlWithCommaOnly() throws Exception {
-        String url = "https://example.com?response_uri=,"; // Direct comma
+    public void testExtractQueryParameterWithCommaValue() throws Exception {
+        String url = "https://example.com?response_uri=,";
 
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
 
-        assertEquals(1, result.size());
-        assertEquals(",", result.get(0));
+        assertEquals(",", result);
     }
 
     @Test
-    public void testExtractResponseUrisFromUrlWithMultipleCommas() throws Exception {
+    public void testExtractQueryParameterWithMultipleCommas() throws Exception {
         String url = "https://example.com?response_uri=uri1,uri2,uri3";
 
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
 
-        assertEquals(1, result.size());
-        assertEquals("uri1,uri2,uri3", result.get(0));
+        assertEquals("uri1,uri2,uri3", result);
     }
 
     @Test
-    public void testExtractClientIdFromUrlWithSpecialCharacters() throws Exception {
+    public void testExtractQueryParameterWithSpecialCharacters() throws Exception {
         String specialClientId = "client-id_with.special+chars";
         String encodedClientId = "client-id_with.special%2Bchars";
         String url = "https://example.com?client_id=" + encodedClientId + "&other_param=value";
 
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
 
         assertEquals(specialClientId, result);
     }
 
     @Test
-    public void testExtractResponseUrisFromUrlWithSpecialCharacters() throws Exception {
+    public void testExtractQueryParameterWithSpecialCharactersInUri() throws Exception {
         String specialUri = "https://example.com/callback?param=value&other=test";
         String encodedUri = "https%3A%2F%2Fexample.com%2Fcallback%3Fparam%3Dvalue%26other%3Dtest";
         String url = "https://example.com?response_uri=" + encodedUri + "&other_param=value";
 
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
 
-        assertEquals(1, result.size());
-        assertEquals(specialUri, result.get(0));
+        assertEquals(specialUri, result);
     }
 
     @Test
-    public void testExtractClientIdFromUrlWithEmptyString() throws Exception {
-        String url = "https://example.com?client_id=&other_param=value";
-
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
-
-        assertEquals("", result);
-    }
-
-    @Test
-    public void testExtractResponseUrisFromUrlWithEmptyString() throws Exception {
-        String url = "https://example.com?response_uri=&other_param=value";
-
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
-
-        assertEquals(1, result.size());
-        assertEquals("", result.get(0));
-    }
-
-    @Test
-    public void testExtractClientIdFromUrlWithWhitespace() throws Exception {
+    public void testExtractQueryParameterWithWhitespace() throws Exception {
         String url = "https://example.com?client_id=%20&other_param=value";
 
-        String result = invokeMethod(UrlParameterUtils.class, "extractClientIdFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
 
         assertEquals(" ", result);
     }
 
     @Test
-    public void testExtractResponseUrisFromUrlWithWhitespace() throws Exception {
-        String url = "https://example.com?response_uri=%20&other_param=value";
+    public void testExtractQueryParameterWithAnyParameterName() throws Exception {
+        String url = "https://example.com?custom_param=value123&other_param=value2";
 
-        List<String> result = invokeMethod(UrlParameterUtils.class, "extractResponseUrisFromUrl", new Class[]{String.class}, url);
+        String result = UrlParameterUtils.extractQueryParameter(url, "custom_param");
 
-        assertEquals(1, result.size());
-        assertEquals(" ", result.get(0));
+        assertEquals("value123", result);
+    }
+
+    @Test
+    public void testExtractQueryParameterWithMultipleParameters() throws Exception {
+        String url = "https://example.com?param1=value1&param2=value2&param3=value3";
+
+        String result1 = UrlParameterUtils.extractQueryParameter(url, "param1");
+        String result2 = UrlParameterUtils.extractQueryParameter(url, "param2");
+        String result3 = UrlParameterUtils.extractQueryParameter(url, "param3");
+
+        assertEquals("value1", result1);
+        assertEquals("value2", result2);
+        assertEquals("value3", result3);
     }
 
 }

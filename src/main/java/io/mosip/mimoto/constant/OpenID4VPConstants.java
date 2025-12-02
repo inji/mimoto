@@ -37,12 +37,6 @@ public class OpenID4VPConstants {
     // MSO_MDOC specific keys
     public static final String DOC_TYPE_TO_DEVICE_AUTHENTICATION_BYTES = "docTypeToDeviceAuthenticationBytes";
     
-    // Credential format type strings
-    public static final String FORMAT_LDP_VC_UNDERSCORE = "ldp_vc";
-    public static final String FORMAT_LDP_VC_HYPHEN = "ldp-vc";
-    public static final String FORMAT_MSO_MDOC_UNDERSCORE = "mso_mdoc";
-    public static final String FORMAT_MSO_MDOC_HYPHEN = "mso-mdoc";
-    
     // Algorithm names
     public static final String ALGORITHM_ES256 = "ES256";
     public static final String ALGORITHM_EDDSA = "EdDSA";
@@ -67,5 +61,9 @@ public class OpenID4VPConstants {
     
     // Credential selection keys
     public static final String SELECTED_CREDENTIALS = "selectedCredentials";
+    
+    // URL query parameter names for OpenID4VP authorization requests
+    public static final String CLIENT_ID_PARAM = "client_id";
+    public static final String RESPONSE_URI_PARAM = "response_uri";
 }
 

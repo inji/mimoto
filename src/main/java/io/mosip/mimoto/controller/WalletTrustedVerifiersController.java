@@ -70,7 +70,7 @@ public class WalletTrustedVerifiersController {
                     )
             )
     )
-    @ApiResponse(responseCode = "201", description = "Trusted verifier created successfully.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TrustedVerifierResponseDTO.class), examples = @ExampleObject(name = "Success response", value = "{ \"id\": \"uuid\" }")))
+    @ApiResponse(responseCode = "201", description = "Trusted verifier created successfully.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TrustedVerifierResponseDTO.class), examples = @ExampleObject(name = "Success response", value = "{ \"id\": \"2d598dfc-7218-cb7a7afd5a07\" }")))
     @ApiResponse(responseCode = "400", description = "Invalid request or missing required parameters.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = {
             @ExampleObject(name = "Missing verifierId", value = "{\"errorCode\":\"invalid_request\",\"errorMessage\":\"Missing Input: verifierId is required\"}"),
             @ExampleObject(name = "Invalid Wallet ID", value = "{\"errorCode\":\"invalid_request\",\"errorMessage\":\"Invalid Wallet ID. Session and request Wallet ID do not match\"}"),
