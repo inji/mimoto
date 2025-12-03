@@ -23,7 +23,6 @@ import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
 import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
-import io.mosip.mimoto.util.Base64Util;
 import io.mosip.mimoto.util.LocaleUtils;
 import io.mosip.mimoto.util.SvgFixerUtil;
 import io.mosip.mimoto.util.Utilities;
@@ -49,6 +48,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class CredentialPDFGeneratorService {
+
+    private static final String V2_CONTEXT_URL = "https://www.w3.org/ns/credentials/v2";
 
     private record SelectedFace(String key, String face) {}
 
@@ -90,8 +91,6 @@ public class CredentialPDFGeneratorService {
 
     @Value("${mosip.injiweb.mask.disclosures:true}")
     private boolean maskDisclosures;
-
-    private static final String V2_CONTEXT_URL = "https://www.w3.org/ns/credentials/v2";
 
     public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
         // Check if credential is a v2 data model credential with template in the renderMethod
@@ -369,7 +368,7 @@ public class CredentialPDFGeneratorService {
             log.debug("Fixed {} SVG elements for PDF conversion", svgStrings.size());
 
             String base64PdfContent = injiVcRenderer.convertSvgToPdf(svgStrings);
-            byte[] decodedPdfBytes = Base64Util.decode(base64PdfContent);
+            byte[] decodedPdfBytes = Base64.getUrlDecoder().decode(base64PdfContent);
             return new ByteArrayInputStream(decodedPdfBytes);
         } catch (Exception e) {
             log.error("Error generating PDF for v2 credential using InjiVcRenderer: {}", e.getMessage(), e);

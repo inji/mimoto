@@ -15,7 +15,6 @@ import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.service.impl.LdpVcCredentialFormatHandler;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
 import io.mosip.mimoto.service.impl.VcSdJwtCredentialFormatHandler;
-import io.mosip.mimoto.util.Base64Util;
 import io.mosip.mimoto.util.SvgFixerUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.pixelpass.PixelPass;
@@ -906,16 +905,15 @@ class CredentialPDFGeneratorServiceTest {
         when(injiVcRenderer.generateCredentialDisplayContent(any(), anyString(), anyString()))
             .thenReturn(List.of("<svg></svg>"));
         when(svgFixerUtil.addMissingOffsetToStopElements(anyString())).thenAnswer(inv -> inv.getArgument(0));
-        when(injiVcRenderer.convertSvgToPdf(anyList())).thenReturn("base64pdf");
 
-        try (MockedStatic<Base64Util> mockedBase64 = mockStatic(Base64Util.class)) {
-            mockedBase64.when(() -> Base64Util.decode(anyString())).thenReturn(new byte[]{1,2,3});
-            ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
-            assertNotNull(result);
-            verify(injiVcRenderer).generateCredentialDisplayContent(any(), anyString(), anyString());
-        }
+        String urlSafeBase64Pdf = "AQID";
+        when(injiVcRenderer.convertSvgToPdf(anyList())).thenReturn(urlSafeBase64Pdf);
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+            "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+            "https://example.com/share", "", "en");
+        assertNotNull(result);
+        verify(injiVcRenderer).generateCredentialDisplayContent(any(), anyString(), anyString());
     }
 
     @Test
