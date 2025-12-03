@@ -13,6 +13,7 @@ import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
 import com.itextpdf.kernel.pdf.PdfWriter;
+import com.nimbusds.jose.util.Base64URL;
 import io.mosip.injivcrenderer.InjiVcRenderer;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.IssuerDTO;
@@ -368,7 +369,7 @@ public class CredentialPDFGeneratorService {
             log.debug("Fixed {} SVG elements for PDF conversion", svgStrings.size());
 
             String base64PdfContent = injiVcRenderer.convertSvgToPdf(svgStrings);
-            byte[] decodedPdfBytes = Base64.getUrlDecoder().decode(base64PdfContent);
+            byte[] decodedPdfBytes = Base64URL.from(base64PdfContent).decode();
             return new ByteArrayInputStream(decodedPdfBytes);
         } catch (Exception e) {
             log.error("Error generating PDF for v2 credential using InjiVcRenderer: {}", e.getMessage(), e);
