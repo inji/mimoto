@@ -571,7 +571,6 @@ class ConfigTest {
         HttpServletRequest request = new MockHttpServletRequest();
         CorsConfiguration corsConfig = corsConfigurationSource.getCorsConfiguration(request);
         assertNotNull(corsConfig);
-        // Split by comma on "," results in ["", ""] - two empty strings
         assertEquals(0, corsConfig.getAllowedOrigins().size());
     }
 
