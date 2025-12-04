@@ -74,7 +74,7 @@ public class Config {
     @Value("${mosip.security.ignore-auth-urls}")
     private String[] ignoreAuthUrls;
 
-    @Value("${mosip.security.csrf-ignore-urls:}")
+    @Value("${mosip.security.csrf-ignore-urls}")
     private String[] csrfIgnoreUrls;
 
     @Value("${mosip.inji.web.url}")
