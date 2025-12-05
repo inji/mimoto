@@ -5,9 +5,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+
+import org.apache.commons.lang3.reflect.FieldUtils;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -245,13 +246,8 @@ public class JsonUtil {
                     language = (String) objects.get(LANGUAGE);
                     value = (String) objects.get(VALUE);
 
-                    Field languageField = jsonNodeElement.getClass().getDeclaredField(LANGUAGE);
-                    languageField.setAccessible(true);
-                    languageField.set(jsonNodeElement, language);
-
-                    Field valueField = jsonNodeElement.getClass().getDeclaredField(VALUE);
-                    valueField.setAccessible(true);
-                    valueField.set(jsonNodeElement, value);
+                    FieldUtils.writeField(jsonNodeElement, LANGUAGE, language, true);
+                    FieldUtils.writeField(jsonNodeElement, VALUE, value, true);
 
                     javaObject[i] = jsonNodeElement;
                 }
@@ -261,7 +257,7 @@ public class JsonUtil {
             throw new InstantanceCreationException(PlatformErrorMessages.MIMOTO_SYS_INSTANTIATION_EXCEPTION.getMessage(),
                     e);
 
-        } catch (NoSuchFieldException | SecurityException e) {
+        } catch (SecurityException e) {
 
             throw new FieldNotFoundException(PlatformErrorMessages.MIMOTO_SYS_NO_SUCH_FIELD_EXCEPTION.getMessage(), e);
 
