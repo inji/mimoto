@@ -25,11 +25,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.reflect.FieldUtils;
 
 @Slf4j
 @Service
@@ -319,9 +319,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                         @SuppressWarnings("unchecked") Map<String, Object> map = objectMapper.readValue(jsonString, Map.class);
                         current = map.get(part);
                     } else {
-                        Field field = current.getClass().getDeclaredField(part);
-                        field.setAccessible(true);
-                        current = field.get(current);
+                        current = FieldUtils.readField(current, part, true);
                     }
                 }
             }
