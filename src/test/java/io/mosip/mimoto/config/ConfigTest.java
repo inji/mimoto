@@ -11,9 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.session.SessionRepository;
@@ -106,7 +103,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_GeneratesToken() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestGeneratesToken() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -131,7 +128,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_LoadsExistingToken() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestLoadsExistingToken() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -153,7 +150,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_PreventsDuplicateCookie() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestPreventsDuplicateCookie() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -175,7 +172,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_PostRequest_DoesNotInterfere() throws Exception {
+    void testCsrfTokenCookieFilterPostRequestDoesNotInterfere() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("POST");
@@ -198,7 +195,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_PutRequest_DoesNotInterfere() throws Exception {
+    void testCsrfTokenCookieFilterPutRequestDoesNotInterfere() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("PUT");
@@ -218,7 +215,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_DeleteRequest_DoesNotInterfere() throws Exception {
+    void testCsrfTokenCookieFilterDeleteRequestDoesNotInterfere() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("DELETE");
@@ -238,7 +235,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_HeadRequest_DoesNotProcess() throws Exception {
+    void testCsrfTokenCookieFilterHeadRequestDoesNotProcess() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("HEAD");
@@ -258,7 +255,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_WithTokenAlreadySet() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestWithTokenAlreadySet() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -279,7 +276,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_ChecksForDuplicateCookie() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestChecksForDuplicateCookie() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -303,7 +300,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_WithNullCookieHeader() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestWithNullCookieHeader() throws Exception {
         // Setup - test null cookie header handling
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -326,7 +323,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_WithMultipleCookies() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestWithMultipleCookies() throws Exception {
         // Setup - multiple cookies but no XSRF-TOKEN
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -349,7 +346,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_PatchRequest_DoesNotInterfere() throws Exception {
+    void testCsrfTokenCookieFilterPatchRequestDoesNotInterfere() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("PATCH");
@@ -369,7 +366,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_OptionsRequest_DoesNotInterfere() throws Exception {
+    void testCsrfTokenCookieFilterOptionsRequestDoesNotInterfere() throws Exception {
         // Setup
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("OPTIONS");
@@ -389,7 +386,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_LowercaseMethod() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestLowercaseMethod() throws Exception {
         // Setup - test case-insensitive method check
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("get"); // lowercase
@@ -412,7 +409,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCorsConfigurationSource_WithEmptyOrigins() {
+    void testCorsConfigurationSourceWithEmptyOrigins() {
         ReflectionTestUtils.setField(config, "origins", "");
         CorsConfigurationSource corsConfigurationSource = config.corsConfigurationSource();
         assertNotNull(corsConfigurationSource);
@@ -425,7 +422,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCorsConfigurationSource_WithWhitespaceInOrigins() {
+    void testCorsConfigurationSourceWithWhitespaceInOrigins() {
         ReflectionTestUtils.setField(config, "origins", "localhost:8088 , localhost:3000");
         CorsConfigurationSource corsConfigurationSource = config.corsConfigurationSource();
         assertNotNull(corsConfigurationSource);
@@ -438,7 +435,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_CookieHeaderWithNullValue() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestCookieHeaderWithNullValue() throws Exception {
         // Setup - test null handling in cookie header loop
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -461,7 +458,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_MultipleXSRFTokenCookies() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestMultipleXSRFTokenCookies() throws Exception {
         // Setup - multiple XSRF-TOKEN cookies (edge case)
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -484,7 +481,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_WithCookieNotStartingWithXSRF() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestWithCookieNotStartingWithXSRF() throws Exception {
         // Setup - cookie header that contains XSRF but doesn't start with it
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -506,7 +503,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_WithEmptyCookieHeaders() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestWithEmptyCookieHeaders() throws Exception {
         // Setup - no cookie headers at all
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -527,7 +524,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_TokenSetButCookieNotSet() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestTokenSetButCookieNotSet() throws Exception {
         // Setup - token already set in request but cookie not in response
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GET");
@@ -548,7 +545,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCorsConfigurationSource_WithThreeOrigins() {
+    void testCorsConfigurationSourceWithThreeOrigins() {
         ReflectionTestUtils.setField(config, "origins", "localhost:8088,localhost:3000,localhost:9000");
         CorsConfigurationSource corsConfigurationSource = config.corsConfigurationSource();
         assertNotNull(corsConfigurationSource);
@@ -563,7 +560,7 @@ class ConfigTest {
     }
 
     @Test
-    void testCorsConfigurationSource_WithSingleComma() {
+    void testCorsConfigurationSourceWithSingleComma() {
         ReflectionTestUtils.setField(config, "origins", ",");
         CorsConfigurationSource corsConfigurationSource = config.corsConfigurationSource();
         assertNotNull(corsConfigurationSource);
@@ -575,14 +572,14 @@ class ConfigTest {
     }
 
     @Test
-    void testInjiConfigBean_IsEmptyMap() {
+    void testInjiConfigBeanIsEmptyMap() {
         Map<String, String> injiConfig = config.injiConfig();
         assertNotNull(injiConfig);
         assertTrue(injiConfig.isEmpty()); // Should be empty initially
     }
 
     @Test
-    void testCsrfTokenCookieFilter_GetRequest_CaseInsensitiveMethod() throws Exception {
+    void testCsrfTokenCookieFilterGetRequestCaseInsensitiveMethod() throws Exception {
         // Setup - test case-insensitive GET method
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("GeT"); // Mixed case
@@ -605,16 +602,10 @@ class ConfigTest {
     }
 
     /**
-     * Helper method to create filter instance using reflection
+     * Helper method to create filter instance
      */
     private Config.CsrfTokenCookieFilter createFilterInstance() {
-        try {
-            java.lang.reflect.Constructor<Config.CsrfTokenCookieFilter> constructor = Config.CsrfTokenCookieFilter.class.getDeclaredConstructor(CsrfTokenRepository.class);
-            constructor.setAccessible(true);
-            return constructor.newInstance(csrfTokenRepository);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create filter instance", e);
-        }
+        return new Config.CsrfTokenCookieFilter(csrfTokenRepository);
     }
 }
 
