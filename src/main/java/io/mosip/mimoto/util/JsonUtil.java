@@ -253,14 +253,10 @@ public class JsonUtil {
                 }
             }
         } catch (InstantiationException | IllegalAccessException e) {
+            throw new InstantanceCreationException(PlatformErrorMessages.MIMOTO_SYS_INSTANTIATION_EXCEPTION.getMessage(), e);
 
-            throw new InstantanceCreationException(PlatformErrorMessages.MIMOTO_SYS_INSTANTIATION_EXCEPTION.getMessage(),
-                    e);
-
-        } catch (SecurityException e) {
-
+        } catch (SecurityException | IllegalArgumentException e) {
             throw new FieldNotFoundException(PlatformErrorMessages.MIMOTO_SYS_NO_SUCH_FIELD_EXCEPTION.getMessage(), e);
-
         }
 
         return javaObject;
