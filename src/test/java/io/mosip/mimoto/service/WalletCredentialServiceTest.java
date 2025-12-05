@@ -19,11 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -96,9 +95,7 @@ public class WalletCredentialServiceTest {
         CredentialsSupportedResponse credentialsSupportedResponse = new CredentialsSupportedResponse();
         issuerConfig = new IssuerConfig(issuerDTO, wellKnownResponse, credentialsSupportedResponse);
 
-        Field field = WalletCredentialServiceImpl.class.getDeclaredField("issuersWithSingleVcLimit");
-        field.setAccessible(true);
-        field.set(walletCredentialService, "Mosip");
+        ReflectionTestUtils.setField(walletCredentialService, "issuersWithSingleVcLimit", "Mosip");
         
         testCredential1 = createTestCredential("cred1", "issuer1", "type1");
         testCredential2 = createTestCredential("cred2", "issuer2", "type2");
@@ -569,10 +566,8 @@ public class WalletCredentialServiceTest {
         when(objectMapper.readValue(decryptedJson, VCCredentialResponse.class))
                 .thenReturn(testVcResponse1);
 
-        Method method = WalletCredentialServiceImpl.class.getDeclaredMethod(
-                "decryptAndParseCredential", VerifiableCredential.class, String.class);
-        method.setAccessible(true);
-        VCCredentialResponse result = (VCCredentialResponse) method.invoke(walletCredentialService, testCredential1, base64Key);
+        VCCredentialResponse result = ReflectionTestUtils.invokeMethod(
+                walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key);
 
         assertEquals(testVcResponse1, result);
         verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
@@ -581,17 +576,8 @@ public class WalletCredentialServiceTest {
 
     @Test
     public void shouldThrowIllegalArgumentExceptionWhenCredentialIsNull() throws Exception {
-        Method method = WalletCredentialServiceImpl.class.getDeclaredMethod(
-                "decryptAndParseCredential", VerifiableCredential.class, String.class);
-        method.setAccessible(true);
-
-        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () -> {
-            try {
-                method.invoke(walletCredentialService, null, base64Key);
-            } catch (java.lang.reflect.InvocationTargetException e) {
-                throw e.getCause();
-            }
-        });
+        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () ->
+                ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", null, base64Key));
 
         assertEquals("Credential cannot be null", exception.getMessage());
         verifyNoInteractions(encryptionDecryptionUtil);
@@ -603,17 +589,8 @@ public class WalletCredentialServiceTest {
         VerifiableCredential credentialWithNullData = createTestCredential("cred1", "issuer1", "type1");
         credentialWithNullData.setCredential(null);
 
-        Method method = WalletCredentialServiceImpl.class.getDeclaredMethod(
-                "decryptAndParseCredential", VerifiableCredential.class, String.class);
-        method.setAccessible(true);
-
-        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () -> {
-            try {
-                method.invoke(walletCredentialService, credentialWithNullData, base64Key);
-            } catch (java.lang.reflect.InvocationTargetException e) {
-                throw e.getCause();
-            }
-        });
+        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () ->
+                ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", credentialWithNullData, base64Key));
 
         assertEquals("Credential data cannot be null", exception.getMessage());
         verifyNoInteractions(encryptionDecryptionUtil);
@@ -625,17 +602,8 @@ public class WalletCredentialServiceTest {
         when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn(null);
 
-        Method method = WalletCredentialServiceImpl.class.getDeclaredMethod(
-                "decryptAndParseCredential", VerifiableCredential.class, String.class);
-        method.setAccessible(true);
-
-        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () -> {
-            try {
-                method.invoke(walletCredentialService, testCredential1, base64Key);
-            } catch (java.lang.reflect.InvocationTargetException e) {
-                throw e.getCause();
-            }
-        });
+        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () ->
+                ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key));
 
         assertEquals("Failed to decrypt credential or decrypted data is empty", exception.getMessage());
         verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
@@ -647,17 +615,8 @@ public class WalletCredentialServiceTest {
         when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn("");
 
-        Method method = WalletCredentialServiceImpl.class.getDeclaredMethod(
-                "decryptAndParseCredential", VerifiableCredential.class, String.class);
-        method.setAccessible(true);
-
-        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () -> {
-            try {
-                method.invoke(walletCredentialService, testCredential1, base64Key);
-            } catch (java.lang.reflect.InvocationTargetException e) {
-                throw e.getCause();
-            }
-        });
+        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () ->
+                ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key));
 
         assertEquals("Failed to decrypt credential or decrypted data is empty", exception.getMessage());
         verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
@@ -669,17 +628,8 @@ public class WalletCredentialServiceTest {
         when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn("   ");
 
-        Method method = WalletCredentialServiceImpl.class.getDeclaredMethod(
-                "decryptAndParseCredential", VerifiableCredential.class, String.class);
-        method.setAccessible(true);
-
-        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () -> {
-            try {
-                method.invoke(walletCredentialService, testCredential1, base64Key);
-            } catch (java.lang.reflect.InvocationTargetException e) {
-                throw e.getCause();
-            }
-        });
+        java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () ->
+                ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key));
 
         assertEquals("Failed to decrypt credential or decrypted data is empty", exception.getMessage());
         verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
@@ -691,18 +641,22 @@ public class WalletCredentialServiceTest {
         when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
                 .thenThrow(new DecryptionException("DECRYPTION_ERROR", "Decryption failed"));
 
-        Method method = WalletCredentialServiceImpl.class.getDeclaredMethod(
-                "decryptAndParseCredential", VerifiableCredential.class, String.class);
-        method.setAccessible(true);
+        Exception thrownException = assertThrows(Exception.class, () ->
+                ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key));
 
-        DecryptionException exception = assertThrows(DecryptionException.class, () -> {
-            try {
-                method.invoke(walletCredentialService, testCredential1, base64Key);
-            } catch (java.lang.reflect.InvocationTargetException e) {
-                throw e.getCause();
-            }
-        });
+        DecryptionException exception = null;
+        if (thrownException instanceof java.lang.reflect.UndeclaredThrowableException) {
+            Throwable cause = thrownException.getCause();
+            assertTrue("Expected DecryptionException but got: " + cause.getClass().getName(), 
+                    cause instanceof DecryptionException);
+            exception = (DecryptionException) cause;
+        } else if (thrownException instanceof DecryptionException) {
+            exception = (DecryptionException) thrownException;
+        } else {
+            fail("Expected DecryptionException but got: " + thrownException.getClass().getName());
+        }
 
+        assertNotNull("Exception should not be null", exception);
         assertEquals("DECRYPTION_ERROR", exception.getErrorCode());
         assertEquals("DECRYPTION_ERROR --> Decryption failed", exception.getMessage());
         verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
@@ -718,18 +672,22 @@ public class WalletCredentialServiceTest {
         when(objectMapper.readValue(invalidJson, VCCredentialResponse.class))
                 .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Invalid JSON") {});
 
-        Method method = WalletCredentialServiceImpl.class.getDeclaredMethod(
-                "decryptAndParseCredential", VerifiableCredential.class, String.class);
-        method.setAccessible(true);
+        Exception thrownException = assertThrows(Exception.class, () ->
+                ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key));
 
-        IOException exception = assertThrows(IOException.class, () -> {
-            try {
-                method.invoke(walletCredentialService, testCredential1, base64Key);
-            } catch (java.lang.reflect.InvocationTargetException e) {
-                throw e.getCause();
-            }
-        });
+        IOException exception = null;
+        if (thrownException instanceof java.lang.reflect.UndeclaredThrowableException) {
+            Throwable cause = thrownException.getCause();
+            assertTrue("Expected IOException but got: " + cause.getClass().getName(), 
+                    cause instanceof IOException);
+            exception = (IOException) cause;
+        } else if (thrownException instanceof IOException) {
+            exception = (IOException) thrownException;
+        } else {
+            fail("Expected IOException but got: " + thrownException.getClass().getName());
+        }
 
+        assertNotNull("Exception should not be null", exception);
         assertEquals("Invalid JSON", exception.getMessage());
         verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
         verify(objectMapper).readValue(invalidJson, VCCredentialResponse.class);

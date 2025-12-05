@@ -15,9 +15,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -52,9 +52,7 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 
     @Before
     public void setUp() throws Exception {
-        Field injiWebUrlField = OAuth2AuthenticationSuccessHandler.class.getDeclaredField("authenticationSuccessRedirectUrl");
-        injiWebUrlField.setAccessible(true);
-        injiWebUrlField.set(successHandler, AUTH_SUCCESS_REDIRECT_URL);
+        ReflectionTestUtils.setField(successHandler, "authenticationSuccessRedirectUrl", AUTH_SUCCESS_REDIRECT_URL);
 
         when(request.getSession(false)).thenReturn(session);
     }
