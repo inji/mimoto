@@ -16,6 +16,7 @@ import io.mosip.mimoto.service.CredentialShareService;
 import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.util.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -407,11 +408,63 @@ public class CredentialShareServiceImpl implements CredentialShareService {
     private void appendLangToOutputJSONFields(org.json.JSONObject credential, org.json.JSONObject outputJSON, String value) {
         JSONArray node = new JSONArray();
         node.addAll(credential.getJSONArray(value).toList());
-        JsonValue[] jsonValues = JsonUtil.mapJsonNodeToJavaObject(JsonValue.class, node);
+        JsonValue[] jsonValues = mapJsonNodeToJavaObject(JsonValue.class, node);
         for (JsonValue jsonValue : jsonValues) {
             if (supportedLang.contains(jsonValue.getLanguage())) {
                 outputJSON.put(value + "_" + jsonValue.getLanguage(), jsonValue);
             }
+        }
+    }
+
+    /**
+     * Map json node to java object.
+     * Maps JSONArray elements to Java objects by setting language and value fields.
+     *
+     * @param <T> the generic type
+     * @param genericType the generic type
+     * @param demographicJsonNode the demographic json node
+     * @return the array of mapped objects
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T[] mapJsonNodeToJavaObject(Class<? extends Object> genericType, JSONArray demographicJsonNode) {
+        String language;
+        String value;
+        T[] javaObject = (T[]) java.lang.reflect.Array.newInstance(genericType, demographicJsonNode.size());
+        try {
+            for (int i = 0; i < demographicJsonNode.size(); i++) {
+                T jsonNodeElement = (T) genericType.getDeclaredConstructor().newInstance();
+                JSONObject objects = getJSONObjectFromArray(demographicJsonNode, i);
+                if (objects != null) {
+                    language = (String) objects.get("language");
+                    value = (String) objects.get("value");
+                    FieldUtils.writeField(jsonNodeElement, "language", language, true);
+                    FieldUtils.writeField(jsonNodeElement, "value", value, true);
+                    javaObject[i] = jsonNodeElement;
+                }
+            }
+        } catch (InstantiationException | IllegalAccessException | java.lang.reflect.InvocationTargetException | NoSuchMethodException e) {
+            throw new InstantanceCreationException(PlatformErrorMessages.MIMOTO_SYS_INSTANTIATION_EXCEPTION.getMessage(), e);
+        } catch (SecurityException e) {
+            throw new FieldNotFoundException(PlatformErrorMessages.MIMOTO_SYS_NO_SUCH_FIELD_EXCEPTION.getMessage(), e);
+        }
+        return javaObject;
+    }
+
+    /**
+     * Iterates the JSONArray and returns JSONObject for given index.
+     *
+     * @param jsonArray the json array
+     * @param index the index
+     * @return the JSON object
+     */
+    @SuppressWarnings("unchecked")
+    private JSONObject getJSONObjectFromArray(JSONArray jsonArray, int index) {
+        Object object = jsonArray.get(index);
+        if (object instanceof LinkedHashMap) {
+            LinkedHashMap<String, Object> identity = (LinkedHashMap<String, Object>) jsonArray.get(index);
+            return identity != null ? new JSONObject(identity) : null;
+        } else {
+            return (JSONObject) object;
         }
     }
 

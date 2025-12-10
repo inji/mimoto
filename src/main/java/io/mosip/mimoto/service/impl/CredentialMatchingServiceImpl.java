@@ -2,6 +2,8 @@ package io.mosip.mimoto.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
 import io.mosip.mimoto.dto.MatchingCredentialsResponseDTO;
@@ -21,6 +23,7 @@ import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +32,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.reflect.FieldUtils;
 
 @Slf4j
 @Service
@@ -242,7 +244,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             }
 
             return matches.stream().anyMatch(match -> matchesFilter(match, filter));
-        } catch (JsonProcessingException | NoSuchFieldException | IllegalAccessException e) {
+        } catch (JsonProcessingException e) {
             log.error("Error checking field path {}: {}", path, e.getMessage());
             return false;
         }
@@ -277,7 +279,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     }
 
-    private List<Object> evaluateJsonPath(String path, Object json) throws JsonProcessingException, NoSuchFieldException, IllegalAccessException {
+    private List<Object> evaluateJsonPath(String path, Object json) throws JsonProcessingException {
         if (path == null || path.trim().isEmpty()) {
             return Collections.emptyList();
         }
@@ -290,51 +292,32 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             return Collections.emptyList();
         }
 
-        String[] pathParts = path.substring(2).split("\\.");
-        Object current = json;
+        try {
+            Object result;
 
-        for (String part : pathParts) {
-            if (current instanceof Map) {
-                @SuppressWarnings("unchecked") Map<String, Object> map = (Map<String, Object>) current;
-                current = map.get(part);
-            } else if (current instanceof List) {
-                @SuppressWarnings("unchecked") List<Object> list = (List<Object>) current;
-                try {
-                    int index = Integer.parseInt(part);
-                    if (index >= 0 && index < list.size()) {
-                        current = list.get(index);
-                    } else {
-                        return Collections.emptyList();
-                    }
-                } catch (NumberFormatException e) {
-                    return Collections.emptyList();
-                }
+            if (json instanceof Map) {
+                result = JsonPath.read(json, path);
+            } else if (json instanceof String) {
+                result = JsonPath.read((String) json, path);
             } else {
-                try {
-                    @SuppressWarnings("unchecked") Map<String, Object> map = objectMapper.convertValue(current, Map.class);
-                    current = map.get(part);
-                } catch (Exception convertException) {
-                    if (objectMapper.canSerialize(current.getClass())) {
-                        String jsonString = objectMapper.writeValueAsString(current);
-                        @SuppressWarnings("unchecked") Map<String, Object> map = objectMapper.readValue(jsonString, Map.class);
-                        current = map.get(part);
-                    } else {
-                        current = FieldUtils.readField(current, part, true);
-                    }
-                }
+                String jsonString = objectMapper.writeValueAsString(json);
+                result = JsonPath.read(jsonString, path);
             }
 
-            if (current == null) {
+            if (result == null) {
                 return Collections.emptyList();
             }
-        }
 
-        if (TYPE_PATH.equals(path) && current instanceof List) {
-            @SuppressWarnings("unchecked") List<Object> typeList = (List<Object>) current;
-            return new ArrayList<>(typeList);
-        }
+            if (result instanceof List) {
+                return (List<Object>) result;
+            }
 
-        return Collections.singletonList(current);
+            return Collections.singletonList(result);
+
+        } catch (PathNotFoundException e) {
+            log.debug("Path not found in JSON: {}", path);
+            return Collections.emptyList();
+        }
     }
 
     private List<String> extractRequiredClaims(PresentationDefinition presentationDefinition) {
