@@ -152,6 +152,104 @@ participant Issuer
         Mimoto->>Database: Update vc_status_check_tracker table
 ```
 
+### API Contract
+
+#### Fetch All Credentials with Status
+
+`GET wallets/{walletId}/credentials`
+
+**Description**: Retrieves all verifiable credentials stored in a specific wallet along with their current status.
+
+**Path Parameters**:
+- `walletId` (string, required): Unique identifier of the wallet
+
+**Response**:
+
+Two new fields to be added in the response payload:
+- `status` (string): Current status of the credential (e.g., VALID, REVOKED, EXPIRED, PENDING)
+- `lastCheckedAt` (string, ISO 8601 format): Timestamp of the last status check performed for the credential
+
+**Success (200 OK)**:
+```json
+[
+  {
+    "issuerDisplayName": "Mosip",
+    "issuerLogo": "https://example.com/logo.png",
+    "credentialTypeDisplayName": "National Identity Department Mosip",
+    "credentialTypeLogo": "https://example.com/credential-logo.png",
+    "credentialId": "1234567890",
+    "status": "VALID",
+    "lastCheckedAt": "2025-12-11T10:30:00Z"
+  }
+]
+```
+
+#### Check Credential Status
+
+**Endpoint**: `GET /wallets/{walletId}/credentials/{credentialId}/status`
+
+**Description**: Retrieves the current status of a specific credential. Performs a fresh status check if the configured threshold time has elapsed since the last check, otherwise returns cached status from database.
+
+**Path Parameters**:
+- `walletId` (string, required): Unique identifier of the wallet
+- `credentialId` (string, required): Unique identifier of the credential
+
+**Response**:
+
+**Success (200 OK)**:
+```json
+{
+  "credentialId": "string",
+  "status": "VALID | REVOKED | EXPIRED | PENDING",
+  "lastCheckedAt": "2024-12-11T10:30:00Z",
+  "isFreshCheck": true,
+  "message": "string (optional)"
+}
+```
+
+**Response Fields**:
+- `credentialId`: The unique identifier of the credential
+- `status`: Current status of the credential
+  - `VALID`: Credential is active and valid
+  - `REVOKED`: Credential has been revoked by issuer
+  - `EXPIRED`: Credential has expired
+  - `PENDING`: Status check is queued or in progress
+- `lastCheckedAt`: Timestamp of the most recent status check
+- `isFreshCheck`: Boolean indicating whether this response contains freshly checked status (`true`) or cached status from database (`false`)
+- `message`: Optional message providing additional context (e.g., error details when status is PENDING)
+
+**Error Responses**:
+
+- **404 Not Found**: Credential or wallet not found
+```json
+{
+  "errorCode": "CREDENTIAL_NOT_FOUND",
+  "message": "Credential with ID {credentialId} not found for wallet {walletId}"
+}
+```
+
+- **400 Bad Request**: Invalid request parameters
+```json
+{
+  "errorCode": "INVALID_REQUEST",
+  "message": "Invalid walletId or credentialId format"
+}
+```
+
+- **500 Internal Server Error**: Unexpected error during status check
+```json
+{
+  "errorCode": "INTERNAL_SERVER_ERROR",
+  "message": "An unexpected error occurred while checking credential status"
+}
+```
+
+**Behavior Notes**:
+- If threshold time hasn't elapsed since last check, returns cached status with `isFreshCheck: false`
+- If threshold time has elapsed, performs fresh status check and returns with `isFreshCheck: true`
+- If fresh status check fails, returns status as `PENDING` with `isFreshCheck: true` and queues credential for batch processing
+- The `lastCheckedAt` timestamp always reflects when the status was actually last verified with the issuer
+
 ### Database Schema
 
 #### verifiable_credential Table
