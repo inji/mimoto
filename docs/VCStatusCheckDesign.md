@@ -104,6 +104,49 @@ sequenceDiagram
     InjiWeb->>User: Display status and last checked time in Stored Cards section
 ```
 
+#### Flow 3 : User adds a credential to wallet
+
+- User logs in to Inji Web application
+- Selects and adds a new verifiable credential to their wallet
+- During the addition process, the system performs an immediate status check for the newly added credential using the VC Verifier library
+- The system updates the status of the credential in the database based on the result of the status check
+- The user is notified of the successful addition of the credential along with its current status
+- The newly added credential is now available in the user's wallet with its status displayed
+- In case of any error during status check, the system sets the status as 'PENDING' and queues the credential for later processing
+
+Sequence Diagram:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User
+    participant InjiWeb as Inji Web Wallet
+    participant Mimoto
+    participant VCVerifier as VC Verifier library
+    participant Database as Database(PostgreSQL)
+    participant Issuer
+    User->>InjiWeb: Logs in
+    InjiWeb->>Mimoto: Authorize user
+    Mimoto-->> InjiWeb: Authorization response [success]
+    User->>InjiWeb: Select a credential, authenticate and add to wallet
+    InjiWeb->>Mimoto: POST wallets/{walletId}/credentials
+    Mimoto->>VCVerifier: verifyAndGetCredentialStatus
+    VCVerifier->>VCVerifier: verify the credential
+    alt credential is valid
+        VCVerifier->>Issuer: Get the status from issuer for data model 2.0 VCs
+        Issuer->>VCVerifier: status
+        VCVerifier->>VCVerifier: process the status
+        VCVerifier-->>Mimoto: isValid, status
+        Mimoto->>Database: Store credential with status in verifiable_credential table
+        Database-->>Mimoto: Acknowledgement of storage
+        Mimoto-->>InjiWeb: Success
+        InjiWeb-->User: Show success message, land the user on stored card page
+    else credential is invalid
+        Mimoto-->>InjiWeb: Error
+        InjiWeb-->User: Show error message to the user, land the user on stored card page
+    end
+```
+
 ### Batching Job for status checks
 
 To optimize performance and reduce the number of external calls to issuers, the system will implement batching logic for status checks. When multiple credentials from the same issuer need to be checked, the system will group these requests and perform a single batch status check.
@@ -256,23 +299,31 @@ Two new fields to be added in the response payload:
 
 This table stores the verifiable credentials along with their status information. Two columns to be introduced for status tracking : 
 
-| Column Name            | Data Type     | Description                                      |
-|------------------------|---------------|--------------------------------------------------|
-| status                 | VARCHAR(20)   | Current status of the credential (e.g., VALID, REVOKED, SUSPENDED, PENDING) |
-| status_last_checked_at | TIMESTAMP     | Timestamp of the last status check performed     |
+| Column Name            | Data Type   | Description                                                                 |
+|------------------------|-------------|-----------------------------------------------------------------------------|
+| status                 | VARCHAR(20) | Current status of the credential (e.g., VALID, REVOKED, SUSPENDED, PENDING) |
+| status_last_checked_at | TIMESTAMP   | Timestamp of the last status check performed                                |
 
+Possible values for `status` column:
+- `VALID`: Credential is active and valid, applicable for all type of VCs. 
+- `REVOKED`: Credential has been revoked by issuer, applicable for only W3C Data model 2.0 VCs with status list support.
+- `EXPIRED`: Credential is expired, applicable for all type of VCs.
+- `PENDING`: Status check is queued for retry.
 
 #### vc_status_check_tracker Table
 
 This table tracks the status check operations for verifiable credentials.
 
-| Column Name | Data Type | Description                                                                         |
-|------------|-----------|-------------------------------------------------------------------------------------|
-| wallet_id | VARCHAR(36) | Unique identifier for the wallet                                                    |
-| credential_id | VARCHAR(36) | Unique identifier for the credential                                                |
-| issuer_id | VARCHAR(50) | Identifier of the credential issuer                                                 |
+| Column Name     | Data Type   | Description                                                                         |
+|-----------------|-------------|-------------------------------------------------------------------------------------|
+| wallet_id       | VARCHAR(36) | Unique identifier for the wallet                                                    |
+| credential_id   | VARCHAR(36) | Unique identifier for the credential                                                |
+| issuer_id       | VARCHAR(50) | Identifier of the credential issuer                                                 |
 | credential_type | VARCHAR(50) | Type of the credential                                                              |
-| run_status | VARCHAR(20) | Current status of the status check run. Two possible status: `PENDING`, `COMPLETED` |
-| created_at | TIMESTAMP | Timestamp when the record was created                                               |
-| completed_at | TIMESTAMP | Timestamp when the status check was completed                                       |
+| run_status      | VARCHAR(20) | Current status of the status check run. Two possible status: `PENDING`, `COMPLETED` |
+| created_at      | TIMESTAMP   | Timestamp when the record was created                                               |
+| completed_at    | TIMESTAMP   | Timestamp when the status check was completed                                       |
 
+### Migration of existing credentials
+
+A one-time migration script will be executed to initialize the `status` and `status_last_checked_at` fields for existing credentials in the `verifiable_credential` table. The script will set the initial status to `PENDING` and the `status_last_checked_at` to the current timestamp, indicating that these credentials need to be checked for their status during the next scheduled batch job or manual check.
