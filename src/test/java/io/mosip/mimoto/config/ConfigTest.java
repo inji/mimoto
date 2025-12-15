@@ -54,7 +54,6 @@ class ConfigTest {
     void setUp() {
         config = new Config();
         ReflectionTestUtils.setField(config, "baseUrl", "http://localhost:8080");
-        ReflectionTestUtils.setField(config, "isCSRFEnable", true);
         ReflectionTestUtils.setField(config, "isCORSEnable", true);
         ReflectionTestUtils.setField(config, "origins", "localhost:8088,localhost:3000");
         ReflectionTestUtils.setField(config, "ignoreAuthUrls", new String[]{"/public/**", "/actuator/**"});

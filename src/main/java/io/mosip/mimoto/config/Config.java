@@ -15,7 +15,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -62,9 +61,6 @@ public class Config {
     @Value("${mosipbox.public.url}")
     private String baseUrl;
 
-    @Value("${mosip.security.csrf-enable:false}")
-    private boolean isCSRFEnable;
-
     @Value("${mosip.security.cors-enable:false}")
     private boolean isCORSEnable;
 
@@ -99,13 +95,8 @@ public class Config {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, SessionRepository sessionRepository) throws Exception {
-        if (isCSRFEnable) {
-            configureCsrf(http);
-            // Add filter to ensure CSRF tokens are generated on all requests including GET
-            http.addFilterAfter(new CsrfTokenCookieFilter(csrfTokenRepository), org.springframework.security.web.csrf.CsrfFilter.class);
-        } else {
-            http.csrf(AbstractHttpConfigurer::disable);
-        }
+        configureCsrf(http);
+        http.addFilterAfter(new CsrfTokenCookieFilter(csrfTokenRepository), org.springframework.security.web.csrf.CsrfFilter.class);
 
         if (isCORSEnable) {
             http.cors(corsCustomizer -> corsCustomizer
