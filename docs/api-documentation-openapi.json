@@ -2811,7 +2811,7 @@
                     "Wallet Credentials"
                 ],
                 "summary": "Download and store a Verifiable Credential under a specific Wallet",
-                "description": "This API is secured using session-based authentication. Upon receiving a request, the session ID is extracted from the Cookie header and used to retrieve session details from Redis for authentication. It then retrieves the wallet key from the session and use it to decrypt the signing algorithm's secret key(which is used for signing the JWT in credential request) and encrypt the downloaded Verifiable Credential. If the process completes successfully, the credential is stored in the database and certain fields will be returned in the response. In case of any issues, an appropriate error response is returned.",
+                "description": "This API is secured using session-based authentication. Upon receiving a request, the session ID is extracted from the Cookie header and used to retrieve session details from Redis for authentication. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests. It then retrieves the wallet key from the session and use it to decrypt the signing algorithm's secret key(which is used for signing the JWT in credential request) and encrypt the downloaded Verifiable Credential. If the process completes successfully, the credential is stored in the database and certain fields will be returned in the response. In case of any issues, an appropriate error response is returned.",
                 "operationId": "downloadCredential",
                 "security": [
                     {
@@ -2827,6 +2827,15 @@
                             "type": "string"
                         },
                         "description": "Unique identifier of the user's wallet where the credential will be stored"
+                    },
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "CSRF token obtained from the XSRF-TOKEN cookie set by the server on GET requests."
                     },
                     {
                         "name": "Accept-Language",
@@ -3386,7 +3395,7 @@
                     "Wallet Credentials"
                 ],
                 "summary": "Delete a credential from a wallet",
-                "description": "This endpoint allows you to delete a specific credential from a wallet. The API is secured using session-based authentication. The session ID is extracted from the Cookie header to authenticate the user. The wallet ID is validated against the session to ensure the user has access to the wallet. If the credential is successfully deleted, a 200 OK response is returned.",
+                "description": "This endpoint allows you to delete a specific credential from a wallet. The API is secured using session-based authentication. The session ID is extracted from the Cookie header to authenticate the user. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests. The wallet ID is validated against the session to ensure the user has access to the wallet. If the credential is successfully deleted, a 200 OK response is returned.",
                 "operationId": "deleteCredential",
                 "security": [
                     {
@@ -3411,6 +3420,15 @@
                             "type": "string"
                         },
                         "description": "Unique identifier of the credential to be deleted"
+                    },
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "CSRF token obtained from the XSRF-TOKEN cookie set by the server on GET requests."
                     }
                 ],
                 "responses": {
@@ -3486,11 +3504,22 @@
                     "Wallets"
                 ],
                 "summary": "Create a new wallet",
-                "description": "This API is secured using session-based authentication. The session ID is extracted from the Cookie header and used to retrieve session details from Redis for authentication. The user ID is then obtained from the session and along with the provided wallet name and PIN is used to create a new wallet in the database. If the wallet is created successfully, response including unique identifier of the wallet and and the provided name is returned otherwise an appropriate error response is provided.",
+                "description": "This API is secured using session-based authentication. The session ID is extracted from the Cookie header and used to retrieve session details from Redis for authentication. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests. The user ID is then obtained from the session and along with the provided wallet name and PIN is used to create a new wallet in the database. If the wallet is created successfully, response including unique identifier of the wallet and and the provided name is returned otherwise an appropriate error response is provided.",
                 "operationId": "createWallet",
                 "security": [
                     {
                         "SessionAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "CSRF token obtained from the XSRF-TOKEN cookie set by the server on GET requests."
                     }
                 ],
                 "requestBody": {
@@ -3747,7 +3776,7 @@
                     "Wallets"
                 ],
                 "summary": "Delete a Wallet",
-                "description": "This endpoint allows you to delete a specific wallet. The API is secured using session-based authentication. The session ID is extracted from the Cookie header to authenticate the user. The user's ID is obtained from the session and used to validate ownership of the Wallet before deletion. If the Wallet is successfully deleted, a 200 OK response is returned; otherwise, an appropriate error response is returned.",
+                "description": "This endpoint allows you to delete a specific wallet. The API is secured using session-based authentication. The session ID is extracted from the Cookie header to authenticate the user. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests. The user's ID is obtained from the session and used to validate ownership of the Wallet before deletion. If the Wallet is successfully deleted, a 200 OK response is returned; otherwise, an appropriate error response is returned.",
                 "operationId": "deleteWallet",
                 "security": [
                     {
@@ -3763,6 +3792,15 @@
                             "type": "string"
                         },
                         "description": "Unique identifier of the Wallet to be deleted"
+                    },
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "CSRF token obtained from the XSRF-TOKEN cookie set by the server on GET requests."
                     }
                 ],
                 "responses": {
@@ -3850,7 +3888,7 @@
                     "Wallets"
                 ],
                 "summary": "Unlock an existing Wallet",
-                "description": "This API is secured using session-based authentication. Upon receiving a request, the session is first retrieved using the session ID extracted from the Cookie header to authenticate the user. Once authenticated, the user's ID is obtained from the session stored in Redis. Using this user ID along with the provided wallet ID and PIN, the corresponding wallet key is fetched and stored in the session. If successful then the API returns a response containing the wallet ID otherwise an appropriate error response is returned.",
+                "description": "This API is secured using session-based authentication. Upon receiving a request, the session is first retrieved using the session ID extracted from the Cookie header to authenticate the user. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests. Once authenticated, the user's ID is obtained from the session stored in Redis. Using this user ID along with the provided wallet ID and PIN, the corresponding wallet key is fetched and stored in the session. If successful then the API returns a response containing the wallet ID otherwise an appropriate error response is returned.",
                 "operationId": "unlockWallet",
                 "security": [
                     {
@@ -3867,6 +3905,15 @@
                         },
                         "description": "Unique identifier of the wallet to be unlocked",
                         "example": "123e4567-e89b-12d3-a456-426614174000"
+                    },
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "CSRF token obtained from the XSRF-TOKEN cookie set by the server on GET requests."
                     }
                 ],
                 "requestBody": {
@@ -4034,7 +4081,7 @@
                     "Wallet Presentations"
                 ],
                 "summary": "Processes Verifiable Presentation Authorization Request and provides details about the verifier and presentation.",
-                "description": "This API is secured using session-based authentication. Upon receiving a request, the session is first retrieved using the session ID extracted from the Cookie header to authenticate the user. Once authenticated, the API processes the received Verifiable Presentation Authorization Request from the Verifier for a specific wallet. It validates the session, verifies the authenticity of the request, and checks if the Verifier is pre-registered and trusted by the wallet. If all validations pass, the API returns a response containing the presentation details; otherwise, an appropriate error response is returned.",
+                "description": "This API is secured using session-based authentication. Upon receiving a request, the session is first retrieved using the session ID extracted from the Cookie header to authenticate the user. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests. Once authenticated, the API processes the received Verifiable Presentation Authorization Request from the Verifier for a specific wallet. It validates the session, verifies the authenticity of the request, and checks if the Verifier is pre-registered and trusted by the wallet. If all validations pass, the API returns a response containing the presentation details; otherwise, an appropriate error response is returned.",
                 "operationId": "processVPAuthorizationRequest",
                 "parameters": [
                     {
@@ -4045,6 +4092,15 @@
                             "type": "string"
                         },
                         "description": "The unique identifier of the Wallet."
+                    },
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "CSRF token obtained from the XSRF-TOKEN cookie set by the server on GET requests."
                     }
                 ],
                 "requestBody": {
@@ -4176,7 +4232,7 @@
                     "Wallet Presentations"
                 ],
                 "summary": "Handles user submission or rejection of a presentation",
-                "description": "This API allows users to accept or reject a presentation request by selecting specific credentials. Upon acceptance, the system fetches the selected credentials, constructs and signs a VP token, shares it with the verifier, and stores the presentation record in the database.",
+                "description": "This API allows users to accept or reject a presentation request by selecting specific credentials. The API is secured using session-based authentication. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests. Upon acceptance, the system fetches the selected credentials, constructs and signs a VP token, shares it with the verifier, and stores the presentation record in the database.",
                 "operationId": "handlePresentationSubmission",
                 "parameters": [
                     {
@@ -4196,6 +4252,15 @@
                             "type": "string"
                         },
                         "description": "The unique identifier of the Presentation."
+                    },
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "CSRF token obtained from the XSRF-TOKEN cookie set by the server on GET requests."
                     }
                 ],
                 "requestBody": {
@@ -4477,7 +4542,7 @@
                     "Wallet Trusted Verifiers"
                 ],
                 "summary": "Add a trusted verifier to a wallet",
-                "description": "Adds a trusted verifier for the specified wallet after validating the session and request. Requires an active session; the path walletId must match the wallet in session.",
+                "description": "Adds a trusted verifier for the specified wallet after validating the session and request. Requires an active session; the path walletId must match the wallet in session. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests.",
                 "operationId": "addTrustedVerifier",
                 "security": [
                     {
@@ -4493,6 +4558,15 @@
                             "type": "string"
                         },
                         "description": "The unique identifier of the wallet."
+                    },
+                    {
+                        "name": "X-XSRF-TOKEN",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "CSRF token obtained from the XSRF-TOKEN cookie set by the server on GET requests."
                     }
                 ],
                 "requestBody": {
@@ -4695,7 +4769,7 @@
                 "type": "apiKey",
                 "in": "cookie",
                 "name": "SESSION",
-                "description": "Session-based authentication using a session ID stored in the cookie. The client must send the 'SESSION' cookie (e.g., SESSION=<session-id>) with each request."
+                "description": "Session-based authentication using a session ID stored in the cookie. The client must send the 'SESSION' cookie (e.g., SESSION=<session-id>) with each request. For state-changing requests (POST, PUT, DELETE, PATCH), a valid CSRF token must also be included in the X-XSRF-TOKEN header. The CSRF token can be obtained from the XSRF-TOKEN cookie set by the server on GET requests (e.g., by calling GET /issuers or GET /wallets)."
             },
             "bearerAuth": {
                 "type": "http",

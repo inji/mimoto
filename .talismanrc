@@ -58,7 +58,7 @@ fileignoreconfig:
 - filename: docs/postman-collections/Collab.postman_environment.json
   checksum: 93662b305117d9ac73e9f8ace2bd8dc8b2de494908a8c69166d0c908cc80365c
 - filename: docs/postman-collections/MIMOTO.postman_collection.json
-  checksum: 625fb5888d4334e7a0b91134a6886556f334a111d9d6c9dd2fa057352af38827
+  checksum: 6a78494d445c59d8e7787e2e232bd54c000b541f0baf3f19c3f9d024a03fe1b1
 - filename: src/test/java/io/mosip/mimoto/controller/InjiControllerTest.java
   checksum: c4e28436cb04004d9cb4e1492a1d013eac076936a3fa3a99d35bfb137f27c37b
 - filename: .github/workflows/push-trigger.yml
@@ -106,7 +106,7 @@ fileignoreconfig:
 - filename: docs/WalletUnlockProcess.md
   checksum: d172beb5aeef1037d70d2f83f034e6ec5e4ea69c6150ec6a25c9139c799b7879
 - filename: docs/api-documentation-openapi.json
-  checksum: 731f2f21a4054e7f1f076d894a8b1d3f814cb924af55ed5815e736b12971113c
+  checksum: 0394757e38ceaf2d16763076615a29914d4d98037464f89a7f2d91e2d512ad57
 - filename: src/main/java/io/mosip/mimoto/util/JwtGeneratorUtil.java
   checksum: c8533dd38f79879119ba2895afca75d60e9704d5a0df4a0e79bc3b9292bd0d38
 - filename: src/main/java/io/mosip/mimoto/service/impl/CredentialRequestServiceImpl.java
