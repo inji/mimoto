@@ -1,6 +1,5 @@
 package io.mosip.mimoto.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
@@ -233,20 +232,15 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     }
 
     private boolean matchesFieldPath(VCCredentialResponse vc, String path, Filter filter) {
-        try {
-            Object credentialData = getCredentialData(vc);
+        Object credentialData = getCredentialData(vc);
 
-            List<Object> matches = evaluateJsonPath(path, credentialData);
+        List<Object> matches = evaluateJsonPath(path, credentialData);
 
-            if (matches == null || matches.isEmpty()) {
-                return false;
-            }
-
-            return matches.stream().anyMatch(match -> matchesFilter(match, filter));
-        } catch (JsonProcessingException e) {
-            log.error("Error checking field path {}: {}", path, e.getMessage());
+        if (matches == null || matches.isEmpty()) {
             return false;
         }
+
+        return matches.stream().anyMatch(match -> matchesFilter(match, filter));
     }
 
     private Object getCredentialData(VCCredentialResponse vc) {
@@ -278,7 +272,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     }
 
-    private List<Object> evaluateJsonPath(String path, Object json) throws JsonProcessingException {
+    private List<Object> evaluateJsonPath(String path, Object json) {
         if (path == null || path.trim().isEmpty()) {
             return Collections.emptyList();
         }
@@ -292,16 +286,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         }
 
         try {
-            Object result;
-
-            if (json instanceof Map) {
-                result = JsonPath.read(json, path);
-            } else if (json instanceof String) {
-                result = JsonPath.read((String) json, path);
-            } else {
-                String jsonString = objectMapper.writeValueAsString(json);
-                result = JsonPath.read(jsonString, path);
-            }
+            Object result = JsonPath.read(json, path);
 
             if (result == null) {
                 return Collections.emptyList();
