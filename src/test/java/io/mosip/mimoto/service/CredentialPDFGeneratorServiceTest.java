@@ -949,7 +949,7 @@ class CredentialPDFGeneratorServiceTest {
             "https://example.com/share", "", "en");
 
         assertNotNull(result);
-        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString());
+        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -985,7 +985,7 @@ class CredentialPDFGeneratorServiceTest {
             "https://example.com/share", "", "en");
 
         assertNotNull(result);
-        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString());
+        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -1018,6 +1018,6 @@ class CredentialPDFGeneratorServiceTest {
             "https://example.com/share", "", "en");
 
         assertNotNull(result);
-        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString());
+        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
     }
 }
