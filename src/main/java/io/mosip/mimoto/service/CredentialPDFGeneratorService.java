@@ -94,9 +94,9 @@ public class CredentialPDFGeneratorService {
     private boolean maskDisclosures;
 
     public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
-        // Check if credential is a v2 data model credential with template in the renderMethod
+        // Check if the credential is a LDP VC credential with v2 data model and has template in the renderMethod
         if (hasV2ContextWithSvgTemplate(vcCredentialResponse)) {
-            log.info("Detected v2 data model with render method and template for credential, using InjiVcRenderer");
+            log.info("Detected LDP VC v2 credential with svg template, using InjiVcRenderer for PDF generation");
             return generatePdfForV2Credential(vcCredentialResponse, credentialsSupportedResponse, issuerDTO, dataShareUrl);
         } else {
             log.info("Using v1 data model flow for credential");
@@ -318,8 +318,8 @@ public class CredentialPDFGeneratorService {
         return false;
     }
 
-    private boolean containsSvgTemplate(Map<String, Object> payload) {
-        Object renderMethod = payload.get("renderMethod");
+    private boolean containsSvgTemplate(Map<String, Object> credentialPayloadMap) {
+        Object renderMethod = credentialPayloadMap.get("renderMethod");
         if (renderMethod instanceof List<?> renderMethodList) {
             return renderMethodList.stream().allMatch(entry -> {
                 if (!(entry instanceof Map<?, ?> renderMethodProperties)) return false;
@@ -336,26 +336,24 @@ public class CredentialPDFGeneratorService {
 
     private ByteArrayInputStream generatePdfForV2Credential(VCCredentialResponse vcCredentialResponse, CredentialsSupportedResponse credentialsSupportedResponse, IssuerDTO issuerDTO, String dataShareUrl) throws Exception {
         try {
-            // Get the ldp_vc credential as a Map
+            // Get the ldp_vc credential and convert to string
             @SuppressWarnings("unchecked")
-            Map<String, Object> credentialMap = (Map<String, Object>) vcCredentialResponse.getCredential();
+            Map<String, Object> credentialPayloadMap = (Map<String, Object>) vcCredentialResponse.getCredential();
+            String credentialJsonString = objectMapper.writeValueAsString(credentialPayloadMap);
 
-            // Adding the QR code image to the credential map
-            String qrCodeImage = "";
+            // Generate the QR code data to embed into the svg for Online Sharing
+            String qrCodeData = "";
             if (QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type())) {
-                qrCodeImage = constructQRCodeWithAuthorizeRequest(vcCredentialResponse, dataShareUrl);
-            } else if (QRCodeType.EmbeddedVC.equals(issuerDTO.getQr_code_type())) {
-                qrCodeImage = constructQRCodeWithVCData(vcCredentialResponse);
+                PresentationDefinitionDTO presentationDefinitionDTO = presentationService.constructPresentationDefinition(vcCredentialResponse);
+                String presentationString = objectMapper.writeValueAsString(presentationDefinitionDTO);
+                qrCodeData = String.format(ovpQRDataPattern, URLEncoder.encode(dataShareUrl, StandardCharsets.UTF_8), URLEncoder.encode(presentationString, StandardCharsets.UTF_8));
             }
-            credentialMap.put("qrCodeImage", qrCodeImage);
 
-            // Convert credential to JSON string for InjiVcRenderer
-            String credentialJsonString = objectMapper.writeValueAsString(credentialMap);
             String wellKnownJson = objectMapper.writeValueAsString(credentialsSupportedResponse);
 
-            // Generate credential display content using InjiVcRenderer
+            // Generate list of rendered svg strings using InjiVcRenderer
             List<Object> generatedSvgObjects = injiVcRenderer.generateCredentialDisplayContent(
-                    io.mosip.injivcrenderer.constants.CredentialFormat.LDP_VC, wellKnownJson, credentialJsonString);
+                    io.mosip.injivcrenderer.constants.CredentialFormat.LDP_VC, wellKnownJson, credentialJsonString, qrCodeData);
 
             if (generatedSvgObjects.isEmpty()) {
                  throw new Exception("No SVG content generated for v2 credential");

@@ -902,7 +902,7 @@ class CredentialPDFGeneratorServiceTest {
         issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
-        when(injiVcRenderer.generateCredentialDisplayContent(any(), anyString(), anyString()))
+        when(injiVcRenderer.generateCredentialDisplayContent(any(), anyString(), anyString(), anyString()))
             .thenReturn(List.of("<svg></svg>"));
         when(svgFixerUtil.addMissingOffsetToStopElements(anyString())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -913,7 +913,7 @@ class CredentialPDFGeneratorServiceTest {
             "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
             "https://example.com/share", "", "en");
         assertNotNull(result);
-        verify(injiVcRenderer).generateCredentialDisplayContent(any(), anyString(), anyString());
+        verify(injiVcRenderer).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
     }
 
     @Test
