@@ -630,4 +630,67 @@ public class PresentationServiceTest {
 
     // Tests for rejectVerifier removed - method moved to WalletPresentationService
 
+    @Test
+    public void constructPresentationDefinitionWithComplexRenderMethod() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.LDP_VC.getFormat());
+
+        Map<String, Object> template = Map.of(
+            "id", "https://degree.example/credential-templates/bachelors",
+            "mediaType", "image/svg+xml",
+            "digestMultibase", "zQmerWC85Wg6wFl9znFCwYxApG270iEu5h6JqWAPdhyxz2dR"
+        );
+        Map<String, Object> renderMethod = Map.of(
+            "type", "TemplateRenderMethod",
+            "renderSuite", "svg-mustache",
+            "template", template
+        );
+
+        VCCredentialProperties credential = new VCCredentialProperties();
+        credential.setType(Arrays.asList("VerifiableCredential", "TestCredential"));
+        credential.setContext("https://www.w3.org/2018/credentials/v2");
+        credential.setRenderMethod(renderMethod);
+        VCCredentialResponseProof proof = new VCCredentialResponseProof();
+        proof.setType("Ed25519Signature2020");
+        credential.setProof(proof);
+
+        vcCredentialResponse.setCredential(credential);
+
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn(credential);
+
+        PresentationDefinitionDTO result = presentationService.constructPresentationDefinition(vcCredentialResponse);
+
+        assertNotNull(result);
+        assertNotNull(credential.getRenderMethod());
+        Map<?, ?> render = (Map<?, ?>) credential.getRenderMethod();
+        assertEquals("TemplateRenderMethod", render.get("type"));
+        assertEquals("svg-mustache", render.get("renderSuite"));
+        Map<?, ?> tmpl = (Map<?, ?>) render.get("template");
+        assertEquals("https://degree.example/credential-templates/bachelors", tmpl.get("id"));
+    }
+
+    @Test
+    public void constructPresentationDefinitionWithRenderMethodAbsent() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.LDP_VC.getFormat());
+
+        VCCredentialProperties credential = new VCCredentialProperties();
+        credential.setType(Arrays.asList("VerifiableCredential", "TestCredential"));
+        credential.setContext("https://www.w3.org/2018/credentials/v2");
+        // renderMethod not set
+        VCCredentialResponseProof proof = new VCCredentialResponseProof();
+        proof.setType("Ed25519Signature2020");
+        credential.setProof(proof);
+
+        vcCredentialResponse.setCredential(credential);
+
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn(credential);
+
+        PresentationDefinitionDTO result = presentationService.constructPresentationDefinition(vcCredentialResponse);
+
+        assertNotNull(result);
+        assertNull(credential.getRenderMethod());
+    }
 }
