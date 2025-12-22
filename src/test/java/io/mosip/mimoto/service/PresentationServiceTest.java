@@ -631,7 +631,7 @@ public class PresentationServiceTest {
     // Tests for rejectVerifier removed - method moved to WalletPresentationService
 
     @Test
-    public void constructPresentationDefinitionWithComplexRenderMethod() {
+    public void constructPresentationDefinitionWithRenderMethod() {
         VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.LDP_VC.getFormat());
 
@@ -671,7 +671,7 @@ public class PresentationServiceTest {
     }
 
     @Test
-    public void constructPresentationDefinitionWithRenderMethodAbsent() {
+    public void constructPresentationDefinitionWithRenderMethodAbsent() throws Exception {
         VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.LDP_VC.getFormat());
 
@@ -692,5 +692,10 @@ public class PresentationServiceTest {
 
         assertNotNull(result);
         assertNull(credential.getRenderMethod());
+
+        //Not mocking the ObjectMapper here to test the actual serialization : renderMethod should be absent
+        ObjectMapper realMapper = new ObjectMapper();
+        String json = realMapper.writeValueAsString(credential);
+        assertFalse(json.contains("renderMethod"));
     }
 }
