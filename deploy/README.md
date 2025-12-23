@@ -73,7 +73,7 @@ cd ../deploy/mimoto
 
 ### To Deploy Mimoto WITH Datashare (Default)
 If you are using Inji Web Wallet or need datashare for online verification:
-```
+```bash
 cd ../deploy/mimoto
 ./install.sh
  ```
