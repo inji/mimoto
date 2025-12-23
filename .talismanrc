@@ -204,4 +204,6 @@ fileignoreconfig:
   checksum: f533f57817732d29d33338ee67fed3af74a6c3492d2539d0b36152ec6822d9a3
 - filename: src/main/java/io/mosip/mimoto/service/impl/WalletPresentationServiceImpl.java
   checksum: 273142b1d86eeea43034c17265459707c9c487b37c63fe28b48916a44189944f
+- filename: deploy/README.md
+  checksum: 1bef019be00c0eae8714ce8a71a4e33c68aa5e2bfe4a6d7f72eaad35b8dd64a9
 version: ""
