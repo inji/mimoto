@@ -66,14 +66,14 @@ If you are using only Inji Mobile Wallet and do not need datashare, follow these
    - This embeds the entire Verifiable Credential in the QR code for offline verification
 
 3. **Run the modified install script:**
-```
+```bash
 cd ../deploy/mimoto
 ./install.sh
  ```
 
 ### To Deploy Mimoto WITH Datashare (Default)
 If you are using Inji Web Wallet or need datashare for online verification:
-```bash
+```
 cd ../deploy/mimoto
 ./install.sh
  ```
