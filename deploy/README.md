@@ -61,9 +61,9 @@ If you are using only Inji Mobile Wallet and do not need datashare, follow these
      --version $DATASHARE_CHART_VERSION
      ```
 
-2. **Configure Mimoto for offline credentials:**
+2. **Configure Mimoto for Mobile Wallet only:**
    - Ensure that `qr_code_type` is set to `"EmbeddedVC"` in your `mimoto-issuers-config.json` file
-   - This embeds the entire Verifiable Credential in the QR code for offline verification
+   - This embeds the entire Verifiable Credential in the QR code.
 
 3. **Run the modified install script:**
 ```bash
