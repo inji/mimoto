@@ -96,7 +96,7 @@ public class CredentialPDFGeneratorService {
         // Check if the credential can support SVG based rendering
         if (isSvgBasedRenderingSupported(vcCredentialResponse)) {
             log.info("Detected LDP VC v2 credential with svg template, using InjiVcRenderer for PDF generation");
-            return generatePdfForV2Credential(vcCredentialResponse, issuerDTO, dataShareUrl);
+            return generatePdfUsingSvgTemplate(vcCredentialResponse, issuerDTO, dataShareUrl);
         } else {
             log.info("Using v1 data model flow for credential");
             // Get the appropriate processor based on format
@@ -224,9 +224,7 @@ public class CredentialPDFGeneratorService {
             List<?> list = (List<?>) val;
             if (list.isEmpty()) return "";
             if (list.getFirst() instanceof String) {
-                @SuppressWarnings("unchecked")
-                List<String> stringList = (List<String>) list;
-                return String.join(", ", stringList);
+                return String.join(", ", (List<String>) list);
             } else if (list.getFirst() instanceof Map<?, ?>) {
                 return list.stream()
                         .filter(Objects::nonNull)
@@ -335,12 +333,10 @@ public class CredentialPDFGeneratorService {
         return false;
     }
 
-    private ByteArrayInputStream generatePdfForV2Credential(VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, String dataShareUrl) throws Exception {
+    private ByteArrayInputStream generatePdfUsingSvgTemplate(VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, String dataShareUrl) throws Exception {
         try {
             // Get the ldp_vc credential and convert to string
-            @SuppressWarnings("unchecked")
-            Map<String, Object> credentialPayloadMap = (Map<String, Object>) vcCredentialResponse.getCredential();
-            String credentialJsonString = objectMapper.writeValueAsString(credentialPayloadMap);
+            String credentialJsonString = objectMapper.writeValueAsString(vcCredentialResponse.getCredential());
 
             // Generate the QR code data to embed into the svg for Online Sharing
             String qrCodeData = null;
