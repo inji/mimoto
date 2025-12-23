@@ -197,9 +197,9 @@ To bind an Android or iOS wallet using the e-signet service via Mimoto, ensure t
 Note:
 - Replace mosipbox.public.url, mosip.api.public.url with your public accessible domain. For dev or local env [ngrok](https://ngrok.com/docs/getting-started/) is recommended.
 
-### Deploying Mimoto Without Datashare (For Offline Credentials Only)
+### Deploying Mimoto Without Datashare
 
-If the country uses Mobile wallet with Offline credentials, deploying datashare and its dependent services is not required. This also eliminates the need for pulling the datashare and minio images from Docker and running them.
+If the country uses only Mobile wallet, deploying datashare and its dependent services is not required. This also eliminates the need for pulling the datashare and minio images from Docker and running them.
 
 To deploy Mimoto without datashare:
 1. Remove the datashare dependency from `depends_on` under `mimoto-service` in the `docker-compose.yml` file.

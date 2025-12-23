@@ -46,8 +46,8 @@ cd ../partner-onboarder
   * If you are using **Inji Mobile Wallet with offline credentials**, datashare deployment is not required.
 * Note: During the installation of Mimoto and Datashare, ensure that the active_profile_env parameter in the ConfigMap of the config-server-share (in the injiweb namespace) is set to: default,inji-default,standalone
 
-### To Deploy Mimoto WITHOUT Datashare (For Offline Credentials Only)
-If you are using Inji Mobile Wallet with offline credentials and do not need datashare, follow these steps:
+### To Deploy Mimoto WITHOUT Datashare
+If you are only using Inji Mobile Wallet and do not need datashare, follow these steps:
 
 1. **Edit the install.sh script:**
    - Open `deploy/mimoto/install.sh`
@@ -81,8 +81,6 @@ cd ../deploy/mimoto
 * If the server lacks a public domain and a valid SSL certificate, it is advisable to select the `n` option. Opting it will enable the `init-container` with an `emptyDir` volume and include it in the deployment process.
 * The init-container will proceed to download the server's self-signed SSL certificate and mount it to the specified location within the container's Java keystore (i.e., `cacerts`) file.
 * This particular functionality caters to scenarios where the script needs to be employed on a server utilizing self-signed SSL certificates.
-
-  2. **Keystore Choice**: A prompt will ask you to choose the key management method (SoftHSM, .p12 keystore, or External HSM).
 
 ### For Onboarding new Issuer for VCI:
 
