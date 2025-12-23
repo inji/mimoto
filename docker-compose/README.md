@@ -205,4 +205,4 @@ To deploy Mimoto without datashare:
 1. Remove the datashare dependency from `depends_on` under `mimoto-service` in the `docker-compose.yml` file.
 2. Update the services section by removing the `datashare` and `minio` services from the `docker-compose.yml` file.
 
-**Note:** When using offline credentials, ensure that the `qr_code_type` field in the Mimoto Issuers Configuration (`mimoto-issuers-config.json`) is set to `"EmbeddedVC"` for all the issuers.
+**Note:** When using only Inji Mobile Wallet, ensure that the `qr_code_type` field in the Mimoto Issuers Configuration (`mimoto-issuers-config.json`) is set to `"EmbeddedVC"` for all the issuers.
