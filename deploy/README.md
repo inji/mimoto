@@ -43,11 +43,11 @@ cd ../partner-onboarder
 * Before installing Mimoto, please ensure that the database host and port are correctly configured in the [values.yaml](mimoto/values.yaml) file.
 * **Datashare Deployment:**
   * If you are using **Inji Web Wallet**, datashare will be deployed as part of the Mimoto installation.
-  * If you are using **Inji Mobile Wallet with offline credentials**, datashare deployment is not required.
+  * If you are using only **Inji Mobile Wallet**, datashare deployment is not required.
 * Note: During the installation of Mimoto and Datashare, ensure that the active_profile_env parameter in the ConfigMap of the config-server-share (in the injiweb namespace) is set to: default,inji-default,standalone
 
 ### To Deploy Mimoto WITHOUT Datashare
-If you are only using Inji Mobile Wallet and do not need datashare, follow these steps:
+If you are using only Inji Mobile Wallet and do not need datashare, follow these steps:
 
 1. **Edit the install.sh script:**
    - Open `deploy/mimoto/install.sh`
