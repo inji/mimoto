@@ -199,7 +199,7 @@ Note:
 
 ### Deploying Mimoto Without Datashare
 
-If the country uses only Mobile wallet, deploying datashare and its dependent services is not required. This also eliminates the need for pulling the datashare and minio images from Docker and running them.
+If an entity (Ex: Country, Organization) uses only Mobile wallet, deploying datashare and its dependent services is not required. This also eliminates the need for pulling the datashare and minio images from Docker and running them.
 
 To deploy Mimoto without datashare:
 1. Remove the datashare dependency from `depends_on` under `mimoto-service` in the `docker-compose.yml` file.
