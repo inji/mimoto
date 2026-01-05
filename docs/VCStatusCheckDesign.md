@@ -119,10 +119,10 @@ sequenceDiagram
     Mimoto->>InjiWeb: Return credentials with stored statuses
     InjiWeb->>User: Show credentials to user
     User->>InjiWeb: Select 'Check card status' option for a credential
-    InjiWeb->>Mimoto: GET wallets/{walletId}/credentials/{credentialId}/status
+    InjiWeb->>Mimoto: GET wallets/{walletId}/credentials/{credentialId}/status?forceRefresh=true
     Mimoto->>Database: fetch credential record using credentialId
     Database-->>Mimoto: credential record
-    alt time elapsed since last status check > configured threshold
+    alt time elapsed since last status check > configured threshold and user has not checked forced refresh within the current session
         Mimoto->>VCVerifier: getCredentialStatus
         VCVerifier->>Issuer: Get the bitstring status list
         Issuer-->>VCVerifier: Return the status list
@@ -130,13 +130,11 @@ sequenceDiagram
         VCVerifier-->>Mimoto: Return status, error (if any)
         alt error during status check
             Mimoto->>Database: Update status as 'PENDING' in database
-            Mimoto->>Mimoto: Push credential to status check queue
             Mimoto->>InjiWeb: Return status as 'PENDING' with latest 'Last checked' time
         else successful status check
-            Mimoto->>Mimoto: Map VC Verifier status to Inji status
-        end    
-        Mimoto->>Database: Update status in database
-        Mimoto->>InjiWeb: Return latest status with latest 'Last checked' time 
+            Mimoto->>Database: Update status in database
+            Mimoto->>InjiWeb: Return latest status with latest 'Last checked' time
+        end
     else not eligible for status check
         Mimoto->>InjiWeb: Return existing status from database     
     end
@@ -148,7 +146,7 @@ sequenceDiagram
 - User logs in to Inji Web application
 - Selects and adds a new verifiable credential to their wallet
 - During the addition process, the system performs an immediate status check for the newly added credential using the VC Verifier library
-- The system updates the status of the credential in the database based on the result of the status check
+- The system updates the status of the credential in the database based on the result of the status check and caches the status list
 - The user is notified of the successful addition of the credential along with its current status
 - The newly added credential is now available in the user's wallet with its status displayed
 
@@ -171,12 +169,13 @@ sequenceDiagram
     Mimoto->>VCVerifier: verifyAndGetCredentialStatus
     VCVerifier->>VCVerifier: verify the credential
     alt credential is valid
-        VCVerifier->>Issuer: Get the status from issuer for data model 2.0 VCs
-        Issuer->>VCVerifier: status
-        VCVerifier->>VCVerifier: process the status
-        VCVerifier-->>Mimoto: isValid, status
+        VCVerifier->>Issuer: Get the status list credential from issuer for data model 2.0 VCs
+        Issuer-->>VCVerifier: status list credential
+        VCVerifier->>VCVerifier: process the status list and extract status for the credential
+        VCVerifier-->>Mimoto: isValid, status, status list credential
         Mimoto->>Database: Store credential with status in verifiable_credential table
         Database-->>Mimoto: Acknowledgement of storage
+        Mimoto->>Mimoto: Update status list credential cache with status list
         Mimoto-->>InjiWeb: Success
         InjiWeb-->User: Show success message, land the user on stored card page
     else credential is invalid
@@ -220,6 +219,9 @@ Two new fields to be added in the response payload:
 #### Check Credential Status
 
 **Endpoint**: `GET /wallets/{walletId}/credentials/{credentialId}/status`
+
+**Optional Query Parameter**:
+- `forceRefresh` (boolean, optional): If set to `true`, forces a fresh status check regardless of the last checked time.
 
 **Description**: Retrieves the current status of a specific credential. Performs a fresh status check if the configured threshold time has elapsed since the last check, otherwise returns cached status from database.
 
