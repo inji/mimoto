@@ -10,13 +10,12 @@ W3C Data model 2.0 supports status checking for Verifiable Credentials through t
 
 #### Flow 1 : User lands on Inji Web application and views stored VCs with their status
 
-- User logs in to Inji Web application
-- Navigates to 'Stored Cards' section
-- API calls to fetch stored VCs and their stored 'Status'
-- The system checks if the enough time has passed since the last status check (e.g., 24 hours)
-- If enough time has elapsed (as per configuration), the system marks wallet as eligible for status check in `vc_status_check_tracker` table - if not already marked
-- If enough time has not elapsed, the system skips the status check for that wallet
-- For each eligible wallet, the system retrieves the stored VCs and status from the database
+- The user logs in and opens the Stored Cards page.
+- All saved credentials are shown along with their current status.
+- The status displayed comes only from the database - the status value returned by the /credentials API. The issuer is not contacted to fetch or refresh status at this stage.
+- For credentials that were added before migrating to the latest application, their status will be set to VALID by default using a database upgrade script.
+- The status field will be returned as an array. Mimoto will return all applicable status purposes for a credential as-is, without any transformation. Converting these into user-friendly labels will be handled by Inji Web.
+- If no status is explicitly set and the VC has not expired, VALID will be returned by default, indicating that verification passed without issues.
 
 Sequence Diagram:
 
@@ -31,28 +30,68 @@ sequenceDiagram
     User->>InjiWeb: Logs in
     InjiWeb->>Mimoto: Authorize user
     Mimoto-->> InjiWeb: Authorization response [success]
+    InjiWeb-->>User: Land the user on home page
     User->>InjiWeb: Check stored cards
     InjiWeb->>Mimoto: GET wallets/{walletId}/credentials
     Mimoto->>Database: Fetch credentials for the walletId
-    Database-->>Mimoto: User's credentials
-
-    alt time elapsed since last status refresh > configured threshold
-        Mimoto->>Database: Mark the wallet as eligible for status check <br /> vc_status_check_tracker
-    end
+    Database-->>Mimoto: User's credentials along with the status
     Mimoto->>InjiWeb: Return credentials with stored statuses
     InjiWeb->>User: Show credentials to user
 ```    
 
-#### Flow 2 : User tries to check status of stored VCs manually
+#### Flow: User views a credential
+- The user opens the Stored Cards page and selects a credential to view its details.
+- Mimoto will check if the time elapsed since the last status check exceeds a configured threshold (e.g., 24 hours).
+- If the threshold is not exceeded, Mimoto returns the existing status from the database without performing a fresh check.
+- If threshold has exceeded, the status check API looks for the credential’s status list in the cache.
+- If a cached status list is found, it is sent to the VC Verifier to parse and determine the current status. The “last checked” timestamp is taken as the time when this data was cached.
+- If no status list is found in cache, the system falls back to the status stored in the database and returns that value to the user.
 
-- User logs in to Inji Web application
-- Navigates to 'Stored Cards' section
-- User selects a specific VC to check its status
-- Inji Web application sends a request to Mimoto API to check the status of the selected VC
-- Mimoto check if threshold time has passed since last status check for the wallet
-- If within credential-level status check limit, Mimoto proceeds to check the status of the VC immediately
-- If not, Mimoto returns the last known status of the VC from database without performing a new check
-- In case of any error during status check, Mimoto pushes the credential to check status queue for later processing, updates the status as 'PENDING' in the database and returns the same.
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User
+    participant InjiWeb as Inji Web Wallet
+    participant Mimoto
+    participant Database as Database(PostgreSQL)
+    participant VCVerifier as VC Verifier
+
+    User->>InjiWeb: Logs in
+    InjiWeb->>Mimoto: Authorize user
+    Mimoto-->> InjiWeb: Authorization response [success]
+    InjiWeb-->>User: Land the user on home page
+    User->>InjiWeb: Check stored cards
+    InjiWeb->>Mimoto: GET wallets/{walletId}/credentials
+    Mimoto->>Database: Fetch credentials for the walletId
+    Database-->>Mimoto: User's credentials along with the status
+    Mimoto->>InjiWeb: Return credentials with stored statuses
+    InjiWeb->>User: Show credentials to user
+    User->>InjiWeb: User click on a credential to view details
+    InjiWeb->>Mimoto: GET /wallets/{walletId}/credentials/{credentialId}/status
+                
+    alt time elapsed since last status check > configured threshold
+        Mimoto->>Mimoto: check if status list cache exists
+        alt status list exists in cache
+            Mimoto->>VCVerifier: getCredentialStatus(credential)
+            VCVerifier->>VCVerifier: Parse the status list and extract the status
+            VCVerifier-->>Mimoto: Status
+            Mimoto->>Database: Update status and last checked time for credential
+            Database-->>Mimoto: success
+            Mimoto-->>InjiWeb: Return status details
+        else status list cache missing
+            Mimoto->>Database: Fetch credential record
+            Database-->>Mimoto: Credential record with status
+            Mimoto-->>InjiWeb: Return status details
+        end
+    end
+    InjiWeb-->>User: Display credential alongwith status details
+```
+
+#### Flow : User clicks on 'Check card status' option for a credential
+- The user selects the 'Check card status' option for a specific credential in their wallet.
+- Mimoto checks if the user has already performed a status check for this credential within the configured threshold time (e.g., 24 hours).
+- If the threshold time has not elapsed, Mimoto returns the existing status from the database without performing a fresh check.
+- If the threshold time has elapsed, Mimoto retrieves the credential status list from issuer and invokes the VC Verifier library to check the status of the credential. Finally updates the status in the database.
 
 Sequence Diagram:
 
@@ -112,7 +151,6 @@ sequenceDiagram
 - The system updates the status of the credential in the database based on the result of the status check
 - The user is notified of the successful addition of the credential along with its current status
 - The newly added credential is now available in the user's wallet with its status displayed
-- In case of any error during status check, the system sets the status as 'PENDING' and queues the credential for later processing
 
 Sequence Diagram:
 
@@ -123,7 +161,7 @@ sequenceDiagram
     participant InjiWeb as Inji Web Wallet
     participant Mimoto
     participant VCVerifier as VC Verifier library
-    participant Database as Database(PostgreSQL)
+    participant Database as Database(PostgresSQL)
     participant Issuer
     User->>InjiWeb: Logs in
     InjiWeb->>Mimoto: Authorize user
@@ -147,54 +185,6 @@ sequenceDiagram
     end
 ```
 
-### Batching Job for status checks
-
-To optimize performance and reduce the number of external calls to issuers, the system will implement batching logic for status checks. When multiple credentials from the same issuer need to be checked, the system will group these requests and perform a single batch status check.
-
-#### Batching Flow
-Select a batch of credentials for status check, with batch size configurable via system settings. Sort credential records by \`created_at\` timestamp in ascending order. 
-- For each credential in the wallet/credential record:
-  - Check if the time elapsed since the last status check exceeds the configured threshold. If not, skip to the next credential.
-  - If eligible for status check:
-    - Retrieve the credential record from the database and decrypt the credential data.
-    - Invoke the VC Verifier library to perform the status check on the credential.
-    - Update the status in \`verifiable_credential\` table.
-    - If an error occurs during processing, log the error and continue with the next record without updating the status.
-    - After processing the batch, update the \`vc_status_check_tracker\` table to reflect the completion of the status check for each record in the batch.
-
-```mermaid
-sequenceDiagram
-autonumber
-participant Mimoto as Mimoto Service
-participant Database as Database(PostgreSQL)
-participant VCVerifier as VC Verifier Library
-participant Issuer
-
-        Mimoto->>Database: Fetch batch of credentials (sorted by created_at ASC) as per configured size <br /> from vc_status_check_tracker table with PENDING status
-        Database-->>Mimoto: Return batch of tracker records
-        
-        loop For each credential in wallet/credential record
-            alt time elapsed since last status check > configured threshold
-                Mimoto->>Mimoto: Decrypt credential data
-                Mimoto->>VCVerifier: getCredentialStatus(credential)
-                VCVerifier->>Issuer: Get bitstring status list
-                Issuer-->>VCVerifier: Return status list
-                VCVerifier->>VCVerifier: Extract status for credential
-                VCVerifier-->>Mimoto: Return status, error (if any)
-                
-                alt Successful status check
-                    Mimoto->>Database: Update verifiable_credential table
-                else Error during processing
-                    Mimoto->>Mimoto: Log error
-                    Note over Mimoto: Continue to next credential without updating status
-                end
-             else Not eligible for status check
-                Note over Mimoto: Skip credential 
-             end   
-        end
-        Mimoto->>Database: Update vc_status_check_tracker table
-```
-
 ### API Contract
 
 #### Fetch All Credentials with Status
@@ -209,7 +199,7 @@ participant Issuer
 **Response**:
 
 Two new fields to be added in the response payload:
-- `status` (string): Current status of the credential (e.g., VALID, REVOKED, EXPIRED, PENDING)
+- `status` (string[]): Current status of the credential (e.g., VALID, revocation, EXPIRED, PENDING)
 - `lastCheckedAt` (string, ISO 8601 format): Timestamp of the last status check performed for the credential
 
 **Success (200 OK)**:
@@ -221,7 +211,7 @@ Two new fields to be added in the response payload:
     "credentialTypeDisplayName": "National Identity Department Mosip",
     "credentialTypeLogo": "https://example.com/credential-logo.png",
     "credentialId": "1234567890",
-    "status": "VALID",
+    "status": ["VALID", "revocation"],
     "lastCheckedAt": "2025-12-11T10:30:00Z"
   }
 ]
@@ -243,7 +233,7 @@ Two new fields to be added in the response payload:
 ```json
 {
   "credentialId": "string",
-  "status": "VALID | REVOKED | EXPIRED | PENDING",
+  "status": ["VALID","revocation"],
   "lastCheckedAt": "2024-12-11T10:30:00Z",
   "isFreshCheck": true,
   "message": "string (optional)"
@@ -254,9 +244,9 @@ Two new fields to be added in the response payload:
 - `credentialId`: The unique identifier of the credential
 - `status`: Current status of the credential
   - `VALID`: Credential is active and valid
-  - `REVOKED`: Credential has been revoked by issuer
   - `EXPIRED`: Credential has expired
   - `PENDING`: Status check is queued or in progress
+  - Other statuses as per credential status purposes defined in W3C Data Model 2.0 (e.g., revocation, suspension)
 - `lastCheckedAt`: Timestamp of the most recent status check
 - `isFreshCheck`: Boolean indicating whether this response contains freshly checked status (`true`) or cached status from database (`false`)
 - `message`: Optional message providing additional context (e.g., error details when status is PENDING)
@@ -290,7 +280,7 @@ Two new fields to be added in the response payload:
 **Behavior Notes**:
 - If threshold time hasn't elapsed since last check, returns cached status with `isFreshCheck: false`
 - If threshold time has elapsed, performs fresh status check and returns with `isFreshCheck: true`
-- If fresh status check fails, returns status as `PENDING` with `isFreshCheck: true` and queues credential for batch processing
+- If fresh status check fails, returns status as `PENDING` with `isFreshCheck: true`
 - The `lastCheckedAt` timestamp always reflects when the status was actually last verified with the issuer
 
 ### Database Schema
@@ -299,30 +289,16 @@ Two new fields to be added in the response payload:
 
 This table stores the verifiable credentials along with their status information. Two columns to be introduced for status tracking : 
 
-| Column Name            | Data Type   | Description                                                                 |
-|------------------------|-------------|-----------------------------------------------------------------------------|
-| status                 | VARCHAR(20) | Current status of the credential (e.g., VALID, REVOKED, SUSPENDED, PENDING) |
-| status_last_checked_at | TIMESTAMP   | Timestamp of the last status check performed                                |
+| Column Name            | Data Type     | Description                                                                           |
+|------------------------|---------------|---------------------------------------------------------------------------------------|
+| status                 | VARCHAR(20)[] | Current status array of the credential (e.g., VALID, revocation, suspension, PENDING) |
+| status_last_checked_at | TIMESTAMP     | Timestamp of the last status check performed                                          |
 
-Possible values for `status` column:
+Possible values for `status` column (mimoto status representation):
 - `VALID`: Credential is active and valid, applicable for all type of VCs. 
-- `REVOKED`: Credential has been revoked by issuer, applicable for only W3C Data model 2.0 VCs with status list support.
 - `EXPIRED`: Credential is expired, applicable for all type of VCs.
 - `PENDING`: Status check is queued for retry.
-
-#### vc_status_check_tracker Table
-
-This table tracks the status check operations for verifiable credentials.
-
-| Column Name     | Data Type   | Description                                                                         |
-|-----------------|-------------|-------------------------------------------------------------------------------------|
-| wallet_id       | VARCHAR(36) | Unique identifier for the wallet                                                    |
-| credential_id   | VARCHAR(36) | Unique identifier for the credential                                                |
-| issuer_id       | VARCHAR(50) | Identifier of the credential issuer                                                 |
-| credential_type | VARCHAR(50) | Type of the credential                                                              |
-| run_status      | VARCHAR(20) | Current status of the status check run. Two possible status: `PENDING`, `COMPLETED` |
-| created_at      | TIMESTAMP   | Timestamp when the record was created                                               |
-| completed_at    | TIMESTAMP   | Timestamp when the status check was completed                                       |
+- Other statuses as per credential status purposes defined in W3C Data Model 2.0 (e.g., revocation, suspension)
 
 ### Migration of existing credentials
 
