@@ -48,8 +48,8 @@ public class EncryptionDecryptionUtilTest {
     public void setUp() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
         String appId = "MIMOTO";
         ReflectionTestUtils.setField(encryptionDecryptionUtil, "appId", appId);
-        encryptionKey = KeyGenerationUtil.generateEncryptionKey("AES", 256);
-        keyPair = KeyGenerationUtil.generateKeyPair(SigningAlgorithm.ED25519);
+        encryptionKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
+        keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
     }
 
     @Test
@@ -92,8 +92,8 @@ public class EncryptionDecryptionUtilTest {
 
     @Test
     public void shouldEncryptPrivateKeyWithAESSuccessfully() throws Exception {
-        SecretKey aesKey = KeyGenerationUtil.generateEncryptionKey("AES", 256);
-        KeyPair keyPair = KeyGenerationUtil.generateKeyPair(SigningAlgorithm.ED25519);
+        SecretKey aesKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
+        KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
 
         String encryptedPrivateKey = encryptionDecryptionUtil.encryptWithAES(aesKey, keyPair.getPrivate().getEncoded());
 

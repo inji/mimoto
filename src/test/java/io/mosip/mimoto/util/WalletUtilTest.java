@@ -50,7 +50,7 @@ class WalletUtilTest {
         pin = "1234";
         name = "default";
         userId = UUID.randomUUID().toString();
-        encryptionKey = KeyGenerationUtil.generateEncryptionKey("AES", 256);
+        encryptionKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
         encryptedPrivateKey = "encryptedPrivateKey";
         encryptedWalletKey = "encryptedWalletKey";
         decryptedWalletKey = Base64.getEncoder().encodeToString(encryptionKey.getEncoded());

@@ -23,7 +23,7 @@ import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.service.WalletPresentationService;
 import io.mosip.mimoto.util.EncryptionDecryptionUtil;
-import io.mosip.mimoto.util.JwtGeneratorUtil;
+import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.openID4VP.OpenID4VP;
@@ -256,11 +256,11 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         // Use configurable signing algorithm
         SigningAlgorithm signingAlgorithm = SigningAlgorithm.valueOf(DEFAULT_SIGNING_ALGORITHM_NAME);
         KeyPair keyPair = keyPairService.getKeyPairFromDB(walletId, base64Key, signingAlgorithm);
-        JWK jwk = JwtGeneratorUtil.generateJwk(signingAlgorithm, keyPair);
+        JWK jwk = SigningKeyUtil.generateJwk(signingAlgorithm, keyPair);
         Map<FormatType, UnsignedVPToken> unsignedVPToken = constructUnsignedVPToken(openID4VP, selectedCredentials, jwk);
 
         // Step 3: Sign token using user's private key
-        JWSSigner jwsSigner = JwtGeneratorUtil.createSigner(signingAlgorithm, jwk);
+        JWSSigner jwsSigner = SigningKeyUtil.createSigner(signingAlgorithm, jwk);
         Map<FormatType, LdpVPTokenSigningResult> vpTokenSigningResults = signVPToken(unsignedVPToken, jwsSigner);
 
         // Step 4: Share verifiable presentation with verifier using OpenID4VP JAR
