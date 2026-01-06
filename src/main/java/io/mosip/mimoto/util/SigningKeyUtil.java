@@ -166,7 +166,7 @@ public class SigningKeyUtil {
             return proofSigningKey;
         } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | NoSuchProviderException e) {
             log.error("Error while generating key", e);
-            throw new KeyGenerationException(ENCRYPTION_FAILED.getErrorCode(), "Failed to generate proof signing key for algorithm: " + algorithm);
+            throw new KeyGenerationException(ENCRYPTION_FAILED.getErrorCode(), "Failed to generate proof signing key for algorithm: " + algorithm, e);
         }
     }
 

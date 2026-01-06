@@ -30,6 +30,9 @@ public class SigningAlgorithmHandlerFactory {
      * @throws IllegalArgumentException If the algorithm is not supported
      */
     public static SigningAlgorithmHandler getHandler(SigningAlgorithm algorithm) {
+        if (algorithm == null) {
+            throw new IllegalArgumentException("Algorithm cannot be null");
+        }
         SigningAlgorithmHandler handler = handlers.get(algorithm);
         if (handler == null) {
             throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);

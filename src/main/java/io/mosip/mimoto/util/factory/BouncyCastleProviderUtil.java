@@ -8,12 +8,16 @@ import java.security.Security;
  * Shared utility for BouncyCastle provider access.
  * Ensures single instance across all algorithm handlers.
  */
-public class BouncyCastleProviderUtil {
+public final class BouncyCastleProviderUtil {
     
-    private static final Provider BC_PROVIDER = new BouncyCastleProvider();
+    private static final Provider BC_PROVIDER;
 
     static {
-        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+        Provider existingProvider = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
+        if (existingProvider != null) {
+            BC_PROVIDER = existingProvider;
+        } else {
+            BC_PROVIDER = new BouncyCastleProvider();
             Security.addProvider(BC_PROVIDER);
         }
     }
@@ -24,5 +28,9 @@ public class BouncyCastleProviderUtil {
      */
     public static Provider getProvider() {
         return BC_PROVIDER;
+    }
+
+    private BouncyCastleProviderUtil(){
+
     }
 }
