@@ -11,8 +11,9 @@ W3C Data model 2.0 supports status checking for Verifiable Credentials through t
 #### Flow 1 : User lands on Inji Web application and views stored VCs with their status
 
 - The user logs in and opens the Stored Cards page.
-- All saved credentials are shown along with their current status.
-- The status displayed comes only from the database - the status value returned by the /credentials API. The issuer is not contacted to fetch or refresh status at this stage.
+- For each credential in the wallet, mimoto will check the status using the VC verifier library. 
+- For the W3C Data model 2.0 VCs, we need to pass status list credential cache data if available to the library. If cache is missing, the library should skip status list check for the credential.
+- The status returned by the library will be stored in the database and shown to the user alongside each credential.
 - For credentials that were added before migrating to the latest application, their status will be set to VALID by default using a database upgrade script.
 - The status field will be returned as an array. Mimoto will return all applicable status purposes for a credential as-is, without any transformation. Converting these into user-friendly labels will be handled by Inji Web.
 - If no status is explicitly set and the VC has not expired, VALID will be returned by default, indicating that verification passed without issues.
@@ -26,6 +27,7 @@ sequenceDiagram
     participant InjiWeb as Inji Web Wallet
     participant Mimoto
     participant Database as Database(PostgreSQL)
+    participant VCVerifier as VC Verifier
 
     User->>InjiWeb: Logs in
     InjiWeb->>Mimoto: Authorize user
@@ -35,6 +37,22 @@ sequenceDiagram
     InjiWeb->>Mimoto: GET wallets/{walletId}/credentials
     Mimoto->>Database: Fetch credentials for the walletId
     Database-->>Mimoto: User's credentials along with the status
+    loop for each credential
+        Mimoto->>Mimoto: fetch bitstring status list cache(s) applicable for the credential
+        alt bitstring status list cache exists for credential
+            Mimoto->>VCVerifier: verifyAndGetCredentialStatus, input - credential, bitstring status list cache array
+            VCVerifier->>VCVerifier: validate and verify the credential, extract the status(s) from the bitstring array
+            VCVerifier-->>Mimoto: verification result, status(s)
+            Mimoto->>Database: update status and last checked date in database
+            Database-->>Mimoto: success
+        else bitstring status list cache missing
+            Mimoto->>VCVerifier:  verify, input - credential
+            VCVerifier->>VCVerifier: validate and verify the credential
+            VCVerifier-->>Mimoto: verification result
+            Mimoto->>Database: update status and last checked date in database
+            Database-->>Mimoto: success
+        end
+    end
     Mimoto->>InjiWeb: Return credentials with stored statuses
     InjiWeb->>User: Show credentials to user
 ```    
@@ -89,9 +107,9 @@ sequenceDiagram
 
 #### Flow : User clicks on 'Check card status' option for a credential
 - The user selects the 'Check card status' option for a specific credential in their wallet.
-- Mimoto checks if the user has already performed a status check for this credential within the configured threshold time (e.g., 24 hours).
-- If the threshold time has not elapsed, Mimoto returns the existing status from the database without performing a fresh check.
-- If the threshold time has elapsed, Mimoto retrieves the credential status list from issuer and invokes the VC Verifier library to check the status of the credential. Finally updates the status in the database.
+- Mimoto checks if the user status list is already present in the cache.
+- If the status list is present in cache, it is sent to the VC Verifier library to parse and determine the current status of the credential.
+- If the cache is missing, Mimoto invokes the VC Verifier library to check the status of the credential. Finally updates the status in the database.
 
 Sequence Diagram:
 
@@ -119,26 +137,31 @@ sequenceDiagram
     Mimoto->>InjiWeb: Return credentials with stored statuses
     InjiWeb->>User: Show credentials to user
     User->>InjiWeb: Select 'Check card status' option for a credential
-    InjiWeb->>Mimoto: GET wallets/{walletId}/credentials/{credentialId}/status?forceRefresh=true
+    InjiWeb->>Mimoto: GET wallets/{walletId}/credentials/{credentialId}/status
     Mimoto->>Database: fetch credential record using credentialId
     Database-->>Mimoto: credential record
-    alt time elapsed since last status check > configured threshold and user has not checked forced refresh within the current session
+    alt bitstring status list exists in cache
+        Mimoto->>VCVerifier: getCredentialStatus(credential)
+        VCVerifier->>VCVerifier: Parse the status list and extract the status
+        VCVerifier-->>Mimoto: Status
+        Mimoto->>Database: Update status and last checked time for credential
+        Database-->>Mimoto: success
+        Mimoto-->>InjiWeb: Return status details
+    else not eligible for status check
         Mimoto->>VCVerifier: getCredentialStatus
         VCVerifier->>Issuer: Get the bitstring status list
         Issuer-->>VCVerifier: Return the status list
         VCVerifier->>VCVerifier: Extract the status for the credential
         VCVerifier-->>Mimoto: Return status, error (if any)
         alt error during status check
-            Mimoto->>Database: Update status as 'PENDING' in database
-            Mimoto->>InjiWeb: Return status as 'PENDING' with latest 'Last checked' time
+            Mimoto->>InjiWeb: Return error without updating status in database
+            InjiWeb->>User: Display error message to user
         else successful status check
             Mimoto->>Database: Update status in database
             Mimoto->>InjiWeb: Return latest status with latest 'Last checked' time
+            InjiWeb->>User: Display status and last checked time in Stored Cards section
         end
-    else not eligible for status check
-        Mimoto->>InjiWeb: Return existing status from database     
     end
-    InjiWeb->>User: Display status and last checked time in Stored Cards section
 ```
 
 #### Flow 3 : User adds a credential to wallet
@@ -149,6 +172,7 @@ sequenceDiagram
 - The system updates the status of the credential in the database based on the result of the status check and caches the status list
 - The user is notified of the successful addition of the credential along with its current status
 - The newly added credential is now available in the user's wallet with its status displayed
+- If any error during status check, the user is notified with an error message and the credential is not added to the wallet.
 
 Sequence Diagram:
 
@@ -172,15 +196,20 @@ sequenceDiagram
         VCVerifier->>Issuer: Get the status list credential from issuer for data model 2.0 VCs
         Issuer-->>VCVerifier: status list credential
         VCVerifier->>VCVerifier: process the status list and extract status for the credential
-        VCVerifier-->>Mimoto: isValid, status, status list credential
-        Mimoto->>Database: Store credential with status in verifiable_credential table
-        Database-->>Mimoto: Acknowledgement of storage
-        Mimoto->>Mimoto: Update status list credential cache with status list
-        Mimoto-->>InjiWeb: Success
-        InjiWeb-->User: Show success message, land the user on stored card page
+        VCVerifier-->>Mimoto: isValid, status, status list credential, error(if any)
+        alt if error exists 
+            Mimoto-->>InjiWeb: return error
+            InjiWeb-->User: Show error message to the user
+        else no error
+            Mimoto->>Database: Store credential with status in verifiable_credential table
+            Database-->>Mimoto: Acknowledgement of storage
+            Mimoto->>Mimoto: Update status list credential cache with status list
+            Mimoto-->>InjiWeb: Success
+            InjiWeb-->User: Show success message, land the user on stored card page
+        end
     else credential is invalid
         Mimoto-->>InjiWeb: Error
-        InjiWeb-->User: Show error message to the user, land the user on stored card page
+        InjiWeb-->User: Show error message to the user
     end
 ```
 
@@ -219,9 +248,6 @@ Two new fields to be added in the response payload:
 #### Check Credential Status
 
 **Endpoint**: `GET /wallets/{walletId}/credentials/{credentialId}/status`
-
-**Optional Query Parameter**:
-- `forceRefresh` (boolean, optional): If set to `true`, forces a fresh status check regardless of the last checked time.
 
 **Description**: Retrieves the current status of a specific credential. Performs a fresh status check if the configured threshold time has elapsed since the last check, otherwise returns cached status from database.
 
@@ -271,6 +297,14 @@ Two new fields to be added in the response payload:
 }
 ```
 
+- **424 Failed Dependency**: Dependency service error
+```json
+{
+  "errorCode": "STATUS_CHECK_FAILED",
+  "message": "Failed to check credential status due to dependency service error"
+}
+```
+
 - **500 Internal Server Error**: Unexpected error during status check
 ```json
 {
@@ -302,6 +336,6 @@ Possible values for `status` column (mimoto status representation):
 - `PENDING`: Status check is queued for retry.
 - Other statuses as per credential status purposes defined in W3C Data Model 2.0 (e.g., revocation, suspension)
 
-### Migration of existing credentials
+    ### Migration of existing credentials
 
 A one-time migration script will be executed to initialize the `status` and `status_last_checked_at` fields for existing credentials in the `verifiable_credential` table. The script will set the initial status to `PENDING` and the `status_last_checked_at` to the current timestamp, indicating that these credentials need to be checked for their status during the next scheduled batch job or manual check.
