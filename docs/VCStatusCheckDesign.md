@@ -8,7 +8,7 @@ W3C Data model 2.0 supports status checking for Verifiable Credentials through t
 
 ### High level user flow
 
-#### Flow 1 : User lands on Inji Web application and views stored VCs with their status
+#### Flow : User lands on Inji Web application and views stored VCs with their status
 
 - The user logs in and opens the Stored Cards page.
 - For each credential in the wallet, mimoto will check the status using the VC verifier library. 
@@ -55,54 +55,6 @@ sequenceDiagram
     end
     Mimoto->>InjiWeb: Return credentials with stored statuses
     InjiWeb->>User: Show credentials to user
-```    
-
-#### Flow: User views a credential
-- The user opens the Stored Cards page and selects a credential to view its details.
-- Mimoto will check if the time elapsed since the last status check exceeds a configured threshold (e.g., 24 hours).
-- If the threshold is not exceeded, Mimoto returns the existing status from the database without performing a fresh check.
-- If threshold has exceeded, the status check API looks for the credential’s status list in the cache.
-- If a cached status list is found, it is sent to the VC Verifier to parse and determine the current status. The “last checked” timestamp is taken as the time when this data was cached.
-- If no status list is found in cache, the system falls back to the status stored in the database and returns that value to the user.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User
-    participant InjiWeb as Inji Web Wallet
-    participant Mimoto
-    participant Database as Database(PostgreSQL)
-    participant VCVerifier as VC Verifier
-
-    User->>InjiWeb: Logs in
-    InjiWeb->>Mimoto: Authorize user
-    Mimoto-->> InjiWeb: Authorization response [success]
-    InjiWeb-->>User: Land the user on home page
-    User->>InjiWeb: Check stored cards
-    InjiWeb->>Mimoto: GET wallets/{walletId}/credentials
-    Mimoto->>Database: Fetch credentials for the walletId
-    Database-->>Mimoto: User's credentials along with the status
-    Mimoto->>InjiWeb: Return credentials with stored statuses
-    InjiWeb->>User: Show credentials to user
-    User->>InjiWeb: User click on a credential to view details
-    InjiWeb->>Mimoto: GET /wallets/{walletId}/credentials/{credentialId}/status
-                
-    alt time elapsed since last status check > configured threshold
-        Mimoto->>Mimoto: check if status list cache exists
-        alt status list exists in cache
-            Mimoto->>VCVerifier: getCredentialStatus(credential)
-            VCVerifier->>VCVerifier: Parse the status list and extract the status
-            VCVerifier-->>Mimoto: Status
-            Mimoto->>Database: Update status and last checked time for credential
-            Database-->>Mimoto: success
-            Mimoto-->>InjiWeb: Return status details
-        else status list cache missing
-            Mimoto->>Database: Fetch credential record
-            Database-->>Mimoto: Credential record with status
-            Mimoto-->>InjiWeb: Return status details
-        end
-    end
-    InjiWeb-->>User: Display credential alongwith status details
 ```
 
 #### Flow : User clicks on 'Check card status' option for a credential
