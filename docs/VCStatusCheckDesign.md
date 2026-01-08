@@ -170,7 +170,7 @@ sequenceDiagram
 **Response**:
 
 Two new fields to be added in the response payload:
-- `status` (string[]): Current status of the credential (e.g., VALID, revocation, EXPIRED, PENDING)
+- `status` (string[]): Current status of the credential (e.g., VALID, revocation, EXPIRED)
 - `lastCheckedAt` (string, ISO 8601 format): Timestamp of the last status check performed for the credential
 
 **Success (200 OK)**:
@@ -215,10 +215,9 @@ Two new fields to be added in the response payload:
 - `status`: Current status of the credential
   - `VALID`: Credential is active and valid
   - `EXPIRED`: Credential has expired
-  - `PENDING`: Status check is queued or in progress
   - Other statuses as per credential status purposes defined in W3C Data Model 2.0 (e.g., revocation, suspension)
 - `lastCheckedAt`: Timestamp of the most recent status check
-- `message`: Optional message providing additional context (e.g., error details when status is PENDING)
+- `message`: Optional message providing additional context, especially in case of error
 
 **Error Responses**:
 
@@ -257,7 +256,6 @@ Two new fields to be added in the response payload:
 **Behavior Notes**:
 - If threshold time hasn't elapsed since last check, returns cached status with `isFreshCheck: false`
 - If threshold time has elapsed, performs fresh status check and returns with `isFreshCheck: true`
-- If fresh status check fails, returns status as `PENDING` with `isFreshCheck: true`
 - The `lastCheckedAt` timestamp always reflects when the status was actually last verified with the issuer
 
 ### Database Schema
@@ -271,11 +269,10 @@ This table stores the verifiable credentials along with their status information
 | status                 | VARCHAR(20)[] | Current status array of the credential (e.g., VALID, revocation, suspension, PENDING) |
 | status_last_checked_at | TIMESTAMP     | Timestamp of the last status check performed                                          |
 
-Possible values for `status` column (mimoto status representation):
+Possible values for `status` column:
 - `VALID`: Credential is active and valid, applicable for all type of VCs. 
 - `EXPIRED`: Credential is expired, applicable for all type of VCs.
-- `PENDING`: Status check is queued for retry.
-- Other statuses as per credential status purposes defined in W3C Data Model 2.0 (e.g., revocation, suspension)
+- Other statuses as per credential status purposes defined in W3C Data Model 2.0 or arbitrary purpose too(e.g., revocation, suspension)
 
 ### Migration of existing credentials
 
