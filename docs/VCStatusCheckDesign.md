@@ -39,14 +39,14 @@ sequenceDiagram
     Mimoto->>Database: Fetch credentials for the walletId
     Database-->>Mimoto: User's credentials along with the status
     loop for each credential
-        Mimoto->>Mimoto: fetch bitstring status list cache(s) applicable for the credential
-        alt bitstring status list cache exists for credential
+        Mimoto->>Mimoto: check if status list check is applicable, fetch bitstring status list cache(s) applicable for the credential
+        alt if credential status list check is applicable and bitstring status list cache exists for credential
             Mimoto->>VCVerifier: verifyAndGetCredentialStatus, input - credential, bitstring status list cache array
             VCVerifier->>VCVerifier: validate and verify the credential, extract the status(s) from the bitstring array
             VCVerifier-->>Mimoto: verification result, status(s)
             Mimoto->>Database: update status and last checked date in database
             Database-->>Mimoto: success
-        else bitstring status list cache missing
+        else if credential status list is not applicable or bitstring status list cache missing
             Mimoto->>VCVerifier:  verify, input - credential
             VCVerifier->>VCVerifier: validate and verify the credential
             VCVerifier-->>Mimoto: verification result
@@ -60,7 +60,6 @@ sequenceDiagram
 
 #### Flow : User clicks on 'Check card status' option for a credential
 - The user selects the 'Check card status' option for a specific credential in their wallet.
-- Mimoto checks if the user status list is already present in the cache.
 - Mimoto invokes the VC Verifier library to check the status of the credential. Finally updates the status in the database.
 - Mimoto updates the status list cache too with the latest status list credential received from the issuer.
 - Last checked time is updated to the current time for the credential.
@@ -90,11 +89,17 @@ sequenceDiagram
     InjiWeb->>Mimoto: GET wallets/{walletId}/credentials/{credentialId}/status
     Mimoto->>Database: fetch credential record using credentialId
     Database-->>Mimoto: credential record
-    Mimoto->>VCVerifier: getCredentialStatus
-    VCVerifier->>Issuer: Get the bitstring status list
-    Issuer-->>VCVerifier: Return the status list credential
-    VCVerifier->>VCVerifier: Extract the status for the credential
-    VCVerifier-->>Mimoto: Return status, status list credential(s), error (if any)
+    alt status list check applicable for the credential
+        Mimoto->>VCVerifier: getCredentialStatus
+        VCVerifier->>Issuer: Get the bitstring status list
+        Issuer-->>VCVerifier: Return the status list credential
+        VCVerifier->>VCVerifier: Extract the status for the credential
+        VCVerifier-->>Mimoto: Return status, status list credential(s), error (if any)
+    else status list check not applicable for the credential
+        Mimoto->>VCVerifier: verify
+        VCVerifier->>VCVerifier: validate and verify the credential
+        VCVerifier-->>Mimoto: Return verification result, error (if any)
+    end
     alt error during status check
         Mimoto->>InjiWeb: Return error without updating status in database
         InjiWeb->>User: Display error message to user
@@ -136,17 +141,22 @@ sequenceDiagram
     Mimoto->>VCVerifier: verifyAndGetCredentialStatus
     VCVerifier->>VCVerifier: verify the credential
     alt credential is valid
-        VCVerifier->>Issuer: Get the status list credential from issuer for data model 2.0 VCs
-        Issuer-->>VCVerifier: status list credential
-        VCVerifier->>VCVerifier: process the status list and extract status for the credential
-        VCVerifier-->>Mimoto: isValid, status, status list credential, error(if any)
-        alt if error exists 
-            Mimoto-->>InjiWeb: return error
-            InjiWeb-->User: Show error message to the user
-        else no error
+        alt status list check applicable for the credential
+            VCVerifier->>Issuer: Get the status list credential from issuer for data model 2.0 VCs
+            Issuer-->>VCVerifier: status list credential
+            VCVerifier->>VCVerifier: process the status list and extract status for the credential
+            VCVerifier-->>Mimoto: isValid, status, status list credential, error(if any)
             Mimoto->>Database: Store credential with status in verifiable_credential table
             Database-->>Mimoto: Acknowledgement of storage
             Mimoto->>Mimoto: Update status list credential cache with status list credential(s)
+            Mimoto-->>InjiWeb: Success
+            InjiWeb-->User: Show success message, land the user on stored card page
+        else status list check not applicable for the credential
+            VCVerifier-->>Mimoto: isValid, error(if any)
+            Mimoto-->>InjiWeb: return error
+            InjiWeb-->User: Show error message to the user
+            Mimoto->>Database: Store credential with status in verifiable_credential table
+            Database-->>Mimoto: Acknowledgement of storage
             Mimoto-->>InjiWeb: Success
             InjiWeb-->User: Show success message, land the user on stored card page
         end
@@ -192,7 +202,7 @@ Two new fields to be added in the response payload:
 
 **Endpoint**: `GET /wallets/{walletId}/credentials/{credentialId}/status`
 
-**Description**: Retrieves the current status of a specific credential. Performs a fresh status check if the configured threshold time has elapsed since the last check, otherwise returns cached status from database.
+**Description**: Retrieves the current status of a specific credential from the issuer.
 
 **Path Parameters**:
 - `walletId` (string, required): Unique identifier of the wallet
@@ -254,9 +264,9 @@ Two new fields to be added in the response payload:
 ```
 
 **Behavior Notes**:
-- If threshold time hasn't elapsed since last check, returns cached status with `isFreshCheck: false`
-- If threshold time has elapsed, performs fresh status check and returns with `isFreshCheck: true`
 - The `lastCheckedAt` timestamp always reflects when the status was actually last verified with the issuer
+- In case of any error during status check, the existing status in the database remains unchanged
+- The status list credential cache is updated only on successful status checks
 
 ### Database Schema
 
@@ -264,10 +274,10 @@ Two new fields to be added in the response payload:
 
 This table stores the verifiable credentials along with their status information. Two columns to be introduced for status tracking : 
 
-| Column Name            | Data Type     | Description                                                                           |
-|------------------------|---------------|---------------------------------------------------------------------------------------|
-| status                 | VARCHAR(20)[] | Current status array of the credential (e.g., VALID, revocation, suspension, PENDING) |
-| status_last_checked_at | TIMESTAMP     | Timestamp of the last status check performed                                          |
+| Column Name            | Data Type     | Description                                                                    |
+|------------------------|---------------|--------------------------------------------------------------------------------|
+| status                 | VARCHAR(20)[] | Current status array of the credential (e.g., VALID, revocation, suspension)   |
+| status_last_checked_at | TIMESTAMP     | Timestamp of the last status check performed                                   |
 
 Possible values for `status` column:
 - `VALID`: Credential is active and valid, applicable for all type of VCs. 
@@ -277,3 +287,15 @@ Possible values for `status` column:
 ### Migration of existing credentials
 
 A one-time migration script will be executed to initialize the `status` and `status_last_checked_at` fields for existing credentials in the `verifiable_credential` table. The script will set the initial status to `VALID` and the `status_last_checked_at` to the current timestamp.
+
+
+### Caching Strategy
+
+To optimize performance and reduce redundant network calls to issuers for status checks, a caching mechanism will be implemented for status list credentials. The cache will store the status list credentials retrieved from issuers, allowing for quick access during subsequent status checks.
+
+#### Cache Structure
+The cache will be structured as follows:
+- **Key**: `statusListId`
+- **Value**:
+  - `statusListCredential`: The actual status list credential retrieved from the issuer
+  - `fetchedAt`: Timestamp indicating when the status list credential was fetched
