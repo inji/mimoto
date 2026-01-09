@@ -13,11 +13,13 @@ W3C Data model 2.0 supports status checking for Verifiable Credentials through t
 - The user logs in and opens the Stored Cards page.
 - For each credential in the wallet, mimoto will check the status using the VC verifier library. 
 - For the W3C Data model 2.0 VCs, we need to pass status list credential cache data if available to the library. If cache is missing, the library should skip status list check for the credential.
-- The status returned by the library will be stored in the database and shown to the user alongside each credential. The last checked time will be updated to the time at which status list cache was created - if there are multiple list involved then minimum time will be updated in the database.
-- For credentials that were added before migrating to the latest application, their status will be set to VALID by default using a database upgrade script.
-- The status field will be returned as an array. Mimoto will return all applicable status purposes for a credential as-is, without any transformation. Converting these into user-friendly labels will be handled by Inji Web.
+- The status returned by the library will be stored in the database and shown to the user alongside each credential. The last checked time will be updated to the time at which status list cache was created - if there are multiple list involved then minimum time will be updated in the database. 
+- If there are multiple status list credentials involved for a VC, all the status list should be available in the cache for status list check to be performed. If any one of them is missing, status list check will be skipped for that VC.
+- For credentials that were added before migrating to the latest application, their status will be set to valid by default using a database migration script.
+- The status will be returned as an array. Mimoto will return all applicable status purposes for a credential as-is, without any transformation. Converting these into user-friendly labels will be handled by Inji Web.
 - If no status is explicitly set and the VC has not expired, VALID will be returned by default, indicating that verification passed without issues.
-- If status list is not applicable for a credential, only VALID/EXPIRED statuses will be returned based on the validity period of the credential. The last checked time will be updated to current time for the credentials in this case.
+- If status list is not applicable for a credential, only schema validation and signature verification results will be returned based on the validity period of the credential. The last checked time will be updated to current time for the credentials in this case.
+- The applicable check is already done by the VC Verifier library based on the credential type and data model version, no additional logic is needed in Mimoto for this.
 
 Sequence Diagram:
 
@@ -44,13 +46,13 @@ sequenceDiagram
             Mimoto->>VCVerifier: verifyAndGetCredentialStatus, input - credential, bitstring status list cache array
             VCVerifier->>VCVerifier: validate and verify the credential, extract the status(s) from the bitstring array
             VCVerifier-->>Mimoto: verification result, status(s)
-            Mimoto->>Database: update status and last checked date in database
+            Mimoto->>Database: update status details in database
             Database-->>Mimoto: success
-        else if credential status list is not applicable or bitstring status list cache missing
+        else if credential status list is not applicable or bitstring status list cache missing (or partially available)
             Mimoto->>VCVerifier:  verify, input - credential
             VCVerifier->>VCVerifier: validate and verify the credential
             VCVerifier-->>Mimoto: verification result
-            Mimoto->>Database: update status and last checked date in database
+            Mimoto->>Database: update status details in database
             Database-->>Mimoto: success
         end
     end
@@ -60,7 +62,7 @@ sequenceDiagram
 
 #### Flow : User clicks on 'Check card status' option for a credential
 - The user selects the 'Check card status' option for a specific credential in their wallet.
-- Mimoto invokes the VC Verifier library to check the status of the credential. Finally updates the status in the database.
+- Mimoto invokes the VC Verifier library to check the status of the credential. Finally updates the status details in the database.
 - Mimoto updates the status list cache too with the latest status list credential received from the issuer.
 - Last checked time is updated to the current time for the credential.
 
@@ -146,7 +148,7 @@ sequenceDiagram
             Issuer-->>VCVerifier: status list credential
             VCVerifier->>VCVerifier: process the status list and extract status for the credential
             VCVerifier-->>Mimoto: isValid, status, status list credential, error(if any)
-            Mimoto->>Database: Store credential with status in verifiable_credential table
+            Mimoto->>Database: Store credential with status details in verifiable_credential table
             Database-->>Mimoto: Acknowledgement of storage
             Mimoto->>Mimoto: Update status list credential cache with status list credential(s)
             Mimoto-->>InjiWeb: Success
@@ -179,8 +181,13 @@ sequenceDiagram
 
 **Response**:
 
-Two new fields to be added in the response payload:
-- `status` (string[]): Current status of the credential (e.g., VALID, revocation, EXPIRED)
+Three new fields to be added in the response payload:
+- `isSchemaAndSignatureValid` (boolean): Indicates if the schema and signature validation passed
+- `isExpired` (boolean): Indicates if the credential has expired
+- `statusChecks` (array): Array of status purposes and their validity
+  - Each object in the array contains:
+    - `purpose` (string): The purpose of the status check (e.g., revocation, suspension)
+    - `valid` (boolean): Indicates if the credential is valid for that purpose. `true` means valid, `false` means invalid i.e. revoked, suspended, etc.
 - `lastCheckedAt` (string, ISO 8601 format): Timestamp of the last status check performed for the credential
 
 **Success (200 OK)**:
@@ -192,7 +199,12 @@ Two new fields to be added in the response payload:
     "credentialTypeDisplayName": "National Identity Department Mosip",
     "credentialTypeLogo": "https://example.com/credential-logo.png",
     "credentialId": "1234567890",
-    "status": ["VALID", "revocation"],
+    "isSchemaAndSignatureValid": true,
+    "isExpired": false,
+    "statusChecks": [
+      {"purpose": "revocation", "valid":true },
+      {"purpose": "suspension", "valid":true }
+    ],
     "lastCheckedAt": "2025-12-11T10:30:00Z"
   }
 ]
@@ -214,7 +226,12 @@ Two new fields to be added in the response payload:
 ```json
 {
   "credentialId": "string",
-  "status": ["VALID","revocation"],
+  "isSchemaAndSignatureValid": true,
+  "isExpired": false,
+  "statusChecks": [
+    {"purpose": "revocation", "valid":true },
+    {"purpose": "suspension", "valid":true }
+  ],  
   "lastCheckedAt": "2024-12-11T10:30:00Z",
   "message": "string (optional)"
 }
@@ -222,10 +239,12 @@ Two new fields to be added in the response payload:
 
 **Response Fields**:
 - `credentialId`: The unique identifier of the credential
-- `status`: Current status of the credential
-  - `VALID`: Credential is active and valid
-  - `EXPIRED`: Credential has expired
-  - Other statuses as per credential status purposes defined in W3C Data Model 2.0 (e.g., revocation, suspension)
+- `isSchemaAndSignatureValid`: Boolean indicating if the schema and signature validation passed
+- `isExpired`: Boolean indicating if the credential has expired
+- `statusChecks`: Array of status purposes and their validity
+- Each object in the array contains:
+  - `purpose`: The purpose of the status check (e.g., revocation, suspension)
+  - `valid`: Boolean indicating if the credential is valid for that purpose. `true` means valid, `false` means invalid i.e. revoked, suspended, etc.
 - `lastCheckedAt`: Timestamp of the most recent status check
 - `message`: Optional message providing additional context, especially in case of error
 
@@ -274,19 +293,16 @@ Two new fields to be added in the response payload:
 
 This table stores the verifiable credentials along with their status information. Two columns to be introduced for status tracking : 
 
-| Column Name            | Data Type     | Description                                                                    |
-|------------------------|---------------|--------------------------------------------------------------------------------|
-| status                 | VARCHAR(20)[] | Current status array of the credential (e.g., VALID, revocation, suspension)   |
-| status_last_checked_at | TIMESTAMP     | Timestamp of the last status check performed                                   |
-
-Possible values for `status` column:
-- `VALID`: Credential is active and valid, applicable for all type of VCs. 
-- `EXPIRED`: Credential is expired, applicable for all type of VCs.
-- Other statuses as per credential status purposes defined in W3C Data Model 2.0 or arbitrary purpose too(e.g., revocation, suspension)
+| Column Name               | Data Type | Nullable? | Description                                                                                                                                                                                                       |
+|---------------------------|-----------|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| is_expired                | BOOLEAN   | Yes       | Indicates if the credentials has expired or not.                                                                                                                                                                  |
+| is_schema_signature_valid | BOOLEAN   | No        | If signature and schema validation has passed successfully.                                                                                                                                                       |
+| status_checks             | JSONB     | Yes       | Current status purpose array for the credential derived from status list credential (e.g., revocation, suspension) . E.g. `[ {"purpose": "revocation", "valid":true }, {"purpose": "suspension", "valid":true }]` |
+| status_last_checked_at    | TIMESTAMP | No        | Timestamp of the last status check performed                                                                                                                                                                      |
 
 ### Migration of existing credentials
 
-A one-time migration script will be executed to initialize the `status` and `status_last_checked_at` fields for existing credentials in the `verifiable_credential` table. The script will set the initial status to `VALID` and the `status_last_checked_at` to the current timestamp.
+A one-time migration script will be executed to initialize the `is_schema_signature_valid` and `status_last_checked_at` fields for existing credentials in the `verifiable_credential` table. The script will set the `is_schema_signature_valid` value to true and the `status_last_checked_at` to the current timestamp.
 
 
 ### Caching Strategy
@@ -295,7 +311,8 @@ To optimize performance and reduce redundant network calls to issuers for status
 
 #### Cache Structure
 The cache will be structured as follows:
-- **Key**: `statusListId`
+- **Cache Name**: `statusListCredential`
+- **Key**: `statusListId` - Unique identifier for the status list credential. VC will have `statusListId` in `statusListCredential` property.
 - **Value**:
-  - `statusListCredential`: The actual status list credential retrieved from the issuer
+  - `statusListCredential`: The actual bitstring retrieved from the status list credential
   - `fetchedAt`: Timestamp indicating when the status list credential was fetched
