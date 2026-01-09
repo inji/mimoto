@@ -316,3 +316,31 @@ The cache will be structured as follows:
 - **Value**:
   - `statusListCredential`: The actual bitstring retrieved from the status list credential
   - `fetchedAt`: Timestamp indicating when the status list credential was fetched
+
+### VC Verifier Library modifications
+- The VC Verifier library will be updated to accept an optional parameter for the status list credential cache. 
+- When performing status checks, the library will first check the provided cache for the required status list credential. If found, it will use the cached version; otherwise, it will skip the status list check for that credential. 
+- Existing functionality of the library will remain unchanged if no cache is provided.
+
+#### Implementation Details
+- Method signature to be modified for verifyAndGetCredentialStatus for VC Verifier library:
+
+```kotlin
+fun verifyAndGetCredentialStatus(
+        credential: String,
+        credentialFormat: CredentialFormat,
+        statusPurposeList: List<String> = emptyList(),
+        statusListCredentialCache: Map<String, StatusListCredentialCacheEntry> = emptyMap()
+    ): CredentialVerificationSummary
+```
+
+- This new param will further be passed to the internal method which extracts status from status list credential(s). When this param is passed, http calls will not be made to fetch status list credential(s) from issuer.
+- Existing data class `CredentialStatusResult` will be updated to return status list credential(s) as well when http calls are made to fetch status list credential(s) from issuer : 
+
+```kotlin
+data class CredentialStatusResult(
+    val isValid: Boolean,
+    val error: StatusCheckException?
+    val statusListCredential: Map<*, *>? = null
+)
+```
