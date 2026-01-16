@@ -17,7 +17,6 @@ W3C Data model 2.0 supports status checking for Verifiable Credentials through t
 - If there are multiple status list credentials involved for a VC, all the status list should be available in the cache for status list check to be performed. If any one of them is missing, status list check will be skipped for that VC.
 - For credentials that were added before migrating to the latest application, their status will be set to valid by default using a database migration script.
 - The status will be returned as an array. Mimoto will return all applicable status purposes for a credential as-is, without any transformation. Converting these into user-friendly labels will be handled by Inji Web.
-- If no status is explicitly set and the VC has not expired, VALID will be returned by default, indicating that verification passed without issues.
 - If status list is not applicable for a credential, only schema validation and signature verification results will be returned based on the validity period of the credential. The last checked time will be updated to current time for the credentials in this case.
 - The applicable check is already done by the VC Verifier library based on the credential type and data model version, no additional logic is needed in Mimoto for this.
 
@@ -312,10 +311,11 @@ To optimize performance and reduce redundant network calls to issuers for status
 #### Cache Structure
 The cache will be structured as follows:
 - **Cache Name**: `statusListCredential`
-- **Key**: `statusListId` - Unique identifier for the status list credential. VC will have `statusListId` in `statusListCredential` property.
+- **Key**: `statusListId` - Unique identifier for the status list credential. The value will be value of `statusListCredential` field in `credentialStatus` object in Data model 2.0 VCs. E.g. https://injicertify-farmer.dev-int-inji.mosip.net/v1/certify/credentials/status-list/a7b3ac9a-861a-4fa3-9c85-27e79d35fad3
 - **Value**:
   - `statusListCredential`: The actual bitstring retrieved from the status list credential
   - `fetchedAt`: Timestamp indicating when the status list credential was fetched
+- **Expiration Policy**: Each cache entry will have a Time-To-Live (TTL) of 24 hours. After this period, the entry will be considered stale and will be refreshed upon the next status check request. This can be configured via configuration.
 
 ### VC Verifier Library modifications
 - The VC Verifier library will be updated to accept an optional parameter for the status list credential cache. 
@@ -340,7 +340,8 @@ fun verifyAndGetCredentialStatus(
 ```kotlin
 data class CredentialStatusResult(
     val isValid: Boolean,
-    val error: StatusCheckException?
-    val statusListCredential: Map<*, *>? = null
+    val error: StatusCheckException?,
+    val statusListCredential: JsonLDObject? = null
 )
 ```
+- The new field will be null when status list credential is fetched from cache or if its not applicable for the credential.
