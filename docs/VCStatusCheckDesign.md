@@ -154,8 +154,6 @@ sequenceDiagram
             InjiWeb-->User: Show success message, land the user on stored card page
         else status list check not applicable for the credential
             VCVerifier-->>Mimoto: isValid, error(if any)
-            Mimoto-->>InjiWeb: return error
-            InjiWeb-->User: Show error message to the user
             Mimoto->>Database: Store credential with status in verifiable_credential table
             Database-->>Mimoto: Acknowledgement of storage
             Mimoto-->>InjiWeb: Success
@@ -294,7 +292,7 @@ This table stores the verifiable credentials along with their status information
 
 | Column Name               | Data Type | Nullable? | Description                                                                                                                                                                                                       |
 |---------------------------|-----------|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| is_expired                | BOOLEAN   | Yes       | Indicates if the credentials has expired or not.                                                                                                                                                                  |
+| is_expired                | BOOLEAN   | Yes       | Indicates if the credentials has expired or not. Will be NULL for migrated credential where expired status is not known.                                                                                          |
 | is_schema_signature_valid | BOOLEAN   | No        | If signature and schema validation has passed successfully.                                                                                                                                                       |
 | status_checks             | JSONB     | Yes       | Current status purpose array for the credential derived from status list credential (e.g., revocation, suspension) . E.g. `[ {"purpose": "revocation", "valid":true }, {"purpose": "suspension", "valid":true }]` |
 | status_last_checked_at    | TIMESTAMP | No        | Timestamp of the last status check performed                                                                                                                                                                      |
