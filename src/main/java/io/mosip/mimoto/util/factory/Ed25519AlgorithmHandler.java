@@ -69,8 +69,8 @@ public class Ed25519AlgorithmHandler implements SigningAlgorithmHandler {
                     signer.init(true, new Ed25519PrivateKeyParameters(privateKeyBytes, 0));
                     signer.update(input, 0, input.length);
                     return Base64URL.encode(signer.generateSignature());
-                } catch (IllegalArgumentException | IllegalStateException e) {
-                    throw new JOSEException("Ed25519 signing failed: " + e.getMessage(), e);
+                } catch (Exception e) {
+                    throw new JOSEException("Ed25519 signing failed", e);
                 }
             }
 
