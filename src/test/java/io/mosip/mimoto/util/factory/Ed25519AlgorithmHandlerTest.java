@@ -57,7 +57,6 @@ public class Ed25519AlgorithmHandlerTest {
 
     @Test(expected = ClassCastException.class)
     public void shouldThrowExceptionWhenJWKIsInvalid() throws Exception {
-        // Create invalid JWK (not OctetKeyPair)
         KeyPair rsaKeyPair = new RS256AlgorithmHandler().generateKeyPair();
         JWK invalidJwk = new RS256AlgorithmHandler().createJWK(rsaKeyPair);
         
