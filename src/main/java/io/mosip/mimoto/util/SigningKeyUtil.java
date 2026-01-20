@@ -33,6 +33,7 @@ import static io.mosip.mimoto.exception.ErrorConstants.ENCRYPTION_FAILED;
 public class SigningKeyUtil {
 
     private static final int JWT_EXPIRATION_SECONDS = 18000; // 5 hours
+    private static final String OPENID4VCI_PROOF_JWT = "openid4vci-proof+jwt";
     
     /**
      * Generates a key pair for the given signing algorithm.
@@ -60,7 +61,7 @@ public class SigningKeyUtil {
      * @throws NoSuchProviderException If the provider is not available
      * @throws InvalidKeySpecException If the key bytes are invalid
      */
-    public static KeyPair generateKeyPairFromBytes(SigningAlgorithm algorithm, byte[] publicKeyBytes, byte[] privateKeyBytes) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException, InvalidKeySpecException {
+    public static KeyPair generateKeyPair(SigningAlgorithm algorithm, byte[] publicKeyBytes, byte[] privateKeyBytes) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException, InvalidKeySpecException {
 
         SigningAlgorithmHandler handler = SigningAlgorithmHandlerFactory.getHandler(algorithm);
         KeyFactory keyFactory = handler.getKeyFactory();
@@ -108,7 +109,7 @@ public class SigningKeyUtil {
         JWSSigner signer = handler.createSigner(jwk);
 
         JWTClaimsSet claimsSet = createClaims(clientId, audience, cNonce);
-        JWSHeader header = new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm()).type(new JOSEObjectType("openid4vci-proof+jwt")).jwk(jwk.toPublicJWK()).build();
+        JWSHeader header = new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm()).type(new JOSEObjectType(OPENID4VCI_PROOF_JWT)).jwk(jwk.toPublicJWK()).build();
 
         SignedJWT signedJWT = new SignedJWT(header, claimsSet);
         signedJWT.sign(signer);

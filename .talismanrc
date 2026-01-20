@@ -185,7 +185,7 @@ fileignoreconfig:
 - filename: src/test/java/io/mosip/mimoto/service/PresentationSubmissionServiceTest.java
   checksum: 42154b3c9b9b392ad530d6edc5bb58bfa46a8f55ff744e50ab8ab1880a325bee
 - filename: src/test/java/io/mosip/mimoto/service/KeyPairServiceTest.java
-  checksum: 27f6fcf9e9920e5dc331e03a6291e130b7e8dca6074b1180deb9c12f66ec1de9
+  checksum: 3619f4af5a2da5319f6ee3e6c8bdf0491347987ea61e70a09abb58c355b67a6d
 - filename: src/main/java/io/mosip/mimoto/service/impl/PresentationActionServiceImpl.java
   checksum: 13f3da2b60a6319b1f48d5a98a726f5cad571865762626a06b432061097dafe3
 - filename: src/test/java/io/mosip/mimoto/service/PresentationActionServiceTest.java
@@ -207,17 +207,17 @@ fileignoreconfig:
 - filename: deploy/README.md
   checksum: 1bef019be00c0eae8714ce8a71a4e33c68aa5e2bfe4a6d7f72eaad35b8dd64a9
 - filename: src/main/java/io/mosip/mimoto/service/impl/KeyPairRetrievalServiceImpl.java
-  checksum: cd4ff6bc58c7030aef38ec16a3b2ff614502a75d4d22da567f11f4231f66575d
+  checksum: 5245e749ca703d7bb854242465b40d97cba96a6ff3b6b93e867fbece062d0eb0
 - filename: src/test/java/io/mosip/mimoto/util/EncryptionDecryptionUtilTest.java
   checksum: a5d347002074c6d97bbe5a95f6516cb09116854e5fdfc9eb274e510edf30125a
 - filename: src/main/java/io/mosip/mimoto/util/factory/ES256AlgorithmHandler.java
-  checksum: 40c1885d29b5da8ddced1c2fa82d713f6dd01d1c94af510b00dbb36d4c81fdb2
+  checksum: b194879e2a8d12952a7efa85cb019293c319280f1a3c3bfcb7adf81358b2d784
 - filename: src/test/java/io/mosip/mimoto/util/factory/ES256AlgorithmHandlerTest.java
   checksum: 74b1127faa64075bc7061217d8c364199fe4fef699f92cddf9e25db9560e8624
 - filename: src/main/java/io/mosip/mimoto/util/factory/RS256AlgorithmHandler.java
-  checksum: 2f4caa9ff133121dae21e501b45c609e370ca1b569c1fc32e6c9278094ace63d
+  checksum: 97b9c30b2297a1eb23818e53a6b49488d086a8f91e8982752c74b3fd7001bcf4
 - filename: src/main/java/io/mosip/mimoto/util/factory/ES256KAlgorithmHandler.java
-  checksum: e0cbfc651979c025a0ccb749e99b274f81d8821a1a67642aa4c248f0fd51ca60
+  checksum: 604f5ae8f9c4598eac79141bdcf0ce63cb73a691a28c73d7d860206149f489fb
 - filename: src/test/java/io/mosip/mimoto/util/WalletUtilTest.java
   checksum: 9df128c2fe0e625489acb99dfc3ddcb16b5afd484569d7b28f3fa1f221edefc8
 - filename: src/main/java/io/mosip/mimoto/util/factory/SigningAlgorithmHandler.java
@@ -231,7 +231,9 @@ fileignoreconfig:
 - filename: src/test/java/io/mosip/mimoto/util/factory/ES256KAlgorithmHandlerTest.java
   checksum: bf9140761defe9061b885c1ade3d120b4835df160ddf2fea0f790acb4801f221
 - filename: src/main/java/io/mosip/mimoto/util/SigningKeyUtil.java
-  checksum: 04598e2dfe39995794e9cfeecdaf9e2c4054a23c9459e164ea006582f890d354
+  checksum: b5eec9b76f972f685cf22002360d81dd55ea8a798e2d8b9a6f4fb382fa10b021
 - filename: src/test/java/io/mosip/mimoto/util/SigningKeyUtilTest.java
-  checksum: 12a335ad3ee8754300d4b9971ae76e02c519d2ee9a5263c8c3971093e63070a4
+  checksum: 561e00d1163216122eef55a10a018ce8f9a96fa2f26f9247797d514482a7f259
+- filename: src/main/java/io/mosip/mimoto/util/factory/Ed25519AlgorithmHandler.java
+  checksum: 6d9332df2edfc765ab45c8e985571bb5851c0da680afdc19becbc1e60362df20
 version: ""

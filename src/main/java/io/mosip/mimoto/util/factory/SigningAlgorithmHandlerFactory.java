@@ -19,7 +19,7 @@ public class SigningAlgorithmHandlerFactory {
         handlers.put(SigningAlgorithm.RS256, new RS256AlgorithmHandler());
         handlers.put(SigningAlgorithm.ES256, new ES256AlgorithmHandler());
         handlers.put(SigningAlgorithm.ES256K, new ES256KAlgorithmHandler());
-        handlers.put(SigningAlgorithm.ED25519, new ED25519AlgorithmHandler());
+        handlers.put(SigningAlgorithm.ED25519, new Ed25519AlgorithmHandler());
     }
 
     /**

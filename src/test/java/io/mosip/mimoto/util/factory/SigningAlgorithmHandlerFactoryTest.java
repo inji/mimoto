@@ -39,7 +39,7 @@ public class SigningAlgorithmHandlerFactoryTest {
         SigningAlgorithmHandler handler = SigningAlgorithmHandlerFactory.getHandler(SigningAlgorithm.ED25519);
         
         assertNotNull("Handler should not be null", handler);
-        assertTrue("Handler should be ED25519AlgorithmHandler", handler instanceof ED25519AlgorithmHandler);
+        assertTrue("Handler should be ED25519AlgorithmHandler", handler instanceof Ed25519AlgorithmHandler);
     }
 
     @Test

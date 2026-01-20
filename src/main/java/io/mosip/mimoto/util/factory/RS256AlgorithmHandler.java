@@ -7,6 +7,7 @@ import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
+import io.mosip.mimoto.constant.SigningAlgorithmConstants;
 
 import java.security.*;
 import java.security.interfaces.*;
@@ -21,14 +22,14 @@ public class RS256AlgorithmHandler implements SigningAlgorithmHandler {
 
     @Override
     public KeyPair generateKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        KeyPairGenerator generator = KeyPairGenerator.getInstance(SigningAlgorithmConstants.RSA);
         generator.initialize(RSA_KEY_SIZE);
         return generator.generateKeyPair();
     }
 
     @Override
     public KeyFactory getKeyFactory() throws NoSuchAlgorithmException {
-        return KeyFactory.getInstance("RSA");
+        return KeyFactory.getInstance(SigningAlgorithmConstants.RSA);
     }
 
     @Override

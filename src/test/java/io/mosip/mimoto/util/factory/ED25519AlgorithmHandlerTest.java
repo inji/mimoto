@@ -14,9 +14,9 @@ import static org.junit.Assert.*;
 /**
  * Test cases for ED25519AlgorithmHandler.
  */
-public class ED25519AlgorithmHandlerTest {
+public class Ed25519AlgorithmHandlerTest {
 
-    private final ED25519AlgorithmHandler handler = new ED25519AlgorithmHandler();
+    private final Ed25519AlgorithmHandler handler = new Ed25519AlgorithmHandler();
 
     @Test
     public void shouldGenerateKeyPairSuccessfully() throws Exception {

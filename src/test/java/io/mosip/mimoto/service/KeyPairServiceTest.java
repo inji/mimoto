@@ -89,7 +89,7 @@ public class KeyPairServiceTest {
             mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                     .thenReturn(mock(SecretKey.class));
             
-            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
                     .thenReturn(keyPair);
             
@@ -125,7 +125,7 @@ public class KeyPairServiceTest {
             mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                     .thenReturn(mock(SecretKey.class));
             
-            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
                     .thenReturn(rsaKeyPair);
             
@@ -159,7 +159,7 @@ public class KeyPairServiceTest {
             mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                     .thenReturn(mock(SecretKey.class));
             
-            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
                     .thenReturn(ecKeyPair);
             
@@ -275,7 +275,7 @@ public class KeyPairServiceTest {
             mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                     .thenReturn(mock(SecretKey.class));
             
-            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
                     .thenThrow(new RuntimeException("Key generation error"));
             
@@ -320,7 +320,7 @@ public class KeyPairServiceTest {
             mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                     .thenReturn(mock(SecretKey.class));
             
-            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
                     .thenReturn(keyPair);
             
@@ -352,7 +352,7 @@ public class KeyPairServiceTest {
                 mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                         .thenReturn(mock(SecretKey.class));
                 
-                mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+                mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                         eq(algorithm), any(byte[].class), any(byte[].class)))
                         .thenReturn(keyPair);
                 
@@ -393,7 +393,7 @@ public class KeyPairServiceTest {
             mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                     .thenReturn(mock(SecretKey.class));
             
-            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
                     .thenReturn(keyPair);
             
@@ -422,7 +422,7 @@ public class KeyPairServiceTest {
             mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                     .thenReturn(mock(SecretKey.class));
             
-            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
                     .thenReturn(keyPair);
             
@@ -476,7 +476,7 @@ public class KeyPairServiceTest {
             mockedStaticUtil.when(() -> EncryptionDecryptionUtil.bytesToSecretKey(any(byte[].class)))
                     .thenReturn(mock(SecretKey.class));
             
-            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPairFromBytes(
+            mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
                     .thenReturn(keyPair);
             

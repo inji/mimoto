@@ -61,12 +61,12 @@ public class SigningKeyUtilTest {
     }
 
     @Test
-    public void shouldGenerateKeyPairFromBytes() throws Exception {
+    public void shouldGenerateKeyPair() throws Exception {
         KeyPair originalKeyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.RS256);
         byte[] publicKeyBytes = originalKeyPair.getPublic().getEncoded();
         byte[] privateKeyBytes = originalKeyPair.getPrivate().getEncoded();
         
-        KeyPair reconstructedKeyPair = SigningKeyUtil.generateKeyPairFromBytes(
+        KeyPair reconstructedKeyPair = SigningKeyUtil.generateKeyPair(
                 SigningAlgorithm.RS256, publicKeyBytes, privateKeyBytes);
         
         assertNotNull("Reconstructed KeyPair should not be null", reconstructedKeyPair);
@@ -80,7 +80,7 @@ public class SigningKeyUtilTest {
         byte[] invalidPublicKey = new byte[]{1, 2, 3};
         byte[] invalidPrivateKey = new byte[]{4, 5, 6};
         
-        SigningKeyUtil.generateKeyPairFromBytes(
+        SigningKeyUtil.generateKeyPair(
                 SigningAlgorithm.RS256, invalidPublicKey, invalidPrivateKey);
     }
 

@@ -1,6 +1,7 @@
 package io.mosip.mimoto.util.factory;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 import java.security.Provider;
 import java.security.Security;
 
@@ -9,28 +10,24 @@ import java.security.Security;
  * Ensures single instance across all algorithm handlers.
  */
 public final class BouncyCastleProviderUtil {
-    
-    private static final Provider BC_PROVIDER;
+
+    private static final Provider BC_PROVIDER = new BouncyCastleProvider();
 
     static {
-        Provider existingProvider = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
-        if (existingProvider != null) {
-            BC_PROVIDER = existingProvider;
-        } else {
-            BC_PROVIDER = new BouncyCastleProvider();
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(BC_PROVIDER);
         }
     }
-    
+
+    private BouncyCastleProviderUtil() {
+
+    }
+
     /**
      * Returns the BouncyCastle provider instance.
      * This is a singleton instance shared across all handlers.
      */
     public static Provider getProvider() {
         return BC_PROVIDER;
-    }
-
-    private BouncyCastleProviderUtil(){
-
     }
 }

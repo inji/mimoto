@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
+import io.mosip.mimoto.constant.SigningAlgorithmConstants;
 
 import java.security.*;
 import java.security.interfaces.ECPrivateKey;
@@ -20,12 +21,12 @@ import java.security.spec.ECGenParameterSpec;
  */
 public class ES256KAlgorithmHandler implements SigningAlgorithmHandler {
 
-    private static final String CURVE_NAME = "secp256k1";
-    private static final String PROVIDER = "BC";
+    private static final String CURVE_NAME = SigningAlgorithmConstants.CURVE_SECP256K1;
+    private static final String PROVIDER = SigningAlgorithmConstants.BC_PROVIDER;
 
     @Override
     public KeyPair generateKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("EC", PROVIDER);
+        KeyPairGenerator generator = KeyPairGenerator.getInstance(SigningAlgorithmConstants.EC, PROVIDER);
         ECGenParameterSpec ecSpec = new ECGenParameterSpec(CURVE_NAME);
         generator.initialize(ecSpec);
         return generator.generateKeyPair();
@@ -33,7 +34,7 @@ public class ES256KAlgorithmHandler implements SigningAlgorithmHandler {
 
     @Override
     public KeyFactory getKeyFactory() throws NoSuchAlgorithmException, NoSuchProviderException {
-        return KeyFactory.getInstance("EC", PROVIDER);
+        return KeyFactory.getInstance(SigningAlgorithmConstants.EC, PROVIDER);
     }
 
     @Override

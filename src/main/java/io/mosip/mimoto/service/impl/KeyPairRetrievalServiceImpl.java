@@ -74,7 +74,7 @@ public class KeyPairRetrievalServiceImpl implements KeyPairRetrievalService {
         // Step 5: Generate KeyPair from stored keys
         KeyPair keyPair;
         try {
-            keyPair = SigningKeyUtil.generateKeyPairFromBytes(signingAlgorithm, publicKeyBytes, privateKeyInBytes);
+            keyPair = SigningKeyUtil.generateKeyPair(signingAlgorithm, publicKeyBytes, privateKeyInBytes);
         } catch (Exception e) {
             log.error("Failed to generate KeyPair for signing algorithm: {} for walletId: {}", signingAlgorithm, walletId, e);
             throw new KeyGenerationException("KEY_GENERATION_FAILED", "Failed to generate KeyPair for algorithm: " + signingAlgorithm, e);
