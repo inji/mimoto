@@ -28,6 +28,6 @@ public final class BouncyCastleProviderUtil {
      * This is a singleton instance shared across all handlers.
      */
     public static Provider getProvider() {
-        return BC_PROVIDER;
+        return Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
     }
 }
