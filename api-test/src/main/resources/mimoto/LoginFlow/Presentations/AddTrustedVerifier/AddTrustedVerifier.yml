@@ -5,6 +5,7 @@ AddTrustedVerifier:
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_01
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifier
       outputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifierResult
@@ -23,6 +24,7 @@ AddTrustedVerifier:
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_02
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifier
       outputTemplate: mimoto/error2
       input: '{
@@ -41,6 +43,7 @@ AddTrustedVerifier:
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_03
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifier
       outputTemplate: mimoto/error2
       input: '{
@@ -59,6 +62,7 @@ AddTrustedVerifier:
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_04
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifier
       outputTemplate: mimoto/error2
       input: '{
@@ -96,6 +100,7 @@ AddTrustedVerifier:
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_06
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifier
       outputTemplate: mimoto/responseCode
@@ -115,6 +120,7 @@ AddTrustedVerifier:
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_07
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifier
       outputTemplate: mimoto/error2
       input: '{

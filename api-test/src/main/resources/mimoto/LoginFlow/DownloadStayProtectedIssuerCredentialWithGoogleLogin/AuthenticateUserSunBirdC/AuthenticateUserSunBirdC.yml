@@ -5,6 +5,7 @@ AuthenticateUserSunBirdCForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_CreatePolicySunBirdR_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/AuthenticateUserSunBirdC/AuthenticateUserSunBirdC
@@ -27,6 +28,7 @@ AuthenticateUserSunBirdCForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_02
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_CreatePolicySunBirdR_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/AuthenticateUserSunBirdC/AuthenticateUserSunBirdC

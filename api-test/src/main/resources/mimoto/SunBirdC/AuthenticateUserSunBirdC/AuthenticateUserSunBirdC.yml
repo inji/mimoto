@@ -5,6 +5,7 @@ AuthenticateUserSunBirdC:
       uniqueIdentifier: TC_Mimoto_AuthenticateUserSunBirdC_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_CreatePolicySunBirdR_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/SunBirdC/AuthenticateUserSunBirdC/AuthenticateUserSunBirdC

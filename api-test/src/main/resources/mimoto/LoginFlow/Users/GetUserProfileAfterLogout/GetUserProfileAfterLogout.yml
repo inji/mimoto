@@ -5,6 +5,7 @@ GetUserProfileAfterLogout:
       uniqueIdentifier: TC_Mimoto_GetUserProfileAfterLogout_01
       role: userDefinedCookie
       restMethod: get
+      additionalDependencies: TC_Mimoto_Logout_01
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/Users/GetUserProfileAfterLogout/GetUserProfileAfterLogout
       outputTemplate: mimoto/responseCode

@@ -5,6 +5,7 @@ AuthorizationCodeForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_AuthorizationCodeForGoogleLogin_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_AuthenticateUserForGoogleLogin_01,TC_Mimoto_UnlockWallet_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthorizationCode/AuthorizationCode
@@ -23,6 +24,7 @@ AuthorizationCodeForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_AuthorizationCodeForGoogleLogin_02
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_AuthenticateUserForGoogleLogin_02,TC_Mimoto_UnlockWallet_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthorizationCode/AuthorizationCode

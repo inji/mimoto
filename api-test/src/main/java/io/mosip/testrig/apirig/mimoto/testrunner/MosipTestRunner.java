@@ -80,6 +80,10 @@ public class MosipTestRunner {
 			}
 			AdminTestUtil.init();
 			MimotoConfigManager.init();
+			
+			// FIX: Enable dependency generation so MimotoUtil collects dependencies from YAML
+			AdminTestUtil.generateDependency = true;
+			
 			suiteSetup(getRunType());
 			SkipTestCaseHandler.loadTestcaseToBeSkippedList("testCaseSkippedList.txt");
 			GlobalMethods.setModuleNameAndReCompilePattern(MimotoConfigManager.getproperty("moduleNamePattern"));
@@ -126,7 +130,7 @@ public class MosipTestRunner {
 		HealthChecker.bTerminate = true;
 		
 		// Used for generating the test case interdependency JSON file
-		//AdminTestUtil.generateTestCaseInterDependencies(getGlobalResourcePath() + "/config/testCaseInterDependency.json");
+//		AdminTestUtil.generateTestCaseInterDependencies(getGlobalResourcePath() + "/config/testCaseInterDependency.json");
 
 		System.exit(0);
 

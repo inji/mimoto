@@ -5,6 +5,7 @@ VerifiablePresentationAuthorization:
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_01
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorizationResult
@@ -23,6 +24,7 @@ VerifiablePresentationAuthorization:
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_02
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/error2
       input: '{
@@ -41,6 +43,7 @@ VerifiablePresentationAuthorization:
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_03
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/error2
       input: '{
@@ -77,6 +80,7 @@ VerifiablePresentationAuthorization:
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_05
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/responseCode
@@ -96,6 +100,7 @@ VerifiablePresentationAuthorization:
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_06
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/error2
       input: '{

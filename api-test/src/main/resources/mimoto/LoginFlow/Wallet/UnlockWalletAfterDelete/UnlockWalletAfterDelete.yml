@@ -5,6 +5,7 @@ UnlockWalletAfterDelete:
       uniqueIdentifier: TC_Mimoto_UnlockWalletAfterDelete_01
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_DeleteWallet_01
       inputTemplate: mimoto/LoginFlow/Wallet/UnlockWalletAfterDelete/UnlockWalletAfterDelete
       outputTemplate: mimoto/error2
       input: '{
