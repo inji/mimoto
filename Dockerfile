@@ -43,10 +43,10 @@ ENV artifactory_url_env=${artifactory_url}
 ENV iam_adapter_url_env=${iam_adapter_url}
 
 # can be passed during Docker build as build time environment for github branch to pickup configuration from.
-ARG container_user=mosip
+ARG container_user=inji
 
 # can be passed during Docker build as build time environment for github branch to pickup configuration from.
-ARG container_user_group=mosip
+ARG container_user_group=inji
 
 # can be passed during Docker build as build time environment for github branch to pickup configuration from.
 ARG container_user_uid=1002
