@@ -5,7 +5,7 @@ AuthorizationCodeSunBirdCForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_AuthorizationCodeSunBirdC_01
       role: resident
       restMethod: post
-      additionalDependencies: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_01,TC_Mimoto_AuthorizationCode_01
+      additionalDependencies: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/AuthorizationCodeSunBirdC/AuthorizationCodeSunBirdC

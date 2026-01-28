@@ -81,8 +81,8 @@ public class MosipTestRunner {
 			AdminTestUtil.init();
 			MimotoConfigManager.init();
 			
-			// FIX: Enable dependency generation so MimotoUtil collects dependencies from YAML
-			AdminTestUtil.generateDependency = true;
+			// Uncomment the below generateDependency for generating testCaseDependancy file
+//			AdminTestUtil.generateDependency = true;
 			
 			suiteSetup(getRunType());
 			SkipTestCaseHandler.loadTestcaseToBeSkippedList("testCaseSkippedList.txt");
