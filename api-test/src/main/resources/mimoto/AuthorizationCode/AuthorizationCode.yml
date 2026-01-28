@@ -5,7 +5,7 @@ AuthorizationCode:
       uniqueIdentifier: TC_Mimoto_AuthorizationCode_01
       role: resident
       restMethod: post
-      additionalDependencies: TC_Mimoto_AuthenticateUser_01,TC_Mimoto_UnlockWallet_01
+      additionalDependencies: TC_Mimoto_AuthenticateUser_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/AuthorizationCode/AuthorizationCode
