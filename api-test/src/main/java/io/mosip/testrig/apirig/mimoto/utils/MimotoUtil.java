@@ -97,15 +97,15 @@ public class MimotoUtil extends AdminTestUtil {
 
 		addTestCaseDetailsToMap(modifiedTestCaseName, testCaseDTO.getUniqueIdentifier());
 		
-		// enable the condition only for capturing the additionalDependancies into json file
-		if (testCaseDTO != null && testCaseDTO.getAdditionalDependencies() != null
-				&& AdminTestUtil.generateDependency == true) {
-			addAdditionalDependencies(testCaseDTO);
-		}
-
 		if (!testCasesInRunScope.isEmpty()
 				&& testCasesInRunScope.contains(testCaseDTO.getUniqueIdentifier()) == false) {
 			throw new SkipException(GlobalConstants.NOT_IN_RUN_SCOPE_MESSAGE);
+		}
+
+		// Handle extra workflow dependencies
+		if (testCaseDTO != null && testCaseDTO.getAdditionalDependencies() != null
+				&& AdminTestUtil.generateDependency == true) {
+			addAdditionalDependencies(testCaseDTO);
 		}
 
 		String endpoint = testCaseDTO.getEndPoint();
