@@ -47,7 +47,7 @@ public class CredentialRequestServiceTest {
     @MockBean
     private KeyPairRetrievalService keyPairService;
 
-    private final MockedStatic<KeyGenerationUtil> keyGenerationUtilMockedStatic = Mockito.mockStatic(KeyGenerationUtil.class, Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
+    private final MockedStatic<SigningKeyUtil> keyGenerationUtilMockedStatic = Mockito.mockStatic(SigningKeyUtil.class, Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
 
     IssuerDTO issuerDTO;
     String issuerId;
@@ -168,7 +168,7 @@ public class CredentialRequestServiceTest {
 
 
         ArgumentCaptor<SigningAlgorithm> argumentCaptor = ArgumentCaptor.forClass(SigningAlgorithm.class);
-        keyGenerationUtilMockedStatic.verify(() -> KeyGenerationUtil.generateKeyPair(argumentCaptor.capture()));
+        keyGenerationUtilMockedStatic.verify(() -> SigningKeyUtil.generateKeyPair(argumentCaptor.capture()));
         SigningAlgorithm capturedAlgorithm = argumentCaptor.getValue();
         assertEquals(SigningAlgorithm.ED25519, capturedAlgorithm);
     }
@@ -197,7 +197,7 @@ public class CredentialRequestServiceTest {
 
 
         ArgumentCaptor<SigningAlgorithm> argumentCaptor = ArgumentCaptor.forClass(SigningAlgorithm.class);
-        keyGenerationUtilMockedStatic.verify(() -> KeyGenerationUtil.generateKeyPair(argumentCaptor.capture()));
+        keyGenerationUtilMockedStatic.verify(() -> SigningKeyUtil.generateKeyPair(argumentCaptor.capture()));
         SigningAlgorithm capturedAlgorithm = argumentCaptor.getValue();
         assertEquals(SigningAlgorithm.ED25519, capturedAlgorithm);
     }
@@ -225,7 +225,7 @@ public class CredentialRequestServiceTest {
 
 
         ArgumentCaptor<SigningAlgorithm> argumentCaptor = ArgumentCaptor.forClass(SigningAlgorithm.class);
-        keyGenerationUtilMockedStatic.verify(() -> KeyGenerationUtil.generateKeyPair(argumentCaptor.capture()));
+        keyGenerationUtilMockedStatic.verify(() -> SigningKeyUtil.generateKeyPair(argumentCaptor.capture()));
         SigningAlgorithm capturedAlgorithm = argumentCaptor.getValue();
         assertEquals(SigningAlgorithm.ES256K, capturedAlgorithm);
     }
@@ -253,7 +253,7 @@ public class CredentialRequestServiceTest {
 
 
         ArgumentCaptor<SigningAlgorithm> argumentCaptor = ArgumentCaptor.forClass(SigningAlgorithm.class);
-        keyGenerationUtilMockedStatic.verify(() -> KeyGenerationUtil.generateKeyPair(argumentCaptor.capture()));
+        keyGenerationUtilMockedStatic.verify(() -> SigningKeyUtil.generateKeyPair(argumentCaptor.capture()));
         SigningAlgorithm capturedAlgorithm = argumentCaptor.getValue();
         assertEquals(SigningAlgorithm.ED25519, capturedAlgorithm);
     }

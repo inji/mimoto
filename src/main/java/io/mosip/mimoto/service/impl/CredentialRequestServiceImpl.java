@@ -7,8 +7,7 @@ import io.mosip.mimoto.service.CredentialFormatHandler;
 import io.mosip.mimoto.service.CredentialFormatHandlerFactory;
 import io.mosip.mimoto.service.CredentialRequestService;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
-import io.mosip.mimoto.util.JwtGeneratorUtil;
-import io.mosip.mimoto.util.KeyGenerationUtil;
+import io.mosip.mimoto.util.SigningKeyUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,9 +55,9 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
         if (isLoginFlow) {
             jwt = generateJwtUsingDBKeys(walletId, base64EncodedWalletKey, signingAlgorithm, wellKnownResponse, issuerDTO, cNonce);
         } else {
-            KeyPair keyPair = KeyGenerationUtil.generateKeyPair(signingAlgorithm);
+            KeyPair keyPair = SigningKeyUtil.generateKeyPair(signingAlgorithm);
             log.debug("Generated KeyPair for signing signingAlgorithm: {}", signingAlgorithm);
-            jwt = JwtGeneratorUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair);
+            jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair);
         }
 
         String format = credentialsSupportedResponse.getFormat();
@@ -111,7 +110,7 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
 
         KeyPair keyPair = keyPairService.getKeyPairFromDB(walletId, base64EncodedWalletKey, signingAlgorithm);
 
-        return JwtGeneratorUtil.generateJwt(signingAlgorithm,
+        return SigningKeyUtil.generateJwt(signingAlgorithm,
                 wellKnownResponse.getCredentialIssuer(),
                 issuerDTO.getClient_id(),
                 cNonce,

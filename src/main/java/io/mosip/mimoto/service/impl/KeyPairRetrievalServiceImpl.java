@@ -7,7 +7,7 @@ import io.mosip.mimoto.model.ProofSigningKey;
 import io.mosip.mimoto.repository.ProofSigningKeyRepository;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.util.EncryptionDecryptionUtil;
-import io.mosip.mimoto.util.KeyGenerationUtil;
+import io.mosip.mimoto.util.SigningKeyUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -74,7 +74,7 @@ public class KeyPairRetrievalServiceImpl implements KeyPairRetrievalService {
         // Step 5: Generate KeyPair from stored keys
         KeyPair keyPair;
         try {
-            keyPair = KeyGenerationUtil.getKeyPairFromDBStoredKeys(signingAlgorithm, publicKeyBytes, privateKeyInBytes);
+            keyPair = SigningKeyUtil.generateKeyPair(signingAlgorithm, publicKeyBytes, privateKeyInBytes);
         } catch (Exception e) {
             log.error("Failed to generate KeyPair for signing algorithm: {} for walletId: {}", signingAlgorithm, walletId, e);
             throw new KeyGenerationException("KEY_GENERATION_FAILED", "Failed to generate KeyPair for algorithm: " + signingAlgorithm, e);

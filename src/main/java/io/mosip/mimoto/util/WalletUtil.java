@@ -39,7 +39,7 @@ public class WalletUtil {
     }
 
     public String createWallet(String userId, String walletName, String pin) {
-        SecretKey encryptionKey = KeyGenerationUtil.generateEncryptionKey("AES", 256);
+        SecretKey encryptionKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
         return saveWallet(userId, walletName, pin, encryptionKey, "AES", "encryptWithPin");
     }
 
@@ -77,7 +77,7 @@ public class WalletUtil {
         List<ProofSigningKey> proofSigningKeys = new ArrayList<>();
         List<SigningAlgorithm> algorithms = List.of(SigningAlgorithm.RS256, SigningAlgorithm.ES256, SigningAlgorithm.ES256K, SigningAlgorithm.ED25519);
         for (SigningAlgorithm algorithm : algorithms) {
-            ProofSigningKey signingKey = ProofSigningKeyFactory.createProofSigningKey(algorithm);
+            ProofSigningKey signingKey = SigningKeyUtil.createProofSigningKey(algorithm);
             signingKey.setWallet(wallet);
             signingKey.setEncryptedSecretKey(encryptionDecryptionUtil.encryptWithAES(encryptionKey,
                     signingKey.getSecretKey().getEncoded()));

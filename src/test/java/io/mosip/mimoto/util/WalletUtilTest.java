@@ -14,7 +14,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 import javax.crypto.SecretKey;
+import java.security.Security;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -47,10 +50,15 @@ class WalletUtilTest {
 
     @BeforeEach
     void setUp() {
+        // Ensure BouncyCastle provider is registered (required for ES256K algorithm)
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+        
         pin = "1234";
         name = "default";
         userId = UUID.randomUUID().toString();
-        encryptionKey = KeyGenerationUtil.generateEncryptionKey("AES", 256);
+        encryptionKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
         encryptedPrivateKey = "encryptedPrivateKey";
         encryptedWalletKey = "encryptedWalletKey";
         decryptedWalletKey = Base64.getEncoder().encodeToString(encryptionKey.getEncoded());
