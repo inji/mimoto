@@ -110,7 +110,7 @@ public class MosipTestRunner {
 
 			if (!"yes".equalsIgnoreCase(generateDependency)) {
 				if (testCasesToExecuteString != null && !testCasesToExecuteString.isBlank()) {
-					DependencyResolver.loadDependencies(getGlobalResourcePath() + "/" + "config/testCaseInterDependency.json");
+					DependencyResolver.loadDependencies(BaseTestCase.testCaseInterDependencyPath);
 					MimotoUtil.testCasesInRunScope = DependencyResolver.getDependencies(testCasesToExecuteString);
 				}
 			}
