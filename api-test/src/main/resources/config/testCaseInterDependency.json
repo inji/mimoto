@@ -500,14 +500,12 @@
         "TC_Mimoto_GoogleLoginToken_01",
         "TC_Mimoto_UnlockWallet_01",
         "TC_Mimoto_CreateWallet_01",
-        "TC_Mimoto_AuthenticateUserSunBirdC_01",
         "TC_Mimoto_AuthorizationCodeSunBirdCForGoogleLogin_02"
     ],
     "TC_Mimoto_DownloadStayProtectedIssuerCredentialWithGoogleLogin_03": [
         "TC_Mimoto_GoogleLoginToken_01",
         "TC_Mimoto_UnlockWallet_01",
         "TC_Mimoto_CreateWallet_01",
-        "TC_Mimoto_AuthenticateUserSunBirdC_01",
         "TC_Mimoto_AuthorizationCodeSunBirdCForGoogleLogin_01"
     ],
     "TC_Mimoto_AuthenticateUser_01": [
@@ -518,7 +516,6 @@
         "TC_Mimoto_GoogleLoginToken_01",
         "TC_Mimoto_UnlockWallet_01",
         "TC_Mimoto_CreateWallet_01",
-        "TC_Mimoto_AuthenticateUserSunBirdC_01",
         "TC_Mimoto_AuthorizationCodeSunBirdCForGoogleLogin_01"
     ],
     "TC_Mimoto_GetUserProfileAfterLogout_01": [
@@ -624,7 +621,6 @@
         "TC_Mimoto_GoogleLoginToken_01",
         "TC_Mimoto_UnlockWallet_01",
         "TC_Mimoto_CreateWallet_01",
-        "TC_Mimoto_AuthenticateUserSunBirdC_01",
         "TC_Mimoto_AuthorizationCodeSunBirdCForGoogleLogin_01"
     ],
     "TC_Mimoto_BindingOtp_35": ["TC_Mimoto_GenerateVID_06"],
@@ -636,7 +632,6 @@
         "TC_Mimoto_GoogleLoginToken_01",
         "TC_Mimoto_UnlockWallet_01",
         "TC_Mimoto_CreateWallet_01",
-        "TC_Mimoto_AuthenticateUserSunBirdC_01",
         "TC_Mimoto_AuthorizationCodeSunBirdCForGoogleLogin_01"
     ],
     "TC_Mimoto_DeletePolicySunBirdR_01": ["TC_Mimoto_CreatePolicySunBirdR_01"],
