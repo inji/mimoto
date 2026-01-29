@@ -2,7 +2,7 @@ AuthorizationCodeSunBirdCForGoogleLogin:
    Mimoto_ESignet_AuthorizationCode_SunBirdCForGoogleLogin_SunBirdC_All_Valid_Smoke_sid:
       endPoint: $ESIGNETMOCKBASEURL$/v1/esignet/authorization/auth-code
       description: Generating authorization code for downloading sunbird VC with google login
-      uniqueIdentifier: TC_Mimoto_AuthorizationCodeSunBirdC_01
+      uniqueIdentifier: TC_Mimoto_AuthorizationCodeSunBirdCForGoogleLogin_01
       role: resident
       restMethod: post
       additionalDependencies: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_01
@@ -22,7 +22,7 @@ AuthorizationCodeSunBirdCForGoogleLogin:
    Mimoto_ESignet_AuthorizationCode_SunBirdCForGoogleLogin_MultipleVC_SunBirdC_All_Valid_Smoke_sid:
       endPoint: $ESIGNETMOCKBASEURL$/v1/esignet/authorization/auth-code
       description: Generating authorization code for downloading multiple sunbird VC with google login
-      uniqueIdentifier: TC_Mimoto_AuthorizationCodeSunBirdC_02
+      uniqueIdentifier: TC_Mimoto_AuthorizationCodeSunBirdCForGoogleLogin_02
       role: resident
       restMethod: post
       additionalDependencies: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_02

@@ -107,7 +107,10 @@ public class MosipTestRunner {
 			
 			String testCasesToExecuteString = MimotoConfigManager.getproperty("testCasesToExecute");
 			generateDependency = MimotoConfigManager.getproperty("generateDependencyJson");
-
+			
+			// Assign the boolean state to AdminTestUtil so MimotoUtil can see it
+			AdminTestUtil.generateDependency = "yes".equalsIgnoreCase(generateDependency);
+			
 			if (!"yes".equalsIgnoreCase(generateDependency)) {
 				if (testCasesToExecuteString != null && !testCasesToExecuteString.isBlank()) {
 					DependencyResolver.loadDependencies(getGlobalResourcePath() + "/" + "config/testCaseInterDependency.json");
@@ -129,7 +132,7 @@ public class MosipTestRunner {
 		
 		if ("yes".equalsIgnoreCase(generateDependency)) {
 			LOGGER.info("Generating test case inter-dependencies");
-			AdminTestUtil.generateTestCaseInterDependencies(getGlobalResourcePath() + "/config/testCaseInterDependency.json");
+			AdminTestUtil.generateTestCaseInterDependencies(BaseTestCase.testCaseInterDependencyPath);
 		}
 
 		System.exit(0);
