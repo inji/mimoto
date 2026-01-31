@@ -1,8 +1,8 @@
-package io.mosip.testrig.apirig.mimoto.testscripts;
+package io.inji.testrig.apirig.mimoto.testscripts;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -18,29 +18,25 @@ import org.testng.annotations.Test;
 import org.testng.internal.BaseTestMethod;
 import org.testng.internal.TestResult;
 
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.parser.PdfTextExtractor;
-
+import io.inji.testrig.apirig.mimoto.utils.MimotoConfigManager;
+import io.inji.testrig.apirig.mimoto.utils.MimotoUtil;
+import io.mosip.testrig.apirig.dto.OutputValidationDto;
 import io.mosip.testrig.apirig.dto.TestCaseDTO;
-import io.mosip.testrig.apirig.mimoto.utils.MimotoConfigManager;
-import io.mosip.testrig.apirig.mimoto.utils.MimotoUtil;
-import io.mosip.testrig.apirig.testrunner.BaseTestCase;
 import io.mosip.testrig.apirig.testrunner.HealthChecker;
 import io.mosip.testrig.apirig.utils.AdminTestException;
-import io.mosip.testrig.apirig.utils.AdminTestUtil;
 import io.mosip.testrig.apirig.utils.AuthenticationTestException;
 import io.mosip.testrig.apirig.utils.GlobalConstants;
-import io.mosip.testrig.apirig.utils.GlobalMethods;
+import io.mosip.testrig.apirig.utils.OutputValidationUtil;
+import io.mosip.testrig.apirig.utils.ReportUtil;
 import io.mosip.testrig.apirig.utils.SecurityXSSException;
 import io.restassured.response.Response;
 
-public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements ITest {
-	private static final Logger logger = Logger.getLogger(PostWithFormDataBodyForPdfDownload.class);
+public class PostWithPathParamsAndCookie extends MimotoUtil implements ITest {
+	private static final Logger logger = Logger.getLogger(PostWithPathParamsAndCookie.class);
 	protected String testCaseName = "";
-	public Response response = null;
-	public byte[] pdf=null;
-	public String pdfAsText =null;
-	
+	public String pathParams = null;
+	Response response  = null;
+
 	@BeforeClass
 	public static void setLogLevel() {
 		if (MimotoConfigManager.IsDebugEnabled())
@@ -48,7 +44,7 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 		else
 			logger.setLevel(Level.ERROR);
 	}
-	
+
 	/**
 	 * get current testcaseName
 	 */
@@ -59,20 +55,20 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 
 	/**
 	 * Data provider class provides test case list
-	 * 
+	 *
 	 * @return object of data provider
 	 */
 	@DataProvider(name = "testcaselist")
 	public Object[] getTestCaseList(ITestContext context) {
 		String ymlFile = context.getCurrentXmlTest().getLocalParameters().get("ymlFile");
-		logger.info("Started executing yml: "+ymlFile);
+		pathParams = context.getCurrentXmlTest().getLocalParameters().get("pathParams");
+		logger.info("Started executing yml: " + ymlFile);
 		return getYmlTestData(ymlFile);
 	}
-	
 
 	/**
 	 * Test method for OTP Generation execution
-	 * 
+	 *
 	 * @param objTestParameters
 	 * @param testScenario
 	 * @param testcaseName
@@ -80,54 +76,62 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 	 * @throws AdminTestException
 	 */
 	@Test(dataProvider = "testcaselist")
-	public void test(TestCaseDTO testCaseDTO) throws AuthenticationTestException, AdminTestException, SecurityXSSException {		
+	public void test(TestCaseDTO testCaseDTO)
+			throws AuthenticationTestException, AdminTestException, SecurityXSSException {
+
 		testCaseName = testCaseDTO.getTestCaseName();
 		testCaseDTO = MimotoUtil.isTestCaseValidForTheExecution(testCaseDTO);
-		testCaseDTO = MimotoUtil.changeContextURLByFlag(testCaseDTO);
+
 		if (HealthChecker.signalTerminateExecution) {
-			throw new SkipException(GlobalConstants.TARGET_ENV_HEALTH_CHECK_FAILED + HealthChecker.healthCheckFailureMapS);
+			throw new SkipException(
+					GlobalConstants.TARGET_ENV_HEALTH_CHECK_FAILED + HealthChecker.healthCheckFailureMapS
+			);
 		}
-		
-		if (testCaseDTO.getTestCaseName().contains("VID") || testCaseDTO.getTestCaseName().contains("Vid")) {
-			if (!BaseTestCase.getSupportedIdTypesValueFromActuator().contains("VID")
-					&& !BaseTestCase.getSupportedIdTypesValueFromActuator().contains("vid")) {
-				throw new SkipException(GlobalConstants.VID_FEATURE_NOT_SUPPORTED);
-			}
-		}
-		
+
 		String inputJson = getJsonFromTemplate(testCaseDTO.getInput(), testCaseDTO.getInputTemplate());
 		inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
-		
-		pdf = postWithFormDataBodyForPdf(ApplnURI + testCaseDTO.getEndPoint(), inputJson, COOKIENAME,  testCaseDTO.getRole(), testCaseDTO.getTestCaseName());
-		PdfReader pdfReader = null;
-		ByteArrayInputStream bIS = null;
-		
-		try {
-			bIS = new ByteArrayInputStream(pdf);
-			pdfReader = new PdfReader(bIS);
-			pdfAsText = PdfTextExtractor.getTextFromPage(pdfReader, 1);
-		} catch (IOException e) {
-			Reporter.log("Exception : " + e.getMessage());
-		} finally {
-			AdminTestUtil.closeByteArrayInputStream(bIS);
-			AdminTestUtil.closePdfReader(pdfReader);
-		}
-		 
-		if (pdf != null && (new String(pdf).contains("errors") || pdfAsText == null)) {
-			GlobalMethods.reportResponse(null, ApplnURI + testCaseDTO.getEndPoint(),
-					"Not able to download issuer credential");
-			if (!testCaseName.contains("_Neg")) {
-				throw new AdminTestException("Not able to download issuer credential");
+
+		if (testCaseName.equals("Mimoto_UnlockWalletForTemporarilyLock_TemporaryLocker_IncorrectWalletPin_Neg")) {
+			for (int i = 0; i < MimotoConfigManager.getMaxFailedAttemptsAllowedPerCycle(); i++) {
+				response = postWithPathParamsBodyAndCookie(
+						ApplnURI + testCaseDTO.getEndPoint(),
+						inputJson,
+						COOKIENAME,
+						testCaseDTO.getRole(),
+						testCaseDTO.getTestCaseName(),
+						pathParams
+				);
 			}
 		} else {
-			GlobalMethods.reportResponse(null, ApplnURI + testCaseDTO.getEndPoint(), pdfAsText);
+			response = postWithPathParamsBodyAndCookie(
+					ApplnURI + testCaseDTO.getEndPoint(),
+					inputJson,
+					COOKIENAME,
+					testCaseDTO.getRole(),
+					testCaseDTO.getTestCaseName(),
+					pathParams
+			);
 		}
-		
+
+		Map<String, List<OutputValidationDto>> ouputValid = OutputValidationUtil.doJsonOutputValidation(
+				response.asString(),
+				getJsonFromTemplate(testCaseDTO.getOutput(), testCaseDTO.getOutputTemplate()),
+				testCaseDTO,
+				response.getStatusCode()
+		);
+
+		Reporter.log(ReportUtil.getOutputValidationReport(ouputValid));
+
+		if (!OutputValidationUtil.publishOutputResult(ouputValid)) {
+			throw new AdminTestException("Failed at output validation");
+		}
 	}
+
+
 
 	/**
 	 * The method ser current test name to result
-	 * 
+	 *
 	 * @param result
 	 */
 	@AfterMethod(alwaysRun = true)
@@ -143,5 +147,6 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 		} catch (Exception e) {
 			Reporter.log("Exception : " + e.getMessage());
 		}
-	}	
+	}
+
 }
