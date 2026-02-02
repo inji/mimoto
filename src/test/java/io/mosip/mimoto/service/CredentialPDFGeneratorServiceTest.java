@@ -21,6 +21,9 @@ import io.mosip.pixelpass.PixelPass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -29,6 +32,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static io.mosip.mimoto.constant.LdpVcV2Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1311,14 +1315,11 @@ class CredentialPDFGeneratorServiceTest {
         }
     }
 
-    @Test
-    void testExtractClaim169QrWithNullIdentityQRCode() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideClaim169QrFallbackScenarios")
+    void testExtractClaim169QrFallbackToVCData(String scenarioName, Map<String, Object> claim169Map) throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
-
-        // Setup credential with claim169 containing null identityQRCode
-        Map<String, Object> claim169Map = new HashMap<>();
-        claim169Map.put("identityQRCode", null);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
@@ -1346,87 +1347,29 @@ class CredentialPDFGeneratorServiceTest {
                     "", "", "en");
 
             assertNotNull(result);
-            // Should fallback to VC data QR generation since identityQRCode is null
+            // Should fallback to VC data QR generation since identityQRCode is null/empty/missing
             verify(pixelPass).generateQRData(anyString(), anyString());
         }
     }
 
-    @Test
-    void testExtractClaim169QrWithMissingIdentityQRCodeKey() throws Exception {
-        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+    private static Stream<Arguments> provideClaim169QrFallbackScenarios() {
+        // Scenario 1: claim169 Map with null identityQRCode
+        Map<String, Object> nullIdentityQRCodeMap = new HashMap<>();
+        nullIdentityQRCodeMap.put("identityQRCode", null);
 
-        // Setup credential with claim169 Map but without identityQRCode key
-        Map<String, Object> claim169Map = new HashMap<>();
-        claim169Map.put("otherKey", "some-value");
+        // Scenario 2: claim169 Map without identityQRCode key
+        Map<String, Object> missingIdentityQRCodeMap = new HashMap<>();
+        missingIdentityQRCodeMap.put("otherKey", "some-value");
 
-        Map<String, Object> subjectData = new HashMap<>();
-        subjectData.put("name", "John Doe");
-        subjectData.put("claim169", claim169Map);
+        // Scenario 3: claim169 Map with empty string identityQRCode
+        Map<String, Object> emptyIdentityQRCodeMap = new HashMap<>();
+        emptyIdentityQRCodeMap.put("identityQRCode", "");
 
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse))
-                .thenReturn(subjectData);
-
-        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
-        displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
-        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
-                .thenReturn(displayProps);
-
-        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>Test</body></html>");
-        when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
-        when(pixelPass.generateQRData(anyString(), anyString())).thenReturn("generated-qr-data");
-
-        try (MockedStatic<Utilities> mocked = mockStatic(Utilities.class)) {
-            mocked.when(() -> Utilities.encodeToString(any(), anyString()))
-                    .thenReturn("base64-encoded-qr-from-vc");
-
-            ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                    "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
-
-            assertNotNull(result);
-            verify(pixelPass).generateQRData(anyString(), anyString());
-        }
-    }
-
-    @Test
-    void testExtractClaim169QrWithEmptyIdentityQRCode() throws Exception {
-        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
-
-        // Setup credential with claim169 containing empty string identityQRCode
-        Map<String, Object> claim169Map = new HashMap<>();
-        claim169Map.put("identityQRCode", "");
-
-        Map<String, Object> subjectData = new HashMap<>();
-        subjectData.put("name", "John Doe");
-        subjectData.put("claim169", claim169Map);
-
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse))
-                .thenReturn(subjectData);
-
-        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
-        displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
-        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
-                .thenReturn(displayProps);
-
-        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>Test</body></html>");
-        when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
-        when(pixelPass.generateQRData(anyString(), anyString())).thenReturn("generated-qr-data");
-
-        try (MockedStatic<Utilities> mocked = mockStatic(Utilities.class)) {
-            mocked.when(() -> Utilities.encodeToString(any(), anyString()))
-                    .thenReturn("base64-encoded-qr-from-vc");
-
-            ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                    "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
-
-            assertNotNull(result);
-            verify(pixelPass).generateQRData(anyString(), anyString());
-        }
+        return Stream.of(
+                Arguments.of("null identityQRCode", nullIdentityQRCodeMap),
+                Arguments.of("missing identityQRCode key", missingIdentityQRCodeMap),
+                Arguments.of("empty string identityQRCode", emptyIdentityQRCodeMap)
+        );
     }
 
     @Test

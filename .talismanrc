@@ -26,7 +26,7 @@ fileignoreconfig:
 - filename: src/main/java/io/mosip/mimoto/service/CredentialPDFGeneratorService.java
   checksum: 9203516612d01a036d7d304ddd448974ecd1cdda3cac21145490315a09facdc0
 - filename: src/test/java/io/mosip/mimoto/service/CredentialPDFGeneratorServiceTest.java
-  checksum: 4780c80696523640dd918d1c1b487f59d3ebe8f59a86bfee1eae880cc5cfe1d7
+  checksum: bc6b9e27699e1ec3bb024f38509ff9d9bc90edb8888168259f218caa5e829059
 - filename: src/main/java/io/mosip/mimoto/controller/IssuersController.java
   checksum: 856d860de2562fa019ac23bd724b84e1d67b834883b332c12415e6714de9bb05
 - filename: helm/mimoto/templates/deployment.yaml
