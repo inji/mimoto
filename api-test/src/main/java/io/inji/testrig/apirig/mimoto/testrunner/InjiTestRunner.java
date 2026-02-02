@@ -185,7 +185,7 @@ public class InjiTestRunner {
 			LOGGER.info("IDE :" + homeDir);
 		} else {
 			File dir = new File(System.getProperty("user.dir"));
-			homeDir = new File(dir.getParent() + "/mosip/testNgXmlFiles");
+			homeDir = new File(dir.getParent() + "/inji/testNgXmlFiles");
 			LOGGER.info("ELSE :" + homeDir);
 		}
 		File[] files = homeDir.listFiles();
