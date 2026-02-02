@@ -92,6 +92,9 @@ public class CredentialPDFGeneratorService {
     @Value("${mosip.injiweb.mask.disclosures:true}")
     private boolean maskDisclosures;
 
+    private static final String CLAIM_169_KEY = "claim169";
+    private static final String IDENTITY_QA_CODE_KEY = "identityQRCode";
+
     public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
         // Check if the credential can support SVG based rendering
         if (isSvgBasedRenderingSupported(vcCredentialResponse)) {
@@ -177,7 +180,13 @@ public class CredentialPDFGeneratorService {
         if (QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type())) {
             qrCodeImage = constructQRCodeWithAuthorizeRequest(vcCredentialResponse, dataShareUrl);
         } else if (QRCodeType.EmbeddedVC.equals(issuerDTO.getQr_code_type())) {
-            qrCodeImage = constructQRCodeWithVCData(vcCredentialResponse);
+            String claim169Qr = extractClaim169Qr(vcCredentialResponse);
+            if(!claim169Qr.isEmpty()) {
+                qrCodeImage = constructQRCode(claim169Qr);
+            }
+            else {
+                qrCodeImage = constructQRCodeWithVCData(vcCredentialResponse);
+            }
         }
 
         // is sd-jwt and has disclosures
@@ -196,6 +205,18 @@ public class CredentialPDFGeneratorService {
         data.put("titleName", credentialSupportedType);
         data.put("face", face);
         return data;
+    }
+
+    private String extractClaim169Qr(VCCredentialResponse vcCredentialResponse) {
+        String claim169Qr = "";
+        CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(vcCredentialResponse.getFormat());
+        Map<String, Object> credentialSubject = credentialFormatHandler.extractCredentialClaims(vcCredentialResponse);
+        Object claim169QrObj = credentialSubject.get(CLAIM_169_KEY);
+        if (claim169QrObj instanceof Map<?, ?> claim169Map) {
+            Object identityQr = claim169Map.get(IDENTITY_QA_CODE_KEY);
+            return identityQr != null ? identityQr.toString() : "";
+        }
+        return claim169Qr;
     }
 
     private SelectedFace extractFace(VCCredentialResponse vcCredentialResponse) {
