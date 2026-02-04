@@ -31,6 +31,7 @@ function installing_mimoto() {
   echo Istio label
   kubectl label ns $NS istio-injection=enabled --overwrite
   helm repo add mosip https://mosip.github.io/mosip-helm
+  helm repo add inji https://inji.github.io/helm
   helm repo update
 
   echo Copy Configmaps
@@ -153,9 +154,9 @@ function installing_mimoto() {
 
 
   echo Installing mimoto
-  helm -n $NS install mimoto mosip/mimoto  --version $CHART_VERSION -f values.yaml $ENABLE_INSECURE \
-    --set mimoto.secrets.google-client.MOSIP_INJIWEB_GOOGLE_CLIENT_ID="$clientId" \
-    --set mimoto.secrets.google-client.MOSIP_INJIWEB_GOOGLE_CLIENT_SECRET="$secretKey"
+  helm -n $NS install mimoto inji/mimoto  --version $CHART_VERSION -f values.yaml $ENABLE_INSECURE \
+    --set mimoto.secrets.google-client.INJI_INJIWEB_GOOGLE_CLIENT_ID="$clientId" \
+    --set mimoto.secrets.google-client.INJI_INJIWEB_GOOGLE_CLIENT_SECRET="$secretKey"
 
   kubectl -n $NS  get deploy -o name |  xargs -n1 -t  kubectl -n $NS rollout status
 
