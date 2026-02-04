@@ -18,4 +18,6 @@ public class WalletBindingInnerReq {
     private String authFactorType;
     @Schema(description = "IDP format", allowableValues = {"jwt"})
     private String format;
+    @Schema(description = "Issuer name requesting binding")
+    private String issuerName;
 }

@@ -17,4 +17,6 @@ public class BindingOtpInnerReqDto {
     @NotEmpty
     @Schema(description = "Notifying medium in which OTP is sent", allowableValues = {"PHONE", "EMAIL"})
     private List<String> otpChannels;
+    @Schema(description = "Issuer Name (Used for routing to respective eSignet use-case)")
+    private String issuerName;
 }

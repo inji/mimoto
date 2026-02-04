@@ -12,11 +12,11 @@ import io.mosip.testrig.apirig.utils.ConfigManager;
 
 public class MimotoConfigManager extends ConfigManager{
 	private static final Logger LOGGER = Logger.getLogger(MimotoConfigManager.class);
-	
+
 	public static void init() {
 		Logger configManagerLogger = Logger.getLogger(ConfigManager.class);
 		configManagerLogger.setLevel(Level.WARN);
-		
+
 		Map<String, Object> moduleSpecificPropertiesMap = new HashMap<>();
 		// Load scope specific properties
 		try {
@@ -32,7 +32,7 @@ public class MimotoConfigManager extends ConfigManager{
 		// Add module specific properties as well.
 		init(moduleSpecificPropertiesMap);
 	}
-	
+
 	public static String getSunbirdBaseURL() {
 		return MimotoUtil.getValueFromMimotoActuator("overrides", "mosip.sunbird.url");
 	}
@@ -40,7 +40,7 @@ public class MimotoConfigManager extends ConfigManager{
 	public static int getMaxFailedAttemptsAllowedPerCycle() {
 		return Integer.parseInt(MimotoUtil.getValueFromMimotoActuator("https://github.com/mosip/inji-config/mimoto-default.properties", "wallet.passcode.maxFailedAttemptsAllowedPerCycle"));
 	}
-	
+
 	public static String getEsignetBaseUrl() {
 		String esignetBaseUrl = null;
 		if (getproperty("runPlugin").equals("mosipid")) {
@@ -53,11 +53,11 @@ public class MimotoConfigManager extends ConfigManager{
 		}
 		return esignetBaseUrl;
 	}
-	
+
 	public static String getEsignetSunBirdBaseURL() {
 		return "https://" + MimotoUtil.getValueFromMimotoActuator("overrides", getproperty("sunbirdrc-insurance-esignet-host"));
 	}
-	
+
 	public static String getInjiVerifyBaseURL() {
 		return "https://" + MimotoUtil.getValueFromMimotoActuator("overrides", "mosip.injiverify.host");
 	}
