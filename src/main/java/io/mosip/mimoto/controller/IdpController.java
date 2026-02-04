@@ -1,7 +1,7 @@
 package io.mosip.mimoto.controller;
 
-import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.mimoto.constant.ApiName;
+
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.core.http.ResponseWrapper;
 import io.mosip.mimoto.dto.ErrorDTO;
@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
 import java.util.List;
 import java.util.Map;
 
@@ -53,26 +55,49 @@ public class IdpController {
     @Operation(summary = SwaggerLiteralConstants.IDP_BINDING_OTP_SUMMARY, description = SwaggerLiteralConstants.IDP_BINDING_OTP_DESCRIPTION)
     @PostMapping(value = "/binding-otp", produces = MediaType.APPLICATION_JSON_VALUE)
     @SuppressWarnings("unchecked")
-    public ResponseEntity<ResponseWrapper<BindingOtpResponseDto>> otpRequest(@Valid @RequestBody BindingOtpRequestDto requestDTO, BindingResult result) throws Exception {
+    public ResponseEntity<ResponseWrapper<BindingOtpResponseDto>> otpRequest(
+            @Valid @RequestBody BindingOtpRequestDto requestDTO, BindingResult result) throws Exception {
+
         log.debug("Received binding-otp request");
         requestValidator.validateInputRequest(result);
         requestValidator.validateNotificationChannel(requestDTO.getRequest().getOtpChannels());
+
         ResponseWrapper<BindingOtpResponseDto> responseWrapper = new ResponseWrapper<>();
+
         try {
-            ResponseWrapper<BindingOtpResponseDto> internalResponse = (ResponseWrapper<BindingOtpResponseDto>) restClientService.postApi(ApiName.BINDING_OTP, requestDTO, ResponseWrapper.class, USE_BEARER_TOKEN);
+            String issuerName = requestDTO.getRequest().getIssuerName();
+            log.info("Binding OTP request for issuer: {}", issuerName);
+
+            ApiName apiToCall = ApiName.BINDING_OTP;
+
+            if ("GlobalIDPass".equalsIgnoreCase(issuerName)) {
+                apiToCall = ApiName.BINDING_OTP_GLOBALID;
+                log.info("Routing binding OTP to GlobalID eSignet");
+            } else {
+                log.info("Routing binding OTP to default MOSIP eSignet");
+            }
+
+            ResponseWrapper<BindingOtpResponseDto> internalResponse =
+                    (ResponseWrapper<BindingOtpResponseDto>) restClientService
+                            .postApi(apiToCall, requestDTO, ResponseWrapper.class, USE_BEARER_TOKEN);
+
             if (internalResponse == null)
                 throw new IdpException();
+
             return ResponseEntity.status(HttpStatus.OK).body(internalResponse);
+
         } catch (Exception e) {
             log.error("Wallet binding otp error occurred.", e);
-            String[] errorObj = Utilities.handleExceptionWithErrorCode(e, PlatformErrorMessages.MIMOTO_OTP_BINDING_EXCEPTION.getCode());
+            String[] errorObj = Utilities.handleExceptionWithErrorCode(
+                    e, PlatformErrorMessages.MIMOTO_OTP_BINDING_EXCEPTION.getCode());
+
             List<ErrorDTO> errors = Utilities.getErrors(errorObj[0], errorObj[1]);
             responseWrapper.setResponse(null);
             responseWrapper.setErrors(errors);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
         }
-
     }
+
 
     @Operation(summary = SwaggerLiteralConstants.IDP_WALLET_BINDING_SUMMARY, description = SwaggerLiteralConstants.IDP_WALLET_BINDING_DESCRIPTION)
     @PostMapping(path = "/wallet-binding", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -89,26 +114,43 @@ public class IdpController {
             innerRequestDto.setAuthFactorType(requestDTO.getRequest().getAuthFactorType());
             innerRequestDto.setFormat(requestDTO.getRequest().getFormat());
 
-            WalletBindingInternalRequestDTO req = new WalletBindingInternalRequestDTO(requestDTO.getRequestTime(), innerRequestDto);
+            String issuerName = requestDTO.getRequest().getIssuerName();
+            log.info("Wallet binding request for issuer: {}", issuerName);
 
-            ResponseWrapper<WalletBindingInternalResponseDto> internalResponse = (ResponseWrapper<WalletBindingInternalResponseDto>) restClientService
-                    .postApi(ApiName.WALLET_BINDING,
-                            req, ResponseWrapper.class, USE_BEARER_TOKEN);
+            WalletBindingInternalRequestDTO req =
+                    new WalletBindingInternalRequestDTO(requestDTO.getRequestTime(), innerRequestDto);
+
+            ApiName apiToCall = ApiName.WALLET_BINDING;
+
+            if ("GlobalIDPass".equalsIgnoreCase(issuerName)) {
+                apiToCall = ApiName.WALLET_BINDING_GLOBALID;
+                log.info("Routing wallet binding to GlobalID eSignet");
+            } else {
+                log.info("Routing wallet binding to default MOSIP eSignet");
+            }
+
+            ResponseWrapper<WalletBindingInternalResponseDto> internalResponse =
+                    (ResponseWrapper<WalletBindingInternalResponseDto>) restClientService
+                            .postApi(apiToCall, req, ResponseWrapper.class, USE_BEARER_TOKEN);
 
             if (internalResponse == null)
                 throw new IdpException();
 
             responseWrapper = joseUtil.addThumbprintAndKeyId(internalResponse);
             return ResponseEntity.status(HttpStatus.OK).body(responseWrapper);
+
         } catch (Exception e) {
             log.error("Wallet binding error occurred ", e);
-            String[] errorObj = Utilities.handleExceptionWithErrorCode(e, PlatformErrorMessages.MIMOTO_WALLET_BINDING_EXCEPTION.getCode());
+            String[] errorObj = Utilities.handleExceptionWithErrorCode(
+                    e, PlatformErrorMessages.MIMOTO_WALLET_BINDING_EXCEPTION.getCode());
+
             List<ErrorDTO> errors = Utilities.getErrors(errorObj[0], errorObj[1]);
             responseWrapper.setResponse(null);
             responseWrapper.setErrors(errors);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
         }
     }
+
 
     @Operation(summary = SwaggerLiteralConstants.IDP_GET_TOKEN_SUMMARY, description = SwaggerLiteralConstants.IDP_GET_TOKEN_DESCRIPTION)
     @ApiResponses({

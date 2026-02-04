@@ -19,4 +19,5 @@ public class BindingOtpRequestDto {
     @NotNull
     @Schema(description = "Binding OTP Request")
     private BindingOtpInnerReqDto request;
+
 }
