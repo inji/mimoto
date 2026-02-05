@@ -124,4 +124,11 @@ public interface RestClientService<T> {
 
     public T postApi(ApiName apiName, T requestedData, Class<?> responseType, boolean useBearerToken)
             throws ApisResourceAccessException;
+
+    public T postApi(ApiName apiName,
+                     T requestedData,
+                     Class<?> responseType,
+                     boolean useBearerToken,
+                     String issuerName)
+            throws ApisResourceAccessException;
 }

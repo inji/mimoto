@@ -274,6 +274,33 @@ public class RestClientServiceImpl implements RestClientService<Object> {
         return obj;
     }
 
+    @Override
+    public Object postApi(ApiName apiName,
+                          Object requestedData,
+                          Class<?> responseType,
+                          boolean useBearerToken,
+                          String issuerName) throws ApisResourceAccessException {
+
+        log.debug("RestClientServiceImpl::postApi with issuer: {} routing",issuerName);
+
+        String apiHostIpPort = env.getProperty(apiName.name());
+
+        try {
+            return restApiClient.postApi(
+                    apiHostIpPort,
+                    MediaType.APPLICATION_JSON,
+                    requestedData,
+                    responseType,
+                    useBearerToken,
+                    issuerName
+            );
+        } catch (Exception e) {
+            throw new ApisResourceAccessException(
+                    PlatformErrorMessages.MIMOTO_RCT_UNKNOWN_RESOURCE_EXCEPTION.getMessage(), e);
+        }
+    }
+
+
     private static void addQueryParam(String queryParamName, String queryParamValue, UriComponentsBuilder builder) {
         String[] queryParamNameArr = queryParamName.split(",");
         String[] queryParamValueArr = queryParamValue.split(",");
