@@ -11,20 +11,11 @@ import jakarta.validation.constraints.NotNull;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class BindingOtpRequestDto {
+public class EsignetBindingOtpDto {
     @Schema(description = "Request Time of the Binding OTP")
     private String requestTime;
-
     @Valid
     @NotNull
     @Schema(description = "Binding OTP Request")
     private BindingOtpInnerReqDto request;
-
-    @Schema(description = "Issuer Name (Used for routing to respective eSignet use-case)")
-    private String issuerName;
-
-    public BindingOtpRequestDto(String requestTime, BindingOtpInnerReqDto request) {
-        this.requestTime = requestTime;
-        this.request = request;
-    }
 }

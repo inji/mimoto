@@ -65,7 +65,7 @@ public class IdpController {
         ResponseWrapper<BindingOtpResponseDto> responseWrapper = new ResponseWrapper<>();
 
         try {
-            String issuerName = requestDTO.getRequest().getIssuerName();
+            String issuerName = requestDTO.getIssuerName();
             log.info("Binding OTP request for issuer: {}", issuerName);
 
             ApiName apiToCall = "GlobalIDPass".equalsIgnoreCase(issuerName)
@@ -76,9 +76,9 @@ public class IdpController {
 
             BindingOtpInnerReqDto clientReq = requestDTO.getRequest();
 
-            EsignetWalletBindingRequestDto esignetReq = new EsignetWalletBindingRequestDto();
-            esignetReq.setOtpChannels(clientReq.getOtpChannels());
-            esignetReq.setIndividualId(clientReq.getIndividualId());
+            EsignetBindingOtpDto esignetReq = new EsignetBindingOtpDto();
+            esignetReq.setRequestTime(requestDTO.getRequestTime());
+            esignetReq.setRequest(clientReq);
 
             ResponseWrapper<BindingOtpResponseDto> internalResponse =
                     (ResponseWrapper<BindingOtpResponseDto>) restClientService
