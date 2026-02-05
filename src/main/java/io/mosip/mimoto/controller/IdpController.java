@@ -68,18 +68,21 @@ public class IdpController {
             String issuerName = requestDTO.getRequest().getIssuerName();
             log.info("Binding OTP request for issuer: {}", issuerName);
 
-            ApiName apiToCall = ApiName.BINDING_OTP;
+            ApiName apiToCall = "GlobalIDPass".equalsIgnoreCase(issuerName)
+                    ? ApiName.BINDING_OTP_GLOBALID
+                    : ApiName.BINDING_OTP;
 
-            if ("GlobalIDPass".equalsIgnoreCase(issuerName)) {
-                apiToCall = ApiName.BINDING_OTP_GLOBALID;
-                log.info("Routing binding OTP to GlobalID eSignet");
-            } else {
-                log.info("Routing binding OTP to default MOSIP eSignet");
-            }
-            requestDTO.getRequest().setIssuerName(null);
+            log.info("Routing binding OTP to {}", apiToCall);
+
+            BindingOtpInnerReqDto clientReq = requestDTO.getRequest();
+
+            EsignetWalletBindingRequestDto esignetReq = new EsignetWalletBindingRequestDto();
+            esignetReq.setOtpChannels(clientReq.getOtpChannels());
+            esignetReq.setIndividualId(clientReq.getIndividualId());
+
             ResponseWrapper<BindingOtpResponseDto> internalResponse =
                     (ResponseWrapper<BindingOtpResponseDto>) restClientService
-                            .postApi(apiToCall, requestDTO, ResponseWrapper.class, USE_BEARER_TOKEN);
+                            .postApi(apiToCall, esignetReq, ResponseWrapper.class, USE_BEARER_TOKEN);
 
             if (internalResponse == null)
                 throw new IdpException();
@@ -88,16 +91,17 @@ public class IdpController {
 
         } catch (Exception e) {
             log.error("Wallet binding otp error occurred.", e);
+
             String[] errorObj = Utilities.handleExceptionWithErrorCode(
                     e, PlatformErrorMessages.MIMOTO_OTP_BINDING_EXCEPTION.getCode());
 
             List<ErrorDTO> errors = Utilities.getErrors(errorObj[0], errorObj[1]);
             responseWrapper.setResponse(null);
             responseWrapper.setErrors(errors);
+
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
         }
     }
-
 
     @Operation(summary = SwaggerLiteralConstants.IDP_WALLET_BINDING_SUMMARY, description = SwaggerLiteralConstants.IDP_WALLET_BINDING_DESCRIPTION)
     @PostMapping(path = "/wallet-binding", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
