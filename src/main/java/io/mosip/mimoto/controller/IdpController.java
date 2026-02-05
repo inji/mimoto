@@ -76,7 +76,7 @@ public class IdpController {
             } else {
                 log.info("Routing binding OTP to default MOSIP eSignet");
             }
-
+            requestDTO.getRequest().setIssuerName(null);
             ResponseWrapper<BindingOtpResponseDto> internalResponse =
                     (ResponseWrapper<BindingOtpResponseDto>) restClientService
                             .postApi(apiToCall, requestDTO, ResponseWrapper.class, USE_BEARER_TOKEN);
