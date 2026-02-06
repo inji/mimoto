@@ -62,9 +62,6 @@ public class RestApiClient {
     @Value("${wallet.binding.partner.api.key}")
     private String partnerApiKey;
 
-    @Value("${wallet.binding.globalid.partner.api.key}")
-    private String globalIdPartnerKey;
-
     @Value("${mosip.authmanager.client-token-endpoint}")
     private String authBaseUrl;
 
@@ -159,28 +156,6 @@ public class RestApiClient {
         }
         return result;
     }
-
-    public <T> T postApi(String uri,
-                         MediaType mediaType,
-                         Object requestType,
-                         Class<?> responseClass,
-                         boolean useBearerToken,
-                         String issuerName) throws Exception {
-
-        T result = null;
-        try {
-            log.info("RestApiClient::postApi()::entry uri: {}", uri);
-            result = (T) plainRestTemplate.postForObject(
-                    uri,
-                    setRequestHeaderWithIssuer(requestType, mediaType, useBearerToken, issuerName),
-                    responseClass
-            );
-        } catch (Exception e) {
-            log.error("RestApiClient::postApi()::error uri: {} {} {}", uri, e.getMessage(), e);
-        }
-        return result;
-    }
-
 
     public <T> T postApi(String uri, MediaType mediaType, Object requestType, Class<?> responseClass, boolean useBearerToken) throws Exception {
         T result = null;
@@ -283,52 +258,6 @@ public class RestApiClient {
             }
         } else
             return new HttpEntity<Object>(headers);
-    }
-
-    private HttpEntity<Object> setRequestHeaderWithIssuer(Object requestType,
-                                                          MediaType mediaType,
-                                                          boolean useBearerToken,
-                                                          String issuerName) throws IOException {
-
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-
-        if (mediaType != null) {
-            headers.add(CONTENT_TYPE, mediaType.toString());
-        }
-
-        if (useBearerToken) {
-            String bearerToken = System.getProperty(TOKEN);
-            if (StringUtils.isEmpty(bearerToken))
-                bearerToken = getBearerToken();
-
-            headers.add("Authorization", bearerToken);
-            headers.add("partner-id", partnerId);
-
-            String keyToUse = partnerApiKey;
-
-            if ("GlobalIDPass".equalsIgnoreCase(issuerName)) {
-                keyToUse = globalIdPartnerKey;
-                log.info("Using GlobalID wallet binding API key");
-            }
-
-            headers.add("partner-api-key", keyToUse);
-        }
-
-        if (requestType != null) {
-            try {
-                HttpEntity<Object> httpEntity = (HttpEntity<Object>) requestType;
-                HttpHeaders httpHeader = httpEntity.getHeaders();
-                for (String key : httpHeader.keySet()) {
-                    if (!(headers.containsKey(CONTENT_TYPE) && key.equals(CONTENT_TYPE)))
-                        headers.add(key, Objects.requireNonNull(httpHeader.get(key)).get(0));
-                }
-                return new HttpEntity<>(httpEntity.getBody(), headers);
-            } catch (ClassCastException | NullPointerException e) {
-                return new HttpEntity<>(requestType, headers);
-            }
-        }
-
-        return new HttpEntity<>(headers);
     }
 
     private String getBearerToken() throws IOException {

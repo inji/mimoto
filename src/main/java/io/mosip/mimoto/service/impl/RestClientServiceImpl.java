@@ -46,7 +46,7 @@ public class RestClientServiceImpl implements RestClientService<Object> {
      */
     @Override
     public Object getApi(ApiName apiName, List<String> pathsegments, String queryParamName, String queryParamValue,
-            Class<?> responseType) throws ApisResourceAccessException {
+                         Class<?> responseType) throws ApisResourceAccessException {
         log.debug("RestClientServiceImpl::getApi()::entry");
         Object obj = null;
         String apiHostIpPort = env.getProperty(apiName.name());
@@ -84,8 +84,8 @@ public class RestClientServiceImpl implements RestClientService<Object> {
 
     @Override
     public Object getApi(ApiName apiName, List<String> pathsegments, List<String> queryParamName,
-            List<Object> queryParamValue,
-            Class<?> responseType) throws ApisResourceAccessException {
+                         List<Object> queryParamValue,
+                         Class<?> responseType) throws ApisResourceAccessException {
         log.debug("RestClientServiceImpl::getApi()::entry");
         Object obj = null;
         String apiHostIpPort = env.getProperty(apiName.name());
@@ -125,7 +125,7 @@ public class RestClientServiceImpl implements RestClientService<Object> {
     }
 
     public Object postApi(ApiName apiName, String queryParamName, String queryParamValue, Object requestedData,
-            Class<?> responseType, MediaType mediaType) throws ApisResourceAccessException {
+                          Class<?> responseType, MediaType mediaType) throws ApisResourceAccessException {
         log.debug(LoggerFileConstant.REST_CLIENT_SERVICE_IMPL_POST_API_ENTRY);
 
         Object obj = null;
@@ -165,7 +165,7 @@ public class RestClientServiceImpl implements RestClientService<Object> {
      */
     @Override
     public Object postApi(ApiName apiName, String queryParamName, String queryParamValue, Object requestedData,
-            Class<?> responseType) throws ApisResourceAccessException {
+                          Class<?> responseType) throws ApisResourceAccessException {
         return postApi(apiName, queryParamName, queryParamValue, requestedData, responseType, null);
     }
 
@@ -179,7 +179,7 @@ public class RestClientServiceImpl implements RestClientService<Object> {
      */
     @Override
     public Object postApi(ApiName apiName, List<String> pathsegments, String queryParamName, String queryParamValue,
-            Object requestedData, Class<?> responseType) throws ApisResourceAccessException {
+                          Object requestedData, Class<?> responseType) throws ApisResourceAccessException {
 
         log.debug(LoggerFileConstant.REST_CLIENT_SERVICE_IMPL_POST_API_ENTRY);
         Object obj = null;
@@ -218,8 +218,8 @@ public class RestClientServiceImpl implements RestClientService<Object> {
 
     @Override
     public Object postApi(ApiName apiName, MediaType mediaType, List<String> pathsegments, List<String> queryParamName,
-            List<Object> queryParamValue,
-            Object requestedData, Class<?> responseType) throws ApisResourceAccessException {
+                          List<Object> queryParamValue,
+                          Object requestedData, Class<?> responseType) throws ApisResourceAccessException {
 
         log.debug(LoggerFileConstant.REST_CLIENT_SERVICE_IMPL_POST_API_ENTRY);
         Object obj = null;
@@ -273,33 +273,6 @@ public class RestClientServiceImpl implements RestClientService<Object> {
         log.debug(LoggerFileConstant.REST_CLIENT_SERVICE_IMPL_POST_API_EXIT);
         return obj;
     }
-
-    @Override
-    public Object postApi(ApiName apiName,
-                          Object requestedData,
-                          Class<?> responseType,
-                          boolean useBearerToken,
-                          String issuerName) throws ApisResourceAccessException {
-
-        log.debug("RestClientServiceImpl::postApi with issuer: {} routing",issuerName);
-
-        String apiHostIpPort = env.getProperty(apiName.name());
-
-        try {
-            return restApiClient.postApi(
-                    apiHostIpPort,
-                    MediaType.APPLICATION_JSON,
-                    requestedData,
-                    responseType,
-                    useBearerToken,
-                    issuerName
-            );
-        } catch (Exception e) {
-            throw new ApisResourceAccessException(
-                    PlatformErrorMessages.MIMOTO_RCT_UNKNOWN_RESOURCE_EXCEPTION.getMessage(), e);
-        }
-    }
-
 
     private static void addQueryParam(String queryParamName, String queryParamValue, UriComponentsBuilder builder) {
         String[] queryParamNameArr = queryParamName.split(",");

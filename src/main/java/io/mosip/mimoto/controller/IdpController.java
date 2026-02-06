@@ -135,7 +135,7 @@ public class IdpController {
 
             ResponseWrapper<WalletBindingInternalResponseDto> internalResponse =
                     (ResponseWrapper<WalletBindingInternalResponseDto>) restClientService
-                            .postApi(apiToCall, req, ResponseWrapper.class, USE_BEARER_TOKEN,issuerName);
+                            .postApi(apiToCall, req, ResponseWrapper.class, USE_BEARER_TOKEN);
 
             if (internalResponse == null)
                 throw new IdpException();
