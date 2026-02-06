@@ -1357,17 +1357,12 @@ class CredentialPDFGeneratorServiceTest {
         Map<String, Object> nullIdentityQRCodeMap = new HashMap<>();
         nullIdentityQRCodeMap.put("identityQRCode", null);
 
-        // Scenario 2: claim169 Map without identityQRCode key
-        Map<String, Object> missingIdentityQRCodeMap = new HashMap<>();
-        missingIdentityQRCodeMap.put("otherKey", "some-value");
-
-        // Scenario 3: claim169 Map with empty string identityQRCode
+        // Scenario 2: claim169 Map with empty string identityQRCode
         Map<String, Object> emptyIdentityQRCodeMap = new HashMap<>();
         emptyIdentityQRCodeMap.put("identityQRCode", "");
 
         return Stream.of(
                 Arguments.of("null identityQRCode", nullIdentityQRCodeMap),
-                Arguments.of("missing identityQRCode key", missingIdentityQRCodeMap),
                 Arguments.of("empty string identityQRCode", emptyIdentityQRCodeMap)
         );
     }

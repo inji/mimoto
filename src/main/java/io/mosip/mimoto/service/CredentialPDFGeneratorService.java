@@ -93,8 +93,7 @@ public class CredentialPDFGeneratorService {
     private boolean maskDisclosures;
 
     private static final String CLAIM_169_KEY = "claim169";
-    private static final String IDENTITY_QR_CODE_KEY = "identityQRCode";
-
+    
     public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
         // Check if the credential can support SVG based rendering
         if (isSvgBasedRenderingSupported(vcCredentialResponse)) {
@@ -212,8 +211,11 @@ public class CredentialPDFGeneratorService {
         Map<String, Object> credentialSubject = credentialFormatHandler.extractCredentialClaims(vcCredentialResponse);
         Object claim169QrObj = credentialSubject.get(CLAIM_169_KEY);
         if (claim169QrObj instanceof Map<?, ?> claim169Map) {
-            Object identityQr = claim169Map.get(IDENTITY_QR_CODE_KEY);
-            return identityQr != null ? identityQr.toString() : "";
+            if (!claim169Map.isEmpty()) {
+                Object firstValue = claim169Map.values().iterator().next();
+                return firstValue != null ? firstValue.toString() : "";
+            }
+            return "";
         }
         return "";
     }
