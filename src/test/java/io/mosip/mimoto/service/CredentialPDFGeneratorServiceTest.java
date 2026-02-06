@@ -823,8 +823,8 @@ class CredentialPDFGeneratorServiceTest {
 
         // Setup credential with locale-specific list
         List<Map<String, Object>> localeData = List.of(
-                Map.of(LdpVcV2Constants.LANGUAGE, "en", LdpVcV2Constants.VALUE, "English Name"),
-                Map.of(LdpVcV2Constants.LANGUAGE, "fr", LdpVcV2Constants.VALUE, "French Name")
+                Map.of("language", "en", "value", "English Name"),
+                Map.of("language", "fr", "value", "French Name")
         );
         Map<String, Object> subject = Map.of("name", localeData);
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(subject);
@@ -1641,7 +1641,7 @@ class CredentialPDFGeneratorServiceTest {
 
         try (MockedStatic<SDJWT> mockedSDJWT = mockStatic(SDJWT.class);
              MockedStatic<Utilities> mocked = mockStatic(Utilities.class)) {
-            
+
             // Mock SDJWT parsing for disclosure extraction
             SDJWT mockSDJWT = mock(SDJWT.class);
             mockedSDJWT.when(() -> SDJWT.parse(mockSDJWTString)).thenReturn(mockSDJWT);
