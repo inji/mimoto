@@ -33,11 +33,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- mosip -->
-        <mosip.kernel.core.version>1.3.0-beta.1</mosip.kernel.core.version>
-        <mosip.biometric.util.version>1.3.0-beta.1</mosip.biometric.util.version>
-        <mosip.kernel.auth.adapter.version>1.3.0-beta.1</mosip.kernel.auth.adapter.version>
-        <kernel.biometrics.api.version>1.3.0-beta.1</kernel.biometrics.api.version>
-        <kernel.cbeffutil.version>1.3.0-beta.1</kernel.cbeffutil.version>
+        <mosip.kernel.core.version>1.3.0</mosip.kernel.core.version>
+        <mosip.biometric.util.version>1.3.0</mosip.biometric.util.version>
+        <mosip.kernel.auth.adapter.version>1.3.0</mosip.kernel.auth.adapter.version>
+        <kernel.biometrics.api.version>1.3.0</kernel.biometrics.api.version>
+        <kernel.cbeffutil.version>1.3.0</kernel.cbeffutil.version>
 
         <vertx.version>3.9.1</vertx.version>
 
@@ -100,7 +100,7 @@
             <dependency>
                 <groupId>io.mosip.kernel</groupId>
                 <artifactId>kernel-bom</artifactId>
-                <version>1.3.0-beta.1</version>
+                <version>1.3.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -111,7 +111,7 @@
         <dependency>
             <groupId>io.mosip.kernel</groupId>
             <artifactId>kernel-core</artifactId>
-            <version>1.3.0-beta.1</version>
+            <version>1.3.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.junit.vintage</groupId>
@@ -139,7 +139,7 @@
         <dependency>
             <groupId>io.mosip</groupId>
             <artifactId>vcverifier-jar</artifactId>
-            <version>1.5.0</version>
+            <version>1.6.0</version>
         </dependency>
         <dependency>
             <groupId>io.mosip</groupId>
@@ -240,7 +240,7 @@
         <dependency>
             <groupId>io.mosip.kernel</groupId>
             <artifactId>kernel-websubclient-api</artifactId>
-            <version>1.3.0-beta.1</version>
+            <version>1.3.0</version>
         </dependency>
 
         <dependency>
@@ -496,7 +496,7 @@
         <dependency>
             <groupId>io.mosip.kernel</groupId>
             <artifactId>kernel-keymanager-service</artifactId>
-            <version>1.3.0-beta.4</version>
+            <version>1.3.0</version>
             <classifier>lib</classifier>
             <exclusions>
                 <exclusion>
