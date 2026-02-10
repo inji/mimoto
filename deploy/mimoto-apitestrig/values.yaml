@@ -3,7 +3,7 @@ modules:
     enabled: true
     image:
       repository: mosipqa/apitest-mimoto
-      tag: develop
+      tag: 0.21.x
       pullPolicy: Always
   masterdata:
     enabled: false
