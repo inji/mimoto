@@ -3,6 +3,9 @@ package io.mosip.mimoto.util.factory;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
+import java.util.Map;
+
 import static org.junit.Assert.*;
 
 /**
@@ -50,6 +53,28 @@ public class SigningAlgorithmHandlerFactoryTest {
         } catch (IllegalArgumentException e) {
             assertTrue("Exception message should mention null", 
                     e.getMessage().contains("null") || e.getMessage().contains("Unsupported"));
+        }
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenHandlerNotPresentInMap() throws Exception {
+        Field handlersField = SigningAlgorithmHandlerFactory.class.getDeclaredField("handlers");
+        handlersField.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        Map<SigningAlgorithm, SigningAlgorithmHandler> handlers =
+                (Map<SigningAlgorithm, SigningAlgorithmHandler>) handlersField.get(null);
+
+        SigningAlgorithmHandler removed = handlers.remove(SigningAlgorithm.RS256);
+        try {
+            SigningAlgorithmHandlerFactory.getHandler(SigningAlgorithm.RS256);
+            fail("Should throw IllegalArgumentException when handler is missing in map");
+        } catch (IllegalArgumentException e) {
+            assertTrue("Exception message should mention unsupported", e.getMessage().contains("Unsupported"));
+        } finally {
+            if (removed != null) {
+                handlers.put(SigningAlgorithm.RS256, removed);
+            }
         }
     }
 }
