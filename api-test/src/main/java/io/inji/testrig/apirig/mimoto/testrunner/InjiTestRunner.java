@@ -110,7 +110,7 @@ public class InjiTestRunner {
 
 			if (!"yes".equalsIgnoreCase(generateDependency)) {
 				if (testCasesToExecuteString != null && !testCasesToExecuteString.isBlank()) {
-					DependencyResolver.loadDependencies(BaseTestCase.testCaseInterDependencyPath);
+					DependencyResolver.loadDependencies(BaseTestCase.getTestCaseInterDependencyPath());
 					MimotoUtil.testCasesInRunScope = DependencyResolver.getDependencies(testCasesToExecuteString);
 				}
 			}
@@ -129,7 +129,7 @@ public class InjiTestRunner {
 		
 		if ("yes".equalsIgnoreCase(generateDependency)) {
 			LOGGER.info("Generating test case inter-dependencies");
-			AdminTestUtil.generateTestCaseInterDependencies(BaseTestCase.testCaseInterDependencyPath);
+			AdminTestUtil.generateTestCaseInterDependencies(BaseTestCase.getTestCaseInterDependencyPath());
 		}
 
 		System.exit(0);
