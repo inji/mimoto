@@ -1,4 +1,4 @@
-package io.mosip.testrig.apirig.mimoto.utils;
+package io.inji.testrig.apirig.mimoto.utils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -7,7 +7,7 @@ import java.util.Properties;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import io.mosip.testrig.apirig.mimoto.testrunner.MosipTestRunner;
+import io.inji.testrig.apirig.mimoto.testrunner.InjiTestRunner;
 import io.mosip.testrig.apirig.utils.ConfigManager;
 
 public class MimotoConfigManager extends ConfigManager{
@@ -20,7 +20,7 @@ public class MimotoConfigManager extends ConfigManager{
 		Map<String, Object> moduleSpecificPropertiesMap = new HashMap<>();
 		// Load scope specific properties
 		try {
-			String path = MosipTestRunner.getGlobalResourcePath() + "/config/mimoto.properties";
+			String path = InjiTestRunner.getGlobalResourcePath() + "/config/mimoto.properties";
 			Properties props = getproperties(path);
 			// Convert Properties to Map and add to moduleSpecificPropertiesMap
 			for (String key : props.stringPropertyNames()) {
@@ -38,7 +38,7 @@ public class MimotoConfigManager extends ConfigManager{
 	}
 
 	public static int getMaxFailedAttemptsAllowedPerCycle() {
-		return Integer.parseInt(MimotoUtil.getValueFromMimotoActuator("https://github.com/mosip/inji-config/mimoto-default.properties", "wallet.passcode.maxFailedAttemptsAllowedPerCycle"));
+		return Integer.parseInt(MimotoUtil.getValueFromMimotoActuator("https://github.com/inji/inji-config/mimoto-default.properties", "wallet.passcode.maxFailedAttemptsAllowedPerCycle"));
 	}
 	
 	public static String getEsignetBaseUrl() {

@@ -1,4 +1,4 @@
-package io.mosip.testrig.apirig.mimoto.testscripts;
+package io.inji.testrig.apirig.mimoto.testscripts;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -18,10 +18,11 @@ import org.testng.annotations.Test;
 import org.testng.internal.BaseTestMethod;
 import org.testng.internal.TestResult;
 
+import io.inji.testrig.apirig.mimoto.utils.MimotoConfigManager;
+import io.inji.testrig.apirig.mimoto.utils.MimotoUtil;
 import io.mosip.testrig.apirig.dto.OutputValidationDto;
 import io.mosip.testrig.apirig.dto.TestCaseDTO;
-import io.mosip.testrig.apirig.mimoto.utils.MimotoConfigManager;
-import io.mosip.testrig.apirig.mimoto.utils.MimotoUtil;
+import io.mosip.testrig.apirig.testrunner.BaseTestCase;
 import io.mosip.testrig.apirig.testrunner.HealthChecker;
 import io.mosip.testrig.apirig.utils.AdminTestException;
 import io.mosip.testrig.apirig.utils.AuthenticationTestException;
@@ -30,14 +31,15 @@ import io.mosip.testrig.apirig.utils.OutputValidationUtil;
 import io.mosip.testrig.apirig.utils.ReportUtil;
 import io.mosip.testrig.apirig.utils.SecurityXSSException;
 import io.restassured.response.Response;
-import org.json.JSONObject;
 
-public class PostWithPathParamsHeadersAndCookieForAutoGenId extends MimotoUtil implements ITest {
-	private static final Logger logger = Logger.getLogger(PostWithPathParamsHeadersAndCookieForAutoGenId.class);
+public class GetWithPathParamAndCookieForAutoGenId extends MimotoUtil implements ITest {
+	private static final Logger logger = Logger.getLogger(GetWithPathParamAndCookieForAutoGenId.class);
 	protected String testCaseName = "";
 	public String pathParams = null;
 	public String headers = null;
 	public String idKeyName = null;
+	public boolean auditLogCheck = false;
+	public boolean sendEsignetToken = false;
 
 	@BeforeClass
 	public static void setLogLevel() {
@@ -47,89 +49,79 @@ public class PostWithPathParamsHeadersAndCookieForAutoGenId extends MimotoUtil i
 			logger.setLevel(Level.ERROR);
 	}
 
-	/**
-	 * get current testcaseName
-	 */
 	@Override
 	public String getTestName() {
 		return testCaseName;
 	}
 
 	/**
-	 * Data provider class provides test case list
-	 * 
-	 * @return object of data provider
+	 * Data provider class provides test case list. It reads the required parameters
+	 * from the test context. * @return object of data provider
 	 */
 	@DataProvider(name = "testcaselist")
 	public Object[] getTestCaseList(ITestContext context) {
 		String ymlFile = context.getCurrentXmlTest().getLocalParameters().get("ymlFile");
 		pathParams = context.getCurrentXmlTest().getLocalParameters().get("pathParams");
-		idKeyName = context.getCurrentXmlTest().getLocalParameters().get("idKeyName");
 		headers = context.getCurrentXmlTest().getLocalParameters().get("headers");
+		idKeyName = context.getCurrentXmlTest().getLocalParameters().get("idKeyName");
+		sendEsignetToken = context.getCurrentXmlTest().getLocalParameters().containsKey("sendEsignetToken");
+
 		logger.info("Started executing yml: " + ymlFile);
 		return getYmlTestData(ymlFile);
 	}
 
 	/**
-	 * Test method for OTP Generation execution
+	 * Test method for Get request execution with auto generated ID feature.
+	 * * @param testCaseDTO
 	 * 
-	 * @param objTestParameters
-	 * @param testScenario
-	 * @param testcaseName
 	 * @throws AuthenticationTestException
 	 * @throws AdminTestException
+	 * @throws SecurityXSSException
 	 */
 	@Test(dataProvider = "testcaselist")
-	public void test(TestCaseDTO testCaseDTO) throws AuthenticationTestException, AdminTestException, SecurityXSSException {
+	public void test(TestCaseDTO testCaseDTO)
+			throws AuthenticationTestException, AdminTestException, SecurityXSSException {
 		testCaseName = testCaseDTO.getTestCaseName();
 		testCaseDTO = MimotoUtil.isTestCaseValidForTheExecution(testCaseDTO);
-		
+
 		if (HealthChecker.signalTerminateExecution) {
 			throw new SkipException(
 					GlobalConstants.TARGET_ENV_HEALTH_CHECK_FAILED + HealthChecker.healthCheckFailureMapS);
 		}
 
-	
+		auditLogCheck = testCaseDTO.isAuditLogCheck();
+
+		// Handle language variables in templates and inputs
+		if (testCaseDTO.getInputTemplate().contains(GlobalConstants.$PRIMARYLANG$))
+			testCaseDTO.setInputTemplate(testCaseDTO.getInputTemplate().replace(GlobalConstants.$PRIMARYLANG$,
+					BaseTestCase.languageList.get(0)));
+		if (testCaseDTO.getOutputTemplate().contains(GlobalConstants.$PRIMARYLANG$))
+			testCaseDTO.setOutputTemplate(testCaseDTO.getOutputTemplate().replace(GlobalConstants.$PRIMARYLANG$,
+					BaseTestCase.languageList.get(0)));
+		if (testCaseDTO.getInput().contains(GlobalConstants.$PRIMARYLANG$))
+			testCaseDTO.setInput(
+					testCaseDTO.getInput().replace(GlobalConstants.$PRIMARYLANG$, BaseTestCase.languageList.get(0)));
+		if (testCaseDTO.getOutput().contains(GlobalConstants.$PRIMARYLANG$))
+			testCaseDTO.setOutput(
+					testCaseDTO.getOutput().replace(GlobalConstants.$PRIMARYLANG$, BaseTestCase.languageList.get(0)));
+
 		String inputJson = getJsonFromTemplate(testCaseDTO.getInput(), testCaseDTO.getInputTemplate());
 		inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
 
-		if (inputJson.contains("authorizationRequestUrl")) {
-
-			try {
-
-				JSONObject json = new JSONObject(inputJson);
-				if (json.has("authorizationRequestUrl")) {
-					String authUrl = json.getString("authorizationRequestUrl");
-
-					authUrl = authUrl.replace("&amp;", "&").replace("%25", "%").replace("\\u0026", "&")
-							.replace("\\u003d", "=");
-					json.put("authorizationRequestUrl", authUrl);
-					inputJson = json.toString();
-				}
-			} catch (Exception e) {
-				logger.warn("Warning: Unable to normalize authorizationRequestUrl");
-			}
-		}
-
-		Response response = postWithPathParamsBodyHeadersAndCookieForAutoGeneratedId(
-				ApplnURI + testCaseDTO.getEndPoint(), inputJson, COOKIENAME, testCaseDTO.getRole(),
-				testCaseDTO.getTestCaseName(), pathParams, idKeyName, headers);
+		Response response = getWithPathParamAndCookieForAutoGeneratedId(ApplnURI + testCaseDTO.getEndPoint(), inputJson,
+				auditLogCheck, COOKIENAME, testCaseDTO.getRole(), testCaseDTO.getTestCaseName(), this.idKeyName,
+				sendEsignetToken);
 
 		Map<String, List<OutputValidationDto>> ouputValid = OutputValidationUtil.doJsonOutputValidation(
 				response.asString(), getJsonFromTemplate(testCaseDTO.getOutput(), testCaseDTO.getOutputTemplate()),
 				testCaseDTO, response.getStatusCode());
+
 		Reporter.log(ReportUtil.getOutputValidationReport(ouputValid));
 
 		if (!OutputValidationUtil.publishOutputResult(ouputValid))
 			throw new AdminTestException("Failed at output validation");
-
 	}
 
-	/**
-	 * The method ser current test name to result
-	 * 
-	 * @param result
-	 */
 	@AfterMethod(alwaysRun = true)
 	public void setResultTestName(ITestResult result) {
 		try {
@@ -144,5 +136,4 @@ public class PostWithPathParamsHeadersAndCookieForAutoGenId extends MimotoUtil i
 			Reporter.log("Exception : " + e.getMessage());
 		}
 	}
-
 }

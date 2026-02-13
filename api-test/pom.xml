@@ -2,13 +2,13 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>io.mosip.mimoto</groupId>
+	<groupId>io.inji.mimoto</groupId>
 	<artifactId>apitest-mimoto</artifactId>
 	<packaging>jar</packaging>
 	<name>apitest-mimoto</name>
 	<description>Parent project of apitest-mimoto</description>
-	<url>https://github.com/mosip/mimoto</url>
-	<version>0.20.0-SNAPSHOT</version>
+	<url>https://github.com/inji/mimoto</url>
+	<version>0.21.0-SNAPSHOT</version>
 
 	<licenses>
 		<license>
@@ -18,9 +18,9 @@
 	</licenses>
 
 	<scm>
-		<connection>scm:git:git://github.com/mosip/mimoto.git</connection>
-		<developerConnection>scm:git:ssh://github.com:mosip/mimoto.git</developerConnection>
-		<url>https://github.com/mosip/mimoto</url>
+		<connection>scm:git:git://github.com/inji/mimoto.git</connection>
+		<developerConnection>scm:git:ssh://github.com:inji/mimoto.git</developerConnection>
+		<url>https://github.com/inji/mimoto</url>
 		<tag>HEAD</tag>
 	</scm>
 
@@ -28,8 +28,8 @@
 		<developer>
 			<name>Mosip</name>
 			<email>mosip.emailnotifier@gmail.com</email>
-			<organization>io.mosip</organization>
-			<organizationUrl>https://github.com/mosip/mimoto</organizationUrl>
+			<organization>io.inji</organization>
+			<organizationUrl>https://github.com/inji/mimoto</organizationUrl>
 		</developer>
 	</developers>
 	
@@ -61,14 +61,14 @@
 		<maven.source.plugin.version>2.2.1</maven.source.plugin.version>
 
 		<git.commit.id.plugin.version>3.0.1</git.commit.id.plugin.version>
-		<fileName>apitest-mimoto-0.20.0-SNAPSHOT-jar-with-dependencies</fileName>
+		<fileName>apitest-mimoto-0.21.0-SNAPSHOT-jar-with-dependencies</fileName>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>io.mosip.testrig.apitest.commons</groupId>
 			<artifactId>apitest-commons</artifactId>
-			<version>1.4.0-SNAPSHOT</version>
+			<version>1.4.0</version>
 		</dependency>
 	</dependencies>
 
@@ -175,7 +175,7 @@
 								<transformer
 										implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 									<mainClass>
-										io.mosip.testrig.apirig.mimoto.testrunner.MosipTestRunner</mainClass>
+										io.inji.testrig.apirig.mimoto.testrunner.InjiTestRunner</mainClass>
 								</transformer>
 							</transformers>
 							<!-- add this to prevent some security issues when

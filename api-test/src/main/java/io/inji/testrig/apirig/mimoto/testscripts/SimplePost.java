@@ -1,9 +1,8 @@
-package io.mosip.testrig.apirig.mimoto.testscripts;
+package io.inji.testrig.apirig.mimoto.testscripts;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,32 +21,27 @@ import org.testng.annotations.Test;
 import org.testng.internal.BaseTestMethod;
 import org.testng.internal.TestResult;
 
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.parser.PdfTextExtractor;
-
+import io.inji.testrig.apirig.mimoto.utils.MimotoConfigManager;
+import io.inji.testrig.apirig.mimoto.utils.MimotoUtil;
 import io.mosip.testrig.apirig.dto.OutputValidationDto;
 import io.mosip.testrig.apirig.dto.TestCaseDTO;
-import io.mosip.testrig.apirig.mimoto.utils.MimotoConfigManager;
-import io.mosip.testrig.apirig.mimoto.utils.MimotoUtil;
+import io.mosip.testrig.apirig.testrunner.BaseTestCase;
 import io.mosip.testrig.apirig.testrunner.HealthChecker;
 import io.mosip.testrig.apirig.utils.AdminTestException;
 import io.mosip.testrig.apirig.utils.AdminTestUtil;
 import io.mosip.testrig.apirig.utils.AuthenticationTestException;
 import io.mosip.testrig.apirig.utils.GlobalConstants;
-import io.mosip.testrig.apirig.utils.GlobalMethods;
 import io.mosip.testrig.apirig.utils.OutputValidationUtil;
 import io.mosip.testrig.apirig.utils.ReportUtil;
 import io.mosip.testrig.apirig.utils.SecurityXSSException;
 import io.restassured.response.Response;
 
-public class GetWithParamAndHeader extends MimotoUtil implements ITest {
-	private static final Logger logger = Logger.getLogger(GetWithParamAndHeader.class);
+public class SimplePost extends MimotoUtil implements ITest {
+	private static final Logger logger = Logger.getLogger(SimplePost.class);
 	protected String testCaseName = "";
 	public Response response = null;
-	public String pathParams = null;
-	public String headers = null;
-	public byte[] pdf = null;
-	public String pdfAsText = null;
+	public boolean sendEsignetToken = false;
+	public boolean auditLogCheck = false;
 
 	@BeforeClass
 	public static void setLogLevel() {
@@ -73,8 +67,7 @@ public class GetWithParamAndHeader extends MimotoUtil implements ITest {
 	@DataProvider(name = "testcaselist")
 	public Object[] getTestCaseList(ITestContext context) {
 		String ymlFile = context.getCurrentXmlTest().getLocalParameters().get("ymlFile");
-		headers = context.getCurrentXmlTest().getLocalParameters().get("headers");
-		pathParams = context.getCurrentXmlTest().getLocalParameters().get("pathParams");
+		sendEsignetToken = context.getCurrentXmlTest().getLocalParameters().containsKey("sendEsignetToken");
 		logger.info("Started executing yml: " + ymlFile);
 		return getYmlTestData(ymlFile);
 	}
@@ -93,20 +86,30 @@ public class GetWithParamAndHeader extends MimotoUtil implements ITest {
 		testCaseName = testCaseDTO.getTestCaseName();
 		testCaseDTO = MimotoUtil.isTestCaseValidForTheExecution(testCaseDTO);
 		testCaseDTO = MimotoUtil.changeContextURLByFlag(testCaseDTO);
+		auditLogCheck = testCaseDTO.isAuditLogCheck();
+		String[] templateFields = testCaseDTO.getTemplateFields();
 		if (HealthChecker.signalTerminateExecution) {
 			throw new SkipException(
 					GlobalConstants.TARGET_ENV_HEALTH_CHECK_FAILED + HealthChecker.healthCheckFailureMapS);
 		}
 
-		String[] templateFields = testCaseDTO.getTemplateFields();
+		if (testCaseDTO.getTestCaseName().contains("VID") || testCaseDTO.getTestCaseName().contains("Vid")) {
+			if (!BaseTestCase.getSupportedIdTypesValueFromActuator().contains("VID")
+					&& !BaseTestCase.getSupportedIdTypesValueFromActuator().contains("vid")) {
+				throw new SkipException(GlobalConstants.VID_FEATURE_NOT_SUPPORTED);
+			}
+		}
+
+		String inputJson = getJsonFromTemplate(testCaseDTO.getInput(), testCaseDTO.getInputTemplate());
+		inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
 
 		if (testCaseDTO.getTemplateFields() != null && templateFields.length > 0) {
 			ArrayList<JSONObject> inputtestCases = AdminTestUtil.getInputTestCase(testCaseDTO);
 			ArrayList<JSONObject> outputtestcase = AdminTestUtil.getOutputTestCase(testCaseDTO);
 			for (int i = 0; i < languageList.size(); i++) {
-				response = getWithPathParamsBodyHeadersAndCookie(ApplnURI + testCaseDTO.getEndPoint(),
+				response = postWithBodyAndCookie(ApplnURI + testCaseDTO.getEndPoint(),
 						getJsonFromTemplate(inputtestCases.get(i).toString(), testCaseDTO.getInputTemplate()),
-						COOKIENAME, testCaseDTO.getRole(), testCaseDTO.getTestCaseName(), pathParams, headers);
+						COOKIENAME, testCaseDTO.getRole(), testCaseDTO.getTestCaseName());
 
 				Map<String, List<OutputValidationDto>> ouputValid = OutputValidationUtil.doJsonOutputValidation(
 						response.asString(),
@@ -120,53 +123,67 @@ public class GetWithParamAndHeader extends MimotoUtil implements ITest {
 		}
 
 		else {
-			String inputJson = getJsonFromTemplate(testCaseDTO.getInput(), testCaseDTO.getInputTemplate());
-
-			inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
-
-			String outputJson = getJsonFromTemplate(testCaseDTO.getOutput(), testCaseDTO.getOutputTemplate());
-			outputJson = MimotoUtil.inputstringKeyWordHandeler(outputJson, testCaseName);
-
-			response = getWithPathParamsBodyHeadersAndCookie(ApplnURI + testCaseDTO.getEndPoint(), inputJson,
-					COOKIENAME, testCaseDTO.getRole(), testCaseDTO.getTestCaseName(), pathParams, headers);
-
-			String contentType = response.getHeader("Content-Type");
-			if (contentType != null && contentType.contains("application/pdf")) {
-				pdf = response.asByteArray();
-
-				PdfReader pdfReader = null;
-				ByteArrayInputStream bIS = null;
-
-				try {
-					bIS = new ByteArrayInputStream(pdf);
-					pdfReader = new PdfReader(bIS);
-					pdfAsText = PdfTextExtractor.getTextFromPage(pdfReader, 1);
-				} catch (IOException e) {
-					Reporter.log("Exception : " + e.getMessage());
-				} finally {
-					AdminTestUtil.closeByteArrayInputStream(bIS);
-					AdminTestUtil.closePdfReader(pdfReader);
+			if (testCaseName.contains("ESignet_")) {
+				if (MimotoConfigManager.isInServiceNotDeployedList(GlobalConstants.ESIGNET)) {
+					throw new SkipException("esignet is not deployed hence skipping the testcase");
 				}
 
-				if (pdf != null && (new String(pdf).contains("errors") || pdfAsText == null)) {
-					GlobalMethods.reportResponse(null, ApplnURI + testCaseDTO.getEndPoint(),
-							"Not able to download issuer credential");
-					throw new AdminTestException("Not able to download issuer credential");
-				} else {
-					GlobalMethods.reportResponse(null, ApplnURI + testCaseDTO.getEndPoint(), pdfAsText, true);
-				}
+				String tempUrl = ApplnURI;
+				
+				if (testCaseDTO.getEndPoint().startsWith("$SUNBIRDBASEURL$") && testCaseName.contains("SunBirdR")) {
 
+					if (MimotoConfigManager.isInServiceNotDeployedList("sunbirdrc"))
+						throw new SkipException(GlobalConstants.SERVICE_NOT_DEPLOYED_MESSAGE);
+
+					if (MimotoConfigManager.getSunbirdBaseURL() != null && !MimotoConfigManager.getSunbirdBaseURL().isBlank())
+						tempUrl = MimotoConfigManager.getSunbirdBaseURL();
+					testCaseDTO.setEndPoint(testCaseDTO.getEndPoint().replace("$SUNBIRDBASEURL$", ""));
+					
+					response = postWithBodyAndCookie(tempUrl + testCaseDTO.getEndPoint(), inputJson, auditLogCheck,
+							COOKIENAME, testCaseDTO.getRole(), testCaseDTO.getTestCaseName(), sendEsignetToken);
+					
+				} else if (testCaseDTO.getEndPoint().startsWith("$ESIGNETMOCKBASEURL$")
+						&& testCaseName.contains("SunBirdC")) {
+					if (MimotoConfigManager.isInServiceNotDeployedList("sunbirdrc"))
+						throw new SkipException(GlobalConstants.SERVICE_NOT_DEPLOYED_MESSAGE);
+
+					String esignetSunBirdBaseURL = MimotoConfigManager.getEsignetSunBirdBaseURL();
+					if (esignetSunBirdBaseURL != null && !esignetSunBirdBaseURL.isBlank())
+						tempUrl = esignetSunBirdBaseURL;
+					testCaseDTO.setEndPoint(testCaseDTO.getEndPoint().replace("$ESIGNETMOCKBASEURL$", ""));
+					
+					response = postRequestWithCookieAuthHeaderAndXsrfToken(tempUrl + testCaseDTO.getEndPoint(),
+							inputJson, COOKIENAME, testCaseDTO.getTestCaseName());
+				}
 			} else {
-				Map<String, List<OutputValidationDto>> ouputValid = null;
-				ouputValid = OutputValidationUtil.doJsonOutputValidation(response.asString(), outputJson, testCaseDTO,
-						response.getStatusCode());
+				response = postWithBodyAndCookie(ApplnURI + testCaseDTO.getEndPoint(), inputJson, auditLogCheck,
+						COOKIENAME, testCaseDTO.getRole(), testCaseDTO.getTestCaseName(), sendEsignetToken);
+			}
+			Map<String, List<OutputValidationDto>> ouputValid = null;
+			if (testCaseName.contains("_StatusCode")) {
 
-				Reporter.log(ReportUtil.getOutputValidationReport(ouputValid));
-				if (!OutputValidationUtil.publishOutputResult(ouputValid))
-					throw new AdminTestException("Failed at output validation");
+				OutputValidationDto customResponse = customStatusCodeResponse(String.valueOf(response.getStatusCode()),
+						testCaseDTO.getOutput());
+
+				ouputValid = new HashMap<>();
+				ouputValid.put(GlobalConstants.EXPECTED_VS_ACTUAL, List.of(customResponse));
+			} else {
+				ouputValid = OutputValidationUtil.doJsonOutputValidation(response.asString(),
+						getJsonFromTemplate(testCaseDTO.getOutput(), testCaseDTO.getOutputTemplate()), testCaseDTO,
+						response.getStatusCode());
 			}
 
+			Reporter.log(ReportUtil.getOutputValidationReport(ouputValid));
+
+			if (!OutputValidationUtil.publishOutputResult(ouputValid)) {
+				if (response.asString().contains("IDA-OTA-001"))
+					throw new AdminTestException(
+							"Exceeded number of OTP requests in a given time, Increase otp.request.flooding.max-count");
+				else
+					throw new AdminTestException("Failed at otp output validation");
+			}
 		}
+
 	}
 
 	/**
