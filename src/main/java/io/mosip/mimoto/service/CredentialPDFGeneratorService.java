@@ -331,8 +331,6 @@ public class CredentialPDFGeneratorService {
 
         if (contextField instanceof List<?> contextList)
             return contextList.stream().anyMatch(entry -> LdpVcV2Constants.V2_CONTEXT_URL.equals(entry.toString()));
-        if (contextField instanceof String contextString)
-            return LdpVcV2Constants.V2_CONTEXT_URL.equals(contextString);
 
         return false;
     }

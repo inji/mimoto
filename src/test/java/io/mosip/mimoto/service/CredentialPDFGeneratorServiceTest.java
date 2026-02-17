@@ -895,34 +895,6 @@ class CredentialPDFGeneratorServiceTest {
     }
 
     @Test
-    void testInjiVcRendererInvokedForLdpVcWithContextStringAndTemplate() throws Exception {
-        Map<String, Object> credentialMap = new HashMap<>();
-        credentialMap.put(CONTEXT, V2_CONTEXT_URL);
-        credentialMap.put(RENDER_METHOD, List.of(Map.of(TEMPLATE, "<svg></svg>",
-                RENDER_SUITE, SVG_MUSTACHE_RENDER_SUITE)));
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
-            .format("ldp_vc")
-            .credential(credentialMap)
-            .build();
-
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
-
-        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
-        when(injiVcRenderer.generateCredentialDisplayContent(any(), any(), anyString(), any()))
-            .thenReturn(List.of("<svg></svg>"));
-        when(svgFixerUtil.addMissingOffsetToStopElements(anyString())).thenAnswer(inv -> inv.getArgument(0));
-
-        String urlSafeBase64Pdf = "AQID";
-        when(injiVcRenderer.convertSvgToPdf(anyList())).thenReturn(urlSafeBase64Pdf);
-
-        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-            "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-            "https://example.com/share", "", "en");
-        assertNotNull(result);
-        verify(injiVcRenderer).generateCredentialDisplayContent(any(), any(), anyString(), any());
-    }
-
-    @Test
     void testInjiVcRendererInvokedForLdpVcWithContextListAndTemplate() throws Exception {
         Map<String, Object> credentialMap = new HashMap<>();
         credentialMap.put(CONTEXT, List.of(V2_CONTEXT_URL, "https://w3id.org/security/v1"));
