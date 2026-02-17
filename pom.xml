@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.mosip</groupId>
+    <groupId>io.inji</groupId>
     <artifactId>mimoto</artifactId>
     <version>0.21.0-SNAPSHOT</version>
     <name>mimoto</name>
-    <url>https://github.com/mosip/mimoto</url>
+    <url>https://github.com/inji/mimoto</url>
     <description>Mobile server backend supporting Inji.</description>
 
     <licenses>
@@ -15,17 +15,17 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:git://github.com/mosip/mimoto.git</connection>
-        <developerConnection>scm:git:ssh://github.com:mosip/mimoto.git</developerConnection>
-        <url>https://github.com/mosip/mimoto</url>
+        <connection>scm:git:git://github.com/inji/mimoto.git</connection>
+        <developerConnection>scm:git:ssh://github.com:inji/mimoto.git</developerConnection>
+        <url>https://github.com/inji/mimoto</url>
         <tag>HEAD</tag>
     </scm>
     <developers>
         <developer>
             <name>Mosip</name>
             <email>mosip.emailnotifier@gmail.com</email>
-            <organization>io.mosip</organization>
-            <organizationUrl>https://github.com/mosip/mimoto</organizationUrl>
+            <organization>io.inji</organization>
+            <organizationUrl>https://inji.io/</organizationUrl>
         </developer>
     </developers>
 
@@ -435,7 +435,7 @@
             <version>0.7.0</version>
         </dependency>
         <dependency>
-            <groupId>io.mosip</groupId>
+            <groupId>io.inji</groupId>
             <artifactId>injivcrenderer-jar</artifactId>
             <version>0.2.0-SNAPSHOT</version>
         </dependency>
