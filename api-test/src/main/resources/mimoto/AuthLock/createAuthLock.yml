@@ -1,7 +1,7 @@
 AuthLock:
    Mimoto_AuthLock_Valid_UIN_All:
       endPoint: /v1/mimoto/req/auth/lock
-      description: Auth lock a particular UIN with valid parameters
+      description: Validate that the system successfully locks the specified UIN when all parameters are valid
       uniqueIdentifier: TC_Mimoto_AuthLock_01
       role: resident
       checkErrorsOnlyInResponse: true
@@ -30,7 +30,7 @@ AuthLock:
 }'
    Mimoto_AuthLock_InValid_Otp_All:
       endPoint: /v1/mimoto/req/auth/lock
-      description: Auth Lock a particular UIN with invalid OTP
+      description: Verify that when a user tries to lock a UIN using an invalid OTP
       uniqueIdentifier: TC_Mimoto_AuthLock_02
       role: resident
       checkErrorsOnlyInResponse: true
@@ -64,7 +64,7 @@ AuthLock:
 }'
    Mimoto_AuthLock_with_invalidUIN_Valid_Otp_sid:
       endPoint: /v1/mimoto/req/auth/lock
-      description: Auth Lock a particular UIN with valid OTP
+      description: Validate that the system successfully locks the UIN when a valid OTP
       uniqueIdentifier: TC_Mimoto_AuthLock_03
       role: resident
       checkErrorsOnlyInResponse: true
@@ -98,7 +98,7 @@ AuthLock:
 }'
    Mimoto_AuthLock_Valid_VID_All:
       endPoint: /v1/mimoto/req/auth/lock
-      description: Auth lock a particular VID with valid VID
+      description: Verify the system successfully when Auth lock a particular VID with valid VID
       uniqueIdentifier: TC_Mimoto_AuthLock_04
       role: resident
       checkErrorsOnlyInResponse: true
@@ -127,7 +127,7 @@ AuthLock:
 }'
    Mimoto_AuthLock_with_invalidVID_Valid_Otp:
       endPoint: /v1/mimoto/req/auth/lock
-      description: Auth lock a particular VID with invalid OTP
+      description: Verify that the system does not lock a VID when an invalid OTP is provided
       uniqueIdentifier: TC_Mimoto_AuthLock_05
       role: resident
       checkErrorsOnlyInResponse: true
@@ -161,7 +161,7 @@ AuthLock:
 }'
    Mimoto_AuthLock_invalidVID_Valid_Otp:
       endPoint: /v1/mimoto/req/auth/lock
-      description: Auth lock a particular VID with invalid VID
+      description: Validate that the system does not lock the VID when an invalid VID is provided and returns the appropriate error message
       uniqueIdentifier: TC_Mimoto_AuthLock_06
       role: resident
       checkErrorsOnlyInResponse: true

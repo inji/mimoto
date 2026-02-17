@@ -1,7 +1,7 @@
 GetIssuerConfiguration:
    Mimoto_GetIssuerConfiguration_Mosip_All_Valid_Smoke:
       endPoint: /v1/mimoto/issuers/Mosip/configuration
-      description: Retrieving verifiers list with all valid parameters
+      description: Verify that the system retrieves the verifiers list successfully when all parameters are valid
       uniqueIdentifier: TC_Mimoto_GetIssuerConfiguration_01
       role: resident
       restMethod: get
@@ -14,7 +14,7 @@ GetIssuerConfiguration:
 }'
    Mimoto_GetIssuerConfiguration_With_Issuer_Removed_From_URL_Neg:
       endPoint: /v1/mimoto/issuers/configuration
-      description: Retrieving verifiers list with invalid URL
+      description: Validate that the system does not retrieve the verifiers list when an invalid URL is provided
       uniqueIdentifier: TC_Mimoto_GetIssuerConfiguration_02
       role: resident
       restMethod: get

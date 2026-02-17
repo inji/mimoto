@@ -1,7 +1,7 @@
 AuthUnlock:
    Mimoto_AuthUnLock_Valid_UIN_All:
       endPoint: /v1/mimoto/req/auth/unlock
-      description: Auth unlock a particular UIN with valid parameters
+      description: Verify that the system unlocks the UIN successfully when all parameters are valid
       uniqueIdentifier: TC_Mimoto_AuthLock_07
       role: resident
       checkErrorsOnlyInResponse: true
@@ -31,7 +31,7 @@ AuthUnlock:
 }'
    Mimoto_AuthUnLock_Valid_UIN_With_VID_All:
       endPoint: /v1/mimoto/req/auth/unlock
-      description: Auth unlock a particular VID with valid parameters
+      description: Validate that the system processes the unlock request and successfully unlocks the VID when all parameters are valid
       uniqueIdentifier: TC_Mimoto_AuthLock_08
       role: resident
       checkErrorsOnlyInResponse: true
@@ -61,7 +61,7 @@ AuthUnlock:
 }'
    Mimoto_AuthUnLock_With_InValid_OTP_All:
       endPoint: /v1/mimoto/req/auth/unlock
-      description: Auth unlock a particular UIN with invalid OTP
+      description: Validate that the system does not unlock the UIN when an invalid OTP is provided and displays the appropriate error message
       uniqueIdentifier: TC_Mimoto_AuthLock_09
       role: resident
       checkErrorsOnlyInResponse: true
@@ -96,7 +96,7 @@ AuthUnlock:
 }'
    Mimoto_AuthUnLock_InValid_OTP_With_VID_All:
       endPoint: /v1/mimoto/req/auth/unlock
-      description: Unlock a particular VID with invalid OTP
+      description: Validate that the system does not unlock the VID when an invalid OTP is provided
       uniqueIdentifier: TC_Mimoto_AuthLock_10
       role: resident
       checkErrorsOnlyInResponse: true

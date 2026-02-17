@@ -1,7 +1,7 @@
 GenerateVID:
    Mimoto_Generate_Perpetual_VID_Valid_Smoke_sid:
       endPoint: /v1/mimoto/vid
-      description: Creating Perpetual VID with all valid parameters
+      description: Validate that the system successfully creates a perpetual VID when all input parameters are valid
       uniqueIdentifier: TC_Mimoto_GenerateVID_01
       role: resident
       checkErrorsOnlyInResponse: true
@@ -30,7 +30,7 @@ GenerateVID:
 }'
    Mimoto_Generate_Perpetual_VID_InValid_Otp_sid:
       endPoint: /v1/mimoto/vid
-      description: Creating Perpetual VID with invalid OTP
+      description: Validate that the system does not create a perpetual VID when an invalid OTP is provided
       uniqueIdentifier: TC_Mimoto_GenerateVID_02
       role: resident
       checkErrorsOnlyInResponse: true
@@ -64,7 +64,7 @@ GenerateVID:
 }'
    Mimoto_Generate_Perpetual_VID_with_InvalidUIN_Valid_Otp_sid:
       endPoint: /v1/mimoto/vid
-      description: Creating Perpetual VID with invalid UIN
+      description: Verify that the system prevents creation of a perpetual VID when the UIN is invalid
       uniqueIdentifier: TC_Mimoto_GenerateVID_03
       role: resident
       checkErrorsOnlyInResponse: true
@@ -99,7 +99,7 @@ GenerateVID:
 
    mimoto_Generate_Temporary_VID_Valid_Smoke_sid:
       endPoint: /v1/mimoto/vid
-      description: Creating temporary VID with all valid request
+      description: Validate that the system successfully creates a temporary VID when all request parameters are valid
       uniqueIdentifier: TC_Mimoto_GenerateVID_04
       role: resident
       checkErrorsOnlyInResponse: true
@@ -129,7 +129,7 @@ GenerateVID:
 
    Mimoto_Generate_Perpetual_VID_Invalid_TransactionId_Neg:
       endPoint: /v1/mimoto/vid
-      description: Creating perpetual VID with invalid transactionID
+      description: Verify that the system prevents creation of a perpetual VID when the transaction ID is invalid
       uniqueIdentifier: TC_Mimoto_GenerateVID_05
       role: resident
       checkErrorsOnlyInResponse: true
@@ -164,7 +164,7 @@ GenerateVID:
 
    Mimoto_Generate_Perpetual_VID_Binding_Valid_Smoke_sid:
       endPoint: /v1/mimoto/vid
-      description: Creating perpetual VID with binding valid request
+      description: Validate that the system successfully creates a perpetual VID for binding when the request parameters are valid
       uniqueIdentifier: TC_Mimoto_GenerateVID_06
       role: resident
       checkErrorsOnlyInResponse: true
