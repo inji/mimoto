@@ -1970,7 +1970,7 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "response": { "nullable": true },
+                                        "response": { "type": "object", "nullable": true },
                                         "errors": { "type": "array", "items": { "type": "object", "properties": { "code": { "type": "string" }, "message": { "type": "string" } } } }
                                     }
                                 }
@@ -2011,7 +2011,7 @@
                                         "responsetime": { "type": "string", "format": "date-time", "nullable": true },
                                         "metadata": { "type": "object", "nullable": true },
                                         "response": { "$ref": "#/components/schemas/IssuerDTOV2" },
-                                        "errors": { "type": "array", "nullable": true }
+                                        "errors": { "type": "array", "items": { "type": "object" }, "nullable": true }
                                     }
                                 }
                             }
@@ -2024,7 +2024,7 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "response": { "nullable": true },
+                                        "response": { "type": "object", "nullable": true },
                                         "errors": { "type": "array", "items": { "type": "object", "properties": { "code": { "type": "string" }, "message": { "type": "string" } } } }
                                     }
                                 }
@@ -2038,7 +2038,7 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "response": { "nullable": true },
+                                        "response": { "type": "object", "nullable": true },
                                         "errors": { "type": "array" }
                                     }
                                 }

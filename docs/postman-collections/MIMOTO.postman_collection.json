@@ -83,6 +83,19 @@
 				},
 				{
 					"name": "get Issuers List (V2)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var token = pm.cookies.get('XSRF-TOKEN');",
+									"pm.environment.set('XSRF_TOKEN', token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -395,7 +408,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"requestTime\": \"{{$isoTimestamp}}\",\n    \"request\": {\n        \"individualId\": \"6148072053\",\n        \"challengeList\": [\n            {\n                \"authFactorType\": \"OTP\",\n                \"challenge\": \"111111\",\n                \"format\": \"alpha-numeric\"\n            }\n        ],\n        \"publicKey\": \"-----BEGIN RSA PUBLIC KEY-----\\nMIICCgKCAgEArk/N6Us8TkfH+r1UGCqTGWegJ3UzqHXmj49uE3l9ygIPrTB7Hee8\\ntiVnlNKcQR/7EipumAcNzOFzaysUUIX8rh/QSdlwYYXvC4OT9fLg5tmToYc5x3pN\\nO1k7qg9fnMb/Ksr4D95xUUxQjMLlbojBNWjLhvdP4da1gWUeAdfjIfyLjZGYiD8r\\nUqsVqOfmrec9Y0nLsIsUq735NVl2WIP9mMfjXuRId4MgEE3mN6x/Gj9Ov0AWfb48\\n22wLgybggTdIJZlCBAnPn/n+oiowqUdXADAB4CIaVH8hDJ1fz3Ag2RetriqwrcLF\\nVSK+PyVuLD261BhIeQrgyHdKC6qilVBOYIMqtXjazCdjGICNFoEa1nVP6mu85RN1\\ny8TTS+4ATUTm44++TFSNfsEEpagvd6O/BWlj6mJNGB9dmtEohowwR5fcSHgKbGtP\\ng5J49fKeSDapEln2A/xL7Ubk8KFzzgcQvPWttGaazs7tqdOE4iOMkI72XFbyvIVz\\nzwQEB7vOuRJRclP30SkcR81u694vCtXJ2t2pFUMQVJXat9ypg5BtiZMwBtAnc0Pz\\nDWdGCR5LIpJIaDISmPumHGAzeeRfREbsoVaCdi99vORoxBjuscpEOa5+MgYDKM3S\\nsJZWl2E2/7Kt9KCRVJoqeEkFFKq696zKVD3qbhbZJG3TjBcgYfbN2jMCAwEAAQ==\\n-----END RSA PUBLIC KEY-----\\n\",\n        \"authFactorType\": \"WLA\",\n        \"format\": \"jwt\"\n    }\n}"
+							"raw": "{\n    \"requestTime\": \"{{$isoTimestamp}}\",\n    \"request\": {\n        \"individualId\": \"6148072053\",\n        \"challengeList\": [\n            {\n                \"authFactorType\": \"OTP\",\n                \"challenge\": \"111111\",\n                \"format\": \"alpha-numeric\"\n            }\n        ],\n        \"publicKey\": \"-----BEGIN RSA PUBLIC KEY-----\\nMIICCgKCAgEArk/N6Us8TkfHr1UGCqTGWegJ3UzqHXmj49uE3l9ygIPrTB7Hee8\\ntiVnlNKcQR/7EipumAcNzOFzaysUUIX8rh/QSdlwYYXvC4OT9fLg5tmToYc5x3pN\\nO1k7qg9fnMb/Ksr4D95xUUxQjMLlbojBNWjLhvdP4da1gWUeAdfjIfyLjZGYiD8r\\nUqsVqOfmrec9Y0nLsIsUq735NVl2WIP9mMfjXuRId4MgEE3mN6x/Gj9Ov0AWfb48\\n22wLgybggTdIJZlCBAnPn/noiowqUdXADAB4CIaVH8hDJ1fz3Ag2RetriqwrcLF\\nVSKPyVuLD261BhIeQrgyHdKC6qilVBOYIMqtXjazCdjGICNFoEa1nVP6mu85RN1\\ny8TTS4ATUTm44TFSNfsEEpagvd6O/BWlj6mJNGB9dmtEohowwR5fcSHgKbGtP\\ng5J49fKeSDapEln2A/xL7Ubk8KFzzgcQvPWttGaazs7tqdOE4iOMkI72XFbyvIVz\\nzwQEB7vOuRJRclP30SkcR81u694vCtXJ2t2pFUMQVJXat9ypg5BtiZMwBtAnc0Pz\\nDWdGCR5LIpJIaDISmPumHGAzeeRfREbsoVaCdi99vORoxBjuscpEOa5MgYDKM3S\\nsJZWl2E2/7Kt9KCRVJoqeEkFFKq696zKVD3qbhbZJG3TjBcgYfbN2jMCAwEAAQ==\\n-----END RSA PUBLIC KEY-----\\n\",\n        \"authFactorType\": \"WLA\",\n        \"format\": \"jwt\"\n    }\n}"
 						},
 						"url": "{{HOST}}/wallet-binding"
 					},
@@ -840,9 +853,9 @@
 											"    var sha256Hash = CryptoJS.SHA256(JSON.stringify(jsonData.response));",
 											"    var base64Encoded = sha256Hash.toString(CryptoJS.enc.Base64);",
 											"    // Remove padding characters",
-											"    base64Encoded = base64Encoded.replace(/=+$/, '');",
-											"    // Replace '+' with '-' and '/' with '_' to convert to base64 URL encoding",
-											"    base64Encoded = base64Encoded.replace(/\\+/g, '-').replace(/\\//g, '_');",
+											"    base64Encoded = base64Encoded.replace(/=$/, '');",
+											"    // Replace '' with '-' and '/' with '_' to convert to base64 URL encoding",
+											"    base64Encoded = base64Encoded.replace(/\\/g, '-').replace(/\\//g, '_');",
 											"    pm.collectionVariables.set(\"oauth_details_key\", jsonData.response.transactionId);",
 											"    pm.collectionVariables.set(\"oauth_details_hash\", base64Encoded);",
 											"});"
@@ -864,15 +877,15 @@
 											"",
 											"",
 											"// Generate a random nonce (UUID-style or random hex)",
-											"const nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);",
+											"const nonce = Math.random().toString(36).substring(2)  Date.now().toString(36);",
 											"pm.collectionVariables.set(\"nonce\", nonce);",
 											"",
 											"",
 											"const generateRandomString = (length = 43, charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~') => {",
 											"    let randomString = '';",
-											"    for (let i = 0; i < length; i++) {",
+											"    for (let i = 0; i < length; i) {",
 											"        const randomIndex = Math.floor(Math.random() * charset.length);",
-											"        randomString += charset[randomIndex];",
+											"        randomString = charset[randomIndex];",
 											"    }",
 											"    return randomString;",
 											"};",
