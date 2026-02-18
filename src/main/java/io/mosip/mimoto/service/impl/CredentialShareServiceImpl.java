@@ -66,7 +66,7 @@ public class CredentialShareServiceImpl implements CredentialShareService {
     public DataShareUtil dataShareUtil;
 
     @Autowired
-    CryptoUtil cryptoUtil;
+    DerivedKeyCryptoUtil derivedKeyCryptoUtil;
 
     @Autowired
     public RestApiClient restApiClient;
@@ -390,7 +390,7 @@ public class CredentialShareServiceImpl implements CredentialShareService {
                 cryptoWithPinRequestDto.setUserPin(encryptionPin);
                 cryptoWithPinRequestDto.setData(data.getString(str.toString()));
                 try {
-                    cryptoWithPinResponseDto = cryptoUtil.decryptWithPin(cryptoWithPinRequestDto);
+                    cryptoWithPinResponseDto = derivedKeyCryptoUtil.decryptWithPin(cryptoWithPinRequestDto);
                 } catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException
                          | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
                     log.error("Error while decrypting the data", e);

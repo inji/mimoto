@@ -27,7 +27,7 @@ import io.mosip.mimoto.exception.CryptoManagerException;
 import io.mosip.mimoto.exception.PlatformErrorMessages;
 
 @Component
-public class CryptoUtil {
+public class DerivedKeyCryptoUtil {
 
     private static final int GCM_NONCE_LENGTH = 12;
 
