@@ -181,16 +181,34 @@ public class TestUtilities {
         display.setLogo(logo);
         IssuerDTO issuer = new IssuerDTO();
         issuer.setIssuer_id(issuerName + "id");
-        issuer.setCredential_issuer(issuerName + "id");
         issuer.setCredential_issuer_host("https://issuer.env.net");
         issuer.setDisplay(Collections.singletonList(display));
         issuer.setClient_id("123");
-        issuer.setWellknown_endpoint("/well-known-proxy");
-        issuer.setProxy_token_endpoint("/well-known-proxy");
-        if (!(issuerName.equals("Issuer2") || issuerName.equals("Issuer4"))) { //use it for testing /issuers or /issuers?search=issuer2 endpoints
-            issuer.setAuthorization_audience("/well-known-proxy");
-        }
+
         return issuer;
+    }
+
+    /**
+     * Builds an IssuerResponseDTO for tests (e.g. IssuersController v1 which returns IssuerResponseDTO).
+     */
+    public static IssuerResponseDTO getIssuerResponseDTO(String issuerName) {
+        IssuerDTO issuer = getIssuerConfigDTO(issuerName);
+        IssuerResponseDTO response = new IssuerResponseDTO();
+        response.setIssuerId(issuer.getIssuer_id());
+        response.setProtocol(issuer.getProtocol());
+        response.setDisplay(issuer.getDisplay());
+        response.setClientId(issuer.getClient_id());
+        response.setWellknownEndpoint(issuer.getCredential_issuer_host() + "/.well-known/openid-credential-issuer");
+        response.setRedirectUri("io.mosip.residentapp.inji://oauthredirect");
+        response.setTokenEndpoint(issuer.getToken_endpoint());
+        response.setClientAlias(issuer.getClient_alias());
+        response.setQrCodeType(issuer.getQr_code_type());
+        response.setEnabled(issuer.getEnabled());
+        response.setCredentialIssuer(issuer.getIssuer_id());
+        response.setCredentialIssuerHost(issuer.getCredential_issuer_host());
+        response.setAuthorizationAudience("https://dev/issuance/credential");
+        response.setProxyTokenEndpoint("https://dev/issuance/credential");
+        return response;
     }
 
     public static IssuerDTO getIssuerConfigDTO(String issuerName) {
@@ -205,18 +223,13 @@ public class TestUtilities {
         display.setLogo(logo);
         IssuerDTO issuer = new IssuerDTO();
         issuer.setIssuer_id(issuerName + "id");
-        issuer.setCredential_issuer(issuerName + "id");
         issuer.setDisplay(Collections.singletonList(display));
         issuer.setClient_id("123");
         issuer.setClient_alias("test-client-alias");
-        issuer.setRedirect_uri("https://oauthredirect");
         issuer.setEnabled("true");
         issuer.setProtocol("OpenId4VCI");
-        issuer.setWellknown_endpoint("https://issuer.env.net/.well-known/openid-credential-issuer");
         issuer.setCredential_issuer_host("https://issuer.env.net");
         issuer.setToken_endpoint("https://dev/" + issuerName + "id");
-        issuer.setAuthorization_audience("https://dev/auth-server/token");
-        issuer.setProxy_token_endpoint("https://dev/auth-server/token");
         return issuer;
     }
 
@@ -234,20 +247,15 @@ public class TestUtilities {
 
         IssuerDTO issuer = new IssuerDTO();
         issuer.setIssuer_id(emptyValues ? "" : issuerName + "id");
-        issuer.setCredential_issuer(emptyValues ? "" : issuerName + "id");
         issuer.setDisplay(Collections.singletonList(display));
         issuer.setClient_id(emptyValues ? "" : "123");
         issuer.setClient_alias(emptyValues ? "" : "test-client-alias");
-        issuer.setRedirect_uri(emptyValues ? "" : "https://oauthredirect");
         issuer.setEnabled(emptyValues ? "" : "true");
         issuer.setProtocol(emptyValues ? "" : "OpenId4VCI");
 
         // Handle valid and invalid URLs
-        issuer.setWellknown_endpoint(emptyValues ? "" : (invalidUrls ? "ht//issuer.env.net/.well-known/openid-credential-issuer" : "https://issuer.env.net/.well-known/openid-credential-issuer"));
         issuer.setCredential_issuer_host(emptyValues ? "" : (invalidUrls ? "https//issuer.env.net" : "https://issuer.env.net"));
         issuer.setToken_endpoint(emptyValues ? "" : (invalidUrls ? "h://dev/token" : "https://dev/token"));
-        issuer.setAuthorization_audience(emptyValues ? "" : (invalidUrls ? "htt://dev/auth-server/token" : "https://dev/auth-server/token"));
-        issuer.setProxy_token_endpoint(emptyValues ? "" : (invalidUrls ? "htp://dev/auth-server/token" : "https://dev/auth-server/token"));
 
         return issuer;
     }

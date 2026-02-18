@@ -3,8 +3,7 @@ package io.mosip.mimoto.controller;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.core.http.ResponseWrapper;
 import io.mosip.mimoto.dto.ErrorDTO;
-import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.IssuersDTO;
+import io.mosip.mimoto.dto.IssuerResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
@@ -13,7 +12,6 @@ import io.mosip.mimoto.util.Utilities;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,15 +30,18 @@ import static io.mosip.mimoto.exception.PlatformErrorMessages.*;
 @Tag(name = SwaggerLiteralConstants.ISSUERS_NAME, description = SwaggerLiteralConstants.ISSUERS_DESCRIPTION)
 public class IssuersController {
 
-    @Autowired
-    IssuersService issuersService;
+    private final IssuersService issuersService;
+
+    public IssuersController(IssuersService issuersService) {
+        this.issuersService = issuersService;
+    }
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_DESCRIPTION)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseWrapper<IssuersDTO>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
-        ResponseWrapper<IssuersDTO> responseWrapper = new ResponseWrapper<>();
+    public ResponseEntity<ResponseWrapper<List<IssuerResponseDTO>>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
+        ResponseWrapper<List<IssuerResponseDTO>> responseWrapper = new ResponseWrapper<>();
         try {
-            responseWrapper.setResponse(issuersService.getIssuers(search));
+            responseWrapper.setResponse(issuersService.getIssuersResponse(search));
         } catch (ApiNotAccessibleException | IOException e) {
             log.error("Exception occurred while fetching issuers ", e);
             responseWrapper.setErrors(List.of(new ErrorDTO(API_NOT_ACCESSIBLE_EXCEPTION.getCode(), API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
@@ -74,12 +75,11 @@ public class IssuersController {
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_GET_SPECIFIC_ISSUER_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_GET_SPECIFIC_ISSUER_DESCRIPTION)
     @GetMapping(value = "/{issuer-id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseWrapper<IssuerDTO>> getIssuerConfig(@PathVariable("issuer-id") String issuerId) {
-        ResponseWrapper<IssuerDTO> responseWrapper = new ResponseWrapper<>();
-        IssuerDTO issuerDTO;
+    public ResponseEntity<ResponseWrapper<IssuerResponseDTO>> getIssuerConfig(@PathVariable("issuer-id") String issuerId) {
+        ResponseWrapper<IssuerResponseDTO> responseWrapper = new ResponseWrapper<>();
         try {
-            issuerDTO = issuersService.getIssuerDetails(issuerId);
-            responseWrapper.setResponse(issuerDTO);
+            IssuerResponseDTO issuerResponse = issuersService.getIssuerResponseDetails(issuerId);
+            responseWrapper.setResponse(issuerResponse);
             return ResponseEntity.status(HttpStatus.OK).body(responseWrapper);
         } catch (InvalidIssuerIdException exception) {
             log.error("invalid issuer id {} passed - ", issuerId);

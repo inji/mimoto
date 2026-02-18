@@ -3,7 +3,7 @@ package io.mosip.mimoto.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.mosip.mimoto.dto.IssuersDTO;
+import io.mosip.mimoto.dto.IssuerResponseDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import static io.mosip.mimoto.exception.PlatformErrorMessages.API_NOT_ACCESSIBLE_EXCEPTION;
 import static io.mosip.mimoto.exception.PlatformErrorMessages.INVALID_ISSUER_ID_EXCEPTION;
 import static io.mosip.mimoto.util.TestUtilities.*;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -56,24 +57,12 @@ public class IssuersControllerTest {
 
     @Test
     public void getIssuersTestForSearchValueNull() throws Exception {
-        IssuersDTO issuers = new IssuersDTO();
-        issuers.setIssuers((List.of(getIssuerDTO("Issuer2"), getIssuerDTO("Issuer4"))));
-        Mockito.when(issuersService.getIssuers(null))
-                .thenReturn(issuers)
-                .thenThrow(new ApiNotAccessibleException());
-
-        IssuersDTO filteredIssuers = new IssuersDTO();
-        filteredIssuers.setIssuers(issuers.getIssuers().stream().filter(issuer -> issuer.getDisplay().stream()
-                        .anyMatch(displayDTO -> displayDTO.getTitle().toLowerCase().contains("Issuer1".toLowerCase())))
-                .collect(Collectors.toList()));
-
-        Mockito.when(issuersService.getIssuers("Issuer1"))
-                .thenReturn(filteredIssuers)
-                .thenThrow(new ApiNotAccessibleException());
+        List<IssuerResponseDTO> issuers = List.of(getIssuerResponseDTO("Issuer2"), getIssuerResponseDTO("Issuer4"));
+        Mockito.when(issuersService.getIssuersResponse(null)).thenReturn(issuers);
 
         mockMvc.perform(get("/issuers").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.response.issuers", Matchers.everyItem(
+                .andExpect(jsonPath("$.response", Matchers.everyItem(
                         Matchers.allOf(
                                 Matchers.hasKey("issuer_id"),
                                 Matchers.hasKey("credential_issuer"),
@@ -84,6 +73,7 @@ public class IssuersControllerTest {
                                 Matchers.hasKey("token_endpoint"),
                                 Matchers.hasKey("credential_issuer_host"),
                                 Matchers.hasKey("authorization_audience"),
+                                Matchers.hasKey("redirect_uri"),
                                 Matchers.not(Matchers.hasKey("redirect_url")),
                                 Matchers.not(Matchers.hasKey("authorization_endpoint")),
                                 Matchers.not(Matchers.hasKey("credential_endpoint")),
@@ -92,7 +82,11 @@ public class IssuersControllerTest {
                                 Matchers.not(Matchers.hasKey("scopes_supported"))
                         )
                 )));
+    }
 
+    @Test
+    public void getIssuers_WhenServiceThrows_ReturnsBadRequest() throws Exception {
+        Mockito.when(issuersService.getIssuersResponse(null)).thenThrow(new ApiNotAccessibleException());
 
         mockMvc.perform(get("/issuers").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest())
@@ -102,21 +96,16 @@ public class IssuersControllerTest {
 
     @Test
     public void getIssuersTestForSomeSearchValue() throws Exception {
-        IssuersDTO issuers = new IssuersDTO();
-        issuers.setIssuers((List.of(getIssuerDTO("Issuer2"), getIssuerDTO("Issuer3"))));
-
-        IssuersDTO filteredIssuers = new IssuersDTO();
-        filteredIssuers.setIssuers(issuers.getIssuers().stream().filter(issuer -> issuer.getDisplay().stream()
+        List<IssuerResponseDTO> issuers = List.of(getIssuerResponseDTO("Issuer2"), getIssuerResponseDTO("Issuer3"));
+        List<IssuerResponseDTO> filteredIssuers = issuers.stream()
+                .filter(issuer -> issuer.getDisplay().stream()
                         .anyMatch(displayDTO -> displayDTO.getTitle().toLowerCase().contains("Issuer2".toLowerCase())))
-                .collect(Collectors.toList()));
-
-        Mockito.when(issuersService.getIssuers("Issuer2"))
-                .thenReturn(filteredIssuers)
-                .thenThrow(new ApiNotAccessibleException());
+                .collect(Collectors.toList());
+        Mockito.when(issuersService.getIssuersResponse("Issuer2")).thenReturn(filteredIssuers);
 
         mockMvc.perform(get("/issuers?search=Issuer2").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.response.issuers", Matchers.everyItem(
+                .andExpect(jsonPath("$.response", Matchers.everyItem(
                         Matchers.allOf(
                                 Matchers.hasKey("issuer_id"),
                                 Matchers.hasKey("credential_issuer"),
@@ -127,6 +116,7 @@ public class IssuersControllerTest {
                                 Matchers.hasKey("token_endpoint"),
                                 Matchers.hasKey("authorization_audience"),
                                 Matchers.hasKey("credential_issuer_host"),
+                                Matchers.hasKey("redirect_uri"),
                                 Matchers.not(Matchers.hasKey("redirect_url")),
                                 Matchers.not(Matchers.hasKey("authorization_endpoint")),
                                 Matchers.not(Matchers.hasKey("credential_endpoint")),
@@ -135,17 +125,12 @@ public class IssuersControllerTest {
                                 Matchers.not(Matchers.hasKey("scopes_supported"))
                         )
                 )));
-
-        mockMvc.perform(get("/issuers?search=Issuer2").accept(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
-                .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
     }
 
     @Test
     public void getIssuerDetailsTestForValidIssuerId() throws Exception {
-        Mockito.when(issuersService.getIssuerDetails("id1"))
-                .thenReturn(getIssuerDTO("Issuer1"))
+        Mockito.when(issuersService.getIssuerResponseDetails("id1"))
+                .thenReturn(getIssuerResponseDTO("Issuer1"))
                 .thenThrow(new ApiNotAccessibleException());
 
         mockMvc.perform(get("/issuers/id1").accept(MediaType.APPLICATION_JSON_VALUE))
@@ -159,7 +144,7 @@ public class IssuersControllerTest {
 
     @Test
     public void getIssuerDetailsTestForInvalidIssuerId() throws Exception {
-        Mockito.when(issuersService.getIssuerDetails("invalidId")).thenThrow(InvalidIssuerIdException.class);
+        Mockito.when(issuersService.getIssuerResponseDetails("invalidId")).thenThrow(InvalidIssuerIdException.class);
 
         mockMvc.perform(get("/issuers/invalidId").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isNotFound())
@@ -181,6 +166,19 @@ public class IssuersControllerTest {
                 .getContentAsString();
 
         JSONAssert.assertEquals(new JSONObject(expectedCredentialIssuerWellknownResponse), new JSONObject(actualResponse), JSONCompareMode.LENIENT);
+    }
+
+    @Test
+    public void getIssuerWellknown_WhenServiceThrows_ReturnsNotFoundWithNullBody() throws Exception {
+        String issuerId = "missingIssuer";
+        Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenThrow(new ApiNotAccessibleException());
+
+        mockMvc.perform(get("/issuers/" + issuerId + "/well-known-proxy").accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> {
+                    String body = result.getResponse().getContentAsString();
+                    assertTrue("Response body should be null or empty", body == null || body.isEmpty());
+                });
     }
 
     @Test

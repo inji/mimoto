@@ -3,6 +3,7 @@ package io.mosip.mimoto.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerResponseDTO;
 import io.mosip.mimoto.dto.IssuersDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
@@ -290,5 +291,65 @@ public class IssuersServiceTest {
         verify(utilities, times(1)).getIssuersConfigJsonValue();
         verify(issuersConfigUtil, times(1)).getIssuerWellknown(credentialIssuerHostUrl);
         // Note: Logging verification requires a logging framework setup (e.g., Logback with ListAppender)
+    }
+
+    
+    @Test
+    public void shouldReturnIssuerResponseListWhenGetIssuersResponseWithWellKnownSuccess() throws Exception {
+        List<IssuerResponseDTO> result = issuersService.getIssuersResponse(null);
+
+        assertEquals(2, result.size());
+        IssuerResponseDTO first = result.get(0);
+        assertEquals("Issuer3id", first.getIssuerId());
+        assertEquals("OpenId4VCI", first.getProtocol());
+        assertEquals("https://issuer.env.net/.well-known/openid-credential-issuer", first.getWellknownEndpoint());
+        assertEquals("io.mosip.residentapp.inji://oauthredirect", first.getRedirectUri());
+        assertEquals("https://dev/Issuer3id", first.getTokenEndpoint());
+        assertEquals("Issuer3id", first.getCredentialIssuer());
+        assertEquals(expectedCredentialIssuerWellKnownResponse.getCredentialEndPoint(), first.getAuthorizationAudience());
+        assertEquals(expectedCredentialIssuerWellKnownResponse.getCredentialEndPoint(), first.getProxyTokenEndpoint());
+        verify(issuersConfigUtil, atLeast(1)).getIssuerWellknown(credentialIssuerHostUrl);
+    }
+
+    @Test
+    public void shouldReturnIssuerResponseListWithFallbackWhenWellKnownFails() throws Exception {
+        Mockito.when(issuersConfigUtil.getIssuerWellknown(credentialIssuerHostUrl))
+                .thenThrow(new ApiNotAccessibleException("well-known unreachable"));
+
+        List<IssuerResponseDTO> result = issuersService.getIssuersResponse(null);
+
+        assertEquals(2, result.size());
+        IssuerResponseDTO first = result.get(0);
+        assertEquals("Issuer3id", first.getIssuerId());
+        assertEquals(credentialIssuerHostUrl, first.getCredentialIssuerHost());
+        assertEquals("Issuer3id", first.getCredentialIssuer());
+        assertEquals("io.mosip.residentapp.inji://oauthredirect", first.getRedirectUri());
+    }
+
+    @Test
+    public void shouldReturnIssuerResponseDetailsForValidIssuerId() throws Exception {
+        IssuerResponseDTO result = issuersService.getIssuerResponseDetails("Issuer3id");
+
+        assertEquals("Issuer3id", result.getIssuerId());
+        assertEquals("https://issuer.env.net/.well-known/openid-credential-issuer", result.getWellknownEndpoint());
+        assertEquals("Issuer3id", result.getCredentialIssuer());
+        assertEquals(expectedCredentialIssuerWellKnownResponse.getCredentialEndPoint(), result.getProxyTokenEndpoint());
+        verify(issuersConfigUtil, times(1)).getIssuerWellknown(credentialIssuerHostUrl);
+    }
+
+    @Test
+    public void shouldThrowInvalidIssuerIdWhenGetIssuerResponseDetailsForInvalidId() {
+        InvalidIssuerIdException exception = assertThrows(InvalidIssuerIdException.class,
+                () -> issuersService.getIssuerResponseDetails("NonExistentId"));
+
+        assertEquals("RESIDENT-APP-035 --> Invalid issuer ID", exception.getMessage());
+    }
+
+    @Test
+    public void shouldPropagateExceptionWhenGetIssuersResponseFails() {
+        Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(null);
+
+        assertThrows(ApiNotAccessibleException.class, () -> issuersService.getIssuersResponse(null));
+        verify(utilities, times(1)).getIssuersConfigJsonValue();
     }
 }

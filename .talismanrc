@@ -236,4 +236,6 @@ fileignoreconfig:
   checksum: 561e00d1163216122eef55a10a018ce8f9a96fa2f26f9247797d514482a7f259
 - filename: src/main/java/io/mosip/mimoto/util/factory/Ed25519AlgorithmHandler.java
   checksum: 6d9332df2edfc765ab45c8e985571bb5851c0da680afdc19becbc1e60362df20
+- filename: src/main/java/io/mosip/mimoto/controller/IssuersV2Controller.java
+  checksum: 132c81d2d4552789777632e7ff61c86ceb843c10a7177a5bcbd2eb1c196cb430
 version: ""

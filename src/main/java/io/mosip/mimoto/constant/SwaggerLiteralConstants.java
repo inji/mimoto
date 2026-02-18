@@ -52,6 +52,14 @@ public class SwaggerLiteralConstants {
     public static final String ISSUERS_GET_ISSUER_CONFIGURATION_SUMMARY = "Retrieve specific issuer's and its corresponding authorization server well-known config";
     public static final String ISSUERS_GET_ISSUER_CONFIGURATION_DESCRIPTION = "This endpoint allows you to retrieve the well-known configuration of a specific issuer and its corresponding authorization server";
 
+    /* Issuers V2 Controller */
+    public static final String ISSUERS_V2_NAME = "Issuers V2";
+    public static final String ISSUERS_V2_DESCRIPTION = "V2 API for issuers with minimal responses";
+    public static final String ISSUERS_V2_GET_ISSUERS_SUMMARY = "Retrieve all onboarded issuers (V2)";
+    public static final String ISSUERS_V2_GET_ISSUERS_DESCRIPTION = "Retrieve all onboarded issuers in V2 response format with issuer_id, client_id, credential_issuer_host, qr_code_type, token_endpoint";
+    public static final String ISSUERS_V2_GET_ISSUER_SUMMARY = "Retrieve specific issuer (V2)";
+    public static final String ISSUERS_V2_GET_ISSUER_DESCRIPTION = "Retrieve a single issuer in V2 response format by issuer ID";
+
     /* Prensentation Controller */
     public static final String PRESENTATION_NAME = "Presentation";
     public static final String PRESENTATION_DESCRIPTION = "All the online sharing related endpoints";
