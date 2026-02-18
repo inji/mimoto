@@ -20,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.lang.NullPointerException;
 
 
 @Service
@@ -127,9 +128,7 @@ public class IssuersServiceImpl implements IssuersService {
     @Override
     public List<IssuerResponseDTO> getIssuersResponse(String search) throws ApiNotAccessibleException, IOException {
         IssuersDTO issuersDTO = getIssuers(search);
-        return issuersDTO.getIssuers().stream()
-                .map(this::toIssuerResponseDTO)
-                .collect(Collectors.toList());
+        return issuersDTO.getIssuers().parallelStream().map(this::toIssuerResponseDTO).collect(Collectors.toList());
     }
 
     @Override
@@ -147,12 +146,10 @@ public class IssuersServiceImpl implements IssuersService {
 
         String credentialEndpointUrl = null;
         try {
-            CredentialIssuerWellKnownResponse wellKnownResponse =
-                    issuersConfigUtil.getIssuerWellknown(credentialIssuerHost);
+            CredentialIssuerWellKnownResponse wellKnownResponse = issuersConfigUtil.getIssuerWellknown(credentialIssuerHost);
             credentialEndpointUrl = wellKnownResponse.getCredentialEndPoint();
-        } catch (ApiNotAccessibleException | IOException | InvalidWellknownResponseException e) {
-            log.warn("Could not fetch well-known for issuer {} ({}): using fallbacks",
-                    issuer.getIssuer_id(), e.getMessage());
+        } catch (ApiNotAccessibleException | IOException | InvalidWellknownResponseException | NullPointerException e) {
+            log.warn("Could not fetch well-known for issuer {} ({}): using fallbacks", issuer.getIssuer_id(), e.getMessage());
         }
 
         IssuerResponseDTO issuerResponse = new IssuerResponseDTO();

@@ -15,6 +15,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.Validator;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,11 +23,12 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @Component
 public class IssuersValidationConfig implements ApplicationRunner {
+    private final String VALIDATION_ERROR_MSG = "\n\nValidation failed in Mimoto-issuers-config.json:";
     @Autowired
     IssuersService issuersService;
     @Autowired
     private Validator validator;
-    private final String VALIDATION_ERROR_MSG = "\n\nValidation failed in Mimoto-issuers-config.json:";
+
     @Override
     public void run(ApplicationArguments args) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException {
         log.info("Validation for mimoto-issuers-config.json STARTED");
@@ -39,7 +41,7 @@ public class IssuersValidationConfig implements ApplicationRunner {
             issuerDTOList = issuersService.getAllIssuers();
         } catch (Exception e) {
             log.error(VALIDATION_ERROR_MSG, e);
-            throw new RuntimeException(VALIDATION_ERROR_MSG);
+            throw new RuntimeException(VALIDATION_ERROR_MSG, e);
         }
 
         if (issuerDTOList != null) {

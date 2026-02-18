@@ -41,8 +41,7 @@ public class IssuersV2Controller {
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_V2_GET_ISSUERS_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_V2_GET_ISSUERS_DESCRIPTION)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseWrapper<IssuersDTO>> getAllIssuers(
-            @RequestParam(required = false, name = "search") String search) {
+    public ResponseEntity<ResponseWrapper<IssuersDTO>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
         ResponseWrapper<IssuersDTO> responseWrapper = new ResponseWrapper<>();
         try {
             responseWrapper.setResponse(issuersService.getIssuers(search));

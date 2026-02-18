@@ -17,6 +17,7 @@ import java.util.List;
 
 import static io.mosip.mimoto.util.TestUtilities.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -68,6 +69,8 @@ public class IssuersValidationConfigTest {
                 () -> issuersValidationConfig.run(mock(ApplicationArguments.class)));
 
         assertEquals(VALIDATION_ERROR_MSG, thrown.getMessage());
+        assertNotNull(thrown.getCause());
+        assertEquals("config unavailable", thrown.getCause().getMessage());
     }
 
     @Test
