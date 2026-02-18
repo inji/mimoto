@@ -72,7 +72,7 @@ public class CredentialShareServiceImpl implements CredentialShareService {
     public RestApiClient restApiClient;
 
     @Autowired
-    public CryptoCoreUtil cryptoCoreUtil;
+    public P12KeyStoreManager p12KeyStoreManager;
 
     @Autowired
     CbeffToBiometricUtil util;
@@ -128,7 +128,7 @@ public class CredentialShareServiceImpl implements CredentialShareService {
                 credential = restApiClient.getApi(dataShareUri, String.class);
             }
             String encryptionPin = eventModel.getEvent().getData().get("protectionKey").toString();
-            decodedCredential = cryptoCoreUtil.decrypt(credential);
+            decodedCredential = p12KeyStoreManager.decrypt(credential);
             @SuppressWarnings("unchecked")
             Map<String, String> proofMap = (Map<String, String>) eventModel.getEvent().getData().get("proof");
             String sign = proofMap.get("signature").toString();

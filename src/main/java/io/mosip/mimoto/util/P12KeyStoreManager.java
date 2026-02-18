@@ -50,7 +50,7 @@ import io.mosip.mimoto.exception.PlatformErrorMessages;
 
 @Slf4j
 @Component
-public class CryptoCoreUtil {
+public class P12KeyStoreManager {
 
     private final static String RSA_ECB_OAEP_PADDING = "RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING";
 

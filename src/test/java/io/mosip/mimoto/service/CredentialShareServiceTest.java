@@ -43,7 +43,7 @@ public class CredentialShareServiceTest {
     public AuditLogRequestBuilder auditLogRequestBuilder;
 
     @Mock
-    private CryptoCoreUtil cryptoCoreUtil;
+    private P12KeyStoreManager p12KeyStoreManager;
 
     @Mock
     DerivedKeyCryptoUtil derivedKeyCryptoUtil;
@@ -79,7 +79,7 @@ public class CredentialShareServiceTest {
         Mockito.when(derivedKeyCryptoUtil.decryptWithPin(ArgumentMatchers.any())).thenReturn(cryptoWithPinResponseDto);
         Mockito.when(utilities.getDataPath()).thenReturn("target");
         Mockito.when(restApiClient.getApi(Mockito.any(URI.class), Mockito.any(Class.class))).thenReturn("credential");
-        Mockito.when(cryptoCoreUtil.decrypt(Mockito.anyString())).thenReturn("{\"credentialSubject\":{\"biometrics\":\"biometrics\"},\"protectedAttributes\":[\"biometrics\"]}");
+        Mockito.when(p12KeyStoreManager.decrypt(Mockito.anyString())).thenReturn("{\"credentialSubject\":{\"biometrics\":\"biometrics\"},\"protectedAttributes\":[\"biometrics\"]}");
         Map<String, String> templateMap = new HashMap<>();
         templateMap.put("biometrics", "biometrics");
         JSONObject templateJSON = new JSONObject(templateMap);

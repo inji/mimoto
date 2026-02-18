@@ -64,9 +64,6 @@ public class CredentialShareController {
     private String partnerId;
 
     @Autowired
-    public CryptoCoreUtil cryptoCoreUtil;
-
-    @Autowired
     RequestValidator requestValidator;
 
     private Gson gson = new Gson();
