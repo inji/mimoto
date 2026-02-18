@@ -88,8 +88,8 @@ AddIdentity:
 
    Mimoto_AddIdentity_downloadIssuerCredentialWithGoogleLogin_smoke_Pos:
       endPoint: /idrepository/v1/identity/
-      description: “Validate that creating a new identity allows the issuer credential download process to complete successfully
-      uniqueIdentifier: TC_Mimoto_AddIdentity_03
+      description: Validate that creating a new identity allows the issuer credential download process to complete successfully
+      uniqueIdentifier: TC_Mimoto_AddIdentity_04
       role: idrepo
       restMethod: post
       inputTemplate: mimoto/AddIdentity/addIdentity_$LANGNUMBER$
