@@ -5,8 +5,8 @@ import io.mosip.mimoto.exception.DecryptionException;
 import io.mosip.mimoto.exception.KeyGenerationException;
 import io.mosip.mimoto.model.ProofSigningKey;
 import io.mosip.mimoto.repository.ProofSigningKeyRepository;
+import io.mosip.mimoto.service.DataProtectionService;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ public class KeyPairRetrievalServiceImpl implements KeyPairRetrievalService {
     private ProofSigningKeyRepository proofSigningKeyRepository;
 
     @Autowired
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
 
     @Override
     public KeyPair getKeyPairFromDB(String walletId, String base64EncodedWalletKey, SigningAlgorithm signingAlgorithm) throws KeyGenerationException, DecryptionException {
@@ -51,7 +51,7 @@ public class KeyPairRetrievalServiceImpl implements KeyPairRetrievalService {
             throw new DecryptionException("INVALID_WALLET_KEY", "Invalid base64 encoded wallet key", e);
         }
 
-        SecretKey walletKey = EncryptionDecryptionUtil.bytesToSecretKey(decodedWalletKey);
+        SecretKey walletKey = DataProtectionService.bytesToSecretKey(decodedWalletKey);
 
         // Step 3: Decode public key
         byte[] publicKeyBytes;
@@ -65,7 +65,7 @@ public class KeyPairRetrievalServiceImpl implements KeyPairRetrievalService {
         // Step 4: Decrypt private key
         byte[] privateKeyInBytes;
         try {
-            privateKeyInBytes = encryptionDecryptionUtil.decryptWithAES(walletKey, proofSigningKey.get().getEncryptedSecretKey());
+            privateKeyInBytes = dataProtectionService.decryptWithAES(walletKey, proofSigningKey.get().getEncryptedSecretKey());
         } catch (Exception e) {
             log.error("Failed to decrypt private key for walletId: {} with algorithm: {}", walletId, signingAlgorithm, e);
             throw new DecryptionException("DECRYPTION_FAILED", "Failed to decrypt private key for walletId: " + walletId, e);

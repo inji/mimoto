@@ -39,9 +39,6 @@ public class CredentialRequestServiceTest {
     private ProofSigningKeyRepository proofSigningKeyRepository;
 
     @MockBean
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
-
-    @MockBean
     private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
 
     @MockBean

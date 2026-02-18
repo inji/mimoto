@@ -20,7 +20,6 @@ import io.mosip.mimoto.model.VerifiablePresentation;
 import io.mosip.mimoto.repository.VerifiablePresentationsRepository;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.mimoto.service.impl.WalletPresentationServiceImpl;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.openID4VP.OpenID4VP;
@@ -70,7 +69,7 @@ public class WalletPresentationServiceTest {
     private VerifiablePresentationsRepository verifiablePresentationsRepository;
 
     @Mock
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
 
     @InjectMocks
     private WalletPresentationServiceImpl walletPresentationService;
@@ -235,7 +234,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -451,7 +450,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -493,7 +492,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -532,7 +531,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -681,7 +680,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -816,7 +815,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -859,7 +858,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             when(jwsSigner.sign(any(JWSHeader.class), any(byte[].class))).thenReturn(Base64URL.encode("signature"));
@@ -903,7 +902,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -950,7 +949,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -994,7 +993,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -1037,7 +1036,7 @@ public class WalletPresentationServiceTest {
             jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
             jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))

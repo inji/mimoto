@@ -1,10 +1,11 @@
-package io.mosip.mimoto.util;
+package io.mosip.mimoto.service;
 
 import io.mosip.kernel.cryptomanager.dto.CryptomanagerRequestDto;
 import io.mosip.kernel.cryptomanager.dto.CryptomanagerResponseDto;
 import io.mosip.kernel.cryptomanager.service.CryptomanagerService;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.mimoto.constant.SigningAlgorithm;
+import io.mosip.mimoto.util.SigningKeyUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,13 +28,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class EncryptionDecryptionUtilTest {
+public class DataProtectionServiceTest {
 
     @Mock
     private CryptomanagerService cryptomanagerService;
 
     @InjectMocks
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
 
     private final String refId = "ref123";
     private final String aad = "aad123";
@@ -47,7 +48,7 @@ public class EncryptionDecryptionUtilTest {
     @Before
     public void setUp() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
         String appId = "MIMOTO";
-        ReflectionTestUtils.setField(encryptionDecryptionUtil, "appId", appId);
+        ReflectionTestUtils.setField(dataProtectionService, "appId", appId);
         encryptionKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
         keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
     }
@@ -59,14 +60,14 @@ public class EncryptionDecryptionUtilTest {
         when(cryptomanagerService.encrypt(any(CryptomanagerRequestDto.class))).thenReturn(responseDto);
 
         String data = "testData";
-        String result = encryptionDecryptionUtil.encrypt(data, refId, aad, salt);
+        String result = dataProtectionService.encrypt(data, refId, aad, salt);
 
         assertEquals(encryptedData, result);
     }
 
     @Test
     public void shouldReturnNullIfDataToEncryptIsNull() {
-        String result = encryptionDecryptionUtil.encrypt(null, refId, aad, salt);
+        String result = dataProtectionService.encrypt(null, refId, aad, salt);
 
         assertNull(result);
     }
@@ -78,14 +79,14 @@ public class EncryptionDecryptionUtilTest {
         responseDto.setData(CryptoUtil.encodeToURLSafeBase64(decryptedData.getBytes(StandardCharsets.UTF_8)));
         when(cryptomanagerService.decrypt(any(CryptomanagerRequestDto.class))).thenReturn(responseDto);
 
-        String result = encryptionDecryptionUtil.decrypt(encryptedData, refId, aad, salt);
+        String result = dataProtectionService.decrypt(encryptedData, refId, aad, salt);
 
         assertEquals(decryptedData, result);
     }
 
     @Test
     public void shouldReturnNullIfDataToDecryptIsNull() {
-        String result = encryptionDecryptionUtil.decrypt(null, refId, aad, salt);
+        String result = dataProtectionService.decrypt(null, refId, aad, salt);
         assertNull(result);
     }
 
@@ -95,7 +96,7 @@ public class EncryptionDecryptionUtilTest {
         SecretKey aesKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
         KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
 
-        String encryptedPrivateKey = encryptionDecryptionUtil.encryptWithAES(aesKey, keyPair.getPrivate().getEncoded());
+        String encryptedPrivateKey = dataProtectionService.encryptWithAES(aesKey, keyPair.getPrivate().getEncoded());
 
         assertNotNull(encryptedPrivateKey);
         assertFalse(StringUtils.isBlank(encryptedPrivateKey));
@@ -103,8 +104,8 @@ public class EncryptionDecryptionUtilTest {
 
     @Test
     public void testIVChangesButCiphertextRemainsSameForSameEncryptionKeyAndSecretKey() throws Exception {
-        String encryptedPrivateKey1 = encryptionDecryptionUtil.encryptWithAES(encryptionKey, keyPair.getPrivate().getEncoded());
-        String encryptedPrivateKey2 = encryptionDecryptionUtil.encryptWithAES(encryptionKey, keyPair.getPrivate().getEncoded());
+        String encryptedPrivateKey1 = dataProtectionService.encryptWithAES(encryptionKey, keyPair.getPrivate().getEncoded());
+        String encryptedPrivateKey2 = dataProtectionService.encryptWithAES(encryptionKey, keyPair.getPrivate().getEncoded());
 
         byte[] encryptedBytes1 = Base64.getDecoder().decode(encryptedPrivateKey1);
         byte[] encryptedBytes2 = Base64.getDecoder().decode(encryptedPrivateKey2);
@@ -112,10 +113,10 @@ public class EncryptionDecryptionUtilTest {
         byte[] iv1 = Arrays.copyOfRange(encryptedBytes1, 0, 12);
         byte[] iv2 = Arrays.copyOfRange(encryptedBytes2, 0, 12);
 
-        byte[] decryptedPrivateKey1Bytes = encryptionDecryptionUtil.decryptWithAES(encryptionKey, encryptedPrivateKey1);
-        byte[] decryptedPrivateKey2Bytes = encryptionDecryptionUtil.decryptWithAES(encryptionKey, encryptedPrivateKey2);
-        PrivateKey decryptedPrivateKey1 = EncryptionDecryptionUtil.bytesToPrivateKey(decryptedPrivateKey1Bytes, "ed25519");
-        PrivateKey decryptedPrivateKey2 = EncryptionDecryptionUtil.bytesToPrivateKey(decryptedPrivateKey2Bytes,"ed25519");
+        byte[] decryptedPrivateKey1Bytes = dataProtectionService.decryptWithAES(encryptionKey, encryptedPrivateKey1);
+        byte[] decryptedPrivateKey2Bytes = dataProtectionService.decryptWithAES(encryptionKey, encryptedPrivateKey2);
+        PrivateKey decryptedPrivateKey1 = DataProtectionService.bytesToPrivateKey(decryptedPrivateKey1Bytes, "ed25519");
+        PrivateKey decryptedPrivateKey2 = DataProtectionService.bytesToPrivateKey(decryptedPrivateKey2Bytes,"ed25519");
 
         assertFalse(Arrays.equals(iv1, iv2), "IVs should be different");
         assertEquals(decryptedPrivateKey1, decryptedPrivateKey2);

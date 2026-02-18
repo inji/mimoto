@@ -1,4 +1,4 @@
-package io.mosip.mimoto.util;
+package io.mosip.mimoto.service;
 
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.cryptomanager.dto.CryptoWithPinRequestDto;
@@ -12,7 +12,7 @@ import io.mosip.openID4VP.common.DecoderKt;
 import io.mosip.openID4VP.common.EncoderKt;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -31,8 +31,8 @@ import static io.mosip.mimoto.exception.ErrorConstants.ENCRYPTION_FAILED;
  * Utility class for encryption and decryption operations.
  */
 @Slf4j
-@Component
-public class EncryptionDecryptionUtil {
+@Service
+public class DataProtectionService {
     private static final String AES_ALGORITHM = "AES/GCM/NoPadding";
     private static final int NONCE_LENGTH = 12; // Recommended nonce length for GCM
     private static final int TAG_LENGTH = 128; // Authentication tag length in bits (16 bytes)
@@ -43,7 +43,7 @@ public class EncryptionDecryptionUtil {
     @Value("${mosip.inji.app.id:MIMOTO}")
     private String appId;
 
-    public EncryptionDecryptionUtil(CryptomanagerService cryptomanagerService) {
+    public DataProtectionService(CryptomanagerService cryptomanagerService) {
         this.cryptomanagerService = cryptomanagerService;
     }
 
@@ -415,7 +415,7 @@ public class EncryptionDecryptionUtil {
             inputBytes[headerBytes.length] = (byte) '.';
             System.arraycopy(payloadBytes, 0, inputBytes, headerBytes.length + 1, payloadBytes.length);
 
-            log.debug("Detached JWT signing input created successfully, header length: {}, payload length: {}", 
+            log.debug("Detached JWT signing input created successfully, header length: {}, payload length: {}",
                     headerBytes.length, payloadBytes.length);
             return inputBytes;
         } catch (Exception e) {

@@ -11,7 +11,6 @@ import io.mosip.mimoto.model.CredentialMetadata;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.repository.WalletCredentialsRepository;
 import io.mosip.mimoto.service.impl.WalletCredentialServiceImpl;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,7 +54,7 @@ public class WalletCredentialServiceTest {
     private CredentialPDFGeneratorService credentialPDFGeneratorService;
 
     @Mock
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
 
     private final String walletId = "wallet123";
     private final String issuerId = "issuer123";
@@ -230,7 +229,7 @@ public class WalletCredentialServiceTest {
                 .thenReturn(Optional.of(verifiableCredential));
 
         // Setup decryption
-        when(encryptionDecryptionUtil.decryptCredential("encryptedCredential", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key))
                 .thenReturn(decryptedCredentialJson);
         when(objectMapper.readValue(decryptedCredentialJson, VCCredentialResponse.class))
                 .thenReturn(vcResponse);
@@ -278,7 +277,7 @@ public class WalletCredentialServiceTest {
         assertNotNull(actualResponse.getFileContentStream());
 
         verify(walletCredentialsRepository).findByIdAndWalletId(credentialId, walletId);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedCredential", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedCredential", base64Key);
         verify(issuersService).getIssuerDetails(issuerId);
         verify(issuersService).getIssuerConfig(issuerId, credentialType);
         verify(credentialPDFGeneratorService).generatePdfForVerifiableCredential(
@@ -304,13 +303,13 @@ public class WalletCredentialServiceTest {
         assertEquals(RESOURCE_NOT_FOUND.getErrorCode(), exception.getErrorCode());
         assertEquals(RESOURCE_NOT_FOUND.getErrorCode() +" --> "+RESOURCE_NOT_FOUND.getErrorMessage(), exception.getMessage());
         verify(walletCredentialsRepository).findByIdAndWalletId(credentialId, walletId);
-        verifyNoInteractions(encryptionDecryptionUtil, credentialPDFGeneratorService);
+        verifyNoInteractions(dataProtectionService, credentialPDFGeneratorService);
     }
 
     @Test
     public void shouldThrowCredentialProcessingExceptionOnDecryptionFailure() throws Exception {
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedCredential", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key))
                 .thenThrow(new DecryptionException("DECRYPTION_ERROR", "Decryption failed"));
 
         CredentialProcessingException exception = assertThrows(CredentialProcessingException.class, () ->
@@ -318,7 +317,7 @@ public class WalletCredentialServiceTest {
 
         assertEquals(CREDENTIAL_FETCH_EXCEPTION.getErrorCode(), exception.getErrorCode());
         verify(walletCredentialsRepository).findByIdAndWalletId(credentialId, walletId);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedCredential", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedCredential", base64Key);
         verifyNoInteractions(credentialPDFGeneratorService);
     }
 
@@ -348,7 +347,7 @@ public class WalletCredentialServiceTest {
     @Test
     public void shouldThrowCredentialProcessingExceptionOnJsonProcessingError() throws Exception {
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedCredential", base64Key)).thenReturn("bad-json");
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("bad-json");
         when(objectMapper.readValue("bad-json", VCCredentialResponse.class)).thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("error") {});
 
         CredentialProcessingException exception = assertThrows(CredentialProcessingException.class, () ->
@@ -356,14 +355,14 @@ public class WalletCredentialServiceTest {
 
         assertEquals(CREDENTIAL_FETCH_EXCEPTION.getErrorCode(), exception.getErrorCode());
         verify(walletCredentialsRepository).findByIdAndWalletId(credentialId, walletId);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedCredential", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedCredential", base64Key);
         verify(objectMapper).readValue("bad-json", VCCredentialResponse.class);
     }
 
     @Test
     public void shouldThrowCredentialProcessingExceptionOnNullIssuerConfig() throws Exception {
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().credential(VCCredentialProperties.builder().type(List.of(credentialType)).build()).build();
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class))).thenReturn(vcResponse);
         when(issuersService.getIssuerDetails(issuerId)).thenReturn(new IssuerDTO());
@@ -378,7 +377,7 @@ public class WalletCredentialServiceTest {
     @Test
     public void shouldThrowCredentialProcessingExceptionOnCredentialTypeMismatch() throws Exception {
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().credential(VCCredentialProperties.builder().type(List.of("OtherType")).build()).build();
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class))).thenReturn(vcResponse);
         when(issuersService.getIssuerDetails(issuerId)).thenReturn(new IssuerDTO());
@@ -400,7 +399,7 @@ public class WalletCredentialServiceTest {
     @Test
     public void shouldThrowCredentialProcessingExceptionOnIssuerServiceException() throws Exception {
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().credential(VCCredentialProperties.builder().type(List.of(credentialType)).build()).build();
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class))).thenReturn(vcResponse);
         when(issuersService.getIssuerDetails(issuerId)).thenThrow(new ApiNotAccessibleException("API error"));
@@ -414,7 +413,7 @@ public class WalletCredentialServiceTest {
     @Test
     public void shouldThrowCredentialProcessingExceptionOnPdfGenerationException() throws Exception {
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().credential(VCCredentialProperties.builder().type(List.of(credentialType)).build()).build();
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class))).thenReturn(vcResponse);
         when(issuersService.getIssuerDetails(issuerId)).thenReturn(new IssuerDTO());
@@ -443,9 +442,9 @@ public class WalletCredentialServiceTest {
         when(walletCredentialsRepository.findByWalletIdOrderByCreatedAtDesc(walletId))
                 .thenReturn(walletCredentials);
 
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn(new ObjectMapper().writeValueAsString(testVcResponse1));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred2", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred2", base64Key))
                 .thenReturn(new ObjectMapper().writeValueAsString(testVcResponse2));
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class)))
                 .thenReturn(testVcResponse1, testVcResponse2);
@@ -459,8 +458,8 @@ public class WalletCredentialServiceTest {
         assertEquals(testVcResponse2, result.get(1).getCredential());
 
         verify(walletCredentialsRepository).findByWalletIdOrderByCreatedAtDesc(walletId);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred2", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred2", base64Key);
         verify(objectMapper, times(2)).readValue(anyString(), eq(VCCredentialResponse.class));
     }
 
@@ -471,9 +470,9 @@ public class WalletCredentialServiceTest {
         when(walletCredentialsRepository.findByWalletIdOrderByCreatedAtDesc(walletId))
                 .thenReturn(walletCredentials);
 
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn(new ObjectMapper().writeValueAsString(testVcResponse1));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred2", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred2", base64Key))
                 .thenThrow(new DecryptionException("DECRYPTION_ERROR", "Decryption failed"));
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class)))
                 .thenReturn(testVcResponse1);
@@ -485,8 +484,8 @@ public class WalletCredentialServiceTest {
         assertEquals(testVcResponse1, result.get(0).getCredential());
 
         verify(walletCredentialsRepository).findByWalletIdOrderByCreatedAtDesc(walletId);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred2", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred2", base64Key);
         verify(objectMapper).readValue(anyString(), eq(VCCredentialResponse.class));
     }
 
@@ -498,9 +497,9 @@ public class WalletCredentialServiceTest {
         when(walletCredentialsRepository.findByWalletIdOrderByCreatedAtDesc(walletId))
                 .thenReturn(walletCredentials);
 
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn("invalid-json");
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred2", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred2", base64Key))
                 .thenReturn(validJson);
         
         when(objectMapper.readValue("invalid-json", VCCredentialResponse.class))
@@ -515,8 +514,8 @@ public class WalletCredentialServiceTest {
         assertEquals(testVcResponse2, result.get(0).getCredential());
 
         verify(walletCredentialsRepository).findByWalletIdOrderByCreatedAtDesc(walletId);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred2", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred2", base64Key);
         verify(objectMapper).readValue("invalid-json", VCCredentialResponse.class);
         verify(objectMapper).readValue(validJson, VCCredentialResponse.class);
     }
@@ -531,7 +530,7 @@ public class WalletCredentialServiceTest {
         assertTrue(result.isEmpty());
 
         verify(walletCredentialsRepository).findByWalletIdOrderByCreatedAtDesc(walletId);
-        verifyNoInteractions(encryptionDecryptionUtil);
+        verifyNoInteractions(dataProtectionService);
         verifyNoInteractions(objectMapper);
     }
 
@@ -542,9 +541,9 @@ public class WalletCredentialServiceTest {
         when(walletCredentialsRepository.findByWalletIdOrderByCreatedAtDesc(walletId))
                 .thenReturn(walletCredentials);
 
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenThrow(new DecryptionException("DECRYPTION_ERROR", "Decryption failed"));
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred2", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred2", base64Key))
                 .thenThrow(new DecryptionException("DECRYPTION_ERROR", "Decryption failed"));
 
         List<DecryptedCredentialDTO> result = walletCredentialService.getDecryptedCredentials(walletId, base64Key);
@@ -552,8 +551,8 @@ public class WalletCredentialServiceTest {
         assertTrue(result.isEmpty());
 
         verify(walletCredentialsRepository).findByWalletIdOrderByCreatedAtDesc(walletId);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred2", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred2", base64Key);
         verifyNoInteractions(objectMapper);
     }
 
@@ -561,7 +560,7 @@ public class WalletCredentialServiceTest {
     public void shouldDecryptAndParseCredentialSuccessfully() throws Exception {
         String decryptedJson = new ObjectMapper().writeValueAsString(testVcResponse1);
 
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn(decryptedJson);
         when(objectMapper.readValue(decryptedJson, VCCredentialResponse.class))
                 .thenReturn(testVcResponse1);
@@ -570,7 +569,7 @@ public class WalletCredentialServiceTest {
                 walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key);
 
         assertEquals(testVcResponse1, result);
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
         verify(objectMapper).readValue(decryptedJson, VCCredentialResponse.class);
     }
 
@@ -580,7 +579,7 @@ public class WalletCredentialServiceTest {
                 ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", null, base64Key));
 
         assertEquals("Credential cannot be null", exception.getMessage());
-        verifyNoInteractions(encryptionDecryptionUtil);
+        verifyNoInteractions(dataProtectionService);
         verifyNoInteractions(objectMapper);
     }
 
@@ -593,52 +592,52 @@ public class WalletCredentialServiceTest {
                 ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", credentialWithNullData, base64Key));
 
         assertEquals("Credential data cannot be null", exception.getMessage());
-        verifyNoInteractions(encryptionDecryptionUtil);
+        verifyNoInteractions(dataProtectionService);
         verifyNoInteractions(objectMapper);
     }
 
     @Test
     public void shouldThrowIllegalArgumentExceptionWhenDecryptedDataIsNull() throws Exception {
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn(null);
 
         java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () ->
                 ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key));
 
         assertEquals("Failed to decrypt credential or decrypted data is empty", exception.getMessage());
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
         verifyNoInteractions(objectMapper);
     }
 
     @Test
     public void shouldThrowIllegalArgumentExceptionWhenDecryptedDataIsEmpty() throws Exception {
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn("");
 
         java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () ->
                 ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key));
 
         assertEquals("Failed to decrypt credential or decrypted data is empty", exception.getMessage());
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
         verifyNoInteractions(objectMapper);
     }
 
     @Test
     public void shouldThrowIllegalArgumentExceptionWhenDecryptedDataIsWhitespace() throws Exception {
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn("   ");
 
         java.lang.IllegalArgumentException exception = assertThrows(java.lang.IllegalArgumentException.class, () ->
                 ReflectionTestUtils.invokeMethod(walletCredentialService, "decryptAndParseCredential", testCredential1, base64Key));
 
         assertEquals("Failed to decrypt credential or decrypted data is empty", exception.getMessage());
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
         verifyNoInteractions(objectMapper);
     }
 
     @Test
     public void shouldThrowDecryptionExceptionWhenDecryptionFails() throws Exception {
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenThrow(new DecryptionException("DECRYPTION_ERROR", "Decryption failed"));
 
         Exception thrownException = assertThrows(Exception.class, () ->
@@ -659,7 +658,7 @@ public class WalletCredentialServiceTest {
         assertNotNull("Exception should not be null", exception);
         assertEquals("DECRYPTION_ERROR", exception.getErrorCode());
         assertEquals("DECRYPTION_ERROR --> Decryption failed", exception.getMessage());
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
         verifyNoInteractions(objectMapper);
     }
 
@@ -667,7 +666,7 @@ public class WalletCredentialServiceTest {
     public void shouldThrowIOExceptionWhenJsonParsingFails() throws Exception {
         String invalidJson = "invalid-json";
 
-        when(encryptionDecryptionUtil.decryptCredential("encryptedcred1", base64Key))
+        when(dataProtectionService.decryptCredential("encryptedcred1", base64Key))
                 .thenReturn(invalidJson);
         when(objectMapper.readValue(invalidJson, VCCredentialResponse.class))
                 .thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Invalid JSON") {});
@@ -689,7 +688,7 @@ public class WalletCredentialServiceTest {
 
         assertNotNull("Exception should not be null", exception);
         assertEquals("Invalid JSON", exception.getMessage());
-        verify(encryptionDecryptionUtil).decryptCredential("encryptedcred1", base64Key);
+        verify(dataProtectionService).decryptCredential("encryptedcred1", base64Key);
         verify(objectMapper).readValue(invalidJson, VCCredentialResponse.class);
     }
 

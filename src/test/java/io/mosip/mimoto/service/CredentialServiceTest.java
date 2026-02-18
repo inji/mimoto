@@ -31,7 +31,6 @@ import static org.mockito.Mockito.mock;
 import io.mosip.mimoto.repository.WalletCredentialsRepository;
 import io.mosip.mimoto.dto.mimoto.IssuerConfig;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
 import io.mosip.mimoto.exception.CredentialProcessingException;
@@ -79,7 +78,7 @@ public class CredentialServiceTest {
     WalletCredentialsRepository walletCredentialsRepository;
 
     @Mock
-    EncryptionDecryptionUtil encryptionDecryptionUtil;
+    DataProtectionService dataProtectionService;
 
     @Mock
     ObjectMapper objectMapper;
@@ -257,7 +256,7 @@ public class CredentialServiceTest {
                 .thenReturn(getVerifiableCredentialResponseDTO(credentialConfigurationId));
         when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(true);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
-        when(encryptionDecryptionUtil.encryptCredential(any(), eq(base64Key))).thenReturn("encrypted-credential");
+        when(dataProtectionService.encryptCredential(any(), eq(base64Key))).thenReturn("encrypted-credential");
         when(walletCredentialsRepository.save(any(VerifiableCredential.class))).thenReturn(savedCredential);
 
         // Execute
@@ -560,8 +559,8 @@ public class CredentialServiceTest {
         when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(true);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
 
-        // Mock encryptionDecryptionUtil to throw exception
-        when(encryptionDecryptionUtil.encryptCredential(any(), eq(base64Key)))
+        // Mock dataProtectionService to throw exception
+        when(dataProtectionService.encryptCredential(any(), eq(base64Key)))
                 .thenThrow(new RuntimeException("Encryption failed"));
 
         // Execute and verify exception
@@ -597,7 +596,7 @@ public class CredentialServiceTest {
                 .thenReturn(getVerifiableCredentialResponseDTO(credentialConfigurationId));
         when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(true);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
-        when(encryptionDecryptionUtil.encryptCredential(any(), eq(base64Key))).thenReturn("encrypted-credential");
+        when(dataProtectionService.encryptCredential(any(), eq(base64Key))).thenReturn("encrypted-credential");
 
         // Mock walletCredentialsRepository to throw exception
         when(walletCredentialsRepository.save(any(VerifiableCredential.class)))

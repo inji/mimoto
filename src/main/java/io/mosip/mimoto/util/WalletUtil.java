@@ -8,6 +8,7 @@ import io.mosip.mimoto.model.PasscodeControl;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.repository.WalletRepository;
+import io.mosip.mimoto.service.DataProtectionService;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +29,11 @@ public class WalletUtil {
     private WalletRepository walletRepository;
 
     @Autowired
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
 
     public String decryptWalletKey(String encryptedWalletKey, String pin) {
         try {
-            return encryptionDecryptionUtil.decryptWithPin(encryptedWalletKey, pin);
+            return dataProtectionService.decryptWithPin(encryptedWalletKey, pin);
         } catch (Exception e) {
             throw new InvalidRequestException(INVALID_PIN.getErrorCode(), INVALID_PIN.getErrorMessage() + " " + e);
         }
@@ -48,7 +49,7 @@ public class WalletUtil {
         String walletId = UUID.randomUUID().toString();
         PasscodeControl passcodeControl = new PasscodeControl();
         WalletMetadata walletMetadata = createWalletMetadata(walletName, encryptionAlgorithm, encryptionType, passcodeControl);
-        String walletKey = encryptionDecryptionUtil.encryptKeyWithPin(encryptionKey, walletPin);
+        String walletKey = dataProtectionService.encryptKeyWithPin(encryptionKey, walletPin);
         Wallet newWallet = Wallet.builder()
                 .id(walletId)
                 .userId(userId)
@@ -79,7 +80,7 @@ public class WalletUtil {
         for (SigningAlgorithm algorithm : algorithms) {
             ProofSigningKey signingKey = SigningKeyUtil.createProofSigningKey(algorithm);
             signingKey.setWallet(wallet);
-            signingKey.setEncryptedSecretKey(encryptionDecryptionUtil.encryptWithAES(encryptionKey,
+            signingKey.setEncryptedSecretKey(dataProtectionService.encryptWithAES(encryptionKey,
                     signingKey.getSecretKey().getEncoded()));
             proofSigningKeys.add(signingKey);
         }

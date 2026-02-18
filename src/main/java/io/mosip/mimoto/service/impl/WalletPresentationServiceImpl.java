@@ -22,7 +22,7 @@ import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.service.WalletPresentationService;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
+import io.mosip.mimoto.service.DataProtectionService;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.UrlParameterUtils;
@@ -86,7 +86,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     private VerifiablePresentationsRepository verifiablePresentationsRepository;
 
     @Autowired
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
 
     @Override
     public VPResponseDTO handleVPAuthorizationRequest(String urlEncodedVPAuthorizationRequest, String walletId) throws ApiNotAccessibleException, IOException, URISyntaxException {
@@ -317,9 +317,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.EdDSA).criticalParams(Set.of(OpenID4VPConstants.JWT_CRITICAL_PARAM_B64)).base64URLEncodePayload(false).build();
 
-        // Create detached JWT signing input using EncryptionDecryptionUtil
+        // Create detached JWT signing input using DataProtectionService
         String headerJson = header.toString();
-        byte[] inputBytes = encryptionDecryptionUtil.createDetachedJwtSigningInput(headerJson, dataToSign);
+        byte[] inputBytes = dataProtectionService.createDetachedJwtSigningInput(headerJson, dataToSign);
         
         // Get Base64URL encoded header for proof construction
         String header64 = EncoderKt.encodeToBase64Url(headerJson.getBytes(StandardCharsets.UTF_8));

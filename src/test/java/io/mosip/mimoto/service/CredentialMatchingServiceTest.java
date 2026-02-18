@@ -12,7 +12,6 @@ import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.model.CredentialMetadata;
 import io.mosip.mimoto.service.impl.CredentialMatchingServiceImpl;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +41,7 @@ public class CredentialMatchingServiceTest {
     private WalletCredentialService walletCredentialService;
 
     @Mock
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
 
     @Mock
     private IssuersService issuersService;
@@ -94,7 +93,7 @@ public class CredentialMatchingServiceTest {
 
         verify(openID4VPService).resolvePresentationDefinition(any(), any(), anyBoolean());
         verify(walletCredentialService).getDecryptedCredentials(eq(walletId), any());
-        verify(encryptionDecryptionUtil).decryptCredential(anyString(), eq(base64Key));
+        verify(dataProtectionService).decryptCredential(anyString(), eq(base64Key));
     }
 
     @Test(expected = IllegalArgumentException.class)
