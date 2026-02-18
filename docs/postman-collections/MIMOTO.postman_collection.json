@@ -82,6 +82,48 @@
 					"response": []
 				},
 				{
+					"name": "get Issuers List (V2)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{HOST}}/v2/issuers"
+					},
+					"response": []
+				},
+				{
+					"name": "get Issuer by ID (V2)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{HOST}}/v2/issuers/StayProtected"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Issuers List (V2)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{HOST}}/v2/issuers?search=Sunbird",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"v2",
+								"issuers"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "Sunbird"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Download Credential With GetToken",
 					"request": {
 						"method": "POST",

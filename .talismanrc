@@ -58,7 +58,9 @@ fileignoreconfig:
 - filename: docs/postman-collections/Collab.postman_environment.json
   checksum: 93662b305117d9ac73e9f8ace2bd8dc8b2de494908a8c69166d0c908cc80365c
 - filename: docs/postman-collections/MIMOTO.postman_collection.json
-  checksum: 6a78494d445c59d8e7787e2e232bd54c000b541f0baf3f19c3f9d024a03fe1b1
+  checksum: 557bf4f205c0fc6e5f292d9b5311fe0d44623a032d50f88ab8264cde8257d297
+- filename: docs/issuers-v2-and-config.md
+  checksum: 8a35a4d08a2c71e8e13e36b0ccdbf4e0ab74d751663c0cf99d854dcf4fcec7df
 - filename: src/test/java/io/mosip/mimoto/controller/InjiControllerTest.java
   checksum: c4e28436cb04004d9cb4e1492a1d013eac076936a3fa3a99d35bfb137f27c37b
 - filename: .github/workflows/push-trigger.yml
