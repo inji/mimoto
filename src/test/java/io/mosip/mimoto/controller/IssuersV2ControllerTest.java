@@ -46,7 +46,7 @@ public class IssuersV2ControllerTest {
     private Utilities utilities;
 
     @Test
-    public void getAllIssuers_WhenNoSearch_ReturnsOkAndIssuersList() throws Exception {
+    public void getAllIssuersWhenNoSearchReturnsOkAndIssuersList() throws Exception {
         IssuersDTO issuersDTO = new IssuersDTO();
         issuersDTO.setIssuers(List.of(getIssuerConfigDTO("IssuerA"), getIssuerConfigDTO("IssuerB")));
         Mockito.when(issuersService.getIssuers(null)).thenReturn(issuersDTO);
@@ -67,7 +67,7 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getAllIssuers_WhenSearchProvided_ReturnsFilteredIssuers() throws Exception {
+    public void getAllIssuersWhenSearchProvidedReturnsFilteredIssuers() throws Exception {
         IssuersDTO filtered = new IssuersDTO();
         filtered.setIssuers(List.of(getIssuerConfigDTO("IssuerX")));
         Mockito.when(issuersService.getIssuers("IssuerX")).thenReturn(filtered);
@@ -79,7 +79,7 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getAllIssuers_WhenServiceThrowsApiNotAccessible_ReturnsBadRequestWithError() throws Exception {
+    public void getAllIssuersWhenServiceThrowsApiNotAccessibleReturnsBadRequestWithError() throws Exception {
         Mockito.when(issuersService.getIssuers(null))
                 .thenThrow(new ApiNotAccessibleException());
 
@@ -90,7 +90,7 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getAllIssuers_WhenServiceThrowsIOException_ReturnsBadRequestWithError() throws Exception {
+    public void getAllIssuersWhenServiceThrowsIOExceptionReturnsBadRequestWithError() throws Exception {
         Mockito.when(issuersService.getIssuers(null))
                 .thenThrow(new IOException("config read failed"));
 
@@ -100,7 +100,7 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getIssuerById_WhenIdValid_ReturnsOkAndIssuer() throws Exception {
+    public void getIssuerByIdWhenIdValidReturnsOkAndIssuer() throws Exception {
         IssuerDTO issuer = getIssuerConfigDTO("MyIssuer");
         Mockito.when(issuersService.getIssuerDetails("MyIssuerid")).thenReturn(issuer);
 
@@ -112,7 +112,7 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getIssuerById_WhenIdInvalid_ReturnsNotFoundWithError() throws Exception {
+    public void getIssuerByIdWhenIdInvalidReturnsNotFoundWithError() throws Exception {
         Mockito.when(issuersService.getIssuerDetails("NonExistent"))
                 .thenThrow(new InvalidIssuerIdException());
 
@@ -123,7 +123,7 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getIssuerById_WhenServiceThrowsApiNotAccessible_ReturnsBadRequestWithError() throws Exception {
+    public void getIssuerByIdWhenServiceThrowsApiNotAccessibleReturnsBadRequestWithError() throws Exception {
         Mockito.when(issuersService.getIssuerDetails("id1"))
                 .thenThrow(new ApiNotAccessibleException());
 
@@ -133,7 +133,7 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getAllIssuers_WhenServiceThrowsGenericException_ReturnsBadRequestWithHandledError() throws Exception {
+    public void getAllIssuersWhenServiceThrowsGenericExceptionReturnsBadRequestWithHandledError() throws Exception {
         String message = "Unexpected failure";
         Mockito.when(issuersService.getIssuers(null)).thenThrow(new RuntimeException(message));
 
@@ -144,7 +144,7 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getIssuerById_WhenServiceThrowsGenericException_ReturnsBadRequestWithHandledError() throws Exception {
+    public void getIssuerByIdWhenServiceThrowsGenericExceptionReturnsBadRequestWithHandledError() throws Exception {
         String message = "Internal error";
         Mockito.when(issuersService.getIssuerDetails("id1")).thenThrow(new IllegalStateException(message));
 

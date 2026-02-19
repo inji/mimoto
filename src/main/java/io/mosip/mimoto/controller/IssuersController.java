@@ -4,6 +4,7 @@ import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.core.http.ResponseWrapper;
 import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.dto.IssuerResponseDTO;
+import io.mosip.mimoto.dto.IssuersResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
@@ -38,8 +39,8 @@ public class IssuersController {
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_DESCRIPTION)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseWrapper<List<IssuerResponseDTO>>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
-        ResponseWrapper<List<IssuerResponseDTO>> responseWrapper = new ResponseWrapper<>();
+    public ResponseEntity<ResponseWrapper<IssuersResponseDTO>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
+        ResponseWrapper<IssuersResponseDTO> responseWrapper = new ResponseWrapper<>();
         try {
             responseWrapper.setResponse(issuersService.getIssuersResponse(search));
         } catch (ApiNotAccessibleException | IOException e) {

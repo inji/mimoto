@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuerResponseDTO;
+import io.mosip.mimoto.dto.IssuersResponseDTO;
 import io.mosip.mimoto.dto.IssuersDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
@@ -296,10 +297,10 @@ public class IssuersServiceTest {
     
     @Test
     public void shouldReturnIssuerResponseListWhenGetIssuersResponseWithWellKnownSuccess() throws Exception {
-        List<IssuerResponseDTO> result = issuersService.getIssuersResponse(null);
+        IssuersResponseDTO result = issuersService.getIssuersResponse(null);
 
-        assertEquals(2, result.size());
-        IssuerResponseDTO first = result.get(0);
+        assertEquals(2, result.getIssuers().size());
+        IssuerResponseDTO first = result.getIssuers().get(0);
         assertEquals("Issuer3id", first.getIssuerId());
         assertEquals("OpenId4VCI", first.getProtocol());
         assertEquals("https://issuer.env.net/.well-known/openid-credential-issuer", first.getWellknownEndpoint());
@@ -316,10 +317,10 @@ public class IssuersServiceTest {
         Mockito.when(issuersConfigUtil.getIssuerWellknown(credentialIssuerHostUrl))
                 .thenThrow(new ApiNotAccessibleException("well-known unreachable"));
 
-        List<IssuerResponseDTO> result = issuersService.getIssuersResponse(null);
+        IssuersResponseDTO result = issuersService.getIssuersResponse(null);
 
-        assertEquals(2, result.size());
-        IssuerResponseDTO first = result.get(0);
+        assertEquals(2, result.getIssuers().size());
+        IssuerResponseDTO first = result.getIssuers().get(0);
         assertEquals("Issuer3id", first.getIssuerId());
         assertEquals(credentialIssuerHostUrl, first.getCredentialIssuerHost());
         assertEquals("Issuer3id", first.getCredentialIssuer());

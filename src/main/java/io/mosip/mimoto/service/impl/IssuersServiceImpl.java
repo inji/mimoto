@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuerResponseDTO;
 import io.mosip.mimoto.dto.IssuersDTO;
+import io.mosip.mimoto.dto.IssuersResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.service.IssuersService;
@@ -126,9 +127,10 @@ public class IssuersServiceImpl implements IssuersService {
     }
 
     @Override
-    public List<IssuerResponseDTO> getIssuersResponse(String search) throws ApiNotAccessibleException, IOException {
+    public IssuersResponseDTO getIssuersResponse(String search) throws ApiNotAccessibleException, IOException {
         IssuersDTO issuersDTO = getIssuers(search);
-        return issuersDTO.getIssuers().parallelStream().map(this::toIssuerResponseDTO).collect(Collectors.toList());
+        List<IssuerResponseDTO> list = issuersDTO.getIssuers().parallelStream().map(this::toIssuerResponseDTO).collect(Collectors.toList());
+        return new IssuersResponseDTO(list);
     }
 
     @Override

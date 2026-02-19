@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.mosip.mimoto.dto.IssuerResponseDTO;
+import io.mosip.mimoto.dto.IssuersResponseDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
@@ -58,11 +59,11 @@ public class IssuersControllerTest {
     @Test
     public void getIssuersTestForSearchValueNull() throws Exception {
         List<IssuerResponseDTO> issuers = List.of(getIssuerResponseDTO("Issuer2"), getIssuerResponseDTO("Issuer4"));
-        Mockito.when(issuersService.getIssuersResponse(null)).thenReturn(issuers);
+        Mockito.when(issuersService.getIssuersResponse(null)).thenReturn(new IssuersResponseDTO(issuers));
 
         mockMvc.perform(get("/issuers").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.response", Matchers.everyItem(
+                .andExpect(jsonPath("$.response.issuers", Matchers.everyItem(
                         Matchers.allOf(
                                 Matchers.hasKey("issuer_id"),
                                 Matchers.hasKey("credential_issuer"),
@@ -101,11 +102,11 @@ public class IssuersControllerTest {
                 .filter(issuer -> issuer.getDisplay().stream()
                         .anyMatch(displayDTO -> displayDTO.getTitle().toLowerCase().contains("Issuer2".toLowerCase())))
                 .collect(Collectors.toList());
-        Mockito.when(issuersService.getIssuersResponse("Issuer2")).thenReturn(filteredIssuers);
+        Mockito.when(issuersService.getIssuersResponse("Issuer2")).thenReturn(new IssuersResponseDTO(filteredIssuers));
 
         mockMvc.perform(get("/issuers?search=Issuer2").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.response", Matchers.everyItem(
+                .andExpect(jsonPath("$.response.issuers", Matchers.everyItem(
                         Matchers.allOf(
                                 Matchers.hasKey("issuer_id"),
                                 Matchers.hasKey("credential_issuer"),
