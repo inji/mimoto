@@ -12,7 +12,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -21,6 +20,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -130,7 +131,7 @@ class DerivedKeyCryptoUtilTest {
     }
 
     @Test
-    void testSymmetricDecryptWithIVThrowsCryptoManagerException() throws Exception {
+    void testSymmetricDecryptWithIVThrowsInvalidKeyException() throws Exception {
         SecretKey key = new SecretKeySpec("testkey".getBytes(), AES_KEY_TYPE);
         byte[] data = "testdata".getBytes();
         byte[] iv = "testiv".getBytes();
@@ -145,7 +146,7 @@ class DerivedKeyCryptoUtilTest {
 
     @Test
     void testSymmetricDecryptWithoutIVThrowsCryptoManagerException() throws Exception {
-        SecretKey key = new SecretKeySpec("testkey1234567890123456".getBytes(), AES_KEY_TYPE);
+        SecretKey key = new SecretKeySpec("testkey12345678901234567".getBytes(), AES_KEY_TYPE);
         byte[] data = "testdata".getBytes();
         byte[] aad = "testaad".getBytes();
 
@@ -158,50 +159,21 @@ class DerivedKeyCryptoUtilTest {
 
     @Test
     void testSymmetricDecryptThrowsCryptoManagerException() throws Exception {
-        java.security.Provider[] original = java.security.Security.getProviders();
-
-        java.security.Provider bogus = new java.security.Provider("BogusProv", 1.0, "for tests") {
-            {
-                put("Cipher.AES/GCM/NoPadding", "non.existent.CipherImpl");
-            }
-        };
-
         SecretKey key = new SecretKeySpec("0123456789ABCDEF".getBytes(), AES_KEY_TYPE);
         byte[] iv = NONCE;
         byte[] encrypted = encrypt(TEST_DATA, key, iv, null);
 
-        try {
-            for (java.security.Provider p : original) {
-                java.security.Security.removeProvider(p.getName());
-            }
-            java.security.Security.insertProviderAt(bogus, 1);
+        try (MockedStatic<Cipher> mocked = Mockito.mockStatic(Cipher.class)) {
+            mocked.when(() -> Cipher.getInstance("AES/GCM/NoPadding"))
+                  .thenThrow(new NoSuchAlgorithmException("for tests"));
 
-            Exception exception = assertThrows(Exception.class, () -> {
+            InvocationTargetException exception = assertThrows(InvocationTargetException.class, () -> {
                 invokeSymmetricDecrypt(key, encrypted, iv, null);
             });
 
-            Throwable targetException = exception;
-            if (exception instanceof InvocationTargetException) {
-                targetException = ((InvocationTargetException) exception).getTargetException();
-            }
-
-            if (targetException instanceof ExceptionInInitializerError) {
-                targetException = targetException.getCause();
-            }
-
-            boolean isExpectedException = targetException instanceof CryptoManagerException ||
-                                         targetException instanceof NoSuchAlgorithmException ||
-                                         targetException instanceof NoSuchPaddingException ||
-                                         targetException instanceof SecurityException;
-
-            assertTrue(isExpectedException,
-                "Expected CryptoManagerException, NoSuchAlgorithmException, NoSuchPaddingException, or SecurityException but got: " +
-                targetException.getClass().getName());
-        } finally {
-            java.security.Security.removeProvider(bogus.getName());
-            for (java.security.Provider p : original) {
-                java.security.Security.addProvider(p);
-            }
+            Throwable targetException = exception.getTargetException();
+            assertEquals(CryptoManagerException.class, targetException.getClass());
+            assertTrue(targetException.getCause() instanceof NoSuchAlgorithmException);
         }
     }
 

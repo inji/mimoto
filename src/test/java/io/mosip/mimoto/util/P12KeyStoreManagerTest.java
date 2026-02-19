@@ -117,13 +117,17 @@ public class P12KeyStoreManagerTest {
     public void testLoadP12_InvalidFile() throws Exception {
         java.io.File tempFile = java.io.File.createTempFile("invalid", ".p12");
         tempFile.deleteOnExit();
-        java.io.FileWriter writer = new java.io.FileWriter(tempFile);
-        writer.write("Not a valid PKCS12 file");
-        writer.close();
+        try {
+            try (java.io.FileWriter writer = new java.io.FileWriter(tempFile)) {
+                writer.write("Not a valid PKCS12 file");
+            }
 
-        KeyStore.PrivateKeyEntry entry = p12KeyStoreManager.loadP12(tempFile.getAbsolutePath(), "alias", "password");
-        assertNull(entry);
-        tempFile.delete();
+            KeyStore.PrivateKeyEntry entry = p12KeyStoreManager.loadP12(tempFile.getAbsolutePath(), "alias", "password");
+            assertNull(entry);
+        } finally {
+            // Ensure cleanup even if writer.write(...) or loadP12(...) throws
+            tempFile.delete();
+        }
     }
 
     @Test
@@ -194,7 +198,7 @@ public class P12KeyStoreManagerTest {
         byte[] result = p12KeyStoreManager.symmetricDecrypt(symmetricKey, encryptedBytes, nonce, null);
 
         assertNotNull(result);
-        assertEquals(plainText, new String(result));
+        assertEquals(plainText, new String(result, StandardCharsets.UTF_8));
     }
 
     @Test
@@ -217,7 +221,7 @@ public class P12KeyStoreManagerTest {
         byte[] result = p12KeyStoreManager.symmetricDecrypt(symmetricKey, encryptedBytes, nonce, aad);
 
         assertNotNull(result);
-        assertEquals(plainText, new String(result));
+        assertEquals(plainText, new String(result, StandardCharsets.UTF_8));
     }
 
     @Test(expected = CryptoManagerException.class)
@@ -289,7 +293,7 @@ public class P12KeyStoreManagerTest {
         byte[] result = (byte[]) method.invoke(null, symmetricKey, dataWithIV, aad);
 
         assertNotNull(result);
-        assertEquals(plainText, new String(result));
+        assertEquals(plainText, new String(result, StandardCharsets.UTF_8));
     }
 
     @Test
@@ -332,7 +336,7 @@ public class P12KeyStoreManagerTest {
         byte[] result = p12KeyStoreManager.decryptData(finalData, privateKeyEntry);
 
         assertNotNull(result);
-        assertEquals(plainText, new String(result));
+        assertEquals(plainText, new String(result, StandardCharsets.UTF_8));
     }
 
     @Test
@@ -370,7 +374,6 @@ public class P12KeyStoreManagerTest {
         byte[] result = p12KeyStoreManager.decryptData(finalData, privateKeyEntry);
 
         assertNotNull(result);
-        assertEquals(plainText, new String(result));
+        assertEquals(plainText, new String(result, StandardCharsets.UTF_8));
     }
 }
-
