@@ -1,5 +1,8 @@
 package io.mosip.mimoto.util;
 
+import io.mosip.kernel.cryptomanager.dto.CryptoWithPinRequestDto;
+import io.mosip.kernel.cryptomanager.dto.CryptoWithPinResponseDto;
+import io.mosip.kernel.cryptomanager.service.CryptomanagerService;
 import io.mosip.mimoto.constant.SessionKeys;
 import io.mosip.mimoto.model.Wallet;
 import io.mosip.mimoto.exception.InvalidRequestException;
@@ -36,6 +39,9 @@ class WalletUtilTest {
     @Mock
     private DataProtectionService dataProtectionService;
 
+    @Mock
+    private CryptomanagerService cryptomanagerService;
+
     @InjectMocks
     private WalletUtil walletUtil;
 
@@ -55,7 +61,7 @@ class WalletUtilTest {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
-        
+
         pin = "1234";
         name = "default";
         userId = UUID.randomUUID().toString();
@@ -69,7 +75,9 @@ class WalletUtilTest {
 
     @Test
     void shouldDecryptWalletKeySuccessfully() {
-        when(dataProtectionService.decryptWithPin(encryptedWalletKey, pin)).thenReturn(decryptedWalletKey);
+        CryptoWithPinResponseDto responseDto = new CryptoWithPinResponseDto();
+        responseDto.setData(decryptedWalletKey);
+        when(cryptomanagerService.decryptWithPin(any(CryptoWithPinRequestDto.class))).thenReturn(responseDto);
 
         String decrypted = walletUtil.decryptWalletKey(encryptedWalletKey, pin);
 
@@ -78,7 +86,7 @@ class WalletUtilTest {
 
     @Test
     void shouldThrowErrorWhenDecryptionOfWalletKeyFails() {
-        when(dataProtectionService.decryptWithPin(encryptedWalletKey, pin)).thenThrow(new RuntimeException("Failed to decrypt with PIN"));
+        when(cryptomanagerService.decryptWithPin(any(CryptoWithPinRequestDto.class))).thenThrow(new RuntimeException("Failed to decrypt with PIN"));
 
         InvalidRequestException ex = assertThrows(InvalidRequestException.class,
                 () -> walletUtil.decryptWalletKey(encryptedWalletKey, pin));
@@ -89,7 +97,9 @@ class WalletUtilTest {
 
     @Test
     void shouldCreateNewWalletSuccessfully() {
-        when(dataProtectionService.encryptKeyWithPin(any(SecretKey.class), any(String.class))).thenReturn(encryptedWalletKey);
+        CryptoWithPinResponseDto responseDto = new CryptoWithPinResponseDto();
+        responseDto.setData(encryptedWalletKey);
+        when(cryptomanagerService.encryptWithPin(any(CryptoWithPinRequestDto.class))).thenReturn(responseDto);
         when(dataProtectionService.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
 
         String walletId = walletUtil.saveWallet(userId, name, pin, encryptionKey, encryptionAlgorithm, encryptionType);
@@ -99,7 +109,9 @@ class WalletUtilTest {
 
     @Test
     void shouldCreateEd25519WalletSuccessfully() {
-        when(dataProtectionService.encryptKeyWithPin(any(SecretKey.class), any(String.class))).thenReturn(encryptedWalletKey);
+        CryptoWithPinResponseDto responseDto = new CryptoWithPinResponseDto();
+        responseDto.setData(encryptedWalletKey);
+        when(cryptomanagerService.encryptWithPin(any(CryptoWithPinRequestDto.class))).thenReturn(responseDto);
         when(dataProtectionService.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
 
         String walletId = walletUtil.createWallet(userId, name, pin);
@@ -109,7 +121,9 @@ class WalletUtilTest {
 
     @Test
     void shouldVerifyWalletObjectOnCreateNewWallet() {
-        when(dataProtectionService.encryptKeyWithPin(any(SecretKey.class), any(String.class))).thenReturn(encryptedWalletKey);
+        CryptoWithPinResponseDto responseDto = new CryptoWithPinResponseDto();
+        responseDto.setData(encryptedWalletKey);
+        when(cryptomanagerService.encryptWithPin(any(CryptoWithPinRequestDto.class))).thenReturn(responseDto);
         when(dataProtectionService.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
 
         String walletId = walletUtil.saveWallet(userId, name, pin, encryptionKey, encryptionAlgorithm, encryptionType);
