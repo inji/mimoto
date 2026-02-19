@@ -1929,8 +1929,7 @@
                     }
                 ],
                 "tags": [
-                    "Trusted Issuers",
-                    "Issuers V2"
+                    "Trusted Issuers V2"
                 ],
                 "summary": "Retrieve all onboarded issuers (V2)",
                 "description": "Retrieve all onboarded issuers in V2 response format. Returns minimal issuer data from configuration (issuer_id, client_id, credential_issuer_host, qr_code_type, token_endpoint, protocol, display, etc.) without fetching well-known endpoints. Supports optional search filter.",
@@ -1993,8 +1992,7 @@
                     }
                 ],
                 "tags": [
-                    "Trusted Issuers",
-                    "Issuers V2"
+                    "Trusted Issuers V2"
                 ],
                 "summary": "Retrieve specific issuer (V2)",
                 "description": "Retrieve a single issuer in V2 response format by issuer ID. Returns configuration-only data (no well-known fetch).",
