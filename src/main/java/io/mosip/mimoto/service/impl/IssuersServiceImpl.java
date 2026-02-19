@@ -115,6 +115,7 @@ public class IssuersServiceImpl implements IssuersService {
         return new IssuersV2DTO(list);
     }
 
+    @Override
     public IssuerV2DTO getIssuerV2Details(String issuerId) throws ApiNotAccessibleException, IOException {
         IssuerDTO issuerDTO = getIssuerDetails(issuerId);
         return toIssuerV2DTO(issuerDTO);

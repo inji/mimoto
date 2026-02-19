@@ -80,21 +80,21 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getAllIssuersApiNotAccessibleExceptionReturnsBadRequestWithApiNotAccessibleError() throws Exception {
+    public void getAllIssuersApiNotAccessibleExceptionReturnsServiceUnavailableWithApiNotAccessibleError() throws Exception {
         Mockito.when(issuersService.getIssuersV2DTO()).thenThrow(new ApiNotAccessibleException());
 
         performGetList()
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
     }
 
     @Test
-    public void getAllIssuersIOExceptionReturnsBadRequestWithApiNotAccessibleError() throws Exception {
+    public void getAllIssuersIOExceptionReturnsServiceUnavailableWithApiNotAccessibleError() throws Exception {
         Mockito.when(issuersService.getIssuersV2DTO()).thenThrow(new IOException("config read failed"));
 
         performGetList()
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
     }
@@ -134,21 +134,21 @@ public class IssuersV2ControllerTest {
     }
 
     @Test
-    public void getIssuerByIdApiNotAccessibleExceptionReturnsBadRequestWithApiNotAccessibleError() throws Exception {
+    public void getIssuerByIdApiNotAccessibleExceptionReturnsServiceUnavailableWithApiNotAccessibleError() throws Exception {
         Mockito.when(issuersService.getIssuerV2Details("id1")).thenThrow(new ApiNotAccessibleException());
 
         performGetIssuer("id1")
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
     }
 
     @Test
-    public void getIssuerByIdIOExceptionReturnsBadRequestWithApiNotAccessibleError() throws Exception {
+    public void getIssuerByIdIOExceptionReturnsServiceUnavailableWithApiNotAccessibleError() throws Exception {
         Mockito.when(issuersService.getIssuerV2Details("id1")).thenThrow(new IOException("io error"));
 
         performGetIssuer("id1")
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
     }
@@ -160,7 +160,7 @@ public class IssuersV2ControllerTest {
 
         performGetIssuer("id1")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(INVALID_ISSUER_ID_EXCEPTION.getCode())))
+                .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(message)));
     }
 }

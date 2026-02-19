@@ -46,7 +46,7 @@ public class IssuersV2Controller {
         } catch (ApiNotAccessibleException | IOException e) {
             log.error("Exception occurred while fetching issuers (V2)", e);
             responseWrapper.setErrors(List.of(new ErrorDTO(API_NOT_ACCESSIBLE_EXCEPTION.getCode(), API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(responseWrapper);
         } catch (Exception e) {
             log.error("Exception occurred while fetching issuers (V2)", e);
             String[] errorObj = Utilities.handleExceptionWithErrorCode(e, API_NOT_ACCESSIBLE_EXCEPTION.getCode());
@@ -70,10 +70,10 @@ public class IssuersV2Controller {
         } catch (ApiNotAccessibleException | IOException e) {
             log.error("Exception occurred while fetching issuer {} (V2)", issuerId, e);
             responseWrapper.setErrors(List.of(new ErrorDTO(API_NOT_ACCESSIBLE_EXCEPTION.getCode(), API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(responseWrapper);
         } catch (Exception e) {
             log.error("Exception occurred while fetching issuer {} (V2)", issuerId, e);
-            String[] errorObj = Utilities.handleExceptionWithErrorCode(e, INVALID_ISSUER_ID_EXCEPTION.getCode());
+            String[] errorObj = Utilities.handleExceptionWithErrorCode(e, API_NOT_ACCESSIBLE_EXCEPTION.getCode());
             responseWrapper.setErrors(Utilities.getErrors(errorObj[0], errorObj[1]));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
         }
