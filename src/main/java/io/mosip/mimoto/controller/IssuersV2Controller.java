@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
@@ -39,7 +38,7 @@ public class IssuersV2Controller {
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_V2_GET_ISSUERS_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_V2_GET_ISSUERS_DESCRIPTION)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseWrapper<IssuersV2DTO>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
+    public ResponseEntity<ResponseWrapper<IssuersV2DTO>> getAllIssuers() {
         ResponseWrapper<IssuersV2DTO> responseWrapper = new ResponseWrapper<>();
         try {
             responseWrapper.setResponse(issuersService.getIssuersV2DTO());

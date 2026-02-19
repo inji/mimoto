@@ -853,7 +853,7 @@
 											"    var sha256Hash = CryptoJS.SHA256(JSON.stringify(jsonData.response));",
 											"    var base64Encoded = sha256Hash.toString(CryptoJS.enc.Base64);",
 											"    // Remove padding characters",
-											"    base64Encoded = base64Encoded.replace(/=$/, '');",
+											"    base64Encoded = base64Encoded.replace(/=+$/, '');",
 											"    // Replace '+' with '-' and '/' with '_' to convert to base64 URL encoding",
 											"    base64Encoded = base64Encoded.replace(/\\+/g, '-').replace(/\\//g, '_');",
 											"    pm.collectionVariables.set(\"oauth_details_key\", jsonData.response.transactionId);",

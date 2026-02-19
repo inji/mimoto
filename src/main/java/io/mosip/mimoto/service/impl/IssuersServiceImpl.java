@@ -39,7 +39,9 @@ public class IssuersServiceImpl implements IssuersService {
     @Override
     @Cacheable(value = "issuersConfig", key = "#p0 ?: 'allIssuersConfig'")
     public IssuersDTO getIssuers() throws ApiNotAccessibleException, IOException {
-        return getAllEnabledIssuers(getAllIssuers());
+        IssuersDTO issuersDTO = getAllIssuers();
+        issuersDTO = getAllEnabledIssuers(issuersDTO);
+        return issuersDTO;
     }
 
     @Override

@@ -150,8 +150,7 @@ public class IssuersControllerTest {
 
         mockMvc.perform(get("/issuers/" + issuerId + "/well-known-proxy").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isNotFound())
-                .andExpect(result -> assertTrue(
-                        result.getResponse().getContentAsString() == null || result.getResponse().getContentAsString().isEmpty()));
+                .andExpect(result -> assertTrue(result.getResponse().getContentAsString().isEmpty()));
     }
 
     @Test
