@@ -1,6 +1,5 @@
 package io.mosip.mimoto.dto;
 
-import com.google.gson.annotations.Expose;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -12,7 +11,6 @@ import java.util.List;
 @Getter
 public class IssuersV2DTO {
 
-    @Expose
     @Valid
     @Schema(description = "List of Onboarded Issuers")
     List<IssuerV2DTO> issuers;

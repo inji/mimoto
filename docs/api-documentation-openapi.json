@@ -1951,7 +1951,7 @@
                                                 "issuers": {
                                                     "type": "array",
                                                     "items": {
-                                                        "$ref": "#/components/schemas/IssuerDTOV2"
+                                                        "$ref": "#/components/schemas/IssuerV2DTO"
                                                     }
                                                 }
                                             }
@@ -2008,7 +2008,7 @@
                                         "version": { "type": "string", "nullable": true },
                                         "responsetime": { "type": "string", "format": "date-time", "nullable": true },
                                         "metadata": { "type": "object", "nullable": true },
-                                        "response": { "$ref": "#/components/schemas/IssuerDTOV2" },
+                                        "response": { "$ref": "#/components/schemas/IssuerV2DTO" },
                                         "errors": { "type": "array", "items": { "type": "object" }, "nullable": true }
                                     }
                                 }
@@ -5198,7 +5198,7 @@
                     }
                 }
             },
-            "IssuerDTOV2": {
+            "IssuerV2DTO": {
                 "type": "object",
                 "description": "Minimal issuer representation (V2 API). Data from mimoto-issuers-config only; no well-known fetch.",
                 "properties": {
