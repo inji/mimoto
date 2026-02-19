@@ -160,19 +160,6 @@ public class IssuersControllerTest {
     }
 
     @Test
-    public void getIssuerWellknown_WhenServiceThrows_ReturnsNotFoundWithNullBody() throws Exception {
-        String issuerId = "missingIssuer";
-        Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenThrow(new ApiNotAccessibleException());
-
-        mockMvc.perform(get("/issuers/" + issuerId + "/well-known-proxy").accept(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isNotFound())
-                .andExpect(result -> {
-                    String body = result.getResponse().getContentAsString();
-                    assertTrue("Response body should be null or empty", body == null || body.isEmpty());
-                });
-    }
-
-    @Test
     public void getIssuerConfigurationTest() throws Exception {
         String issuerId = "id1";
 
@@ -218,5 +205,18 @@ public class IssuersControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
+    }
+
+    @Test
+    public void getIssuerWellknownWhenServiceThrowsReturnsNotFoundWithNullBody() throws Exception {
+        String issuerId = "missingIssuer";
+        Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenThrow(new ApiNotAccessibleException());
+
+        mockMvc.perform(get("/issuers/" + issuerId + "/well-known-proxy").accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> {
+                    String body = result.getResponse().getContentAsString();
+                    assertTrue("Response body should be null or empty", body == null || body.isEmpty());
+                });
     }
 }
