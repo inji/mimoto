@@ -86,16 +86,6 @@ public class IssuersControllerTest {
     }
 
     @Test
-    public void getIssuers_WhenServiceThrows_ReturnsBadRequest() throws Exception {
-        Mockito.when(issuersService.getIssuersResponse(null)).thenThrow(new ApiNotAccessibleException());
-
-        mockMvc.perform(get("/issuers").accept(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
-                .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
-    }
-
-    @Test
     public void getIssuersTestForSomeSearchValue() throws Exception {
         List<IssuerResponseDTO> issuers = List.of(getIssuerResponseDTO("Issuer2"), getIssuerResponseDTO("Issuer3"));
         List<IssuerResponseDTO> filteredIssuers = issuers.stream()
@@ -215,6 +205,16 @@ public class IssuersControllerTest {
 
         mockMvc.perform(get("/issuers/" + issuerId + "/configuration")
                         .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
+                .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
+    }
+
+    @Test
+    public void getIssuersWhenServiceThrowsReturnsBadRequest() throws Exception {
+        Mockito.when(issuersService.getIssuersResponse(null)).thenThrow(new ApiNotAccessibleException());
+
+        mockMvc.perform(get("/issuers").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
