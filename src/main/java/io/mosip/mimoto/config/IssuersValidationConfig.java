@@ -46,7 +46,7 @@ public class IssuersValidationConfig implements ApplicationRunner {
             for (int index = 0; index < issuerDTOList.getIssuers().size(); index++) {
                 IssuerDTO issuerDTO = issuerDTOList.getIssuers().get(index);
                 if (!issuerDTO.getProtocol().equals("OTP")) {
-                    Errors errors = new BeanPropertyBindingResult(issuerDTO, "issuerDTO");
+                    Errors errors = new BeanPropertyBindingResult(issuerDTO, "issuerV2DTO");
                     validator.validate(issuerDTO, errors);
                     String issuerId = issuerDTO.getIssuer_id();
                     boolean issuerHasErrors = false;

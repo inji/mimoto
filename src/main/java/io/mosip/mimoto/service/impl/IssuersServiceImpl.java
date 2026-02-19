@@ -2,9 +2,9 @@ package io.mosip.mimoto.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.IssuerResponseDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.IssuersDTO;
-import io.mosip.mimoto.dto.IssuersResponseDTO;
+import io.mosip.mimoto.dto.IssuersV2DTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.service.IssuersService;
@@ -12,7 +12,6 @@ import io.mosip.mimoto.util.IssuerConfigUtil;
 import io.mosip.mimoto.util.Utilities;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -21,16 +20,12 @@ import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.lang.NullPointerException;
 
 
 @Service
 @Slf4j
 @Validated
 public class IssuersServiceImpl implements IssuersService {
-
-    private static final String WELL_KNOWN_CREDENTIAL_ISSUER_PATH = "/.well-known/openid-credential-issuer";
-    private static final String DEFAULT_OAUTH_REDIRECT_URI = "io.mosip.residentapp.inji://oauthredirect";
 
     @Autowired
     private Utilities utilities;
@@ -43,12 +38,8 @@ public class IssuersServiceImpl implements IssuersService {
 
     @Override
     @Cacheable(value = "issuersConfig", key = "#p0 ?: 'allIssuersConfig'")
-    public IssuersDTO getIssuers(String search) throws ApiNotAccessibleException, IOException {
-        IssuersDTO issuersDTO = getAllIssuers();
-        issuersDTO = getAllEnabledIssuers(issuersDTO);
-        issuersDTO = getFilteredIssuers(issuersDTO, search);
-
-        return issuersDTO;
+    public IssuersDTO getIssuers() throws ApiNotAccessibleException, IOException {
+        return getAllEnabledIssuers(getAllIssuers());
     }
 
     @Override
@@ -65,17 +56,6 @@ public class IssuersServiceImpl implements IssuersService {
     private IssuersDTO getAllEnabledIssuers(IssuersDTO issuersDTO) {
         return new IssuersDTO(issuersDTO.getIssuers().stream()
                 .filter(issuer -> "true".equals(issuer.getEnabled()))
-                .collect(Collectors.toList()));
-    }
-
-    private IssuersDTO getFilteredIssuers(IssuersDTO issuersDTO, String search) {
-        if (StringUtils.isEmpty(search)) {
-            return issuersDTO;
-        }
-
-        return new IssuersDTO(issuersDTO.getIssuers().stream()
-                .filter(issuer -> issuer.getDisplay().stream()
-                        .anyMatch(displayDTO -> displayDTO.getTitle().toLowerCase().contains(search.toLowerCase())))
                 .collect(Collectors.toList()));
     }
 
@@ -127,48 +107,32 @@ public class IssuersServiceImpl implements IssuersService {
     }
 
     @Override
-    public IssuersResponseDTO getIssuersResponse(String search) throws ApiNotAccessibleException, IOException {
-        IssuersDTO issuersDTO = getIssuers(search);
-        List<IssuerResponseDTO> list = issuersDTO.getIssuers().parallelStream().map(this::toIssuerResponseDTO).collect(Collectors.toList());
-        return new IssuersResponseDTO(list);
+    public IssuersV2DTO getIssuersV2DTO() throws ApiNotAccessibleException, IOException {
+        IssuersDTO issuersDTO = getIssuers();
+        List<IssuerV2DTO> list = issuersDTO.getIssuers().parallelStream().map(this::toIssuerV2DTO).collect(Collectors.toList());
+        return new IssuersV2DTO(list);
     }
 
-    @Override
-    public IssuerResponseDTO getIssuerResponseDetails(String issuerId) throws ApiNotAccessibleException, IOException {
+    public IssuerV2DTO getIssuerV2Details(String issuerId) throws ApiNotAccessibleException, IOException {
         IssuerDTO issuerDTO = getIssuerDetails(issuerId);
-        return toIssuerResponseDTO(issuerDTO);
+        return toIssuerV2DTO(issuerDTO);
     }
 
     /**
-     * Maps an {@link IssuerDTO} (from config) to {@link IssuerResponseDTO} (API response).
+     * Maps an {@link IssuerDTO} (from config) to {@link IssuerV2DTO} (API response).
      */
-    private IssuerResponseDTO toIssuerResponseDTO(IssuerDTO issuer) {
-        String credentialIssuerHost = issuer.getCredential_issuer_host();
-        String wellKnownEndpointUrl = credentialIssuerHost + WELL_KNOWN_CREDENTIAL_ISSUER_PATH;
+    private IssuerV2DTO toIssuerV2DTO(IssuerDTO issuer) {
 
-        String credentialEndpointUrl = null;
-        try {
-            CredentialIssuerWellKnownResponse wellKnownResponse = issuersConfigUtil.getIssuerWellknown(credentialIssuerHost);
-            credentialEndpointUrl = wellKnownResponse.getCredentialEndPoint();
-        } catch (ApiNotAccessibleException | IOException | InvalidWellknownResponseException | NullPointerException e) {
-            log.warn("Could not fetch well-known for issuer {} ({}): using fallbacks", issuer.getIssuer_id(), e.getMessage());
-        }
-
-        IssuerResponseDTO issuerResponse = new IssuerResponseDTO();
-        issuerResponse.setIssuerId(issuer.getIssuer_id());
-        issuerResponse.setProtocol(issuer.getProtocol());
-        issuerResponse.setDisplay(issuer.getDisplay());
-        issuerResponse.setClientId(issuer.getClient_id());
-        issuerResponse.setWellknownEndpoint(wellKnownEndpointUrl);
-        issuerResponse.setRedirectUri(DEFAULT_OAUTH_REDIRECT_URI);
-        issuerResponse.setTokenEndpoint(issuer.getToken_endpoint());
-        issuerResponse.setClientAlias(issuer.getClient_alias());
-        issuerResponse.setQrCodeType(issuer.getQr_code_type());
-        issuerResponse.setEnabled(issuer.getEnabled());
-        issuerResponse.setCredentialIssuer(issuer.getIssuer_id());
-        issuerResponse.setCredentialIssuerHost(credentialIssuerHost);
-        issuerResponse.setAuthorizationAudience(credentialEndpointUrl);
-        issuerResponse.setProxyTokenEndpoint(credentialEndpointUrl);
-        return issuerResponse;
+        return IssuerV2DTO.builder()
+                .issuerId(issuer.getIssuer_id())
+                .protocol(issuer.getProtocol())
+                .display(issuer.getDisplay())
+                .clientId(issuer.getClient_id())
+                .tokenEndpoint(issuer.getToken_endpoint())
+                .clientAlias(issuer.getClient_alias())
+                .qrCodeType(issuer.getQr_code_type())
+                .enabled(issuer.getEnabled())
+                .credentialIssuerHost(issuer.getCredential_issuer_host())
+                .build();
     }
 }

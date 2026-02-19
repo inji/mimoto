@@ -1,9 +1,9 @@
 package io.mosip.mimoto.service;
 
 import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.IssuerResponseDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.IssuersDTO;
-import io.mosip.mimoto.dto.IssuersResponseDTO;
+import io.mosip.mimoto.dto.IssuersV2DTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.AuthorizationServerWellknownResponseException;
@@ -14,7 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 
 public interface IssuersService {
-    IssuersDTO getIssuers(String search) throws ApiNotAccessibleException, IOException;
+    IssuersDTO getIssuers() throws ApiNotAccessibleException, IOException;
 
     IssuerDTO getIssuerDetails(String issuerId) throws ApiNotAccessibleException, IOException, InvalidIssuerIdException;
 
@@ -24,7 +24,7 @@ public interface IssuersService {
 
     IssuerConfig getIssuerConfig(String issuerId, @NotBlank String credentialType) throws ApiNotAccessibleException, InvalidIssuerIdException;
 
-    IssuersResponseDTO getIssuersResponse(String search) throws ApiNotAccessibleException, IOException;
+    IssuersV2DTO getIssuersV2DTO() throws ApiNotAccessibleException, IOException;
 
-    IssuerResponseDTO getIssuerResponseDetails(String issuerId) throws ApiNotAccessibleException, IOException;
+    IssuerV2DTO getIssuerV2Details(String issuerId) throws ApiNotAccessibleException, IOException;
 }

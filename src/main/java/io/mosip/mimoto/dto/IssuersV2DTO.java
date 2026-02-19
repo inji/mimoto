@@ -10,11 +10,11 @@ import java.util.List;
 
 @AllArgsConstructor
 @Getter
-public class IssuersResponseDTO {
+public class IssuersV2DTO {
 
     @Expose
     @Valid
     @Schema(description = "List of Onboarded Issuers")
-    List<IssuerResponseDTO> issuers;
+    List<IssuerV2DTO> issuers;
 
 }

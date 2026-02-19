@@ -191,24 +191,20 @@ public class TestUtilities {
     /**
      * Builds an IssuerResponseDTO for tests (e.g. IssuersController v1 which returns IssuerResponseDTO).
      */
-    public static IssuerResponseDTO getIssuerResponseDTO(String issuerName) {
+    public static IssuerV2DTO getIssuerResponseDTO(String issuerName) {
         IssuerDTO issuer = getIssuerConfigDTO(issuerName);
-        IssuerResponseDTO response = new IssuerResponseDTO();
-        response.setIssuerId(issuer.getIssuer_id());
-        response.setProtocol(issuer.getProtocol());
-        response.setDisplay(issuer.getDisplay());
-        response.setClientId(issuer.getClient_id());
-        response.setWellknownEndpoint(issuer.getCredential_issuer_host() + "/.well-known/openid-credential-issuer");
-        response.setRedirectUri("io.mosip.residentapp.inji://oauthredirect");
-        response.setTokenEndpoint(issuer.getToken_endpoint());
-        response.setClientAlias(issuer.getClient_alias());
-        response.setQrCodeType(issuer.getQr_code_type());
-        response.setEnabled(issuer.getEnabled());
-        response.setCredentialIssuer(issuer.getIssuer_id());
-        response.setCredentialIssuerHost(issuer.getCredential_issuer_host());
-        response.setAuthorizationAudience("https://dev/issuance/credential");
-        response.setProxyTokenEndpoint("https://dev/issuance/credential");
-        return response;
+
+        return IssuerV2DTO.builder()
+                .issuerId(issuer.getIssuer_id())
+                .protocol(issuer.getProtocol())
+                .display(issuer.getDisplay())
+                .clientId(issuer.getClient_id())
+                .tokenEndpoint(issuer.getToken_endpoint())
+                .clientAlias(issuer.getClient_alias())
+                .qrCodeType(issuer.getQr_code_type())
+                .enabled(issuer.getEnabled())
+                .credentialIssuerHost(issuer.getCredential_issuer_host())
+                .build();
     }
 
     public static IssuerDTO getIssuerConfigDTO(String issuerName) {

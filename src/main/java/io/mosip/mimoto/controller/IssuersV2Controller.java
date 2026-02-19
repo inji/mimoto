@@ -2,9 +2,7 @@ package io.mosip.mimoto.controller;
 
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.core.http.ResponseWrapper;
-import io.mosip.mimoto.dto.ErrorDTO;
-import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.IssuersDTO;
+import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
 import io.mosip.mimoto.service.IssuersService;
@@ -41,10 +39,10 @@ public class IssuersV2Controller {
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_V2_GET_ISSUERS_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_V2_GET_ISSUERS_DESCRIPTION)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseWrapper<IssuersDTO>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
-        ResponseWrapper<IssuersDTO> responseWrapper = new ResponseWrapper<>();
+    public ResponseEntity<ResponseWrapper<IssuersV2DTO>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
+        ResponseWrapper<IssuersV2DTO> responseWrapper = new ResponseWrapper<>();
         try {
-            responseWrapper.setResponse(issuersService.getIssuers(search));
+            responseWrapper.setResponse(issuersService.getIssuersV2DTO());
             return ResponseEntity.status(HttpStatus.OK).body(responseWrapper);
         } catch (ApiNotAccessibleException | IOException e) {
             log.error("Exception occurred while fetching issuers (V2)", e);
@@ -60,10 +58,10 @@ public class IssuersV2Controller {
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_V2_GET_ISSUER_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_V2_GET_ISSUER_DESCRIPTION)
     @GetMapping(value = "/{issuer-id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseWrapper<IssuerDTO>> getIssuerById(@PathVariable("issuer-id") String issuerId) {
-        ResponseWrapper<IssuerDTO> responseWrapper = new ResponseWrapper<>();
+    public ResponseEntity<ResponseWrapper<IssuerV2DTO>> getIssuerById(@PathVariable("issuer-id") String issuerId) {
+        ResponseWrapper<IssuerV2DTO> responseWrapper = new ResponseWrapper<>();
         try {
-            IssuerDTO issuer = issuersService.getIssuerDetails(issuerId);
+            IssuerV2DTO issuer = issuersService.getIssuerV2Details(issuerId);
             responseWrapper.setResponse(issuer);
             return ResponseEntity.status(HttpStatus.OK).body(responseWrapper);
         } catch (InvalidIssuerIdException e) {
