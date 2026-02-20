@@ -91,7 +91,7 @@ class WalletUtilTest {
         InvalidRequestException ex = assertThrows(InvalidRequestException.class,
                 () -> walletUtil.decryptWalletKey(encryptedWalletKey, pin));
         assertEquals("invalid_pin", ex.getErrorCode());
-        assertEquals("invalid_pin --> Invalid PIN or wallet key provided java.lang.RuntimeException: Failed to decrypt with PIN", ex.getMessage());
+        assertEquals("Failed to decrypt with PIN", ex.getCause().getMessage());
     }
 
 

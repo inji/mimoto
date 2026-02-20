@@ -42,7 +42,7 @@ public class WalletUtil {
         try {
             return decryptWithPin(encryptedWalletKey, pin);
         } catch (Exception e) {
-            throw new InvalidRequestException(INVALID_PIN.getErrorCode(), INVALID_PIN.getErrorMessage() + " " + e);
+            throw new InvalidRequestException(INVALID_PIN.getErrorCode(), INVALID_PIN.getErrorMessage(), e);
         }
     }
 
