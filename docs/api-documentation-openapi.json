@@ -1917,22 +1917,12 @@
         "/v2/issuers": {
             "get": {
                 "operationId": "getAllIssuersV2",
-                "parameters": [
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "description": "Optional search string to filter issuers by display title"
-                    }
-                ],
+                "parameters": [],
                 "tags": [
                     "Trusted Issuers V2"
                 ],
                 "summary": "Retrieve all onboarded issuers (V2)",
-                "description": "Retrieve all onboarded issuers in V2 response format. Returns minimal issuer data from configuration (issuer_id, client_id, credential_issuer_host, qr_code_type, token_endpoint, protocol, display, etc.) without fetching well-known endpoints. Supports optional search filter.",
+                "description": "Retrieve all onboarded issuers in V2 response format. Returns minimal issuer data from configuration (issuer_id, client_id, credential_issuer_host, qr_code_type, token_endpoint, protocol, display, etc.) without fetching well-known endpoints.",
                 "responses": {
                     "200": {
                         "description": "OK",
