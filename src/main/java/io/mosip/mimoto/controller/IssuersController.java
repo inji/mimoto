@@ -37,10 +37,10 @@ public class IssuersController {
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_DESCRIPTION)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseWrapper<IssuersDTO>> getAllIssuers() {
+    public ResponseEntity<ResponseWrapper<IssuersDTO>> getAllIssuers(@RequestParam(required = false, name = "search") String search) {
         ResponseWrapper<IssuersDTO> responseWrapper = new ResponseWrapper<>();
         try {
-            responseWrapper.setResponse(issuersService.getIssuers());
+            responseWrapper.setResponse(issuersService.getIssuers(search));
         } catch (ApiNotAccessibleException | IOException e) {
             log.error("Exception occurred while fetching issuers ", e);
             responseWrapper.setErrors(List.of(new ErrorDTO(API_NOT_ACCESSIBLE_EXCEPTION.getCode(), API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));

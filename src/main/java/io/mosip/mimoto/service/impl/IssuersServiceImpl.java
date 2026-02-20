@@ -12,6 +12,7 @@ import io.mosip.mimoto.util.IssuerConfigUtil;
 import io.mosip.mimoto.util.Utilities;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -38,9 +39,11 @@ public class IssuersServiceImpl implements IssuersService {
 
     @Override
     @Cacheable(value = "issuersConfig", key = "#p0 ?: 'allIssuersConfig'")
-    public IssuersDTO getIssuers() throws ApiNotAccessibleException, IOException {
+    public IssuersDTO getIssuers(String search) throws ApiNotAccessibleException, IOException {
         IssuersDTO issuersDTO = getAllIssuers();
         issuersDTO = getAllEnabledIssuers(issuersDTO);
+        issuersDTO = getFilteredIssuers(issuersDTO, search);
+
         return issuersDTO;
     }
 
@@ -58,6 +61,17 @@ public class IssuersServiceImpl implements IssuersService {
     private IssuersDTO getAllEnabledIssuers(IssuersDTO issuersDTO) {
         return new IssuersDTO(issuersDTO.getIssuers().stream()
                 .filter(issuer -> "true".equals(issuer.getEnabled()))
+                .collect(Collectors.toList()));
+    }
+
+    private IssuersDTO getFilteredIssuers(IssuersDTO issuersDTO, String search) {
+        if (StringUtils.isEmpty(search)) {
+            return issuersDTO;
+        }
+
+        return new IssuersDTO(issuersDTO.getIssuers().stream()
+                .filter(issuer -> issuer.getDisplay().stream()
+                        .anyMatch(displayDTO -> displayDTO.getTitle().toLowerCase().contains(search.toLowerCase())))
                 .collect(Collectors.toList()));
     }
 
@@ -110,7 +124,7 @@ public class IssuersServiceImpl implements IssuersService {
 
     @Override
     public IssuersV2DTO getIssuersV2DTO() throws ApiNotAccessibleException, IOException {
-        IssuersDTO issuersDTO = getIssuers();
+        IssuersDTO issuersDTO = getIssuers(null);
         List<IssuerV2DTO> list = issuersDTO.getIssuers().parallelStream().map(this::toIssuerV2DTO).collect(Collectors.toList());
         return new IssuersV2DTO(list);
     }
@@ -126,16 +140,18 @@ public class IssuersServiceImpl implements IssuersService {
      */
     private IssuerV2DTO toIssuerV2DTO(IssuerDTO issuer) {
 
-        return IssuerV2DTO.builder()
-                .issuerId(issuer.getIssuer_id())
-                .protocol(issuer.getProtocol())
-                .display(issuer.getDisplay())
-                .clientId(issuer.getClient_id())
-                .tokenEndpoint(issuer.getToken_endpoint())
-                .clientAlias(issuer.getClient_alias())
-                .qrCodeType(issuer.getQr_code_type())
-                .enabled(issuer.getEnabled())
-                .credentialIssuerHost(issuer.getCredential_issuer_host())
-                .build();
+        IssuerV2DTO issuerV2DTO= new  IssuerV2DTO();
+
+        issuerV2DTO.setIssuerId(issuer.getIssuer_id());
+        issuerV2DTO.setProtocol(issuer.getProtocol());
+        issuerV2DTO.setDisplay(issuer.getDisplay());
+        issuerV2DTO.setClientId(issuer.getClient_id());
+        issuerV2DTO.setTokenEndpoint(issuer.getToken_endpoint());
+        issuerV2DTO.setClientAlias(issuer.getClient_alias());
+        issuerV2DTO.setQrCodeType(issuer.getQr_code_type());
+        issuerV2DTO.setEnabled(issuer.getEnabled());
+        issuerV2DTO.setCredentialIssuerHost(issuer.getCredential_issuer_host());
+
+        return issuerV2DTO;
     }
 }

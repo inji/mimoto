@@ -78,7 +78,7 @@ public class IssuersServiceTest {
     }
 
     @Test
-    public void shouldReturnAllIssuers() throws ApiNotAccessibleException, IOException {
+    public void shouldReturnAllIssuersWhenSearchValueIsNull() throws ApiNotAccessibleException, IOException {
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
@@ -87,11 +87,32 @@ public class IssuersServiceTest {
         List<IssuerDTO> issuers = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
         expectedIssuers.setIssuers(issuers);
 
-        IssuersDTO allIssuers = issuersService.getIssuers();
+        IssuersDTO allIssuers = issuersService.getIssuers(null);
 
         assertEquals(expectedIssuers, allIssuers);
     }
 
+    @Test
+    public void shouldReturnMatchingIssuersWhenSearchValuePatternMatchesWithIssuerName() throws ApiNotAccessibleException, IOException {
+        issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
+        issuersConfigJsonValue = new Gson().toJson(issuers);
+        Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
+        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
+        IssuersDTO expectedFilteredIssuers = new IssuersDTO();
+        List<IssuerDTO> filteredIssuersList = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer1")));
+        expectedFilteredIssuers.setIssuers(filteredIssuersList);
+
+        IssuersDTO filteredIssuers = issuersService.getIssuers("Issuer1");
+
+        assertEquals(expectedFilteredIssuers, filteredIssuers);
+    }
+
+    @Test(expected = ApiNotAccessibleException.class)
+    public void shouldThrowApiNotAccessibleExceptionWhenIssuersJsonStringIsNullForGettingAllIssuers() throws IOException, ApiNotAccessibleException {
+        Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(null);
+
+        issuersService.getIssuers(null);
+    }
 
     @Test
     public void shouldReturnIssuerDataAndConfigForTheIssuerIdIfExist() throws ApiNotAccessibleException, IOException, InvalidIssuerIdException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException {
@@ -138,7 +159,7 @@ public class IssuersServiceTest {
         IssuersDTO expectedIssuersDTO = new IssuersDTO();
         expectedIssuersDTO.setIssuers(List.of(enabledIssuer));
 
-        IssuersDTO actualIssuersDTO = issuersService.getIssuers();
+        IssuersDTO actualIssuersDTO = issuersService.getIssuers("");
 
         assertEquals(expectedIssuersDTO, actualIssuersDTO);
         assertEquals("true", actualIssuersDTO.getIssuers().getFirst().getEnabled());

@@ -14,7 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 
 public interface IssuersService {
-    IssuersDTO getIssuers() throws ApiNotAccessibleException, IOException;
+    IssuersDTO getIssuers(String search) throws ApiNotAccessibleException, IOException;
 
     IssuerDTO getIssuerDetails(String issuerId) throws ApiNotAccessibleException, IOException, InvalidIssuerIdException;
 

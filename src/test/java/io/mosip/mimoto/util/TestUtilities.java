@@ -194,17 +194,19 @@ public class TestUtilities {
     public static IssuerV2DTO getIssuerResponseDTO(String issuerName) {
         IssuerDTO issuer = getIssuerConfigDTO(issuerName);
 
-        return IssuerV2DTO.builder()
-                .issuerId(issuer.getIssuer_id())
-                .protocol(issuer.getProtocol())
-                .display(issuer.getDisplay())
-                .clientId(issuer.getClient_id())
-                .tokenEndpoint(issuer.getToken_endpoint())
-                .clientAlias(issuer.getClient_alias())
-                .qrCodeType(issuer.getQr_code_type())
-                .enabled(issuer.getEnabled())
-                .credentialIssuerHost(issuer.getCredential_issuer_host())
-                .build();
+        IssuerV2DTO issuerV2DTO= new  IssuerV2DTO();
+
+        issuerV2DTO.setIssuerId(issuer.getIssuer_id());
+        issuerV2DTO.setProtocol(issuer.getProtocol());
+        issuerV2DTO.setDisplay(issuer.getDisplay());
+        issuerV2DTO.setClientId(issuer.getClient_id());
+        issuerV2DTO.setTokenEndpoint(issuer.getToken_endpoint());
+        issuerV2DTO.setClientAlias(issuer.getClient_alias());
+        issuerV2DTO.setQrCodeType(issuer.getQr_code_type());
+        issuerV2DTO.setEnabled(issuer.getEnabled());
+        issuerV2DTO.setCredentialIssuerHost(issuer.getCredential_issuer_host());
+
+        return issuerV2DTO;
     }
 
     public static IssuerDTO getIssuerConfigDTO(String issuerName) {
