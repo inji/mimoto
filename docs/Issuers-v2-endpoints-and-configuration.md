@@ -161,7 +161,7 @@ Example (extended):
 ```
 
 - **V2** ignores these extra fields and returns only the core issuer fields from config.
-- **V1** would return null values for the extra fields.
+- **V1** returns these fields as-is from the config (non-null when present);
 
 You can **mix** minimal and extended entries in the same `issuers` array; both schemas are valid.
 
@@ -171,7 +171,7 @@ You can **mix** minimal and extended entries in the same `issuers` array; both s
 
 | Topic | Summary |
 |-------|---------|
-| **V2 API** | `GET /v2/issuers` and `GET /v2/issuers/{issuer-id}`; config-only.
+| **V2 API** | `GET /v2/issuers` and `GET /v2/issuers/{issuer-id}`; config-only.|
 | **Config file** | Set `mosip.openid.issuers` (e.g. `mimoto-issuers-config.json`); structure is `{ "issuers": [ ... ] }`. |
 | **Required fields** | `issuer_id`, `protocol`, `display`, `client_id`, `token_endpoint`, `client_alias`, `qr_code_type`, `enabled`, `credential_issuer_host`. |
 | **Schema compatibility** | Both **old (extended)** and **new (minimal)** issuer schemas work; extra fields are allowed and ignored by V2. |
