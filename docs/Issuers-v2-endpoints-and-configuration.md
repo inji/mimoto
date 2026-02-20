@@ -6,11 +6,11 @@ This document describes the **Issuers V2** endpoints, how to configure **mimoto-
 
 ## V2 Endpoints
 
-The V2 issuer API provides a minimal, configuration-only view of issuers. It does **not** call any issuer well-known endpoints, so it is fast and does not depend on external credential issuers being reachable.
+The V2 issuer API provides a minimal, configuration-only view of issuers.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/v2/issuers` | List all onboarded issuers (with optional `?search=...` filter) |
+| GET | `/v2/issuers` | List all onboarded issuers |
 | GET | `/v2/issuers/{issuer-id}` | Get a single issuer by ID |
 
 ### V2 features
@@ -161,7 +161,7 @@ Example (extended):
 ```
 
 - **V2** ignores these extra fields and returns only the core issuer fields from config.
-- **V1** may use well-known at runtime (from `credential_issuer_host`) to fill in `authorization_audience`, `proxy_token_endpoint`, etc.; any values in the config for these may be overridden or used as fallbacks depending on implementation.
+- **V1** would return null values for the extra fields.
 
 You can **mix** minimal and extended entries in the same `issuers` array; both schemas are valid.
 
@@ -171,7 +171,7 @@ You can **mix** minimal and extended entries in the same `issuers` array; both s
 
 | Topic | Summary |
 |-------|---------|
-| **V2 API** | `GET /v2/issuers` and `GET /v2/issuers/{issuer-id}`; config-only, no well-known calls. |
+| **V2 API** | `GET /v2/issuers` and `GET /v2/issuers/{issuer-id}`; config-only.
 | **Config file** | Set `mosip.openid.issuers` (e.g. `mimoto-issuers-config.json`); structure is `{ "issuers": [ ... ] }`. |
 | **Required fields** | `issuer_id`, `protocol`, `display`, `client_id`, `token_endpoint`, `client_alias`, `qr_code_type`, `enabled`, `credential_issuer_host`. |
 | **Schema compatibility** | Both **old (extended)** and **new (minimal)** issuer schemas work; extra fields are allowed and ignored by V2. |
