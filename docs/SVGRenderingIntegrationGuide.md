@@ -19,11 +19,11 @@ Mimoto service now supports rendering VCs using an issuer-controlled SVG templat
     Reference : https://www.w3.org/TR/vc-render-method/
 - The template should be hosted on a publicly accessible URL and should be a valid SVG file. The placeholders in the template should be strictly compliant to JSON Pointer Algorithm as mentioned in the specification.
 
-## High level user flow :
+## High-level user flow :
 1. User downloads the VC either in guest mode or from their wallet.
 2. Mimoto service checks for the presence of renderMethod field in the VC and if its renderSuite is `svg-mustache`, it fetches the template from the URL mentioned in the template field.
 3. inji-vc-renderer library is invoked, which verifies the integrity of the template using the digestMultibase value.
-4. The library then render the VC using the fetched template and the data from the VC. The library replaces the placeholders in the template with the corresponding values from the VC.
+4. The library then renders the VC using the fetched template and the data from the VC. The library replaces the placeholders in the template with the corresponding values from the VC.
 5. The SVG output is sent to the library again for conversion to PDF and then the PDF is sent back to the user.
 
     ```mermaid
@@ -36,7 +36,7 @@ Mimoto service now supports rendering VCs using an issuer-controlled SVG templat
         User->>Mimoto Service: Download VC
         Mimoto Service->>Mimoto Service: Check for VC format, renderMethod field and renderSuite value
         alt eligible for SVG rendering
-            Mimoto Service->>inji-vc-renderer: Send VC data and QR code data for rendering
+            Mimoto Service->>inji-vc-renderer: Send VC data (and QR code data if OnlineSharing type)
             inji-vc-renderer->>Template Host: Fetch template from URL
             Template Host-->>inji-vc-renderer: Return template
             inji-vc-renderer->inji-vc-renderer: Verify integrity of template using digestMultibase
@@ -60,5 +60,5 @@ More details about the implementation can be found in the codebase of inji-vc-re
 -----------
 
 ## References :
-- [W3C Verifiable Credential Rendering specification](https://www.w3.org/TR/vc-render-method/) : 
-- [inji-vc-renderer Kotlin library](https://www.w3.org/TR/vc-render-method/)
+- [W3C Verifiable Credential Rendering specification](https://www.w3.org/TR/vc-render-method/)
+- [inji-vc-renderer Kotlin library](https://github.com/inji/inji-vc-renderer/blob/master/kotlin/Readme.md)
