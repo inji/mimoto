@@ -1985,7 +1985,7 @@
                     "Trusted Issuers V2"
                 ],
                 "summary": "Retrieve specific issuer (V2)",
-                "description": "Retrieve a single issuer in V2 response format by issuer ID. Returns configuration-only data (no well-known fetch).",
+                "description": "Retrieve a single issuer in V2 response format by issuer ID. Returns configuration-only data.",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -5190,20 +5190,29 @@
             },
             "IssuerV2DTO": {
                 "type": "object",
-                "description": "Minimal issuer representation (V2 API). Data from mimoto-issuers-config only; no well-known fetch.",
+                "description": "Minimal issuer representation (V2 API). Data from mimoto-issuers-config only.",
                 "properties": {
                     "issuer_id": { "type": "string", "description": "Unique identifier of the issuer" },
                     "protocol": { "type": "string", "description": "Download flow protocol", "enum": ["OTP", "OpenId4VCI"] },
                     "display": {
                         "type": "array",
+                        "description": "Display properties of the issuer.",
                         "items": {
                             "type": "object",
+                            "description": "Localized display entry for the issuer.",
                             "properties": {
-                                "name": { "type": "string" },
-                                "logo": { "type": "object", "properties": { "url": { "type": "string" }, "alt_text": { "type": "string" } } },
-                                "title": { "type": "string" },
-                                "description": { "type": "string" },
-                                "language": { "type": "string" }
+                                "name": { "type": "string", "description": "Display name of the issuer." },
+                                "logo": {
+                                    "type": "object",
+                                    "description": "Display logo of the issuer.",
+                                    "properties": {
+                                        "url": { "type": "string", "description": "URL of the issuer logo image." },
+                                        "alt_text": { "type": "string", "description": "Alternate text for the logo (accessibility)." }
+                                    }
+                                },
+                                "title": { "type": "string", "description": "Display title of the issuer." },
+                                "description": { "type": "string", "description": "Short description of the issuer." },
+                                "language": { "type": "string", "description": "Language code for this display entry (e.g. en, fr)." }
                             }
                         }
                     },

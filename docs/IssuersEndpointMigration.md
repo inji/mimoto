@@ -18,9 +18,6 @@ The V2 issuer API provides a minimal, configuration-only view of issuers.
 - **Configuration-only response**  
   Response data comes only from **mimoto-issuers-config.json**. No remote well-known calls are made. Fields returned include: `issuer_id`, `protocol`, `display`, `client_id`, `token_endpoint`, `client_alias`, `qr_code_type`, `enabled`, `credential_issuer_host`.
 
-- **Optional search**  
-  List endpoint supports a query parameter: `GET /v2/issuers?search=Sunbird`. Issuers are filtered by display title (case-insensitive).
-
 - **Same config, both APIs**  
   The same config file is used for:
   - **V1** (`/issuers`, `/issuers/{issuer-id}`): returns an enriched response that may include well-known–derived fields (e.g. `wellknown_endpoint`, `authorization_audience`, `proxy_token_endpoint`). V1 may call each issuer’s well-known endpoint.
