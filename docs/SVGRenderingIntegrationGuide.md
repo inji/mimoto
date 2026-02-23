@@ -1,6 +1,6 @@
 # SVG rendering integration guide
 
-Mimoto service now supports rendering VCs using an issuer-controlled SVG template. Its W3C Verifiable Credential Rendering specification compliant and currently its implemented for W3C JSON-LD VC 2.0.
+Mimoto service now supports rendering VCs using an issuer-controlled SVG template. It is W3C Verifiable Credential Rendering specification compliant and currently it is implemented for W3C JSON-LD VC 2.0.
 
 ## Pre-requisites :
 - The VC should be a valid W3C JSON-LD VC 2.0 credential.
@@ -22,35 +22,34 @@ Mimoto service now supports rendering VCs using an issuer-controlled SVG templat
 ## High level user flow :
 1. User downloads the VC either in guest mode or from their wallet.
 2. Mimoto service checks for the presence of renderMethod field in the VC and if its renderSuite is `svg-mustache`, it fetches the template from the URL mentioned in the template field.
-3. Mimoto service verifies the integrity of the template using the digestMultibase value.
-4. Mimoto uses inji-vc-renderer library to render the VC using the fetched template and the data from the VC. The library replaces the placeholders in the template with the corresponding values from the VC.
+3. inji-vc-renderer library is invoked, which verifies the integrity of the template using the digestMultibase value.
+4. The library then render the VC using the fetched template and the data from the VC. The library replaces the placeholders in the template with the corresponding values from the VC.
 5. The SVG output is sent to the library again for conversion to PDF and then the PDF is sent back to the user.
 
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Mimoto Service
-    participant inji-vc-renderer 
-    participant Template Host
-    
-    User->>Mimoto Service: Download VC
-    Mimoto Service->>Mimoto Service: Check for VC format, renderMethod field and renderSuite value
-    alt eligible for SVG rendering
-        Mimoto Service->>inji-vc-renderer: Send VC data and template for rendering
-        inji-vc-renderer->>Template Host: Fetch template from URL
-        Template Host-->>inji-vc-renderer: Return template
-        Mimoto Service->>Mimoto Service: Verify integrity of template using digestMultibase
-        inji-vc-renderer->>inji-vc-renderer: Replace placeholders with VC data
-        inji-vc-renderer-->>Mimoto Service: Return rendered SVG
-        Mimoto Service->>inji-vc-renderer: Convert SVG to PDF
-        inji-vc-renderer-->>Mimoto Service: Return PDF
-        Mimoto Service-->>User: Send PDF back to user
-    else not eligible for SVG rendering
-        Mimoto Service->>Mimoto Service: Handle using existing rendering logic (e.g., using custom HTML templates)
-        Mimoto Service-->>User: Send rendered credential PDF back to user
-    end
-```
+    ```mermaid
+    sequenceDiagram
+        participant User
+        participant Mimoto Service
+        participant inji-vc-renderer 
+        participant Template Host
+        
+        User->>Mimoto Service: Download VC
+        Mimoto Service->>Mimoto Service: Check for VC format, renderMethod field and renderSuite value
+        alt eligible for SVG rendering
+            Mimoto Service->>inji-vc-renderer: Send VC data and QR code data for rendering
+            inji-vc-renderer->>Template Host: Fetch template from URL
+            Template Host-->>inji-vc-renderer: Return template
+            inji-vc-renderer->inji-vc-renderer: Verify integrity of template using digestMultibase
+            inji-vc-renderer->>inji-vc-renderer: Replace placeholders with VC data
+            inji-vc-renderer-->>Mimoto Service: Return rendered SVG
+            Mimoto Service->>inji-vc-renderer: Convert SVG to PDF
+            inji-vc-renderer-->>Mimoto Service: Return PDF
+            Mimoto Service-->>User: Send PDF back to user
+        else not eligible for SVG rendering
+            Mimoto Service->>Mimoto Service: Handle using existing rendering logic (e.g., using custom HTML templates)
+            Mimoto Service-->>User: Send rendered credential PDF back to user
+        end
+    ```
 
 More details about the implementation can be found in the codebase of inji-vc-renderer library : https://github.com/inji/inji-vc-renderer/blob/master/kotlin/Readme.md
 
