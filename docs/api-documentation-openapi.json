@@ -5220,7 +5220,7 @@
                     "token_endpoint": { "type": "string", "description": "Token endpoint URL" },
                     "client_alias": { "type": "string", "description": "Client alias in keyStore" },
                     "qr_code_type": { "type": "string", "enum": ["OnlineSharing", "EmbeddedVC", "None"] },
-                    "enabled": { "type": "string", "description": "Whether issuer is enabled" },
+                    "enabled": { "type": "string", "description": "Whether issuer is enabled (\"true\", \"false\")" },
                     "credential_issuer_host": { "type": "string", "description": "Credential issuer host URL" }
                 }
             },
