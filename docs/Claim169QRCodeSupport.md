@@ -13,31 +13,35 @@ Mimoto now supports consumption of claim 169 QR data present in the Verifiable C
       },
     ```
 - The claim 169 QR code data should be in the expected format as per the requirements of the application consuming it. Refer Claim 169 QR Code specification for further details : https://docs.mosip.io/1.2.0/readme/standards-and-specifications/mosip-standards/169-qr-code-specification
-- Issuer configuration should have `qr_code_type` set as `EmbeddedVC`.
+- Issuer configuration should have `qr_code_type` set as `EmbeddedVC` in [mimoto-issuers-config.json](../docker-compose/config/mimoto-issuers-config.json).
 
 ## User flow :
 **Note: The flow is applicable for both guest users and wallet users.**
-1. When a user selects a VC that contains claim 169 QR code data, Mimoto will check for the presence of claim 169 QR code data in the VC.
-2. If claim 169 QR code data is present, Mimoto will extract the QR data in the first field encountered during iteration inside `claim169` object, generate QR code image and add it to the QR code placeholder in the generated PDF.
-3. PDF is returned to the user.
+1. User downloads the VC in guest mode or selects the VC from their wallet for PDF generation.
+2. During PDF generation, Mimoto will check for the presence of claim 169 QR code data in the VC.
+3. If claim 169 QR code data is present, Mimoto will extract the QR data in the first field encountered during iteration inside `claim169` object, generate QR code image and add it to the QR code placeholder in the generated PDF.
+4. PDF is returned to the user.
 
 ## Sequence Diagram
 ```mermaid
 sequenceDiagram
     participant User
+    participant InjiWeb as InjiWeb UI
     participant Mimoto Service
     participant VCSource as Database/Issuer
     
-    User->>Mimoto Service: Select VC for PDF generation
+    User->>InjiWeb: Request to download VC / Generate PDF for VC in wallet
+    InjiWeb->> Mimoto Service: Download VC / Generate PDF request with VC identifier
     Mimoto Service->>VCSource: Retrieve VC data
     VCSource-->>Mimoto Service: Return VC
     Mimoto Service->>Mimoto Service: Check for claim 169 QR code data in VC and issuer configuration
     alt claim 169 QR code present and qr_code_type is EmbeddedVC in issuer configuration
         Mimoto Service->>Mimoto Service: Extract claim 169 QR code data <br/> and generate PDF with claim 169 QR code image
     else not eligible for claim 169 QR code rendering
-        Mimoto Service->>Mimoto Service: Generate standard PDF using existing logic
+        Mimoto Service->>Mimoto Service: Generate standard PDF with QR code based on VC data for EmbeddedVC <br/>or data share url for OnlineSharing
     end
-    Mimoto Service-->>User: Return generated PDF
+    Mimoto Service-->>InjiWeb: Return generated PDF
+    InjiWeb-->>User: Send PDF back to user
 ```
 
 ## References 

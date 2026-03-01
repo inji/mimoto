@@ -21,24 +21,24 @@ Mimoto service now supports rendering VCs using an issuer-controlled SVG templat
 
 ## High-level user flow :
 1. User downloads the VC either in guest mode or from their wallet.
-2. Mimoto service checks for the presence of renderMethod field in the VC and if its renderSuite is `svg-mustache`, it fetches the template from the URL mentioned in the template field.
-3. inji-vc-renderer library is invoked, which verifies the integrity of the template using the digestMultibase value.
+2. Mimoto service checks for the presence of renderMethod field in the VC and if its renderSuite is `svg-mustache`.
+3. inji-vc-renderer library is invoked, it fetches the template from the URL mentioned in template field and verifies the integrity of the template using the digestMultibase value.
 4. The library then renders the VC using the fetched template and the data from the VC. The library replaces the placeholders in the template with the corresponding values from the VC.
-5. The SVG output is sent to the library again for conversion to PDF and then the PDF is sent back to the user.
+5. The SVG output is sent from mimoto service to the library again for conversion to PDF and then finally the PDF is sent back to the user from mimoto service.
 
     ```mermaid
     sequenceDiagram
         participant User
         participant Mimoto Service
         participant inji-vc-renderer 
-        participant Template Host
+        participant Issuer
         
         User->>Mimoto Service: Download VC
         Mimoto Service->>Mimoto Service: Check for VC format, renderMethod field and renderSuite value
         alt eligible for SVG rendering
             Mimoto Service->>inji-vc-renderer: Send VC data (and QR code data if OnlineSharing type)
-            inji-vc-renderer->>Template Host: Fetch template from URL
-            Template Host-->>inji-vc-renderer: Return template
+            inji-vc-renderer->>Issuer: Fetch template from URL
+            Issuer-->>inji-vc-renderer: Return template
             inji-vc-renderer->inji-vc-renderer: Verify integrity of template using digestMultibase
             inji-vc-renderer->>inji-vc-renderer: Replace placeholders with VC data
             inji-vc-renderer-->>Mimoto Service: Return rendered SVG
@@ -51,7 +51,7 @@ Mimoto service now supports rendering VCs using an issuer-controlled SVG templat
         end
     ```
 
-More details about the implementation can be found in the codebase of inji-vc-renderer library : https://github.com/inji/inji-vc-renderer/blob/master/kotlin/Readme.md
+More details about the SVG template rendering implementation can be found in the codebase of inji-vc-renderer library : https://github.com/inji/inji-vc-renderer/blob/master/kotlin/Readme.md
 
 ## Error scenarios :
 - If the template cannot be fetched from the URL, an error message is returned to the user indicating that the template could not be retrieved.
