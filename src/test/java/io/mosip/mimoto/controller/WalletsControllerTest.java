@@ -10,6 +10,7 @@ import io.mosip.mimoto.exception.WalletLockedException;
 import io.mosip.mimoto.model.WalletLockStatus;
 import io.mosip.mimoto.service.WalletService;
 import io.mosip.mimoto.util.GlobalExceptionHandler;
+import io.mosip.mimoto.util.WalletValidator;
 import jakarta.servlet.http.HttpSession;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +48,9 @@ public class WalletsControllerTest {
 
     @MockBean
     private WalletService walletService;
+
+    @MockBean
+    private WalletValidator walletValidator;
 
     CreateWalletRequestDto createWalletRequestDto;
 
@@ -479,5 +483,47 @@ public class WalletsControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("wallet_locked"))
                 .andExpect(jsonPath("$.errorMessage").value("Wallet is locked"));
+    }
+
+    @Test
+    public void shouldReturnUnauthorizedWhenUserIdIsInvalidForCreateWallet() throws Exception {
+        mockSession.setAttribute(SessionKeys.USER_ID, null);
+        doThrow(new UnauthorizedAccessException(
+                ErrorConstants.UNAUTHORIZED_ACCESS.getErrorCode(),
+                "User ID not found in session"))
+                .when(walletValidator).validateUserId(null);
+
+        mockMvc.perform(post("/wallets")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(createWalletRequestDto))
+                        .session(mockSession)
+                        .with(SecurityMockMvcRequestPostProcessors.user("anonymous").roles("USER"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorCode").value("unauthorized"))
+                .andExpect(jsonPath("$.errorMessage").value("User ID not found in session"));
+    }
+
+    @Test
+    public void shouldCreateWalletWhenUserIdIsValidAndValidatorPasses() throws Exception {
+        // validator is void -> use doNothing()
+        org.mockito.Mockito.doNothing()
+                .when(walletValidator)
+                .validateUserId(userId);
+
+        when(walletService.createWallet(userId, walletName, walletPin, confirmWalletPin))
+                .thenReturn(new WalletResponseDto(walletId, walletName, null));
+
+        mockMvc.perform(post("/wallets")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(createWalletRequestDto))
+                        .session(mockSession)
+                        .with(SecurityMockMvcRequestPostProcessors.user(userId).roles("USER"))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.walletId").value(walletId))
+                .andExpect(jsonPath("$.walletName").value(walletName));
     }
 }

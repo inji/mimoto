@@ -7,6 +7,7 @@ import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.exception.UnauthorizedAccessException;
 import io.mosip.mimoto.service.WalletService;
 import io.mosip.mimoto.util.WalletUtil;
+import io.mosip.mimoto.util.WalletValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -42,10 +43,12 @@ import static io.mosip.mimoto.constant.SwaggerLiteralConstants.RETRIEVE_ALL_WALL
 public class WalletsController {
 
     private final WalletService walletService;
+    private final WalletValidator walletValidator;
 
     @Autowired
-    public WalletsController(WalletService walletService) {
+    public WalletsController(WalletService walletService, WalletValidator walletValidator) {
         this.walletService = walletService;
+        this.walletValidator = walletValidator;
     }
 
     /**
@@ -86,6 +89,8 @@ public class WalletsController {
             HttpSession httpSession) throws InvalidRequestException, UnauthorizedAccessException {
         String userId = (String) httpSession.getAttribute(SessionKeys.USER_ID);
         log.info("Creating wallet for user: {}, name: {}", userId, wallet.getWalletName());
+
+        walletValidator.validateUserId(userId);
         WalletResponseDto walletResponseDto = walletService.createWallet(userId, wallet.getWalletName(), wallet.getWalletPin(), wallet.getConfirmWalletPin());
         return ResponseEntity.status(HttpStatus.OK).body(walletResponseDto);
     }
