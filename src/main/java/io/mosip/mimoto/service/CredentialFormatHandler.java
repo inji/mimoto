@@ -30,5 +30,8 @@ public interface CredentialFormatHandler {
             CredentialsSupportedResponse credentialsSupportedResponse,
             String userLocale);
 
-
+    /**
+     * Extract all properties from the Credential
+     */
+    Map<String, Object> extractAllCredentialProperties(VCCredentialResponse vcCredentialResponse);
 }

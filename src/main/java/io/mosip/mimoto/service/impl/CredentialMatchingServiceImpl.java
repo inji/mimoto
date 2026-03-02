@@ -17,6 +17,8 @@ import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import static io.mosip.mimoto.exception.ErrorConstants.UNSUPPORTED_FORMAT;
+import io.mosip.mimoto.service.CredentialFormatHandlerFactory;
+import io.mosip.mimoto.service.CredentialFormatHandler;
 import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
@@ -36,7 +38,6 @@ import java.util.stream.Stream;
 public class CredentialMatchingServiceImpl implements CredentialMatchingService {
 
     private static final String JSON_PATH_PREFIX = "$.";
-    private static final String TYPE_PATH = "$.type";
     private static final String LDP_VC_FORMAT = "ldp_vc";
     private static final String PROOF_TYPE_KEY = "proof_type";
 
@@ -51,6 +52,9 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     @Autowired
     private WalletCredentialService walletCredentialService;
+
+    @Autowired
+    private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
 
     @Override
     public MatchingCredentialsDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {
@@ -201,21 +205,23 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         String vcFormat = vc.getFormat();
 
-        if (!CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) || !descriptorFormat.containsKey(LDP_VC_FORMAT)) {
-            return false;
-        }
-
-        Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
-
-        if (!ldpVcFormat.containsKey(PROOF_TYPE_KEY)) {
+        if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(CredentialFormat.VC_SD_JWT.getFormat())) {
             return true;
         }
+        if(CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
+            Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
 
-        VCCredentialProperties ldpCredential = objectMapper.convertValue(vc.getCredential(), VCCredentialProperties.class);
-        String vcProofType = ldpCredential.getProof() != null ? ldpCredential.getProof().getType() : null;
-        List<String> requiredProofTypes = ldpVcFormat.get(PROOF_TYPE_KEY);
+            if (!ldpVcFormat.containsKey(PROOF_TYPE_KEY)) {
+                return true;
+            }
 
-        return vcProofType != null && requiredProofTypes.contains(vcProofType);
+            VCCredentialProperties ldpCredential = objectMapper.convertValue(vc.getCredential(), VCCredentialProperties.class);
+            String vcProofType = ldpCredential.getProof() != null ? ldpCredential.getProof().getType() : null;
+            List<String> requiredProofTypes = ldpVcFormat.get(PROOF_TYPE_KEY);
+
+            return vcProofType != null && requiredProofTypes.contains(vcProofType);
+        }
+        return false;
     }
 
     private boolean matchesConstraints(VCCredentialResponse vc, Constraints constraints) {
@@ -246,20 +252,13 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     private Object getCredentialData(VCCredentialResponse vc) {
         String format = vc.getFormat();
 
-        if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format)) {
-            Object credentialData = vc.getCredential();
-
-            if (credentialData instanceof Map) {
-                return credentialData;
-            } else {
-                return objectMapper.convertValue(credentialData, VCCredentialProperties.class);
-            }
-        } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format) || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), 
-                "SD-JWT credential format (" + format + ") is not supported for credential matching");
+        if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format) || CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(vc.getFormat());
+            return credentialFormatHandler.extractAllCredentialProperties(vc);
         }
-
-        return vc.getCredential();
+        else{
+            throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), "Unsupported credential format: " + format);
+        }
     }
 
     private boolean matchesFilter(Object match, Filter filter) {
@@ -332,6 +331,8 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         String credentialTypeDisplayName = "Unknown Credential";
         String credentialTypeLogo = null;
+        List<String> publicClaims = new ArrayList<>();
+        List<String> sdClaims = new ArrayList<>();
 
         try {
             IssuerConfig issuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
@@ -344,12 +345,15 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
         }
 
+        //TODO: Determine which claims are public vs SD using the _sd from payload
+
         return CredentialDTO.builder()
                 .credentialId(decryptedCredentialDTO.getId())
                 .credentialTypeDisplayName(credentialTypeDisplayName)
                 .credentialTypeLogo(credentialTypeLogo)
-                .format(decryptedCredentialDTO.getCredential()
-                .getFormat())
+                .format(decryptedCredentialDTO.getCredential().getFormat())
+                .publicClaims(publicClaims)
+                .sdClaims(sdClaims)
                 .build();
     }
 

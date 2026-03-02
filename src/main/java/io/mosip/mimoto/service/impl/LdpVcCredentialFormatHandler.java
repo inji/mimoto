@@ -123,6 +123,11 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
         return displayProperties;
     }
 
+    @Override
+    public Map<String, Object> extractAllCredentialProperties(VCCredentialResponse vcCredentialResponse) {
+        return objectMapper.convertValue(vcCredentialResponse.getCredential(), LinkedHashMap.class);
+    }
+
     private LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> buildFallbackDisplayProperties(
             Map<String, Object> credentialProperties,
             List<String> orderedKeys) {

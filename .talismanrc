@@ -130,7 +130,7 @@ fileignoreconfig:
 - filename: docker-compose/README.md
   checksum: f70385d1be6b7945df1afac0890bdce5ecceb63cdba08bdd3f760f40f843c630
 - filename: src/main/java/io/mosip/mimoto/service/impl/VcSdJwtCredentialFormatHandler.java
-  checksum: 425cb4066c02d93572b1db02099532465479e7f4c94c3684c5d46a063352631d
+  checksum: f56467f468634403716c1e58481d0611ca0b406e96fb4e69d5a9d49128a57aa2
 - filename: src/test/java/io/mosip/mimoto/service/VcSdJwtCredentialFormatHandlerTest.java
   checksum: e91aa11aa049453a3a7cd542386dbb813f5c868678f68d6bd71af92149e0d5db
 - filename: db_scripts/inji_mimoto/ddl.sql
