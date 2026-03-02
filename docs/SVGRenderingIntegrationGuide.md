@@ -24,7 +24,7 @@ Mimoto service now supports rendering VCs using an issuer-controlled SVG templat
 2. Mimoto service checks for the presence of renderMethod field in the VC and if its renderSuite is `svg-mustache`.
 3. inji-vc-renderer library is invoked, it fetches the template from the URL mentioned in template field and verifies the integrity of the template using the digestMultibase value.
 4. The library then renders the VC using the fetched template and the data from the VC. The library replaces the placeholders in the template with the corresponding values from the VC.
-5. The SVG output is sent from mimoto service to the library again for conversion to PDF and then finally the PDF is sent back to the user from mimoto service.
+5. The inji-vc-renderer library returns the rendered SVG to Mimoto service. Mimoto service then invokes the library again to convert the SVG to PDF, and returns the PDF to the user.
 
     ```mermaid
     sequenceDiagram
