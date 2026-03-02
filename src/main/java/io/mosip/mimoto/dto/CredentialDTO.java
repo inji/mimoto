@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -28,5 +30,13 @@ public class CredentialDTO {
     @JsonProperty("format")
     @Schema(description = "Format of the credential (e.g., ldp_vc, vc+sd-jwt, dc+sd-jwt)")
     private String format;
+
+    @JsonProperty("publicClaims")
+    @Schema(description = "Public claims of the credential that can be shared without user consent")
+    private List<String> publicClaims;
+
+    @JsonProperty("sdClaims")
+    @Schema(description = "Selective Disclosure Claims that require user consent to be shared")
+    private List<String> sdClaims;
 }
 
