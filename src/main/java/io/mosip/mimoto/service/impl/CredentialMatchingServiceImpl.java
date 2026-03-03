@@ -22,6 +22,7 @@ import io.mosip.mimoto.service.CredentialFormatHandler;
 import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
+import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     private static final String JSON_PATH_PREFIX = "$.";
     private static final String LDP_VC_FORMAT = "ldp_vc";
     private static final String PROOF_TYPE_KEY = "proof_type";
+    private static final String SD_JWT_ALG_VALUES_KEY = "sd-jwt_alg_values";
 
     private final ObjectMapper objectMapper;
 
@@ -208,7 +210,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         String vcFormat = vc.getFormat();
 
         if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(CredentialFormat.VC_SD_JWT.getFormat())) {
-            return true;
+            return matchesSdJwtAlgorithm(vc, descriptorFormat);
         }
         if(CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
             Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
@@ -224,6 +226,38 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             return vcProofType != null && requiredProofTypes.contains(vcProofType);
         }
         return false;
+    }
+
+    private boolean matchesSdJwtAlgorithm(VCCredentialResponse vc, Map<String, Map<String, List<String>>> requestFormat) {
+        String format = vc.getFormat();
+        String sdJwtString = (String) vc.getCredential();
+        String algorithm = extractSdJwtAlgorithm(sdJwtString);
+        if (algorithm == null){
+            return false;
+        }
+
+        Map<String, List<String>> formatConfig = requestFormat.get(format);
+        if (formatConfig != null) {
+            List<?> algorithmValues = formatConfig.get(SD_JWT_ALG_VALUES_KEY);
+            if (algorithmValues != null) {
+                return algorithmValues.contains(algorithm);
+            }
+            return true; // If no specific algorithms are required, any algorithm is acceptable
+        }
+        return false;
+    }
+
+    private String extractSdJwtAlgorithm(String sdJwtString) {
+        if(sdJwtString == null || sdJwtString.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            Map<String, Object> header = JwtUtils.parseJwtHeader(sdJwtString);
+            return (String) header.get("alg");
+        } catch (Exception e) {
+            log.warn("Failed to extract algorithm from SD-JWT header", e);
+            return null;
+        }
     }
 
     private boolean matchesConstraints(VCCredentialResponse vc, Constraints constraints) {
