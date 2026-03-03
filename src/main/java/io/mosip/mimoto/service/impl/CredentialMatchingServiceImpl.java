@@ -215,6 +215,10 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         if(CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
             Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
 
+            if(ldpVcFormat == null) {
+                return true;
+            }
+
             if (!ldpVcFormat.containsKey(PROOF_TYPE_KEY)) {
                 return true;
             }
@@ -223,20 +227,25 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             String vcProofType = ldpCredential.getProof() != null ? ldpCredential.getProof().getType() : null;
             List<String> requiredProofTypes = ldpVcFormat.get(PROOF_TYPE_KEY);
 
+            if(requiredProofTypes == null || requiredProofTypes.isEmpty()) {
+                return true;
+            }
+
             return vcProofType != null && requiredProofTypes.contains(vcProofType);
         }
         return false;
     }
 
     private boolean matchesSdJwtAlgorithm(VCCredentialResponse vc, Map<String, Map<String, List<String>>> requestFormat) {
-        String format = vc.getFormat();
-        String sdJwtString = (String) vc.getCredential();
+        if(vc.getCredential() == null || !(vc.getCredential() instanceof String sdJwtString)) {
+            return false;
+        }
         String algorithm = extractSdJwtAlgorithm(sdJwtString);
         if (algorithm == null){
             return false;
         }
 
-        Map<String, List<String>> formatConfig = requestFormat.get(format);
+        Map<String, List<String>> formatConfig = requestFormat.get(CredentialFormat.VC_SD_JWT.getFormat());
         if (formatConfig != null) {
             List<?> algorithmValues = formatConfig.get(SD_JWT_ALG_VALUES_KEY);
             if (algorithmValues != null) {
@@ -293,7 +302,11 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             return credentialFormatHandler.extractAllCredentialProperties(vc);
         }
         else if(CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)){
-            Map<String, Map<String, Object>> allCredentialProperties= (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(vc);
+            Object extracted = credentialFormatHandler.extractAllCredentialProperties(vc);
+            if (extracted == null) {
+                return Collections.emptyMap();
+            }
+            Map<String, Map<String, Object>> allCredentialProperties = (Map<String, Map<String, Object>>) extracted;
             Map<String, Object> flattenedPropertiesMap = new HashMap<>();
             allCredentialProperties.values().forEach(flattenedPropertiesMap::putAll);
             return flattenedPropertiesMap;
@@ -405,7 +418,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             }
 
             if (sdClaimsMap != null) {
-                sdClaims = new ArrayList<>(sdClaimsMap.keySet());
+                sdClaims = extractJsonPaths(sdClaimsMap);
             }
 
         }
@@ -419,6 +432,28 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 .publicClaims(publicClaims)
                 .sdClaims(sdClaims)
                 .build();
+    }
+
+    private List<String> extractJsonPaths(Map<String, Object> sdClaimsMap) {
+        List<String> paths = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : sdClaimsMap.entrySet()) {
+            collectPaths(entry.getKey(), entry.getValue(), paths);
+        }
+        return paths;
+    }
+
+    private void collectPaths(String currentPath, Object value, List<String> paths) {
+        if (value instanceof Map<?, ?> mapValue) {
+            for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
+                collectPaths(currentPath + "." + entry.getKey(), entry.getValue(), paths);
+            }
+        } else if (value instanceof List<?> listValue) {
+            for (int i = 0; i < listValue.size(); i++) {
+                collectPaths(currentPath + "[" + i + "]", listValue.get(i), paths);
+            }
+        } else {
+            paths.add(currentPath);
+        }
     }
 
 }
