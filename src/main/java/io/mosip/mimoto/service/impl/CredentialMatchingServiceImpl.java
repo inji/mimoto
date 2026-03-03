@@ -287,10 +287,16 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     private Object getCredentialData(VCCredentialResponse vc) {
         String format = vc.getFormat();
+        CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(vc.getFormat());
 
-        if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format) || CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
-            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(vc.getFormat());
+        if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format)) {
             return credentialFormatHandler.extractAllCredentialProperties(vc);
+        }
+        else if(CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)){
+            Map<String, Map<String, Object>> allCredentialProperties= (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(vc);
+            Map<String, Object> flattenedPropertiesMap = new HashMap<>();
+            allCredentialProperties.values().forEach(flattenedPropertiesMap::putAll);
+            return flattenedPropertiesMap;
         }
         else{
             throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), "Unsupported credential format: " + format);
@@ -367,6 +373,9 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         String credentialTypeDisplayName = "Unknown Credential";
         String credentialTypeLogo = null;
+        Map<String, Object> publicClaimsMap;
+        Map<String, Object> sdClaimsMap;
+
         List<String> publicClaims = new ArrayList<>();
         List<String> sdClaims = new ArrayList<>();
 
@@ -381,7 +390,23 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
         }
 
-        //TODO: Determine which claims are public vs SD using the _sd from payload
+        if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(decryptedCredentialDTO.getCredential().getFormat())) {
+            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(CredentialFormat.VC_SD_JWT.getFormat());
+            Map<String, Map<String, Object>> allClaims = (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(decryptedCredentialDTO.getCredential());
+
+            publicClaimsMap = allClaims.get("publicClaims");
+            sdClaimsMap = allClaims.get("sdClaims");
+
+            if (publicClaimsMap != null) {
+                publicClaims = new ArrayList<>(publicClaimsMap.keySet());
+            }
+
+            if (sdClaimsMap != null) {
+                sdClaims = new ArrayList<>(sdClaimsMap.keySet());
+            }
+
+        }
+
 
         return CredentialDTO.builder()
                 .credentialId(decryptedCredentialDTO.getId())
