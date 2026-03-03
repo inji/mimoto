@@ -29,6 +29,7 @@ import io.mosip.testrig.apirig.utils.AdminTestException;
 import io.mosip.testrig.apirig.utils.AdminTestUtil;
 import io.mosip.testrig.apirig.utils.AuthenticationTestException;
 import io.mosip.testrig.apirig.utils.GlobalConstants;
+import io.mosip.testrig.apirig.utils.NotificationListener;
 import io.mosip.testrig.apirig.utils.OutputValidationUtil;
 import io.mosip.testrig.apirig.utils.ReportUtil;
 import io.mosip.testrig.apirig.utils.SecurityXSSException;
@@ -115,6 +116,7 @@ public class PostWithBodyWithOtpGenerate extends MimotoUtil implements ITest {
 		String inputReqJson = getJsonFromTemplate(otpReqJson.toString(), sendOtpReqTemplate);
 		inputReqJson = MimotoUtil.inputstringKeyWordHandeler(inputReqJson, testCaseName);
 
+		NotificationListener.markRequestStart();
 		otpResponse = postWithBodyAndCookie(ApplnURI + sendOtpEndPoint, inputReqJson, COOKIENAME,
 				GlobalConstants.RESIDENT, testCaseDTO.getTestCaseName());
 
@@ -175,5 +177,6 @@ public class PostWithBodyWithOtpGenerate extends MimotoUtil implements ITest {
 	@AfterMethod(alwaysRun = true)
 	public void setResultTestName(ITestResult result) {
 		result.setAttribute("TestCaseName", testCaseName);
+		NotificationListener.markRequestRemove();
 	}
 }

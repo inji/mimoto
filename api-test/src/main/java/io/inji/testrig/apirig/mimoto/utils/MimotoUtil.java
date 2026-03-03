@@ -33,6 +33,7 @@ import io.mosip.testrig.apirig.utils.AdminTestUtil;
 import io.mosip.testrig.apirig.utils.ConfigManager;
 import io.mosip.testrig.apirig.utils.GlobalConstants;
 import io.mosip.testrig.apirig.utils.GlobalMethods;
+import io.mosip.testrig.apirig.utils.NotificationListener;
 import io.mosip.testrig.apirig.utils.RestClient;
 import io.mosip.testrig.apirig.utils.SkipTestCaseHandler;
 import io.restassured.response.Response;
@@ -185,7 +186,7 @@ public class MimotoUtil extends AdminTestUtil {
 								emailId = removeLeadingPlusSigns(emailId);
 							}
 							logger.info(emailId);
-							otp = OTPListener.getOtp(emailId);
+							otp = NotificationListener.getOtp(emailId);
 							request.getJSONObject(GlobalConstants.REQUEST).getJSONArray(GlobalConstants.CHALLENGELIST)
 									.getJSONObject(0).put(GlobalConstants.CHALLENGE, otp);
 							inputJson = request.toString();
