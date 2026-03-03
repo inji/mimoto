@@ -399,6 +399,9 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
             if (publicClaimsMap != null) {
                 publicClaims = new ArrayList<>(publicClaimsMap.keySet());
+
+                List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg", "id");
+                metadataKeys.forEach(publicClaims::remove);
             }
 
             if (sdClaimsMap != null) {
