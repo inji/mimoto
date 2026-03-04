@@ -19,7 +19,7 @@ extraEnvVars:
       secretKeyRef:
         name: db-common-secrets
         key: db-dbuser-password
-  - name: INJI_MIMOTO_DATABASE_HOSTNAME
+  - name: MOSIP_MIMOTO_DATABASE_HOSTNAME
     value: postgres-postgresql.postgres
-  - name: INJI_MIMOTO_DATABASE_PORT
+  - name: MOSIP_MIMOTO_DATABASE_PORT
     value: "5432"
