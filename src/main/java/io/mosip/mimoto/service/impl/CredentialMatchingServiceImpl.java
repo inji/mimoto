@@ -411,14 +411,11 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             sdClaimsMap = allClaims.get("sdClaims");
 
             if (publicClaimsMap != null) {
-                publicClaims = new ArrayList<>(publicClaimsMap.keySet());
-
-                List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg", "id");
-                metadataKeys.forEach(publicClaims::remove);
+                publicClaims = extractPublicClaimPaths(publicClaimsMap);
             }
 
             if (sdClaimsMap != null) {
-                sdClaims = extractJsonPaths(sdClaimsMap);
+                sdClaims = extractSdClaimPaths(sdClaimsMap);
             }
 
         }
@@ -429,31 +426,81 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 .credentialTypeDisplayName(credentialTypeDisplayName)
                 .credentialTypeLogo(credentialTypeLogo)
                 .format(decryptedCredentialDTO.getCredential().getFormat())
-                .publicClaims(publicClaims)
+                .claims(publicClaims)
                 .sdClaims(sdClaims)
                 .build();
     }
 
-    private List<String> extractJsonPaths(Map<String, Object> sdClaimsMap) {
+    private List<String> extractPublicClaimPaths(Map<String, Object> publicClaimsMap) {
         List<String> paths = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : sdClaimsMap.entrySet()) {
-            collectPaths(entry.getKey(), entry.getValue(), paths);
+        Object credentialSubject = publicClaimsMap.get("credentialSubject");
+        if (credentialSubject instanceof Map) {
+            Map<String, Object> csMap = (Map<String, Object>) credentialSubject;
+            collectPaths(csMap, "$", paths);
         }
+        // Remove standard JWT claims and SD-JWT metadata
+        List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg", "id");
+        metadataKeys.forEach(publicClaimsMap::remove);
+        collectPaths(publicClaimsMap, "$", paths);
         return paths;
     }
 
-    private void collectPaths(String currentPath, Object value, List<String> paths) {
-        if (value instanceof Map<?, ?> mapValue) {
-            for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
-                collectPaths(currentPath + "." + entry.getKey(), entry.getValue(), paths);
+    private List<String> extractSdClaimPaths(Map<String, Object> sdClaimsMap) {
+        List<String> paths = new ArrayList<>();
+        collectPaths(sdClaimsMap, "$", paths);
+        return paths;
+    }
+
+    private void collectPaths(Map<String, Object> map, String prefix, List<String> paths) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            // Skip _sd keys
+            if ("_sd".equals(key)) {
+                continue;
             }
-        } else if (value instanceof List<?> listValue) {
-            for (int i = 0; i < listValue.size(); i++) {
-                collectPaths(currentPath + "[" + i + "]", listValue.get(i), paths);
+
+            String currentPath = prefix + "." + key;
+
+            if (value instanceof Map) {
+                collectPaths((Map<String, Object>) value, currentPath, paths);
+            } else if (value instanceof List<?> listValue) {
+                if (hasUniformKeys(listValue)) {
+                    paths.add(currentPath);
+                } else {
+                    paths.add(currentPath);
+                    for (Object item : listValue) {
+                        if (item instanceof Map<?, ?> mapItem) {
+                            collectPaths((Map<String, Object>) mapItem, currentPath, paths);
+                        }
+                    }
+                }
+            } else {
+                paths.add(currentPath);
             }
-        } else {
-            paths.add(currentPath);
         }
     }
 
+    private boolean hasUniformKeys(List<?> list) {
+        List<Set<Object>> keySets = list.stream()
+                .filter(item -> item instanceof Map<?, ?>)
+                .map(item -> {
+                    Map<?, ?> m = (Map<?, ?>) item;
+                    return new HashSet<Object>(m.keySet());
+                })
+                .collect(Collectors.toList());
+    
+        if (keySets.size() < 2 || keySets.size() != list.size()) {
+            return false;
+        }
+    
+        Set<Object> unionKeys = new HashSet<>();
+        keySets.forEach(unionKeys::addAll);
+    
+        Set<Object> intersectionKeys = new HashSet<>(keySets.get(0));
+        keySets.forEach(intersectionKeys::retainAll);
+    
+        return !intersectionKeys.isEmpty();
+    }
 }

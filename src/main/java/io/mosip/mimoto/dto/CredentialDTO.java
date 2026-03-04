@@ -31,9 +31,9 @@ public class CredentialDTO {
     @Schema(description = "Format of the credential (e.g., ldp_vc, vc+sd-jwt, dc+sd-jwt)")
     private String format;
 
-    @JsonProperty("publicClaims")
+    @JsonProperty("claims")
     @Schema(description = "Public claims of the credential that can be shared without user consent")
-    private List<String> publicClaims;
+    private List<String> claims;
 
     @JsonProperty("sdClaims")
     @Schema(description = "Selective Disclosure Claims that require user consent to be shared")
