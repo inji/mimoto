@@ -252,11 +252,11 @@ public class CredentialPDFGeneratorService {
                         .filter(Objects::nonNull)
                         .map(item -> (Map<?, ?>) item)
                         .filter(m -> {
-                            Object lang = m.get("language");  // Safely get language
+                            Object lang = m.getOrDefault("@language", m.get("lang"));  // Safely get language
                             return lang != null && LocaleUtils.matchesLocale(lang.toString(), locale);
                         })
                         .map(m -> {
-                            Object value = m.get("value");  // Safely get value
+                            Object value = m.getOrDefault("@value", m.get("value")); // Safely get value
                             return value != null ? value.toString() : null;
                         })
                         .filter(Objects::nonNull)

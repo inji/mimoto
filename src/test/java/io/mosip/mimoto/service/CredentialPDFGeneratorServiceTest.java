@@ -31,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -892,6 +893,72 @@ class CredentialPDFGeneratorServiceTest {
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en");
 
         assertNotNull(result);  // Verifies formatValue converted 25 to "25"
+    }
+
+    @Test
+    void testFormatValueWithListOfMaps_LanguageAndValue() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        Map<String, String> mapEn = new HashMap<>();
+        mapEn.put("@value", "Green Valley Farm");
+        mapEn.put("@language", "en");
+
+        Map<String, String> mapFr = new HashMap<>();
+        mapFr.put("@value", "Ferme Vallée Verte");
+        mapFr.put("@language", "fr");
+
+        Map<String, String> mapFil = new HashMap<>();
+        mapFil.put("@value", "Bukid sa Luntiang Lambak");
+        mapFil.put("@language", "fil");
+
+        List<Map<String, String>> value = Arrays.asList(mapEn, mapFr, mapFil);
+
+        String resultEn = (String) formatValueMethod.invoke(service, value, "en");
+        String resultFr = (String) formatValueMethod.invoke(service, value, "fr");
+        String resultFil = (String) formatValueMethod.invoke(service, value, "fil");
+        String resultNoMatchingLang = (String) formatValueMethod.invoke(service, value, "hi"); // matching language not present, should return empty string
+        String resultNullLang = (String) formatValueMethod.invoke(service, value, null); // null language, should return empty string
+
+        assertEquals("Green Valley Farm", resultEn);
+        assertEquals("Ferme Vallée Verte", resultFr);
+        assertEquals("Bukid sa Luntiang Lambak", resultFil);
+        assertEquals("", resultNoMatchingLang);
+        assertEquals("", resultNullLang);
+    }
+
+    @Test
+    void testFormatValueWithListOfMaps_langAndValue() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        Map<String, String> mapEn = new HashMap<>();
+        mapEn.put("value", "Green Valley Farm");
+        mapEn.put("lang", "en");
+
+        Map<String, String> mapFr = new HashMap<>();
+        mapFr.put("value", "Ferme Vallée Verte");
+        mapFr.put("lang", "fr");
+
+        Map<String, String> mapFil = new HashMap<>();
+        mapFil.put("value", "Bukid sa Luntiang Lambak");
+        mapFil.put("lang", "fil");
+
+        List<Map<String, String>> value = Arrays.asList(mapEn, mapFr, mapFil);
+
+        String resultEn = (String) formatValueMethod.invoke(service, value, "en");
+        String resultFr = (String) formatValueMethod.invoke(service, value, "fr");
+        String resultFil = (String) formatValueMethod.invoke(service, value, "fil");
+        String resultNoMatchingLang = (String) formatValueMethod.invoke(service, value, "hi"); // matching language not present, should return empty string
+        String resultNullLang = (String) formatValueMethod.invoke(service, value, null); // null language, should return empty string
+
+        assertEquals("Green Valley Farm", resultEn);
+        assertEquals("Ferme Vallée Verte", resultFr);
+        assertEquals("Bukid sa Luntiang Lambak", resultFil);
+        assertEquals("", resultNoMatchingLang);
+        assertEquals("", resultNullLang);
     }
 
     @Test
