@@ -15,6 +15,7 @@ import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.service.impl.LdpVcCredentialFormatHandler;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
 import io.mosip.mimoto.service.impl.VcSdJwtCredentialFormatHandler;
+import io.mosip.mimoto.util.LocaleUtils;
 import io.mosip.mimoto.util.SvgFixerUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.pixelpass.PixelPass;
@@ -1705,5 +1706,123 @@ class CredentialPDFGeneratorServiceTest {
         assertNotNull(result);
         verify(pixelPass, never()).generateQRData(anyString(), anyString());
         verify(presentationService, never()).constructPresentationDefinition(any());
+    }
+
+    @Test
+    void testDisplayListWithMatchingLocale() {
+        // Arrange - Test scenario where display list contains a matching locale
+        CredentialsSupportedResponse response = new CredentialsSupportedResponse();
+        
+        CredentialSupportedDisplayResponse displayEn = new CredentialSupportedDisplayResponse();
+        displayEn.setName("English Display");
+        displayEn.setLocale("en");
+        displayEn.setBackgroundColor("#FFFFFF");
+        displayEn.setTextColor("#000000");
+        
+        CredentialSupportedDisplayResponse displayFr = new CredentialSupportedDisplayResponse();
+        displayFr.setName("French Display");
+        displayFr.setLocale("fr");
+        displayFr.setBackgroundColor("#FFFFFF");
+        displayFr.setTextColor("#000000");
+        
+        CredentialSupportedDisplayResponse displayDe = new CredentialSupportedDisplayResponse();
+        displayDe.setName("German Display");
+        displayDe.setLocale("de");
+        displayDe.setBackgroundColor("#FFFFFF");
+        displayDe.setTextColor("#000000");
+        
+        response.setDisplay(List.of(displayFr, displayDe, displayEn));
+        
+        // Act
+        List<CredentialSupportedDisplayResponse> displayList = response.getDisplay();
+        String userLocale = "en";
+        
+        CredentialSupportedDisplayResponse firstDisplay = null;
+        if (displayList != null && !displayList.isEmpty()) {
+            firstDisplay = displayList.stream()
+                    .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
+                    .findFirst()
+                    .orElse(displayList.getFirst());
+        }
+        
+        // Assert
+        assertNotNull(firstDisplay);
+        assertEquals("English Display", firstDisplay.getName());
+        assertEquals("en", firstDisplay.getLocale());
+    }
+
+    @Test
+    void testDisplayListWithoutMatchingLocaleFallbackToFirst() {
+        // Arrange - Test scenario where no matching locale is found, fallback to first element
+        CredentialsSupportedResponse response = new CredentialsSupportedResponse();
+        
+        CredentialSupportedDisplayResponse displayFr = new CredentialSupportedDisplayResponse();
+        displayFr.setName("French Display");
+        displayFr.setLocale("fr");
+        displayFr.setBackgroundColor("#FFFFFF");
+        displayFr.setTextColor("#000000");
+        
+        CredentialSupportedDisplayResponse displayDe = new CredentialSupportedDisplayResponse();
+        displayDe.setName("German Display");
+        displayDe.setLocale("de");
+        displayDe.setBackgroundColor("#FFFFFF");
+        displayDe.setTextColor("#000000");
+        
+        response.setDisplay(List.of(displayFr, displayDe));
+        
+        // Act
+        List<CredentialSupportedDisplayResponse> displayList = response.getDisplay();
+        String userLocale = "es"; // Spanish locale - not in the list
+        
+        CredentialSupportedDisplayResponse firstDisplay = null;
+        if (displayList != null && !displayList.isEmpty()) {
+            firstDisplay = displayList.stream()
+                    .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
+                    .findFirst()
+                    .orElse(displayList.getFirst());
+        }
+        
+        // Assert
+        assertNotNull(firstDisplay);
+        assertEquals("French Display", firstDisplay.getName());
+        assertEquals("fr", firstDisplay.getLocale());
+        assertTrue(displayList.size() > 1);
+    }
+
+    @Test
+    void testDisplayListIsNullOrEmpty() {
+        // Arrange - Test scenario where display list is null or empty
+        CredentialsSupportedResponse responseNull = new CredentialsSupportedResponse();
+        responseNull.setDisplay(null);
+        
+        CredentialsSupportedResponse responseEmpty = new CredentialsSupportedResponse();
+        responseEmpty.setDisplay(new ArrayList<>());
+        
+        // Act & Assert for null case
+        List<CredentialSupportedDisplayResponse> displayListNull = responseNull.getDisplay();
+        String userLocale = "en";
+        
+        CredentialSupportedDisplayResponse firstDisplayNull = null;
+        if (displayListNull != null && !displayListNull.isEmpty()) {
+            firstDisplayNull = displayListNull.stream()
+                    .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
+                    .findFirst()
+                    .orElse(displayListNull.getFirst());
+        }
+        
+        assertNull(firstDisplayNull);
+        
+        // Act & Assert for empty case
+        List<CredentialSupportedDisplayResponse> displayListEmpty = responseEmpty.getDisplay();
+        
+        CredentialSupportedDisplayResponse firstDisplayEmpty = null;
+        if (displayListEmpty != null && !displayListEmpty.isEmpty()) {
+            firstDisplayEmpty = displayListEmpty.stream()
+                    .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
+                    .findFirst()
+                    .orElse(displayListEmpty.getFirst());
+        }
+        
+        assertNull(firstDisplayEmpty);
     }
 }
