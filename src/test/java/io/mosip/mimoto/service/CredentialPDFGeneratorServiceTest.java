@@ -339,8 +339,8 @@ class CredentialPDFGeneratorServiceTest {
         // Setup credential with locale-specific map list
         Map<String, Object> subjectWithLocaleMap = new HashMap<>();
         List<Map<String, Object>> localeData = List.of(
-                Map.of("@language", "en", "@value", "English Name"),
-                Map.of("@language", "fr", "@value", "French Name")
+                Map.of(LdpVcV2Constants.LANGUAGE, "en", LdpVcV2Constants.VALUE, "English Name"),
+                Map.of(LdpVcV2Constants.LANGUAGE, "fr", LdpVcV2Constants.VALUE, "French Name")
         );
         subjectWithLocaleMap.put("localizedName", localeData);
         ((VCCredentialProperties)vcCredentialResponse.getCredential()).setCredentialSubject(subjectWithLocaleMap);
@@ -821,8 +821,8 @@ class CredentialPDFGeneratorServiceTest {
 
         // Setup credential with locale-specific list
         List<Map<String, Object>> localeData = List.of(
-                Map.of("@language", "en", "@value", "English Name"),
-                Map.of("@language", "fr", "@value", "French Name")
+                Map.of(LdpVcV2Constants.LANGUAGE, "en", LdpVcV2Constants.VALUE, "English Name"),
+                Map.of(LdpVcV2Constants.LANGUAGE, "fr", LdpVcV2Constants.VALUE, "French Name")
         );
         Map<String, Object> subject = Map.of("name", localeData);
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(subject);
