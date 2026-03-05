@@ -5,6 +5,8 @@ import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.injivcrenderer.InjiVcRenderer;
+import io.mosip.mimoto.constant.LdpVcV1Constants;
+import io.mosip.mimoto.constant.LdpVcV2Constants;
 import io.mosip.mimoto.dto.BackgroundImageDTO;
 import io.mosip.mimoto.dto.DisplayDTO;
 import io.mosip.mimoto.dto.IssuerDTO;
@@ -896,22 +898,50 @@ class CredentialPDFGeneratorServiceTest {
     }
 
     @Test
+    void testFormatValueWithMap_AtValue() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        Map<String, Object> value = new HashMap<>();
+        value.put(LdpVcV2Constants.VALUE, "Green Valley Farm");
+
+        String result = (String) formatValueMethod.invoke(service, value, "en");
+
+        assertEquals("Green Valley Farm", result);
+    }
+
+    @Test
+    void testFormatValueWithMap_Value() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        Map<String, Object> value = new HashMap<>();
+        value.put(LdpVcV1Constants.VALUE, "Green Valley Farm");
+
+        String result = (String) formatValueMethod.invoke(service, value, "en");
+
+        assertEquals("Green Valley Farm", result);
+    }
+
+    @Test
     void testFormatValueWithListOfMaps_LanguageAndValue() throws Exception {
         CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
         Map<String, String> mapEn = new HashMap<>();
-        mapEn.put("@value", "Green Valley Farm");
-        mapEn.put("@language", "en");
+        mapEn.put(LdpVcV2Constants.VALUE, "Green Valley Farm");
+        mapEn.put(LdpVcV2Constants.LANGUAGE, "en");
 
         Map<String, String> mapFr = new HashMap<>();
-        mapFr.put("@value", "Ferme Vallée Verte");
-        mapFr.put("@language", "fr");
+        mapFr.put(LdpVcV2Constants.VALUE, "Ferme Vallée Verte");
+        mapFr.put(LdpVcV2Constants.LANGUAGE, "fr");
 
         Map<String, String> mapFil = new HashMap<>();
-        mapFil.put("@value", "Bukid sa Luntiang Lambak");
-        mapFil.put("@language", "fil");
+        mapFil.put(LdpVcV2Constants.VALUE, "Bukid sa Luntiang Lambak");
+        mapFil.put(LdpVcV2Constants.LANGUAGE, "fil");
 
         List<Map<String, String>> value = Arrays.asList(mapEn, mapFr, mapFil);
 
@@ -935,16 +965,16 @@ class CredentialPDFGeneratorServiceTest {
         formatValueMethod.setAccessible(true);
 
         Map<String, String> mapEn = new HashMap<>();
-        mapEn.put("value", "Green Valley Farm");
-        mapEn.put("lang", "en");
+        mapEn.put(LdpVcV1Constants.VALUE, "Green Valley Farm");
+        mapEn.put(LdpVcV1Constants.LANGUAGE, "en");
 
         Map<String, String> mapFr = new HashMap<>();
-        mapFr.put("value", "Ferme Vallée Verte");
-        mapFr.put("lang", "fr");
+        mapFr.put(LdpVcV1Constants.VALUE, "Ferme Vallée Verte");
+        mapFr.put(LdpVcV1Constants.LANGUAGE, "fr");
 
         Map<String, String> mapFil = new HashMap<>();
-        mapFil.put("value", "Bukid sa Luntiang Lambak");
-        mapFil.put("lang", "fil");
+        mapFil.put(LdpVcV1Constants.VALUE, "Bukid sa Luntiang Lambak");
+        mapFil.put(LdpVcV1Constants.LANGUAGE, "fil");
 
         List<Map<String, String>> value = Arrays.asList(mapEn, mapFr, mapFil);
 

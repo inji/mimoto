@@ -1,9 +1,13 @@
 package io.mosip.mimoto.constant;
 
 /**
- * Constants for LDP VC credentials with V2 context
+ * Constants for LDP VC credentials with V2.0 context
  */
 public class LdpVcV2Constants {
+    // Language Object and its properties
+    public static final String LANGUAGE = "@language";
+    public static final String VALUE = "@value";
+    public static final String DIRECTION = "@direction";
 
     // Credential context and URL
     public static final String CONTEXT = "@context";

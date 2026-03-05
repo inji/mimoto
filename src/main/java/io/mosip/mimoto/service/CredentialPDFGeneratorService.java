@@ -16,6 +16,7 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.nimbusds.jose.util.Base64URL;
 import io.mosip.injivcrenderer.InjiVcRenderer;
 import io.mosip.mimoto.constant.CredentialFormat;
+import io.mosip.mimoto.constant.LdpVcV1Constants;
 import io.mosip.mimoto.constant.LdpVcV2Constants;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerDisplayResponse;
@@ -241,7 +242,9 @@ public class CredentialPDFGeneratorService {
 
     private String formatValue(Object val, String locale) {
         if (val instanceof Map) {
-            return Optional.ofNullable(((Map<?, ?>) val).get("value")).map(Object::toString).orElse("");
+            return Optional.ofNullable(((Map<?, Object>) val).getOrDefault(LdpVcV2Constants.VALUE, ((Map<?, Object>) val).get(LdpVcV1Constants.VALUE)))
+                    .map(Object::toString)
+                    .orElse("");
         } else if (val instanceof List) {
             List<?> list = (List<?>) val;
             if (list.isEmpty()) return "";
@@ -252,11 +255,11 @@ public class CredentialPDFGeneratorService {
                         .filter(Objects::nonNull)
                         .map(item -> (Map<?, ?>) item)
                         .filter(m -> {
-                            Object lang = m.getOrDefault("@language", m.get("lang"));  // Safely get language
+                            Object lang = m.getOrDefault(LdpVcV2Constants.LANGUAGE, m.get(LdpVcV1Constants.LANGUAGE));  // Safely get language
                             return lang != null && LocaleUtils.matchesLocale(lang.toString(), locale);
                         })
                         .map(m -> {
-                            Object value = m.getOrDefault("@value", m.get("value")); // Safely get value
+                            Object value = m.getOrDefault(LdpVcV2Constants.VALUE, m.get(LdpVcV1Constants.VALUE)); // Safely get value
                             return value != null ? value.toString() : null;
                         })
                         .filter(Objects::nonNull)
