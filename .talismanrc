@@ -132,7 +132,7 @@ fileignoreconfig:
 - filename: src/main/java/io/mosip/mimoto/service/impl/VcSdJwtCredentialFormatHandler.java
   checksum: b538ea4262c48564ec6040d3c04c605c6f3d02a0182d0eadcf2849d8cc0f8628
 - filename: src/test/java/io/mosip/mimoto/service/VcSdJwtCredentialFormatHandlerTest.java
-  checksum: e91aa11aa049453a3a7cd542386dbb813f5c868678f68d6bd71af92149e0d5db
+  checksum: 3c0a06bac77cde10b2d7d4b0c43ce010fe00a31b9aa97af78af9e87e8df8401d
 - filename: db_scripts/inji_mimoto/ddl.sql
   checksum: 51cd2efbe5220b995ae7cff7d70797b2c1bde0ce3325b70d62a31a1f4f41aa47
 - filename: db_scripts/inji_mimoto/ddl/mimoto-trusted-verifiers.sql
@@ -165,9 +165,9 @@ fileignoreconfig:
 - filename: src/main/java/io/mosip/mimoto/service/CredentialMatchingService.java
   checksum: b2ceada5c81b9dadb6e7780604c68b7ae2d4272d2f67442fab0f5a45bd33727e
 - filename: src/main/java/io/mosip/mimoto/service/impl/CredentialMatchingServiceImpl.java
-  checksum: ca938c231a71382743073a0685fdbb0ea676f02f52d1b35f34eeef512fb1a10c
+  checksum: 9b07e366cc38a3fdf3fe62b91d7161c0fbca6972dfbb3ab69e9d7ec83a85c1b6
 - filename: src/test/java/io/mosip/mimoto/service/CredentialMatchingServiceTest.java
-  checksum: b1323c5b2d2209440ff2d4705d72d67cf93f3a790ef1a4bdeccc5c557686bd85
+  checksum: f0064149fe98f4dc82195f23956bb6ae206e8b6555c8f53adb61982f26a5285e
 - filename: src/test/java/io/mosip/mimoto/service/SessionManagerTest.java
   checksum: f541358ce3b674a8865592b8c899c2dac484730b8790f9a99b6a79a5b7953c9a
 - filename: src/main/java/io/mosip/mimoto/constant/OpenID4VPConstants.java

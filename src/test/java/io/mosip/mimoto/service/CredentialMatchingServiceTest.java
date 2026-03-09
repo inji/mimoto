@@ -20,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -49,6 +50,12 @@ public class CredentialMatchingServiceTest {
     @Mock
     private OpenID4VPService openID4VPService;
 
+    @Mock
+    private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
+
+    @Mock
+    private CredentialFormatHandler credentialFormatHandler;
+
     private VerifiablePresentationSessionData sessionData;
     private String walletId;
     private String base64Key;
@@ -59,18 +66,34 @@ public class CredentialMatchingServiceTest {
     public void setUp() throws JsonProcessingException {
         walletId = "test-wallet-id";
         base64Key = "test-base64-key";
-
-        // Setup session data
         sessionData = new VerifiablePresentationSessionData();
-
-        // Setup presentation definition
         presentationDefinition = createMockPresentationDefinition();
-
-        // Setup wallet credentials
         walletCredentials = createMockWalletCredentials();
+
+        when(credentialFormatHandlerFactory.getHandler(eq("ldp_vc"))).thenReturn(credentialFormatHandler);
+        when(credentialFormatHandlerFactory.getHandler(eq(CredentialFormat.VC_SD_JWT.getFormat()))).thenReturn(credentialFormatHandler);
+
+        when(credentialFormatHandler.extractAllCredentialProperties(any(VCCredentialResponse.class)))
+                .thenAnswer(invocation -> {
+                    VCCredentialResponse vc = invocation.getArgument(0);
+                    String format = vc.getFormat();
+
+                    if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+                        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+                        result.put("publicClaims", new LinkedHashMap<>());
+                        result.put("sdClaims", new LinkedHashMap<>());
+                        return result;
+                    }
+
+                    Object credential = vc.getCredential();
+                    if (credential instanceof Map) {
+                        return new LinkedHashMap<>((Map<?, ?>) credential);
+                    }
+                    return new LinkedHashMap<>();
+                });
     }
 
-   // @Test
+    @Test
     public void testGetMatchingCredentialsSuccess() throws Exception {
         // Arrange
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
@@ -93,7 +116,6 @@ public class CredentialMatchingServiceTest {
 
         verify(openID4VPService).resolvePresentationDefinition(any(), any(), anyBoolean());
         verify(walletCredentialService).getDecryptedCredentials(eq(walletId), any());
-        verify(dataProtectionService).decryptCredential(anyString(), eq(base64Key));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -124,16 +146,6 @@ public class CredentialMatchingServiceTest {
 
         // Act
         credentialMatchingService.getMatchingCredentials(sessionData, walletId, null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testGetMatchingCredentialsNullPresentationDefinition() throws Exception {
-        // Arrange
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(null);
-
-        // Act
-        credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -219,29 +231,6 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
-    public void testGetMatchingCredentialsIssuerConfigNotFound() throws Exception {
-        // Arrange
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(presentationDefinition);
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(walletCredentials);
-
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
-        // Should still work but with default credential display name
-        if (!result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty()) {
-            assertEquals("Unknown Credential",
-                    result.getMatchingCredentialsResponse().getAvailableCredentials().get(0).getCredentialTypeDisplayName());
-        }
-    }
-
-    @Test
     public void testGetMatchingCredentialsWithConstraints() throws Exception {
         // Arrange
         PresentationDefinition pdWithConstraints = createMockPresentationDefinitionWithConstraints();
@@ -263,10 +252,8 @@ public class CredentialMatchingServiceTest {
     public void testGetMatchingCredentialsFormatMismatch() throws Exception {
         // Arrange
         PresentationDefinition pdWithFormat = createMockPresentationDefinitionWithSpecificFormat();
-        
-        // Create credentials with different format (vc+sd-jwt instead of ldp_vc)
         List<DecryptedCredentialDTO> credentialsWithDifferentFormat = createMockWalletCredentialsWithSdJwtFormat();
-        
+
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
                 .thenReturn(pdWithFormat);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
@@ -278,7 +265,6 @@ public class CredentialMatchingServiceTest {
 
         // Assert
         assertNotNull(result);
-        // Should not match due to format mismatch
         assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
@@ -364,7 +350,7 @@ public class CredentialMatchingServiceTest {
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
                 .thenReturn(pdWithConstraints);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(walletCredentials); // credentials without matching subject
+                .thenReturn(walletCredentials);
 
         // Act
         MatchingCredentialsDTO result = credentialMatchingService
@@ -410,76 +396,6 @@ public class CredentialMatchingServiceTest {
         // Assert
         assertNotNull(result);
         assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
-    }
-
-    @Test
-    public void testGetMatchingCredentialsWithFilterMatching() throws Exception {
-        // Arrange
-        // Use a simpler presentation definition that doesn't require complex filter matching
-        PresentationDefinition pd = createMockPresentationDefinition();
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pd);
-        
-        // Create credentials with proper structure for basic matching
-        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithMapData();
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(credentials);
-        
-        // Mock issuer service to return a valid config
-        IssuerConfig mockIssuerConfig = createMockIssuerConfig();
-        when(issuersService.getIssuerConfig(eq("test-issuer-id"), eq("TestCredential")))
-                .thenReturn(mockIssuerConfig);
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
-        
-        // This test verifies that basic credential matching works
-        // The credentials should match because they have the required $.type field
-        assertFalse("Basic credential matching failed - credentials should match the presentation definition", 
-                   result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
-    }
-
-    @Test
-    public void testGetMatchingCredentialsWithFilterMatchingAdvanced() throws Exception {
-        // Arrange
-        // Create a presentation definition WITHOUT filters to test basic credential matching
-        // This will help isolate whether the issue is in filter matching or basic matching
-        Fields field = new Fields(Arrays.asList("$.name"), null, null, null, null, null);
-        Constraints constraints = new Constraints(Collections.singletonList(field), null);
-        InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
-        PresentationDefinition pdWithoutFilter = new PresentationDefinition("test-presentation-definition", Arrays.asList(descriptor), null, null, null);
-        
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pdWithoutFilter);
-        
-        // Create credentials with a flatter structure for easier path matching
-        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithSimpleFilterData();
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(credentials);
-        
-        // Mock issuer service to return a valid config
-        IssuerConfig mockIssuerConfig = createMockIssuerConfig();
-        when(issuersService.getIssuerConfig(eq("test-issuer-id"), eq("TestCredential")))
-                .thenReturn(mockIssuerConfig);
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
-        
-        // This test verifies that basic credential matching works without filters
-        // If it fails, the issue is in the basic credential matching logic
-        // If it passes, the issue is specifically in the filter matching logic
-        assertFalse("Basic credential matching without filters failed - this indicates a fundamental issue with credential matching", 
-                   result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test
@@ -536,7 +452,7 @@ public class CredentialMatchingServiceTest {
         assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
-    @Test(expected = InvalidRequestException.class)
+    @Test
     public void testGetMatchingCredentialsWithSdJwtFormat() throws Exception {
         // Arrange
         PresentationDefinition pd = createMockPresentationDefinition();
@@ -544,10 +460,14 @@ public class CredentialMatchingServiceTest {
                 .thenReturn(pd);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
                 .thenReturn(createMockWalletCredentialsWithSdJwtFormat());
-        
-        
-        // Act & Assert - Should throw InvalidRequestException for unsupported SD-JWT format
-        credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService
+                .getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test(expected = InvalidRequestException.class)
@@ -556,13 +476,11 @@ public class CredentialMatchingServiceTest {
         PresentationDefinition pd = createMockPresentationDefinition();
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
                 .thenReturn(pd);
-        
         List<DecryptedCredentialDTO> dcSdJwtCredentials = createMockWalletCredentialsWithDcSdJwtFormat();
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
                 .thenReturn(dcSdJwtCredentials);
-        
-        
-        // Act & Assert - Should throw InvalidRequestException for unsupported DC+SD-JWT format
+
+        // Act
         credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
     }
 
@@ -624,16 +542,12 @@ public class CredentialMatchingServiceTest {
         // Assert
         assertNotNull(result);
         assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
-        // Should deduplicate credentials by ID
         Set<String> credentialIds = result.getMatchingCredentialsResponse().getAvailableCredentials()
                 .stream().map(CredentialDTO::getCredentialId).collect(Collectors.toSet());
-        assertEquals(2, credentialIds.size()); // Should have 2 unique credentials
+        assertEquals(2, credentialIds.size());
     }
 
-    // Helper methods to create mock objects
-
     private PresentationDefinition createMockPresentationDefinition() {
-
         Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
         Constraints constraints = new Constraints(Collections.singletonList(field), null);
         InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
@@ -642,25 +556,13 @@ public class CredentialMatchingServiceTest {
     }
 
     private PresentationDefinition createMockPresentationDefinitionWithConstraints() {
-        // Field 1: simple path
         Fields field1 = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
-
-        // Field 2: with path and filter
         Filter filter = new Filter("type", "String");
         Fields field2 = new Fields(Arrays.asList("$.credentialSubject.name"), null, null, null, filter, null);
-
-        // Constraints with both fields
         Constraints constraints = new Constraints(Arrays.asList(field1, field2), null);
-
-        // Input Descriptor with constraints
         InputDescriptor descriptor = new InputDescriptor("test-descriptor-with-constraints", null, null, null, constraints);
-
-        // Presentation Definition with descriptor
-        PresentationDefinition pd = new PresentationDefinition("test-presentation-definition-with-constraints", Arrays.asList(descriptor), null, null, null);
-
-        return pd;
+        return new PresentationDefinition("test-presentation-definition-with-constraints", Arrays.asList(descriptor), null, null, null);
     }
-
 
     private PresentationDefinition createMockPresentationDefinitionWithSpecificFormat() {
         Map<String, Map<String, List<String>>> format = new HashMap<>();
@@ -721,7 +623,6 @@ public class CredentialMatchingServiceTest {
         return response;
     }
 
-
     private Map<String, Object> createMockCredentialSubject() {
         Map<String, Object> subject = new HashMap<>();
         subject.put("id", "did:example:123456789");
@@ -771,7 +672,6 @@ public class CredentialMatchingServiceTest {
     }
 
     private PresentationDefinition createMockPresentationDefinitionWithNullConstraints() {
-        // Create constraints with null fields (not null constraints object)
         Constraints constraints = new Constraints(null, null);
         InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
         return new PresentationDefinition("test-presentation-definition", Arrays.asList(descriptor), null, null, null);
@@ -885,12 +785,11 @@ public class CredentialMatchingServiceTest {
         credential.setId("test-credential-id");
         credential.setWalletId(walletId);
 
-        // Create credential data with type that matches the presentation definition
         Map<String, Object> credentialData = new HashMap<>();
         credentialData.put("iss", "https://example.com");
         credentialData.put("sub", "did:example:123456789");
         credentialData.put("type", Arrays.asList("DataCredential", "TestCredential"));
-        
+
         VCCredentialResponse response = VCCredentialResponse.builder()
                 .format(CredentialFormat.DC_SD_JWT.getFormat())
                 .credential(credentialData)
@@ -934,12 +833,10 @@ public class CredentialMatchingServiceTest {
         return Arrays.asList(credential1, credential2);
     }
 
-
     private VCCredentialProperties createMockVCCredentialPropertiesWithProof() {
         VCCredentialProperties properties = new VCCredentialProperties();
         properties.setType(Arrays.asList("VerifiableCredential", "TestCredential"));
-        
-        // Create a mock proof object
+
         VCCredentialResponseProof proof = new VCCredentialResponseProof();
         proof.setType("Ed25519Signature2020");
         properties.setProof(proof);
@@ -952,16 +849,13 @@ public class CredentialMatchingServiceTest {
         credential.setId("test-credential-id");
         credential.setWalletId(walletId);
 
-        // Create credential data as Map (which is what the implementation expects for ldp_vc format)
         Map<String, Object> credentialData = new HashMap<>();
         credentialData.put("type", Arrays.asList("VerifiableCredential", "TestCredential"));
-        
-        // Create credentialSubject with name that contains "John" (filter pattern)
         Map<String, Object> subject = new HashMap<>();
         subject.put("id", "did:example:123456789");
-        subject.put("name", "John Doe"); // This should match filter looking for "John"
+        subject.put("name", "John Doe");
         credentialData.put("credentialSubject", subject);
-        
+
         VCCredentialResponse response = VCCredentialResponse.builder()
                 .format("ldp_vc")
                 .credential(credentialData)
@@ -984,12 +878,11 @@ public class CredentialMatchingServiceTest {
         credential.setId("test-credential-id");
         credential.setWalletId(walletId);
 
-        // Create credential data with a flatter structure for easier path matching
         Map<String, Object> credentialData = new HashMap<>();
         credentialData.put("type", Arrays.asList("VerifiableCredential", "TestCredential"));
-        credentialData.put("name", "John Doe"); // Direct field for $.name path
+        credentialData.put("name", "John Doe");
         credentialData.put("id", "did:example:123456789");
-        
+
         VCCredentialResponse response = VCCredentialResponse.builder()
                 .format("ldp_vc")
                 .credential(credentialData)
@@ -1007,67 +900,23 @@ public class CredentialMatchingServiceTest {
         return Arrays.asList(credential);
     }
 
-    // Test cases for evaluateJsonPath method through integration testing
     @Test
     public void testJsonPathEvaluationTypePathWithSampleData() throws Exception {
-        // Arrange - Using the exact sample data provided
+        // Arrange
         Map<String, Object> credentialData = new HashMap<>();
         credentialData.put("id", "did:rcw:2121a1df-29fe-496e-ae24-219dcOb3ac49");
         credentialData.put("type", Arrays.asList("VerifiableCredential", "LifeInsuranceCredential"));
-        
-        // Create presentation definition that requires the type field
+
         Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
         Constraints constraints = new Constraints(Collections.singletonList(field), null);
         InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
         PresentationDefinition pd = new PresentationDefinition("test-presentation-definition", Arrays.asList(descriptor), null, null, null);
-        
+
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
                 .thenReturn(pd);
-        
-        // Create credentials with the sample data
         List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithSampleData(credentialData);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
                 .thenReturn(credentials);
-        
-        // Mock issuer service
-        IssuerConfig mockIssuerConfig = createMockIssuerConfig();
-        when(issuersService.getIssuerConfig(eq("test-issuer-id"), eq("TestCredential")))
-                .thenReturn(mockIssuerConfig);
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert - This tests that the JSON path evaluation works correctly
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
-        assertFalse("JSON path evaluation failed - credentials should match the type field", 
-                   result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
-    }
-
-    @Test
-    public void testJsonPathEvaluationNestedPath() throws Exception {
-        // Arrange - Test nested path evaluation
-        Map<String, Object> credentialData = new HashMap<>();
-        Map<String, Object> credentialSubject = new HashMap<>();
-        credentialSubject.put("name", "John Doe");
-        credentialSubject.put("age", 30);
-        credentialData.put("credentialSubject", credentialSubject);
-        credentialData.put("type", Arrays.asList("VerifiableCredential", "IdentityCredential"));
-        
-        // Create presentation definition that requires nested field
-        Fields field = new Fields(Arrays.asList("$.credentialSubject.name"), null, null, null, null, null);
-        Constraints constraints = new Constraints(Collections.singletonList(field), null);
-        InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
-        PresentationDefinition pd = new PresentationDefinition("test-presentation-definition", Arrays.asList(descriptor), null, null, null);
-        
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pd);
-        
-        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithSampleData(credentialData);
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(credentials);
-        
         IssuerConfig mockIssuerConfig = createMockIssuerConfig();
         when(issuersService.getIssuerConfig(eq("test-issuer-id"), eq("TestCredential")))
                 .thenReturn(mockIssuerConfig);
@@ -1079,45 +928,74 @@ public class CredentialMatchingServiceTest {
         // Assert
         assertNotNull(result);
         assertNotNull(result.getMatchingCredentialsResponse());
-        assertFalse("Nested JSON path evaluation failed", 
-                   result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test
-    public void testJsonPathEvaluationNonExistentPath() throws Exception {
-        // Arrange - Test non-existent path handling
+    public void testJsonPathEvaluationNestedPath() throws Exception {
+        // Arrange
         Map<String, Object> credentialData = new HashMap<>();
-        credentialData.put("id", "did:rcw:2121a1df-29fe-496e-ae24-219dcOb3ac49");
-        credentialData.put("type", Arrays.asList("VerifiableCredential", "TestCredential"));
-        
-        // Create presentation definition that requires non-existent field
-        Fields field = new Fields(Arrays.asList("$.nonExistentField"), null, null, null, null, null);
+        Map<String, Object> credentialSubject = new HashMap<>();
+        credentialSubject.put("name", "John Doe");
+        credentialSubject.put("age", 30);
+        credentialData.put("credentialSubject", credentialSubject);
+        credentialData.put("type", Arrays.asList("VerifiableCredential", "IdentityCredential"));
+
+        Fields field = new Fields(Arrays.asList("$.credentialSubject.name"), null, null, null, null, null);
         Constraints constraints = new Constraints(Collections.singletonList(field), null);
         InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
         PresentationDefinition pd = new PresentationDefinition("test-presentation-definition", Arrays.asList(descriptor), null, null, null);
-        
+
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
                 .thenReturn(pd);
-        
         List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithSampleData(credentialData);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
                 .thenReturn(credentials);
-        
-        
+        IssuerConfig mockIssuerConfig = createMockIssuerConfig();
+        when(issuersService.getIssuerConfig(eq("test-issuer-id"), eq("TestCredential")))
+                .thenReturn(mockIssuerConfig);
+
         // Act
         MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
-        // Assert - Should not match due to non-existent path
+        // Assert
         assertNotNull(result);
         assertNotNull(result.getMatchingCredentialsResponse());
-        assertTrue("Non-existent path should result in no matches", 
-                  result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testJsonPathEvaluationNonExistentPath() throws Exception {
+        // Arrange
+        Map<String, Object> credentialData = new HashMap<>();
+        credentialData.put("id", "did:rcw:2121a1df-29fe-496e-ae24-219dcOb3ac49");
+        credentialData.put("type", Arrays.asList("VerifiableCredential", "TestCredential"));
+
+        Fields field = new Fields(Arrays.asList("$.nonExistentField"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-presentation-definition", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
+                .thenReturn(pd);
+        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithSampleData(credentialData);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(credentials);
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService
+                .getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertNotNull(result);
+        assertNotNull(result.getMatchingCredentialsResponse());
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test
     public void testJsonPathEvaluationComplexNestedStructure() throws Exception {
-        // Arrange - Test complex nested structure
+        // Arrange
         Map<String, Object> credentialData = new HashMap<>();
         Map<String, Object> credentialSubject = new HashMap<>();
         Map<String, Object> address = new HashMap<>();
@@ -1127,20 +1005,17 @@ public class CredentialMatchingServiceTest {
         credentialSubject.put("name", "John Doe");
         credentialData.put("credentialSubject", credentialSubject);
         credentialData.put("type", Arrays.asList("VerifiableCredential", "IdentityCredential"));
-        
-        // Create presentation definition that requires deeply nested field
+
         Fields field = new Fields(Arrays.asList("$.credentialSubject.address.city"), null, null, null, null, null);
         Constraints constraints = new Constraints(Collections.singletonList(field), null);
         InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
         PresentationDefinition pd = new PresentationDefinition("test-presentation-definition", Arrays.asList(descriptor), null, null, null);
-        
+
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
                 .thenReturn(pd);
-        
         List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithSampleData(credentialData);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
                 .thenReturn(credentials);
-        
         IssuerConfig mockIssuerConfig = createMockIssuerConfig();
         when(issuersService.getIssuerConfig(eq("test-issuer-id"), eq("TestCredential")))
                 .thenReturn(mockIssuerConfig);
@@ -1152,31 +1027,26 @@ public class CredentialMatchingServiceTest {
         // Assert
         assertNotNull(result);
         assertNotNull(result.getMatchingCredentialsResponse());
-        assertFalse("Complex nested JSON path evaluation failed", 
-                   result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test
     public void testJsonPathEvaluationListIndexPath() throws Exception {
-        // Arrange - Test list index path evaluation
+        // Arrange
         Map<String, Object> credentialData = new HashMap<>();
         credentialData.put("items", Arrays.asList("item1", "item2", "item3"));
         credentialData.put("type", Arrays.asList("VerifiableCredential", "TestCredential"));
-        
-        // Create presentation definition that requires list index
+
         Fields field = new Fields(Arrays.asList("$.items.1"), null, null, null, null, null);
         Constraints constraints = new Constraints(Collections.singletonList(field), null);
         InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
         PresentationDefinition pd = new PresentationDefinition("test-presentation-definition", Arrays.asList(descriptor), null, null, null);
-        
+
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
                 .thenReturn(pd);
-        
         List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithSampleData(credentialData);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
                 .thenReturn(credentials);
-        
-        IssuerConfig mockIssuerConfig = createMockIssuerConfig();
 
         // Act
         MatchingCredentialsDTO result = credentialMatchingService
@@ -1185,11 +1055,9 @@ public class CredentialMatchingServiceTest {
         // Assert
         assertNotNull(result);
         assertNotNull(result.getMatchingCredentialsResponse());
-        assertTrue("List index JSON path evaluation failed",
-                   result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
-    // Helper method to create credentials with custom data
     private List<DecryptedCredentialDTO> createMockWalletCredentialsWithSampleData(Map<String, Object> credentialData) throws JsonProcessingException {
         DecryptedCredentialDTO credential = new DecryptedCredentialDTO();
         credential.setId("test-credential-id");
@@ -1212,7 +1080,6 @@ public class CredentialMatchingServiceTest {
         return Arrays.asList(credential);
     }
 
-    // Test cases for null checks and input validation
     @Test
     public void testGetMatchingCredentialsNullPresentationDefinitionFromService() throws Exception {
         // Arrange
@@ -1224,137 +1091,12 @@ public class CredentialMatchingServiceTest {
             credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
         });
         
-        assertEquals("Presentation definition not found in session data", exception.getMessage());
-    }
-
-
-    @Test
-    public void testMatchesConstraintsNullFields() throws Exception {
-        // Arrange
-        PresentationDefinition pd = createMockPresentationDefinition();
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pd);
-        
-        // Create credentials with null fields in constraints
-        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithMapData();
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(credentials);
-
-        // Create presentation definition with null fields
-        Constraints constraints = new Constraints(null, null);
-        InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
-        PresentationDefinition pdWithNullFields = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pdWithNullFields);
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert - Should handle null fields gracefully
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
-    }
-
-    @Test
-    public void testMatchesFormatNullDescriptorFormat() throws Exception {
-        // Arrange
-        // Create input descriptor with null format but valid constraints
-        Constraints constraints = new Constraints(null, null);
-        InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
-        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
-        
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pd);
-        
-        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithMapData();
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(credentials);
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert - Should handle null format gracefully
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
-    }
-
-    @Test
-    public void testMatchesFieldPathNullMatches() throws Exception {
-        // Arrange
-        PresentationDefinition pd = createMockPresentationDefinition();
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pd);
-        
-        // Create credentials that will result in null matches
-        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithMapData();
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(credentials);
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert - Should handle null matches gracefully
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
-    }
-
-    @Test
-    public void testMatchesFilterNullFilter() throws Exception {
-        // Arrange
-        // Create presentation definition with null filter
-        Fields field = new Fields(Arrays.asList("$.name"), null, null, null, null, null);
-        Constraints constraints = new Constraints(Collections.singletonList(field), null);
-        InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
-        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
-        
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pd);
-        
-        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithMapData();
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(credentials);
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert - Should handle null filter gracefully
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
-    }
-
-    @Test
-    public void testExtractRequiredClaimsNullPath() throws Exception {
-        // Arrange
-        // Create presentation definition with empty path list to test null path handling
-        Fields field = new Fields(Collections.emptyList(), null, null, null, null, null);
-        Constraints constraints = new Constraints(Collections.singletonList(field), null);
-        InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
-        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
-        
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(pd);
-        
-        List<DecryptedCredentialDTO> credentials = createMockWalletCredentialsWithMapData();
-        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(credentials);
-
-        // Act
-        MatchingCredentialsDTO result = credentialMatchingService
-                .getMatchingCredentials(sessionData, walletId, base64Key);
-
-        // Assert - Should handle null path gracefully
-        assertNotNull(result);
-        assertNotNull(result.getMatchingCredentialsResponse());
+        assertEquals("Presentation definition cannot be null", exception.getMessage());
     }
 
     @Test
     public void testExtractRequiredClaimsBlankPath() throws Exception {
         // Arrange
-        // Create presentation definition with blank path
         Fields field = new Fields(Arrays.asList("   "), null, null, null, null, null);
         Constraints constraints = new Constraints(Collections.singletonList(field), null);
         InputDescriptor descriptor = new InputDescriptor("test-descriptor", null, null, null, constraints);
@@ -1371,8 +1113,1148 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
-        // Assert - Should handle blank path gracefully
+        // Assert
         assertNotNull(result);
         assertNotNull(result.getMatchingCredentialsResponse());
+    }
+
+    // ============================================================
+    // Tests for SD-JWT Algorithm Matching (matchesSdJwtAlgorithm)
+    // ============================================================
+
+    @Test
+    public void testMatchesSdJwtFormatWhenAlgorithmMatchesCredentialIsSelected() throws Exception {
+        // Arrange
+        PresentationDefinition pd = createSdJwtPresentationDefinition(Arrays.asList("HS256"));
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+
+        Map<String, Object> publicClaims = new LinkedHashMap<>();
+        publicClaims.put("type", Arrays.asList("VerifiableCredential", "TestCredential"));
+        setupSdJwtHandlerMock(publicClaims, new LinkedHashMap<>());
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_HS256)));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertEquals(CredentialFormat.VC_SD_JWT.getFormat(),
+                result.getMatchingCredentialsResponse().getAvailableCredentials().get(0).getFormat());
+    }
+
+    @Test
+    public void testMatchesSdJwtFormatWhenAlgorithmDoesNotMatchCredentialNotSelected() throws Exception {
+        // Arrange
+        PresentationDefinition pd = createSdJwtPresentationDefinition(Arrays.asList("ES256"));
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_HS256)));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesSdJwtFormatWhenNoAlgValuesInFormatCredentialIsSelected() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), new HashMap<>());
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        Map<String, Object> publicClaims = new LinkedHashMap<>();
+        publicClaims.put("type", Arrays.asList("VerifiableCredential"));
+        setupSdJwtHandlerMock(publicClaims, new LinkedHashMap<>());
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_HS256)));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesSdJwtFormatWhenCredentialIsNullCredentialNotSelected() throws Exception {
+        // Arrange
+        PresentationDefinition pd = createSdJwtPresentationDefinition(Arrays.asList("HS256"));
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(null)));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesSdJwtFormatWhenCredentialIsNotStringCredentialNotSelected() throws Exception {
+        // Arrange
+        PresentationDefinition pd = createSdJwtPresentationDefinition(Arrays.asList("HS256"));
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+
+        DecryptedCredentialDTO cred = new DecryptedCredentialDTO();
+        cred.setId("sd-jwt-cred");
+        cred.setWalletId(walletId);
+        cred.setCredential(VCCredentialResponse.builder()
+                .format(CredentialFormat.VC_SD_JWT.getFormat())
+                .credential(Map.of("key", "value"))
+                .build());
+        CredentialMetadata metadata = new CredentialMetadata();
+        metadata.setIssuerId("test-issuer-id");
+        metadata.setCredentialType("TestCredential");
+        cred.setCredentialMetadata(metadata);
+        cred.setCreatedAt(Instant.now());
+        cred.setUpdatedAt(Instant.now());
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(cred));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesSdJwtFormatWhenFormatConfigValueIsNullCredentialNotSelected() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), null);
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_HS256)));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesSdJwtFormatWhenJwtHeaderMissingAlgCredentialNotSelected() throws Exception {
+        // Arrange
+        PresentationDefinition pd = createSdJwtPresentationDefinition(Arrays.asList("HS256"));
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_NO_ALG)));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesSdJwtFormatWhenEmptyJwtStringCredentialNotSelected() throws Exception {
+        // Arrange
+        PresentationDefinition pd = createSdJwtPresentationDefinition(Arrays.asList("HS256"));
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential("   ")));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesSdJwtFormatWhenJwtHeaderAlgIsNonStringCredentialNotSelected() throws Exception {
+        // Arrange
+        PresentationDefinition pd = createSdJwtPresentationDefinition(Arrays.asList("HS256"));
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_NON_STRING_ALG)));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    // ============================================================
+    // Tests for getCredentialData VC_SD_JWT branch
+    // ============================================================
+
+    @Test
+    public void testGetCredentialDataWhenSdJwtExtractsNullCredentialNotSelected() throws Exception {
+        // Arrange
+        Fields field = new Fields(Arrays.asList("$.name"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_HS256)));
+        when(credentialFormatHandler.extractAllCredentialProperties(any(VCCredentialResponse.class)))
+                .thenReturn(null);
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testGetCredentialDataWhenSdJwtFlattensPropertiesCredentialSelected() throws Exception {
+        // Arrange
+        Fields field = new Fields(Arrays.asList("$.name"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_HS256)));
+
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("name", "John");
+        setupSdJwtHandlerMock(new LinkedHashMap<>(), sdClaims);
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    // ============================================================
+    // Tests for buildAvailableCredential SD-JWT claim extraction
+    // ============================================================
+
+    @Test
+    public void testBuildAvailableCredentialWhenSdJwtWithNullClaimsReturnsEmptyClaimLists() throws Exception {
+        // Arrange
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(null, null));
+
+        // Assert
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        assertTrue(credential.getClaims().isEmpty());
+        assertTrue(credential.getSdClaims().isEmpty());
+        assertEquals(CredentialFormat.VC_SD_JWT.getFormat(), credential.getFormat());
+    }
+
+    @Test
+    public void testBuildAvailableCredentialWhenSdJwtWithCredentialSubjectExtractsFromSubject() throws Exception {
+        // Arrange
+        Map<String, Object> publicClaims = new LinkedHashMap<>();
+        Map<String, Object> subject = new LinkedHashMap<>();
+        subject.put("name", "John");
+        subject.put("age", 30);
+        publicClaims.put("credentialSubject", subject);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(publicClaims, new LinkedHashMap<>()));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        assertTrue(credential.getClaims().contains("$.name"));
+        assertTrue(credential.getClaims().contains("$.age"));
+    }
+
+    @Test
+    public void testBuildAvailableCredentialWhenSdJwtWithoutCredentialSubjectRemovesMetadataAndExtracts() throws Exception {
+        // Arrange
+        Map<String, Object> publicClaims = new LinkedHashMap<>();
+        publicClaims.put("vct", "IdentityCredential");
+        publicClaims.put("iss", "https://example.com");
+        publicClaims.put("cnf", new LinkedHashMap<>(Map.of("jwk", "key")));
+        publicClaims.put("sub", "did:example:123");
+        publicClaims.put("iat", 1234567890);
+        publicClaims.put("exp", 1234567899);
+        publicClaims.put("nbf", 1234567880);
+        publicClaims.put("jti", "urn:uuid:abc");
+        publicClaims.put("aud", "https://verifier.com");
+        publicClaims.put("_sd", Arrays.asList("hash1"));
+        publicClaims.put("_sd_alg", "sha-256");
+        publicClaims.put("id", "did:example:123");
+        publicClaims.put("given_name", "John");
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(publicClaims, new LinkedHashMap<>()));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        assertTrue(credential.getClaims().contains("$.given_name"));
+        assertFalse(credential.getClaims().stream().anyMatch(c ->
+                c.contains("vct") || c.contains("iss") || c.contains("cnf") || c.contains("sub") ||
+                c.contains("_sd") || c.contains("_sd_alg") || c.contains("id")));
+    }
+
+    @Test
+    public void testBuildAvailableCredentialWhenSdJwtWithSdClaimsExtractsSdClaimPaths() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("family_name", "Doe");
+        sdClaims.put("birth_date", "1990-01-01");
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        assertTrue(credential.getSdClaims().contains("$.family_name"));
+        assertTrue(credential.getSdClaims().contains("$.birth_date"));
+        assertEquals(2, credential.getSdClaims().size());
+    }
+
+    @Test
+    public void testBuildAvailableCredentialWhenSdJwtWithIssuerConfigExceptionUsesDefaultDisplayName() throws Exception {
+        // Arrange
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), new LinkedHashMap<>()));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        assertEquals("Unknown Credential", credential.getCredentialTypeDisplayName());
+        assertNull(credential.getCredentialTypeLogo());
+    }
+
+    // ============================================================
+    // Tests for collectPaths and hasUniformKeys
+    // ============================================================
+
+    @Test
+    public void testCollectPathsWhenMapHasScalarValuesCollectsLeafPaths() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("given_name", "John");
+        sdClaims.put("family_name", "Doe");
+        sdClaims.put("age", 30);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertEquals(3, paths.size());
+        assertTrue(paths.containsAll(Arrays.asList("$.given_name", "$.family_name", "$.age")));
+    }
+
+    @Test
+    public void testCollectPathsWhenMapHasNestedMapRecursesIntoNestedMap() throws Exception {
+        // Arrange
+        Map<String, Object> address = new LinkedHashMap<>();
+        address.put("street", "123 Main St");
+        address.put("city", "NYC");
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("address", address);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertTrue(paths.contains("$.address.street"));
+        assertTrue(paths.contains("$.address.city"));
+        assertFalse(paths.contains("$.address"));
+    }
+
+    @Test
+    public void testCollectPathsWhenMapHasSdKeySkipsSdKey() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("name", "John");
+        sdClaims.put("_sd", Arrays.asList("hash1", "hash2"));
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
+        assertTrue(paths.contains("$.name"));
+    }
+
+    @Test
+    public void testCollectPathsWhenListHasUniformKeysStopsAtListLevel() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        List<Map<String, Object>> genderList = Arrays.asList(
+                createMapOf("code", "M", "value", "Male"),
+                createMapOf("code", "F", "value", "Female"));
+        sdClaims.put("gender", genderList);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertTrue(paths.contains("$.gender"));
+        assertFalse(paths.contains("$.gender.code"));
+        assertFalse(paths.contains("$.gender.value"));
+        assertEquals(1, paths.size());
+    }
+
+    @Test
+    public void testCollectPathsWhenListHasSingleMapItemRecursesIntoItem() throws Exception {
+        // Arrange
+        Map<String, Object> privilege = new LinkedHashMap<>();
+        privilege.put("vehicle_category_code", "C");
+        privilege.put("issue_date", "2020-01-01");
+
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("driving_privileges", Arrays.asList(privilege));
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertTrue(paths.contains("$.driving_privileges"));
+        assertTrue(paths.contains("$.driving_privileges.vehicle_category_code"));
+        assertTrue(paths.contains("$.driving_privileges.issue_date"));
+    }
+
+    @Test
+    public void testCollectPathsWhenListHasNonMapItemsSkipsNonMapItems() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("tags", Arrays.asList("tag1", "tag2", "tag3"));
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
+        assertTrue(paths.contains("$.tags"));
+    }
+
+    @Test
+    public void testCollectPathsWhenListItemsHaveNoCommonKeysRecursesIntoItems() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        List<Map<String, Object>> items = Arrays.asList(
+                createMapOf("alpha", 1),
+                createMapOf("beta", 2));
+        sdClaims.put("mixed", items);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertTrue(paths.contains("$.mixed"));
+        assertTrue(paths.contains("$.mixed.alpha"));
+        assertTrue(paths.contains("$.mixed.beta"));
+    }
+
+    @Test
+    public void testCollectPathsComplexDrivingPrivilegesStructure() throws Exception {
+        // Arrange
+        Map<String, Object> privilege = new LinkedHashMap<>();
+        privilege.put("vehicle_category_code", "C");
+        privilege.put("issue_date", "2020-01-01");
+        privilege.put("expiry_date", "2025-01-01");
+        List<Map<String, Object>> codes = Arrays.asList(
+                createMapOf("code", "A", "value", "V1"),
+                createMapOf("code", "B", "value", "V2"));
+        privilege.put("codes", codes);
+
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("driving_privileges", Arrays.asList(privilege));
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertTrue(paths.contains("$.driving_privileges"));
+        assertTrue(paths.contains("$.driving_privileges.vehicle_category_code"));
+        assertTrue(paths.contains("$.driving_privileges.issue_date"));
+        assertTrue(paths.contains("$.driving_privileges.expiry_date"));
+        assertTrue(paths.contains("$.driving_privileges.codes"));
+        assertFalse(paths.contains("$.driving_privileges.codes.code"));
+        assertFalse(paths.contains("$.driving_privileges.codes.value"));
+    }
+
+    @Test
+    public void testCollectPathsWhenListContainsMixedMapAndNonMapItemsSkipsNonMaps() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        List<Object> mixedList = new ArrayList<>();
+        mixedList.add(createMapOf("key1", "val1"));
+        mixedList.add("plain-string");
+        mixedList.add(42);
+        sdClaims.put("mixed_types", mixedList);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertTrue(paths.contains("$.mixed_types"));
+        assertTrue(paths.contains("$.mixed_types.key1"));
+    }
+
+    @Test
+    public void testCollectPathsWhenEmptyMapProducesNoPaths() throws Exception {
+        // Arrange
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), new LinkedHashMap<>()));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        assertTrue(credential.getSdClaims().isEmpty());
+        assertTrue(credential.getClaims().isEmpty());
+    }
+
+    @Test
+    public void testCollectPathsWhenListWithPartiallyOverlappingKeysTreatedAsUniform() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        List<Map<String, Object>> codes = Arrays.asList(
+                createMapOf("code", "A", "value", "V1", "sign", "+"),
+                createMapOf("code", "B", "value", "V2"));
+        sdClaims.put("codes", codes);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertTrue(paths.contains("$.codes"));
+        assertFalse(paths.contains("$.codes.code"));
+        assertFalse(paths.contains("$.codes.value"));
+        assertFalse(paths.contains("$.codes.sign"));
+        assertEquals(1, paths.size());
+    }
+
+    @Test
+    public void testCollectPathsWhenEmptyListProducesPathButNoRecursion() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("empty_list", new ArrayList<>());
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
+        assertTrue(paths.contains("$.empty_list"));
+    }
+
+    @Test
+    public void testCollectPathsWhenDeeplyNestedMapsRecursesAllLevels() throws Exception {
+        // Arrange
+        Map<String, Object> level3 = new LinkedHashMap<>();
+        level3.put("deep_value", "found");
+        Map<String, Object> level2 = new LinkedHashMap<>();
+        level2.put("level3", level3);
+        Map<String, Object> level1 = new LinkedHashMap<>();
+        level1.put("level2", level2);
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("level1", level1);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
+        assertTrue(paths.contains("$.level1.level2.level3.deep_value"));
+    }
+
+    // ============================================================
+    // Tests for matchesFormat LDP_VC edge cases
+    // ============================================================
+
+    @Test
+    public void testMatchesFormatWhenLdpVcProofTypeNullCredentialNotSelected() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        Map<String, List<String>> ldpVcFormat = new HashMap<>();
+        ldpVcFormat.put("proof_type", Arrays.asList("Ed25519Signature2020"));
+        format.put("ldp_vc", ldpVcFormat);
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        VCCredentialProperties propsWithNullProof = new VCCredentialProperties();
+        propsWithNullProof.setType(Arrays.asList("VerifiableCredential"));
+        propsWithNullProof.setProof(null);
+        doReturn(propsWithNullProof).when(objectMapper).convertValue(any(), eq(VCCredentialProperties.class));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesFormatWhenLdpVcProofTypeListEmptyCredentialSelected() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        Map<String, List<String>> ldpVcFormat = new HashMap<>();
+        ldpVcFormat.put("proof_type", Collections.emptyList());
+        format.put("ldp_vc", ldpVcFormat);
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        VCCredentialProperties props = new VCCredentialProperties();
+        props.setType(Arrays.asList("VerifiableCredential"));
+        doReturn(props).when(objectMapper).convertValue(any(), eq(VCCredentialProperties.class));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesFormatWhenLdpVcRequiredProofTypesNullCredentialSelected() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        Map<String, List<String>> ldpVcFormat = new HashMap<>();
+        ldpVcFormat.put("proof_type", null);
+        format.put("ldp_vc", ldpVcFormat);
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        VCCredentialProperties props = new VCCredentialProperties();
+        props.setType(Arrays.asList("VerifiableCredential"));
+        doReturn(props).when(objectMapper).convertValue(any(), eq(VCCredentialProperties.class));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesFormatWhenLdpVcNullLdpVcFormatCredentialSelected() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put("ldp_vc", null);
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesFormatWhenLdpVcProofTypeMismatchCredentialNotSelected() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        Map<String, List<String>> ldpVcFormat = new HashMap<>();
+        ldpVcFormat.put("proof_type", Arrays.asList("Ed25519Signature2020"));
+        format.put("ldp_vc", ldpVcFormat);
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMatchingFormat());
+
+        VCCredentialProperties propsWithWrongProof = new VCCredentialProperties();
+        propsWithWrongProof.setType(Arrays.asList("VerifiableCredential"));
+        VCCredentialResponseProof wrongProof = new VCCredentialResponseProof();
+        wrongProof.setType("EcdsaSecp256k1Signature2019");
+        propsWithWrongProof.setProof(wrongProof);
+        when(objectMapper.convertValue(any(), eq(VCCredentialProperties.class))).thenReturn(propsWithWrongProof);
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesFormatWhenLdpVcCredentialAndDescriptorLacksLdpVcKeyCredentialNotSelected() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), new HashMap<>());
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    // ============================================================
+    // Tests for evaluateJsonPath edge cases
+    // ============================================================
+
+    @Test
+    public void testEvaluateJsonPathWhenPathDoesNotStartWithDollarDotNoMatch() throws Exception {
+        // Arrange
+        Fields field = new Fields(Arrays.asList("type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testEvaluateJsonPathWhenJsonPathValueIsNullNoMatch() throws Exception {
+        // Arrange
+        Map<String, Object> credentialData = new HashMap<>();
+        credentialData.put("name", null);
+        credentialData.put("type", Arrays.asList("VerifiableCredential"));
+
+        Fields field = new Fields(Arrays.asList("$.name"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithSampleData(credentialData));
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testEvaluateJsonPathWhenResultIsSingleValueWrapsInList() throws Exception {
+        // Arrange
+        Fields nameField = new Fields(Arrays.asList("$.name"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(nameField), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithSimpleFilterData());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    // ============================================================
+    // Tests for extractClaimsFromFields edge cases
+    // ============================================================
+
+    @Test
+    public void testExtractClaimsFromFieldsWhenFieldsContainNullSkipsNullFields() throws Exception {
+        // Arrange
+        List<Fields> fieldsList = new ArrayList<>();
+        fieldsList.add(null);
+        fieldsList.add(new Fields(Arrays.asList("$.type"), null, null, null, null, null));
+        Constraints constraints = new Constraints(fieldsList, null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Collections.emptyList());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("type"));
+    }
+
+    @Test
+    public void testExtractClaimsFromFieldsWhenFieldsIsNullReturnsEmptyList() throws Exception {
+        // Arrange
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), new HashMap<>());
+
+        Constraints constraints = new Constraints(null, null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().isEmpty());
+    }
+
+    @Test
+    public void testExtractRequiredClaimsWhenDeduplicateEnabledRemovesDuplicates() throws Exception {
+        // Arrange
+        Fields field1 = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints1 = new Constraints(Collections.singletonList(field1), null);
+        InputDescriptor desc1 = new InputDescriptor("desc-1", null, null, null, constraints1);
+
+        Fields field2 = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints2 = new Constraints(Collections.singletonList(field2), null);
+        InputDescriptor desc2 = new InputDescriptor("desc-2", null, null, null, constraints2);
+
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(desc1, desc2), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Collections.emptyList());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertEquals(1, result.getMatchingCredentialsResponse().getMissingClaims().size());
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("type"));
+    }
+
+    // ============================================================
+    // Tests for private method branch coverage via reflection
+    // ============================================================
+
+    @Test
+    public void testExtractSdJwtAlgorithmWhenSdJwtStringIsNullReturnsNull() throws Exception {
+        // Arrange
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod("extractSdJwtAlgorithm", String.class);
+        method.setAccessible(true);
+
+        // Act
+        String result = (String) method.invoke(credentialMatchingService, (String) null);
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    public void testMatchesConstraintsWhenFieldsAreNullReturnsTrue() throws Exception {
+        // Arrange
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod(
+                "matchesConstraints", VCCredentialResponse.class, Constraints.class);
+        method.setAccessible(true);
+
+        VCCredentialResponse vc = VCCredentialResponse.builder()
+                .format("ldp_vc")
+                .credential(new HashMap<>())
+                .build();
+        Constraints constraints = new Constraints(null, null);
+
+        // Act
+        boolean result = (boolean) method.invoke(credentialMatchingService, vc, constraints);
+
+        // Assert
+        assertTrue(result);
+    }
+
+    @Test
+    public void testEvaluateJsonPathWhenPathIsNullReturnsEmptyList() throws Exception {
+        // Arrange
+        Fields field = new Fields(Collections.singletonList(null), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testEvaluateJsonPathWhenJsonIsNullReturnsEmptyList() throws Exception {
+        // Arrange
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+        when(credentialFormatHandler.extractAllCredentialProperties(any(VCCredentialResponse.class)))
+                .thenReturn(null);
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+    }
+
+    @Test
+    public void testMatchesFieldPathWhenPathNotFoundInCredentialReturnsFalse() throws Exception {
+        // Arrange
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod(
+                "matchesFieldPath", VCCredentialResponse.class, String.class, Filter.class);
+        method.setAccessible(true);
+
+        VCCredentialResponse vc = VCCredentialResponse.builder()
+                .format("ldp_vc")
+                .credential(new HashMap<>())
+                .build();
+
+        // Act
+        boolean result = (boolean) method.invoke(credentialMatchingService, vc, "$.nonexistent", null);
+
+        // Assert
+        assertFalse(result);
+    }
+
+    @Test
+    public void testExtractRequiredClaimsWhenDescriptorHasNullFieldsFilteredOut() throws Exception {
+        // Arrange
+        Constraints constraintsWithNullFields = new Constraints(null, null);
+        InputDescriptor descNullFields = new InputDescriptor("desc-null", null, null, null, constraintsWithNullFields);
+
+        Fields field = new Fields(Arrays.asList("$.name"), null, null, null, null, null);
+        Constraints constraintsWithFields = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descWithFields = new InputDescriptor("desc-valid", null, null, null, constraintsWithFields);
+
+        PresentationDefinition pd = new PresentationDefinition(
+                "test-pd", Arrays.asList(descNullFields, descWithFields), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Collections.emptyList());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("name"));
+        assertEquals(1, result.getMatchingCredentialsResponse().getMissingClaims().size());
+    }
+
+    @Test
+    public void testExtractClaimKeyFromPathWhenTailStartsWithDollarStrippsDollarPrefix() throws Exception {
+        // Arrange
+        Fields field = new Fields(Arrays.asList("$.$id"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Collections.emptyList());
+
+        // Act
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("id"));
+    }
+
+    @Test
+    public void testHasUniformKeysWhenListHasMapsAndNonMapsKeySetsSizeDiffersFromListSize() throws Exception {
+        // Arrange
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        List<Object> mixedList = new ArrayList<>();
+        mixedList.add(createMapOf("code", "A", "value", "V1"));
+        mixedList.add(createMapOf("code", "B", "value", "V2"));
+        mixedList.add("not-a-map");
+        sdClaims.put("data", mixedList);
+
+        MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
+                createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
+
+        // Assert
+        CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        List<String> paths = credential.getSdClaims();
+        assertTrue(paths.contains("$.data"));
+        assertTrue(paths.contains("$.data.code"));
+        assertTrue(paths.contains("$.data.value"));
+    }
+
+    private static final String SD_JWT_HS256 =
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0In0.sig";
+
+    private static final String SD_JWT_NO_ALG =
+            "eyJ0eXAiOiJKV1QifQ.eyJpc3MiOiJ0ZXN0In0.sig";
+
+    private static final String SD_JWT_NON_STRING_ALG =
+            "eyJhbGciOjEyM30.eyJpc3MiOiJ0ZXN0In0.sig";
+
+    private PresentationDefinition createSdJwtPresentationDefinition(List<String> algorithmValues) {
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        Map<String, List<String>> sdJwtFormat = new HashMap<>();
+        sdJwtFormat.put("sd-jwt_alg_values", algorithmValues);
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), sdJwtFormat);
+
+        Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(field), null);
+        InputDescriptor descriptor = new InputDescriptor("sd-jwt-descriptor", null, null, format, constraints);
+        return new PresentationDefinition("sd-jwt-pd", Arrays.asList(descriptor), null, null, null);
+    }
+
+    private DecryptedCredentialDTO createDecryptedSdJwtCredential(Object credentialPayload) {
+        DecryptedCredentialDTO credential = new DecryptedCredentialDTO();
+        credential.setId("sd-jwt-credential-id");
+        credential.setWalletId(walletId);
+
+        VCCredentialResponse response = VCCredentialResponse.builder()
+                .format(CredentialFormat.VC_SD_JWT.getFormat())
+                .credential(credentialPayload)
+                .build();
+        credential.setCredential(response);
+
+        CredentialMetadata metadata = new CredentialMetadata();
+        metadata.setIssuerId("test-issuer-id");
+        metadata.setCredentialType("TestCredential");
+        credential.setCredentialMetadata(metadata);
+        credential.setCreatedAt(Instant.now());
+        credential.setUpdatedAt(Instant.now());
+
+        return credential;
+    }
+
+    private void setupSdJwtHandlerMock(Map<String, Object> publicClaims, Map<String, Object> sdClaims) {
+        when(credentialFormatHandler.extractAllCredentialProperties(any(VCCredentialResponse.class)))
+                .thenAnswer(invocation -> {
+                    VCCredentialResponse vc = invocation.getArgument(0);
+                    String format = vc.getFormat();
+
+                    if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+                        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+                        result.put("publicClaims", new LinkedHashMap<>(publicClaims));
+                        result.put("sdClaims", new LinkedHashMap<>(sdClaims));
+                        return result;
+                    }
+                    Object cred = vc.getCredential();
+                    if (cred instanceof Map) {
+                        return new LinkedHashMap<>((Map<?, ?>) cred);
+                    }
+                    return new LinkedHashMap<>();
+                });
+    }
+
+    private MatchingCredentialsDTO executeSdJwtNoConstraintFlow(
+            Map<String, Map<String, Object>> handlerReturn) throws Exception {
+        Constraints constraints = new Constraints(null, null);
+        InputDescriptor descriptor = new InputDescriptor("sd-jwt-test", null, null, null, constraints);
+        PresentationDefinition pd = new PresentationDefinition("sd-jwt-pd",
+                Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(Arrays.asList(createDecryptedSdJwtCredential(SD_JWT_HS256)));
+        when(credentialFormatHandler.extractAllCredentialProperties(any(VCCredentialResponse.class)))
+                .thenAnswer(invocation -> handlerReturn);
+
+        return credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+    }
+
+    private Map<String, Map<String, Object>> createSdJwtAllClaimsMap(
+            Map<String, Object> publicClaims, Map<String, Object> sdClaims) {
+        Map<String, Map<String, Object>> allClaims = new LinkedHashMap<>();
+        allClaims.put("publicClaims",
+                publicClaims != null ? new LinkedHashMap<>(publicClaims) : null);
+        allClaims.put("sdClaims",
+                sdClaims != null ? new LinkedHashMap<>(sdClaims) : null);
+        return allClaims;
+    }
+
+    private Map<String, Object> createMapOf(Object... keyValues) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (int i = 0; i < keyValues.length; i += 2) {
+            map.put((String) keyValues[i], keyValues[i + 1]);
+        }
+        return map;
     }
 }

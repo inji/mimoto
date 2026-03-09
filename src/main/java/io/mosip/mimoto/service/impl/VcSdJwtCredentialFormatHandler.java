@@ -171,7 +171,7 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
             claims.put("publicClaims", extractPublicClaims(sdJwt));
 
             // Extract disclosures and merge with claims
-            claims.put("sdClaims", extractSdClaimsV2(sdJwt));
+            claims.put("sdClaims", extractSdClaimsForOVP(sdJwt));
 
             return claims;
 
@@ -216,7 +216,7 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
         return sdClaims;
     }
 
-    private Map<String, Object> extractSdClaimsV2(SDJWT sdJwt) {
+    private Map<String, Object> extractSdClaimsForOVP(SDJWT sdJwt) {
         Map<String, Disclosure> digestToDisclosure = new HashMap<>();
         Map<String, String> digestToDisclosureB64 = new HashMap<>();
         List<Disclosure> disclosures = sdJwt.getDisclosures();

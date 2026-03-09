@@ -16,7 +16,6 @@ import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
 import io.mosip.mimoto.exception.InvalidRequestException;
-import static io.mosip.mimoto.exception.ErrorConstants.UNSUPPORTED_FORMAT;
 import io.mosip.mimoto.service.CredentialFormatHandlerFactory;
 import io.mosip.mimoto.service.CredentialFormatHandler;
 import io.mosip.mimoto.service.CredentialMatchingService;
@@ -26,6 +25,8 @@ import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import static io.mosip.mimoto.exception.ErrorConstants.UNSUPPORTED_FORMAT;
 
 import java.io.IOException;
 import java.util.*;
@@ -67,11 +68,6 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         // Extract presentation definition from the session data
         PresentationDefinition presentationDefinition = openID4VPService.resolvePresentationDefinition(sessionData.getPresentationId(), sessionData.getAuthorizationRequest(), sessionData.isVerifierClientPreregistered());
 
-        if (presentationDefinition == null) {
-            log.warn("No presentation definition found in session data");
-            throw new IllegalArgumentException("Presentation definition not found in session data");
-        }
-
         validateInputParameters(presentationDefinition, walletId, base64Key);
 
         List<DecryptedCredentialDTO> decryptedCredentials = walletCredentialService.getDecryptedCredentials(walletId, base64Key);
@@ -95,12 +91,12 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                             .map(this::buildAvailableCredential)
                             .collect(Collectors.toList());
 
-                    if (!matches.isEmpty()) {
-                        matchingCredentialsByDescriptor.put(i, matches);
-                    } else {
-                        missingClaims.addAll(extractClaimsFromInputDescriptor(descriptor));
-                    }
-                });
+            if (!matches.isEmpty()) {
+                matchingCredentialsByDescriptor.put(i, matches);
+            } else {
+                missingClaims.addAll(extractClaimsFromInputDescriptor(descriptor));
+            }
+        });
 
         // Flatten all matching credentials into a single list, removing duplicates by credential ID
         Set<String> addedCredentialIds = new HashSet<>();
@@ -212,10 +208,10 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(CredentialFormat.VC_SD_JWT.getFormat())) {
             return matchesSdJwtAlgorithm(vc, descriptorFormat);
         }
-        if(CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
+        if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
             Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
 
-            if(ldpVcFormat == null) {
+            if (ldpVcFormat == null) {
                 return true;
             }
 
@@ -227,7 +223,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             String vcProofType = ldpCredential.getProof() != null ? ldpCredential.getProof().getType() : null;
             List<String> requiredProofTypes = ldpVcFormat.get(PROOF_TYPE_KEY);
 
-            if(requiredProofTypes == null || requiredProofTypes.isEmpty()) {
+            if (requiredProofTypes == null || requiredProofTypes.isEmpty()) {
                 return true;
             }
 
@@ -237,11 +233,11 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     }
 
     private boolean matchesSdJwtAlgorithm(VCCredentialResponse vc, Map<String, Map<String, List<String>>> requestFormat) {
-        if(vc.getCredential() == null || !(vc.getCredential() instanceof String sdJwtString)) {
+        if (vc.getCredential() == null || !(vc.getCredential() instanceof String sdJwtString)) {
             return false;
         }
         String algorithm = extractSdJwtAlgorithm(sdJwtString);
-        if (algorithm == null){
+        if (algorithm == null) {
             return false;
         }
 
@@ -257,7 +253,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     }
 
     private String extractSdJwtAlgorithm(String sdJwtString) {
-        if(sdJwtString == null || sdJwtString.trim().isEmpty()) {
+        if (sdJwtString == null || sdJwtString.trim().isEmpty()) {
             return null;
         }
         try {
@@ -287,7 +283,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         List<Object> matches = evaluateJsonPath(path, credentialData);
 
-        if (matches == null || matches.isEmpty()) {
+        if (matches.isEmpty()) {
             return false;
         }
 
@@ -300,8 +296,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format)) {
             return credentialFormatHandler.extractAllCredentialProperties(vc);
-        }
-        else if(CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)){
+        } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
             Object extracted = credentialFormatHandler.extractAllCredentialProperties(vc);
             if (extracted == null) {
                 return Collections.emptyMap();
@@ -310,8 +305,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             Map<String, Object> flattenedPropertiesMap = new HashMap<>();
             allCredentialProperties.values().forEach(flattenedPropertiesMap::putAll);
             return flattenedPropertiesMap;
-        }
-        else{
+        } else {
             throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), "Unsupported credential format: " + format);
         }
     }
@@ -437,11 +431,12 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         if (credentialSubject instanceof Map) {
             Map<String, Object> csMap = (Map<String, Object>) credentialSubject;
             collectPaths(csMap, "$", paths);
+        } else {
+            // Remove standard JWT claims and SD-JWT metadata
+            List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg", "id");
+            metadataKeys.forEach(publicClaimsMap::remove);
+            collectPaths(publicClaimsMap, "$", paths);
         }
-        // Remove standard JWT claims and SD-JWT metadata
-        List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", "_sd", "_sd_alg", "id");
-        metadataKeys.forEach(publicClaimsMap::remove);
-        collectPaths(publicClaimsMap, "$", paths);
         return paths;
     }
 
@@ -494,13 +489,10 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         if (keySets.size() < 2 || keySets.size() != list.size()) {
             return false;
         }
-    
-        Set<Object> unionKeys = new HashSet<>();
-        keySets.forEach(unionKeys::addAll);
-    
+
         Set<Object> intersectionKeys = new HashSet<>(keySets.get(0));
         keySets.forEach(intersectionKeys::retainAll);
-    
+
         return !intersectionKeys.isEmpty();
     }
 }
