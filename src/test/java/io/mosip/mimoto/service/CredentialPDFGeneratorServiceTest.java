@@ -1708,7 +1708,7 @@ class CredentialPDFGeneratorServiceTest {
         verify(presentationService, never()).constructPresentationDefinition(any());
     }
 
-    @Test
+   @Test
     void testTitleNameWithMatchingLocaleFromGetPdfResource() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
@@ -1734,7 +1734,7 @@ class CredentialPDFGeneratorServiceTest {
                 vcCredentialResponse,
                 issuerDTO,
                 "",
-                "",
+                "-1",
                 "en"
         );
 
@@ -1752,11 +1752,11 @@ class CredentialPDFGeneratorServiceTest {
         fr.setName("French Title");
         fr.setLocale("fr");
 
-        CredentialSupportedDisplayResponse de = new CredentialSupportedDisplayResponse();
-        de.setName("German Title");
-        de.setLocale("de");
+        CredentialSupportedDisplayResponse en = new CredentialSupportedDisplayResponse();
+        en.setName("English Title");
+        en.setLocale("en");
 
-        credentialsSupportedResponse.setDisplay(List.of(fr, de));
+        credentialsSupportedResponse.setDisplay(List.of(fr, en));
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
 
@@ -1768,7 +1768,7 @@ class CredentialPDFGeneratorServiceTest {
                 vcCredentialResponse,
                 issuerDTO,
                 "",
-                "",
+                "-1",
                 "es"
         );
 
@@ -1794,7 +1794,7 @@ class CredentialPDFGeneratorServiceTest {
                 vcCredentialResponse,
                 issuerDTO,
                 "",
-                "",
+                "-1",
                 "en"
         );
         assertNotNull(dataNull);
@@ -1810,7 +1810,7 @@ class CredentialPDFGeneratorServiceTest {
                 vcCredentialResponse,
                 issuerDTO,
                 "",
-                "",
+                "-1",
                 "en"
         );
         assertNotNull(dataEmpty);

@@ -132,7 +132,7 @@ public class CredentialPDFGeneratorService {
 
         List<CredentialSupportedDisplayResponse> displayList = credentialsSupportedResponse.getDisplay();
 
-        CredentialSupportedDisplayResponse firstdisplay = Optional.ofNullable(displayList)
+        CredentialSupportedDisplayResponse resolvedDisplay = Optional.ofNullable(displayList)
                 .filter(list -> !list.isEmpty())
                 .map(list -> list.stream()
                         .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
@@ -140,12 +140,12 @@ public class CredentialPDFGeneratorService {
                         .orElseGet(list::getFirst))
                 .orElse(null);
 
-        String backgroundColor = firstdisplay != null ? firstdisplay.getBackgroundColor() : null;
-        String backgroundImage = firstdisplay != null && firstdisplay.getBackgroundImage() != null
-                ? firstdisplay.getBackgroundImage().getUri()
+        String backgroundColor = resolvedDisplay != null ? resolvedDisplay.getBackgroundColor() : null;
+        String backgroundImage = resolvedDisplay != null && resolvedDisplay.getBackgroundImage() != null
+                ? resolvedDisplay.getBackgroundImage().getUri()
                 : null;
-        String textColor = firstdisplay != null ? firstdisplay.getTextColor() : null;
-        String credentialSupportedType = firstdisplay != null ? firstdisplay.getName() : null;
+        String textColor = resolvedDisplay != null ? resolvedDisplay.getTextColor() : null;
+        String credentialSupportedType = resolvedDisplay != null ? resolvedDisplay.getName() : null;
 
         SelectedFace selectedFace = extractFace(vcCredentialResponse);
         String face = selectedFace.face();
