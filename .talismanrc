@@ -130,7 +130,7 @@ fileignoreconfig:
 - filename: docker-compose/README.md
   checksum: f70385d1be6b7945df1afac0890bdce5ecceb63cdba08bdd3f760f40f843c630
 - filename: src/main/java/io/mosip/mimoto/service/impl/VcSdJwtCredentialFormatHandler.java
-  checksum: b538ea4262c48564ec6040d3c04c605c6f3d02a0182d0eadcf2849d8cc0f8628
+  checksum: f44f44a691f7bbc2e34e22d2d48791b883b79794011d514865de2ebecd58a655
 - filename: src/test/java/io/mosip/mimoto/service/VcSdJwtCredentialFormatHandlerTest.java
   checksum: 3c0a06bac77cde10b2d7d4b0c43ce010fe00a31b9aa97af78af9e87e8df8401d
 - filename: db_scripts/inji_mimoto/ddl.sql
@@ -165,7 +165,7 @@ fileignoreconfig:
 - filename: src/main/java/io/mosip/mimoto/service/CredentialMatchingService.java
   checksum: b2ceada5c81b9dadb6e7780604c68b7ae2d4272d2f67442fab0f5a45bd33727e
 - filename: src/main/java/io/mosip/mimoto/service/impl/CredentialMatchingServiceImpl.java
-  checksum: 9b07e366cc38a3fdf3fe62b91d7161c0fbca6972dfbb3ab69e9d7ec83a85c1b6
+  checksum: deb4e42b6723163a610fe21a20bf8ed53e2acf858fcc19fc9ae8d35f41394bb0
 - filename: src/test/java/io/mosip/mimoto/service/CredentialMatchingServiceTest.java
   checksum: f0064149fe98f4dc82195f23956bb6ae206e8b6555c8f53adb61982f26a5285e
 - filename: src/test/java/io/mosip/mimoto/service/SessionManagerTest.java

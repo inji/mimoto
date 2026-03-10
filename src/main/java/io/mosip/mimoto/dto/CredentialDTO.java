@@ -32,7 +32,7 @@ public class CredentialDTO {
     private String format;
 
     @JsonProperty("claims")
-    @Schema(description = "Public claims of the credential that can be shared without user consent")
+    @Schema(description = "Claims that are always disclosed as part of the credential")
     private List<String> claims;
 
     @JsonProperty("sdClaims")

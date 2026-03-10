@@ -42,6 +42,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     private static final String LDP_VC_FORMAT = "ldp_vc";
     private static final String PROOF_TYPE_KEY = "proof_type";
     private static final String SD_JWT_ALG_VALUES_KEY = "sd-jwt_alg_values";
+    private static final String CREDENTIAL_SUBJECT_PREFIX = "credentialSubject.";
 
     private final ObjectMapper objectMapper;
 
@@ -442,7 +443,12 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     private List<String> extractSdClaimPaths(Map<String, Object> sdClaimsMap) {
         List<String> paths = new ArrayList<>();
-        collectPaths(sdClaimsMap, "$", paths);
+        for (String key : sdClaimsMap.keySet()) {
+            String cleanKey = key.startsWith(CREDENTIAL_SUBJECT_PREFIX)
+                    ? key.substring(CREDENTIAL_SUBJECT_PREFIX.length())
+                    : key;
+            paths.add(JSON_PATH_PREFIX + cleanKey);
+        }
         return paths;
     }
 
@@ -490,7 +496,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             return false;
         }
 
-        Set<Object> intersectionKeys = new HashSet<>(keySets.get(0));
+        Set<Object> intersectionKeys = new HashSet<>(keySets.getFirst());
         keySets.forEach(intersectionKeys::retainAll);
 
         return !intersectionKeys.isEmpty();

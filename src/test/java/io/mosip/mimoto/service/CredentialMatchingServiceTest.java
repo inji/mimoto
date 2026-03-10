@@ -1118,10 +1118,6 @@ public class CredentialMatchingServiceTest {
         assertNotNull(result.getMatchingCredentialsResponse());
     }
 
-    // ============================================================
-    // Tests for SD-JWT Algorithm Matching (matchesSdJwtAlgorithm)
-    // ============================================================
-
     @Test
     public void testMatchesSdJwtFormatWhenAlgorithmMatchesCredentialIsSelected() throws Exception {
         // Arrange
@@ -1296,10 +1292,6 @@ public class CredentialMatchingServiceTest {
         assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
-    // ============================================================
-    // Tests for getCredentialData VC_SD_JWT branch
-    // ============================================================
-
     @Test
     public void testGetCredentialDataWhenSdJwtExtractsNullCredentialNotSelected() throws Exception {
         // Arrange
@@ -1344,10 +1336,7 @@ public class CredentialMatchingServiceTest {
         assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
-    // ============================================================
-    // Tests for buildAvailableCredential SD-JWT claim extraction
-    // ============================================================
-
+    
     @Test
     public void testBuildAvailableCredentialWhenSdJwtWithNullClaimsReturnsEmptyClaimLists() throws Exception {
         // Arrange
@@ -1364,20 +1353,55 @@ public class CredentialMatchingServiceTest {
 
     @Test
     public void testBuildAvailableCredentialWhenSdJwtWithCredentialSubjectExtractsFromSubject() throws Exception {
-        // Arrange
         Map<String, Object> publicClaims = new LinkedHashMap<>();
         Map<String, Object> subject = new LinkedHashMap<>();
         subject.put("name", "John");
         subject.put("age", 30);
+        subject.put("_sd", Arrays.asList("hash1", "hash2"));
+        Map<String, Object> address = new LinkedHashMap<>();
+        address.put("street", "123 Main St");
+        address.put("city", "NYC");
+        subject.put("address", address);
+        List<Map<String, Object>> contacts = Arrays.asList(
+                createMapOf("type", "email", "value", "john@example.com"),
+                createMapOf("type", "phone", "value", "555-1234"));
+        subject.put("contacts", contacts);
+        List<Object> privileges = Arrays.asList(
+                createMapOf("vehicle_code", "C", "issue_date", "2020-01-01"));
+        subject.put("privileges", privileges);
+        List<Object> tags = new ArrayList<>();
+        tags.add(createMapOf("code", "A", "label", "TagA"));
+        tags.add(createMapOf("code", "B", "label", "TagB"));
+        tags.add("plain-string");
+        subject.put("tags", tags);
+        List<Map<String, Object>> disjoint = Arrays.asList(
+                createMapOf("alpha", 1),
+                createMapOf("beta", 2));
+        subject.put("disjoint", disjoint);
         publicClaims.put("credentialSubject", subject);
 
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(publicClaims, new LinkedHashMap<>()));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         assertTrue(credential.getClaims().contains("$.name"));
         assertTrue(credential.getClaims().contains("$.age"));
+        assertTrue(credential.getClaims().contains("$.address.street"));
+        assertTrue(credential.getClaims().contains("$.address.city"));
+        assertTrue(credential.getClaims().contains("$.contacts"));
+        assertFalse(credential.getClaims().contains("$.contacts.type"));
+        assertFalse(credential.getClaims().contains("$.contacts.value"));
+        assertTrue(credential.getClaims().contains("$.privileges"));
+        assertTrue(credential.getClaims().contains("$.privileges.vehicle_code"));
+        assertTrue(credential.getClaims().contains("$.privileges.issue_date"));
+        assertTrue(credential.getClaims().contains("$.tags"));
+        assertTrue(credential.getClaims().contains("$.tags.code"));
+        assertTrue(credential.getClaims().contains("$.tags.label"));
+        assertTrue(credential.getClaims().contains("$.disjoint"));
+        assertTrue(credential.getClaims().contains("$.disjoint.alpha"));
+        assertTrue(credential.getClaims().contains("$.disjoint.beta"));
+        assertFalse(credential.getClaims().contains("$._sd"));
+        assertFalse(credential.getClaims().contains("$.address"));
     }
 
     @Test
@@ -1411,19 +1435,19 @@ public class CredentialMatchingServiceTest {
 
     @Test
     public void testBuildAvailableCredentialWhenSdJwtWithSdClaimsExtractsSdClaimPaths() throws Exception {
-        // Arrange
         Map<String, Object> sdClaims = new LinkedHashMap<>();
         sdClaims.put("family_name", "Doe");
         sdClaims.put("birth_date", "1990-01-01");
+        sdClaims.put("credentialSubject.NumberOfCAR", 5);
 
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
+        assertEquals(3, credential.getSdClaims().size());
         assertTrue(credential.getSdClaims().contains("$.family_name"));
         assertTrue(credential.getSdClaims().contains("$.birth_date"));
-        assertEquals(2, credential.getSdClaims().size());
+        assertTrue(credential.getSdClaims().contains("$.NumberOfCAR"));
     }
 
     @Test
@@ -1437,10 +1461,6 @@ public class CredentialMatchingServiceTest {
         assertEquals("Unknown Credential", credential.getCredentialTypeDisplayName());
         assertNull(credential.getCredentialTypeLogo());
     }
-
-    // ============================================================
-    // Tests for collectPaths and hasUniformKeys
-    // ============================================================
 
     @Test
     public void testCollectPathsWhenMapHasScalarValuesCollectsLeafPaths() throws Exception {
@@ -1461,8 +1481,7 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
-    public void testCollectPathsWhenMapHasNestedMapRecursesIntoNestedMap() throws Exception {
-        // Arrange
+    public void testExtractSdClaimPathsWhenMapHasNestedMapProducesTopLevelKey() throws Exception {
         Map<String, Object> address = new LinkedHashMap<>();
         address.put("street", "123 Main St");
         address.put("city", "NYC");
@@ -1472,17 +1491,14 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         List<String> paths = credential.getSdClaims();
-        assertTrue(paths.contains("$.address.street"));
-        assertTrue(paths.contains("$.address.city"));
-        assertFalse(paths.contains("$.address"));
+        assertEquals(1, paths.size());
+        assertTrue(paths.contains("$.address"));
     }
 
     @Test
-    public void testCollectPathsWhenMapHasSdKeySkipsSdKey() throws Exception {
-        // Arrange
+    public void testExtractSdClaimPathsWhenMapHasSdKeyIncludesSdKey() throws Exception {
         Map<String, Object> sdClaims = new LinkedHashMap<>();
         sdClaims.put("name", "John");
         sdClaims.put("_sd", Arrays.asList("hash1", "hash2"));
@@ -1490,11 +1506,11 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         List<String> paths = credential.getSdClaims();
-        assertEquals(1, paths.size());
+        assertEquals(2, paths.size());
         assertTrue(paths.contains("$.name"));
+        assertTrue(paths.contains("$._sd"));
     }
 
     @Test
@@ -1519,8 +1535,7 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
-    public void testCollectPathsWhenListHasSingleMapItemRecursesIntoItem() throws Exception {
-        // Arrange
+    public void testExtractSdClaimPathsWhenListHasSingleMapItemProducesTopLevelKey() throws Exception {
         Map<String, Object> privilege = new LinkedHashMap<>();
         privilege.put("vehicle_category_code", "C");
         privilege.put("issue_date", "2020-01-01");
@@ -1531,12 +1546,10 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
         assertTrue(paths.contains("$.driving_privileges"));
-        assertTrue(paths.contains("$.driving_privileges.vehicle_category_code"));
-        assertTrue(paths.contains("$.driving_privileges.issue_date"));
     }
 
     @Test
@@ -1556,8 +1569,7 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
-    public void testCollectPathsWhenListItemsHaveNoCommonKeysRecursesIntoItems() throws Exception {
-        // Arrange
+    public void testExtractSdClaimPathsWhenListItemsHaveNoCommonKeysProducesTopLevelKey() throws Exception {
         Map<String, Object> sdClaims = new LinkedHashMap<>();
         List<Map<String, Object>> items = Arrays.asList(
                 createMapOf("alpha", 1),
@@ -1567,17 +1579,14 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
         assertTrue(paths.contains("$.mixed"));
-        assertTrue(paths.contains("$.mixed.alpha"));
-        assertTrue(paths.contains("$.mixed.beta"));
     }
 
     @Test
-    public void testCollectPathsComplexDrivingPrivilegesStructure() throws Exception {
-        // Arrange
+    public void testExtractSdClaimPathsComplexDrivingPrivilegesProducesTopLevelKey() throws Exception {
         Map<String, Object> privilege = new LinkedHashMap<>();
         privilege.put("vehicle_category_code", "C");
         privilege.put("issue_date", "2020-01-01");
@@ -1588,26 +1597,19 @@ public class CredentialMatchingServiceTest {
         privilege.put("codes", codes);
 
         Map<String, Object> sdClaims = new LinkedHashMap<>();
-        sdClaims.put("driving_privileges", Arrays.asList(privilege));
+        sdClaims.put("driving_privileges", List.of(privilege));
 
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
         assertTrue(paths.contains("$.driving_privileges"));
-        assertTrue(paths.contains("$.driving_privileges.vehicle_category_code"));
-        assertTrue(paths.contains("$.driving_privileges.issue_date"));
-        assertTrue(paths.contains("$.driving_privileges.expiry_date"));
-        assertTrue(paths.contains("$.driving_privileges.codes"));
-        assertFalse(paths.contains("$.driving_privileges.codes.code"));
-        assertFalse(paths.contains("$.driving_privileges.codes.value"));
     }
 
     @Test
-    public void testCollectPathsWhenListContainsMixedMapAndNonMapItemsSkipsNonMaps() throws Exception {
-        // Arrange
+    public void testExtractSdClaimPathsWhenListContainsMixedTypesProducesTopLevelKey() throws Exception {
         Map<String, Object> sdClaims = new LinkedHashMap<>();
         List<Object> mixedList = new ArrayList<>();
         mixedList.add(createMapOf("key1", "val1"));
@@ -1618,11 +1620,10 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
         assertTrue(paths.contains("$.mixed_types"));
-        assertTrue(paths.contains("$.mixed_types.key1"));
     }
 
     @Test
@@ -1676,8 +1677,7 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
-    public void testCollectPathsWhenDeeplyNestedMapsRecursesAllLevels() throws Exception {
-        // Arrange
+    public void testExtractSdClaimPathsWhenDeeplyNestedMapsProducesTopLevelKey() throws Exception {
         Map<String, Object> level3 = new LinkedHashMap<>();
         level3.put("deep_value", "found");
         Map<String, Object> level2 = new LinkedHashMap<>();
@@ -1690,17 +1690,13 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         List<String> paths = credential.getSdClaims();
         assertEquals(1, paths.size());
-        assertTrue(paths.contains("$.level1.level2.level3.deep_value"));
+        assertTrue(paths.contains("$.level1"));
     }
 
-    // ============================================================
-    // Tests for matchesFormat LDP_VC edge cases
-    // ============================================================
-
+  
     @Test
     public void testMatchesFormatWhenLdpVcProofTypeNullCredentialNotSelected() throws Exception {
         // Arrange
@@ -1861,10 +1857,7 @@ public class CredentialMatchingServiceTest {
         assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
-    // ============================================================
-    // Tests for evaluateJsonPath edge cases
-    // ============================================================
-
+   
     @Test
     public void testEvaluateJsonPathWhenPathDoesNotStartWithDollarDotNoMatch() throws Exception {
         // Arrange
@@ -1926,10 +1919,7 @@ public class CredentialMatchingServiceTest {
         assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
-    // ============================================================
-    // Tests for extractClaimsFromFields edge cases
-    // ============================================================
-
+   
     @Test
     public void testExtractClaimsFromFieldsWhenFieldsContainNullSkipsNullFields() throws Exception {
         // Arrange
@@ -2001,9 +1991,6 @@ public class CredentialMatchingServiceTest {
         assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("type"));
     }
 
-    // ============================================================
-    // Tests for private method branch coverage via reflection
-    // ============================================================
 
     @Test
     public void testExtractSdJwtAlgorithmWhenSdJwtStringIsNullReturnsNull() throws Exception {
@@ -2142,8 +2129,7 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
-    public void testHasUniformKeysWhenListHasMapsAndNonMapsKeySetsSizeDiffersFromListSize() throws Exception {
-        // Arrange
+    public void testExtractSdClaimPathsWhenListHasMapsAndNonMapsProducesTopLevelKey() throws Exception {
         Map<String, Object> sdClaims = new LinkedHashMap<>();
         List<Object> mixedList = new ArrayList<>();
         mixedList.add(createMapOf("code", "A", "value", "V1"));
@@ -2154,12 +2140,10 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = executeSdJwtNoConstraintFlow(
                 createSdJwtAllClaimsMap(new LinkedHashMap<>(), sdClaims));
 
-        // Assert
         CredentialDTO credential = result.getMatchingCredentialsResponse().getAvailableCredentials().get(0);
         List<String> paths = credential.getSdClaims();
+        assertEquals(1, paths.size());
         assertTrue(paths.contains("$.data"));
-        assertTrue(paths.contains("$.data.code"));
-        assertTrue(paths.contains("$.data.value"));
     }
 
     private static final String SD_JWT_HS256 =
