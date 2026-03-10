@@ -210,27 +210,31 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             return matchesSdJwtAlgorithm(vc, descriptorFormat);
         }
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
-            Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
-
-            if (ldpVcFormat == null) {
-                return true;
-            }
-
-            if (!ldpVcFormat.containsKey(PROOF_TYPE_KEY)) {
-                return true;
-            }
-
-            VCCredentialProperties ldpCredential = objectMapper.convertValue(vc.getCredential(), VCCredentialProperties.class);
-            String vcProofType = ldpCredential.getProof() != null ? ldpCredential.getProof().getType() : null;
-            List<String> requiredProofTypes = ldpVcFormat.get(PROOF_TYPE_KEY);
-
-            if (requiredProofTypes == null || requiredProofTypes.isEmpty()) {
-                return true;
-            }
-
-            return vcProofType != null && requiredProofTypes.contains(vcProofType);
+            return matchesLdpVcFormat(vc, descriptorFormat);
         }
         return false;
+    }
+
+    private boolean matchesLdpVcFormat(VCCredentialResponse vc, Map<String, Map<String, List<String>>> descriptorFormat) {
+        Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
+
+        if (ldpVcFormat == null) {
+            return true;
+        }
+
+        if (!ldpVcFormat.containsKey(PROOF_TYPE_KEY)) {
+            return true;
+        }
+
+        VCCredentialProperties ldpCredential = objectMapper.convertValue(vc.getCredential(), VCCredentialProperties.class);
+        String vcProofType = ldpCredential.getProof() != null ? ldpCredential.getProof().getType() : null;
+        List<String> requiredProofTypes = ldpVcFormat.get(PROOF_TYPE_KEY);
+
+        if (requiredProofTypes == null || requiredProofTypes.isEmpty()) {
+            return true;
+        }
+
+        return vcProofType != null && requiredProofTypes.contains(vcProofType);
     }
 
     private boolean matchesSdJwtAlgorithm(VCCredentialResponse vc, Map<String, Map<String, List<String>>> requestFormat) {
