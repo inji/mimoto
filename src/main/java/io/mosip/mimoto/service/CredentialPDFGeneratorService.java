@@ -18,6 +18,7 @@ import io.mosip.injivcrenderer.InjiVcRenderer;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.constant.LdpVcV1Constants;
 import io.mosip.mimoto.constant.LdpVcV2Constants;
+import io.mosip.mimoto.constant.SdJwtVcConstants;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerDisplayResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse;
@@ -47,6 +48,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -242,7 +244,13 @@ public class CredentialPDFGeneratorService {
 
     private String formatValue(Object val, String locale) {
         if (val instanceof Map) {
-            return Optional.ofNullable(((Map<?, Object>) val).getOrDefault(LdpVcV2Constants.VALUE, ((Map<?, Object>) val).get(LdpVcV1Constants.VALUE)))
+            return Optional.ofNullable(Stream.of(
+                                    ((Map<?, ?>) val).get(LdpVcV2Constants.VALUE),
+                                    ((Map<?, ?>) val).get(LdpVcV1Constants.VALUE),
+                                    ((Map<?, ?>) val).get(SdJwtVcConstants.VALUE)
+                            ).filter(Objects::nonNull)
+                            .findFirst()
+                            .orElse(null))
                     .map(Object::toString)
                     .orElse("");
         } else if (val instanceof List) {
@@ -255,11 +263,25 @@ public class CredentialPDFGeneratorService {
                         .filter(Objects::nonNull)
                         .map(item -> (Map<?, ?>) item)
                         .filter(m -> {
-                            Object lang = m.getOrDefault(LdpVcV2Constants.LANGUAGE, m.get(LdpVcV1Constants.LANGUAGE));  // Safely get language
+                            Object lang = Stream.of(
+                                            m.get(LdpVcV2Constants.LANGUAGE),
+                                            m.get(LdpVcV1Constants.LANGUAGE),
+                                            m.get(SdJwtVcConstants.LANGUAGE)
+                                    ).filter(Objects::nonNull)
+                                    .findFirst()
+                                    .orElse(null);
+
                             return lang != null && LocaleUtils.matchesLocale(lang.toString(), locale);
                         })
                         .map(m -> {
-                            Object value = m.getOrDefault(LdpVcV2Constants.VALUE, m.get(LdpVcV1Constants.VALUE)); // Safely get value
+                            Object value = Stream.of(
+                                            m.get(LdpVcV2Constants.VALUE),
+                                            m.get(LdpVcV1Constants.VALUE),
+                                            m.get(SdJwtVcConstants.VALUE)
+                                    ).filter(Objects::nonNull)
+                                    .findFirst()
+                                    .orElse(null);
+
                             return value != null ? value.toString() : null;
                         })
                         .filter(Objects::nonNull)

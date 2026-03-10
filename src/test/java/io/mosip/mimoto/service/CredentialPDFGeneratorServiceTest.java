@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.injivcrenderer.InjiVcRenderer;
 import io.mosip.mimoto.constant.LdpVcV1Constants;
 import io.mosip.mimoto.constant.LdpVcV2Constants;
+import io.mosip.mimoto.constant.SdJwtVcConstants;
 import io.mosip.mimoto.dto.BackgroundImageDTO;
 import io.mosip.mimoto.dto.DisplayDTO;
 import io.mosip.mimoto.dto.IssuerDTO;
@@ -926,7 +927,7 @@ class CredentialPDFGeneratorServiceTest {
     }
 
     @Test
-    void testFormatValueWithListOfMaps_LanguageAndValue() throws Exception {
+    void testFormatValueWithListOfMaps_AtLanguageAndAtValue() throws Exception {
         CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
@@ -942,6 +943,39 @@ class CredentialPDFGeneratorServiceTest {
         Map<String, String> mapFil = new HashMap<>();
         mapFil.put(LdpVcV2Constants.VALUE, "Bukid sa Luntiang Lambak");
         mapFil.put(LdpVcV2Constants.LANGUAGE, "fil");
+
+        List<Map<String, String>> value = Arrays.asList(mapEn, mapFr, mapFil);
+
+        String resultEn = (String) formatValueMethod.invoke(service, value, "en");
+        String resultFr = (String) formatValueMethod.invoke(service, value, "fr");
+        String resultFil = (String) formatValueMethod.invoke(service, value, "fil");
+        String resultNoMatchingLang = (String) formatValueMethod.invoke(service, value, "hi"); // matching language not present, should return empty string
+        String resultNullLang = (String) formatValueMethod.invoke(service, value, null); // null language, should return empty string
+
+        assertEquals("Green Valley Farm", resultEn);
+        assertEquals("Ferme Vallée Verte", resultFr);
+        assertEquals("Bukid sa Luntiang Lambak", resultFil);
+        assertEquals("", resultNoMatchingLang);
+        assertEquals("", resultNullLang);
+    }
+
+    @Test
+    void testFormatValueWithListOfMaps_LanguageAndValue() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        Map<String, String> mapEn = new HashMap<>();
+        mapEn.put(SdJwtVcConstants.VALUE, "Green Valley Farm");
+        mapEn.put(SdJwtVcConstants.LANGUAGE, "en");
+
+        Map<String, String> mapFr = new HashMap<>();
+        mapFr.put(SdJwtVcConstants.VALUE, "Ferme Vallée Verte");
+        mapFr.put(SdJwtVcConstants.LANGUAGE, "fr");
+
+        Map<String, String> mapFil = new HashMap<>();
+        mapFil.put(SdJwtVcConstants.VALUE, "Bukid sa Luntiang Lambak");
+        mapFil.put(SdJwtVcConstants.LANGUAGE, "fil");
 
         List<Map<String, String>> value = Arrays.asList(mapEn, mapFr, mapFil);
 
