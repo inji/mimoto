@@ -1,0 +1,18 @@
+NOTICE
+======
+
+This product includes third-party software components licensed under
+various open source licenses.
+
+The following licenses require attribution:
+
+- Apache License 2.0
+- CDDL 1.0
+- BSD 2-Clause License
+- BSD 3-Clause License
+- MIT License
+- ISC License
+- Mozilla Public License 2.0
+
+For a complete list of third-party dependencies and their licenses,
+refer to the THIRD-PARTY-NOTICES file included with this distribution.
