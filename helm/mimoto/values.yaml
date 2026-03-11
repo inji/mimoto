@@ -11,7 +11,7 @@
 ## Add labels to all the deployed resources
 ##
 commonLabels:
-  app.kubernetes.io/component: mosip
+  app.kubernetes.io/component: inji
 
 ## Add annotations to all the deployed resources
 ##
@@ -53,7 +53,7 @@ service:
 
 image:
   registry: docker.io
-  repository: mosipqa/mimoto
+  repository: injistackqa/mimoto
   tag: 0.21.x
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -138,10 +138,10 @@ additionalResources:
   javaOpts: "-Xms2250M -Xmx2250M"
 
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
-## Clamav container already runs as 'mosip' user, so we may not need to enable this
+## Mimoto container already runs as 'inji' user, so we may not need to enable this
 containerSecurityContext:
   enabled: false
-  runAsUser: mosip
+  runAsUser: 1001
   runAsNonRoot: true
 
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
@@ -257,7 +257,7 @@ extraEnvVars: []
 #      secretKeyRef:
 #        name: db-common-secrets
 #        key: db-dbuser-password
-#  - name: MOSIP_MIMOTO_DATABASE_HOSTNAME
+#  - name: INJI_MIMOTO_DATABASE_HOSTNAME
 #    value: postgres-postgresql.postgres
 
 ## ConfigMap with extra environment variables that used

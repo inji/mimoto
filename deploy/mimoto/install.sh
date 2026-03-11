@@ -153,7 +153,7 @@ function installing_mimoto() {
 
 
   echo Installing mimoto
-  helm -n $NS install mimoto mosip/mimoto  --version $CHART_VERSION -f values.yaml $ENABLE_INSECURE \
+  helm -n $NS install mimoto inji/mimoto  --version $CHART_VERSION -f values.yaml $ENABLE_INSECURE \
     --set mimoto.secrets.google-client.MOSIP_INJIWEB_GOOGLE_CLIENT_ID="$clientId" \
     --set mimoto.secrets.google-client.MOSIP_INJIWEB_GOOGLE_CLIENT_SECRET="$secretKey"
 

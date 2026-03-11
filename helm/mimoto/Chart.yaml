@@ -1,6 +1,6 @@
 apiVersion: v2
 name: mimoto
-description: A Helm chart for MOSIP mimoto Application
+description: A Helm chart for INJI mimoto Application
 type: application
 version: 0.21.0-develop
 appVersion: ""
@@ -10,10 +10,10 @@ dependencies:
     tags:
       - bitnami-common
     version: 1.x.x
-home: https://mosip.io
+home: https://inji.io
 keywords:
   - mosip
   - mimoto
 maintainers:
-  - email: info@mosip.io
-    name: MOSIP
+  - email: info@inji.io
+    name: INJI
