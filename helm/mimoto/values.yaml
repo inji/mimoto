@@ -496,5 +496,5 @@ volumes:
 mimoto:
   secrets:
     google-client:
-      INJI_INJIWEB_GOOGLE_CLIENT_ID: "your-app-google-client-id"
-      INJI_INJIWEB_GOOGLE_CLIENT_SECRET: "your-app-google-client-secret"
+      MOSIP_INJIWEB_GOOGLE_CLIENT_ID: "your-app-google-client-id"
+      MOSIP_INJIWEB_GOOGLE_CLIENT_SECRET: "your-app-google-client-secret"
