@@ -1,4 +1,4 @@
-package io.mosip.testrig.apirig.mimoto.utils;
+package io.inji.testrig.apirig.mimoto.utils;
 
 public class MimotoConstants {
 	

@@ -15,7 +15,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="GetPolicySunBirdR">
@@ -24,7 +24,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 	<test name="SearchPolicySunBirdR">
@@ -32,7 +32,7 @@
 				   value="mimoto/SunBirdR/SearchPolicySunBirdR/SearchPolicySunBirdR.yml" />
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePost" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.SimplePost" />
 		</classes>
 	</test>
 	<test name="OAuthDetailsRequest">
@@ -42,7 +42,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="AuthenticateUser">
@@ -51,7 +51,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithAutogenIdWithOtpGenerate" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithAutogenIdWithOtpGenerate" />
 		</classes>
 	</test>
 	<test name="AuthorizationCode">
@@ -61,7 +61,7 @@
 		<parameter name="idKeyName" value="code" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="OAuthDetailsRequestSunBirdC">
@@ -71,7 +71,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="AuthenticateUserSunBirdC">
@@ -79,7 +79,7 @@
 				   value="mimoto/SunBirdC/AuthenticateUserSunBirdC/AuthenticateUserSunBirdC.yml" />
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePost" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.SimplePost" />
 		</classes>
 	</test>
 	<test name="AuthorizationCodeSunBirdC">
@@ -89,7 +89,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="DownloadIssuerCredential">
@@ -97,7 +97,7 @@
 				   value="mimoto/DownloadIssuerCredential/DownloadIssuerCredential.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithFormDataBodyForPdfDownload" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithFormDataBodyForPdfDownload" />
 		</classes>
 	</test>
 
@@ -106,7 +106,7 @@
 				   value="mimoto/AuthLock/createAuthLock.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithBodyWithOtpGenerate" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithBodyWithOtpGenerate" />
 		</classes>
 	</test>
 	<test name="AuthUnLock">
@@ -114,7 +114,7 @@
 				   value="mimoto/AuthUnLock/createAuthUnLock.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithBodyWithOtpGenerate" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithBodyWithOtpGenerate" />
 		</classes>
 	</test>
 
@@ -124,7 +124,7 @@
 		<parameter name="idKeyName" value="requestId" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithAutogenIdWithOtpGenerate" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithAutogenIdWithOtpGenerate" />
 		</classes>
 	</test>
 	<test name="CredentialCheckStatus">
@@ -132,21 +132,21 @@
 				   value="mimoto/CredentialIssuance/CredentialCheckStatus/CredentialCheckStatus.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 	<test name="DownloadCredential">
 		<parameter name="ymlFile"
 				   value="mimoto/CredentialIssuance/DownloadWithReqid/DownloadWithReqid.yml" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePost" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.SimplePost" />
 		</classes>
 	</test>
 	<test name="SendOTP">
 		<parameter name="ymlFile"
 				   value="mimoto/SendOTPUIN/createSendOTP.yml" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePost" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.SimplePost" />
 		</classes>
 	</test>
 	<test name="AidGetIndividualId">
@@ -154,14 +154,14 @@
 				   value="mimoto/AidGetIndividualId/AidGetIndividualId.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithBodyWithOtpGenerate" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithBodyWithOtpGenerate" />
 		</classes>
 	</test>
 	<test name="BindingOtp">
 		<parameter name="ymlFile"
 				   value="mimoto/BindingOtp/BindingOtp.yml" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePost" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.SimplePost" />
 		</classes>
 	</test>
 	<test name="WalletBinding">
@@ -169,7 +169,7 @@
 				   value="mimoto/WalletBinding/WalletBinding.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithBodyWithOtpGenerate" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithBodyWithOtpGenerate" />
 		</classes>
 	</test>
 	<test name="GetAllIssuers">
@@ -177,7 +177,7 @@
 				   value="mimoto/GetAllIssuers/GetAllIssuers.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 	<test name="GetIssuerWellKnown">
@@ -185,7 +185,7 @@
 				   value="mimoto/GetIssuerWellKnown/GetIssuerWellKnown.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 
@@ -195,7 +195,7 @@
 		<parameter name="idKeyName" value="sessionCookie" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="GetUserProfile">
@@ -203,7 +203,7 @@
 				   value="mimoto/LoginFlow/Users/GetUserProfile/GetUserProfile.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 	<test name="CreateWallet">
@@ -212,7 +212,7 @@
 		<parameter name="idKeyName" value="walletId,walletName" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="UnlockWallet">
@@ -221,7 +221,7 @@
 		<parameter name="pathParams" value="walletId" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithPathParamsAndCookie" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsAndCookie" />
 		</classes>
 	</test>
 	<test name="VerifiablePresentationAuthorization">
@@ -232,7 +232,7 @@
 		<parameter name="idKeyName" value="presentationId,id" />
 		<classes>
 			<class
-				name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+				name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
 		</classes>
 	</test>
 	<test name="GetCredentialsForPresentation">
@@ -243,7 +243,7 @@
 		<parameter name="idKeyName" value="availableCredentials" />
 		<classes>
 			<class
-				name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithPathParamAndCookieForAutoGenId" />
+				name="io.inji.testrig.apirig.mimoto.testscripts.GetWithPathParamAndCookieForAutoGenId" />
 		</classes>
 	</test>
 	<test name="AddTrustedVerifier">
@@ -254,7 +254,7 @@
 		<parameter name="idKeyName" value="presentationId" />
 		<classes>
 			<class
-				name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+				name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
 		</classes>
 	</test>
 	<test name="RejectPresentation">
@@ -264,7 +264,7 @@
 		<parameter name="pathParams" value="walletId,presentationId" />
 		<classes>
 			<class
-				name="io.mosip.testrig.apirig.mimoto.testscripts.PatchWithPathParamsBodyAndCookie" />
+				name="io.inji.testrig.apirig.mimoto.testscripts.PatchWithPathParamsBodyAndCookie" />
 		</classes>
 	</test>
 	<test name="OAuthDetailsRequestForGoogleLogin">
@@ -274,7 +274,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="AuthenticateUserForGoogleLogin">
@@ -283,7 +283,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithAutogenIdWithOtpGenerate" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithAutogenIdWithOtpGenerate" />
 		</classes>
 	</test>
 	<test name="AuthorizationCodeForGoogleLogin">
@@ -293,7 +293,7 @@
 		<parameter name="idKeyName" value="code" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="DownloadMosipIssuerCredentialWithGoogleLogin">
@@ -304,7 +304,7 @@
 				   value="mimoto/LoginFlow/DownloadMosipIssuerCredential/DownloadIssuerCredential/DownloadIssuerCredential.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
 		</classes>
 	</test>
 	<test name="OAuthDetailsRequestSunBirdCForGoogleLogin">
@@ -314,7 +314,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="AuthenticateUserSunBirdCForGoogleLogin">
@@ -322,7 +322,7 @@
 				   value="mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/AuthenticateUserSunBirdC/AuthenticateUserSunBirdC.yml" />
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePost" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.SimplePost" />
 		</classes>
 	</test>
 	<test name="AuthorizationCodeSunBirdCForGoogleLogin">
@@ -332,7 +332,7 @@
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
 		</classes>
 	</test>
 	<test name="DownloadIssuerCredentialWithGoogleLogin">
@@ -343,7 +343,7 @@
 				   value="mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/DownloadIssuerCredential/DownloadIssuerCredential.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
 		</classes>
 	</test>
 	<test name="FetchAllCredentials">
@@ -353,7 +353,7 @@
 				   value="mimoto/LoginFlow/DownloadMosipIssuerCredential/FetchAllCredentials/FetchAllCredentials.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParamAndHeader" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParamAndHeader" />
 		</classes>
 	</test>
 	<test name="ViewCredential">
@@ -363,7 +363,7 @@
 				   value="mimoto/LoginFlow/DownloadMosipIssuerCredential/ViewCredential/ViewCredential.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParamAndHeader" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParamAndHeader" />
 		</classes>
 	</test>
 	<test name="DeleteCredentials">
@@ -371,7 +371,7 @@
 				   value="mimoto/LoginFlow/DownloadMosipIssuerCredential/DeleteCredentials/DeleteCredentials.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.DeleteWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.DeleteWithParam" />
 		</classes>
 	</test>
 	<test name="GetWallets">
@@ -379,7 +379,7 @@
 				   value="mimoto/LoginFlow/Wallet/GetWallets/GetWallets.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 	<test name="UnlockWalletForTemporarilyLock">
@@ -388,7 +388,7 @@
 		<parameter name="pathParams" value="walletId" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithPathParamsAndCookie" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsAndCookie" />
 		</classes>
 	</test>
 	<test name="DeleteWallet">
@@ -396,7 +396,7 @@
 				   value="mimoto/LoginFlow/Wallet/DeleteWallet/DeleteWallet.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.DeleteWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.DeleteWithParam" />
 		</classes>
 	</test>
 	<test name="UnlockWalletAfterDelete">
@@ -405,14 +405,14 @@
 		<parameter name="pathParams" value="walletId" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.PostWithPathParamsAndCookie" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsAndCookie" />
 		</classes>
 	</test>
 	<test name="Logout">
 		<parameter name="ymlFile"
 				   value="mimoto/LoginFlow/Authorization/Logout/Logout.yml" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.SimplePost" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.SimplePost" />
 		</classes>
 	</test>
 	<test name="GetUserProfileAfterLogout">
@@ -420,7 +420,7 @@
 				   value="mimoto/LoginFlow/Users/GetUserProfileAfterLogout/GetUserProfileAfterLogout.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 	<test name="ViewCredentialAfterLogout">
@@ -430,7 +430,7 @@
 				   value="mimoto/LoginFlow/DownloadMosipIssuerCredential/ViewCredential/ViewCredentialAfterLogout.yml" />
 		<classes>
 			<class
-					name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParamAndHeader" />
+					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParamAndHeader" />
 		</classes>
 	</test>
 
@@ -440,21 +440,21 @@
 		<parameter name="pathParams" value="insuranceid" />
 		<parameter name="prerequisite" value="Yes" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.DeleteWithParam" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.DeleteWithParam" />
 		</classes>
 	</test>
 	<test name="GetVerifierList">
 		<parameter name="ymlFile"
 				   value="mimoto/GetVerifierList/GetVerifierList.yml" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 	<test name="GetIssuerConfiguration">
 		<parameter name="ymlFile"
 				   value="mimoto/GetIssuerConfiguration/GetIssuerConfiguration.yml" />
 		<classes>
-			<class name="io.mosip.testrig.apirig.mimoto.testscripts.GetWithParam" />
+			<class name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
 </suite>

@@ -48,17 +48,17 @@ You can access the test automation code using either of the following methods:
 
 ### From Browser
 
-1. Clone or download the repository as a zip file from [GitHub](https://github.com/mosip/mimoto).
+1. Clone or download the repository as a zip file from [GitHub](https://github.com/inji/mimoto).
 2. Unzip the contents to your local machine.
 3. Open a terminal (Linux) or command prompt (Windows) and continue with the following steps.
 
 ### From Git Bash
 
-1. Copy the Git repository URL: `https://github.com/mosip/mimoto`
+1. Copy the Git repository URL: `https://github.com/inji/mimoto`
 2. Open **Git Bash** on your local machine.
 3. Run the following command to clone the repository:
    ```sh
-   git clone https://github.com/mosip/mimoto
+   git clone https://github.com/inji/mimoto
    ```
 
 ---
@@ -96,7 +96,7 @@ To execute the tests using Jar, use the following steps:
 
 2. Run the automation test suite JAR file:
    ```
-   java -jar -Dmodules=mimoto -Denv.user=api-internal.<env_name> -Denv.endpoint=<base_env> -Denv.testLevel=smokeAndRegression -jar apitest-mimoto-0.20.0-SNAPSHOT-jar-with-dependencies.jar
+   java -jar -Dmodules=mimoto -Denv.user=api-internal.<env_name> -Denv.endpoint=<base_env> -Denv.testLevel=smokeAndRegression -jar apitest-mimoto-0.21.0-SNAPSHOT-jar-with-dependencies.jar
    ```
    
 # Using Eclipse IDE
@@ -128,7 +128,7 @@ To execute the tests using Eclipse IDE, use the following steps:
    - Go to `Run` > `Run Configurations`.
    - In the **Run Configurations** window, create a new configuration for your tests:
      - Right-click on **Java Application** and select **New**.
-     - In the **Main** tab, select the project by browsing the location where the `api-test` folder is saved, and select the **Main class** as `io.mosip.testrig.apirig.mimoto.testrunner.MosipTestRunner`.
+     - In the **Main** tab, select the project by browsing the location where the `api-test` folder is saved, and select the **Main class** as `io.inji.testrig.apirig.mimoto.testrunner.InjiTestRunner`.
    - In the **Arguments** tab, add the necessary **VM arguments**:
      - **VM Arguments**:
        ```
@@ -157,7 +157,7 @@ To execute the tests using Eclipse IDE, use the following steps:
 - **env.user**: Replace `<env_name>` with the appropriate environment name (e.g., `dev`, `qa`, etc.).
 - **env.endpoint**: The environment where the application under test is deployed. Replace `<base_env>` with the correct base URL for the environment (e.g., `https://api-internal.<env_name>.mosip.net`).
 - **env.testLevel**: Set this to `smoke` to run only smoke test cases, or `smokeAndRegression` to run both smoke and regression tests.
-- **jar**: Specify the name of the JAR file to execute. The version will change according to the development code version. For example, the current version may look like `apitest-mimoto-0.20.0-SNAPSHOT-jar-with-dependencies.jar`.
+- **jar**: Specify the name of the JAR file to execute. The version will change according to the development code version. For example, the current version may look like `apitest-mimoto-0.21.0-SNAPSHOT-jar-with-dependencies.jar`.
 
 ### Build and Run Info
 
@@ -181,4 +181,4 @@ Update the below **config maps** if required
 
 ## License
 
-This project is licensed under the terms of the [Mozilla Public License 2.0](https://github.com/mosip/mosip-platform/blob/master/LICENSE)
+This project is licensed under the terms of the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)

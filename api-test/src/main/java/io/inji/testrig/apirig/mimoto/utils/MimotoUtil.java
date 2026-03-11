@@ -1,4 +1,4 @@
-package io.mosip.testrig.apirig.mimoto.utils;
+package io.inji.testrig.apirig.mimoto.utils;
 
 import java.io.StringWriter;
 import java.security.KeyPair;
@@ -24,10 +24,10 @@ import org.testng.SkipException;
 
 import com.github.javafaker.Faker;
 
+import io.inji.testrig.apirig.mimoto.testrunner.InjiTestRunner;
 import io.mosip.testrig.apirig.dataprovider.BiometricDataProvider;
 import io.mosip.testrig.apirig.dbaccess.DBManager;
 import io.mosip.testrig.apirig.dto.TestCaseDTO;
-import io.mosip.testrig.apirig.mimoto.testrunner.MosipTestRunner;
 import io.mosip.testrig.apirig.testrunner.OTPListener;
 import io.mosip.testrig.apirig.utils.AdminTestUtil;
 import io.mosip.testrig.apirig.utils.ConfigManager;
@@ -117,7 +117,7 @@ public class MimotoUtil extends AdminTestUtil {
 			throw new SkipException(GlobalConstants.CAPTCHA_ENABLED_MESSAGE);
 		}
 
-		if (MosipTestRunner.skipAll == true) {
+		if (InjiTestRunner.skipAll == true) {
 			throw new SkipException(GlobalConstants.PRE_REQUISITE_FAILED_MESSAGE);
 		}
 

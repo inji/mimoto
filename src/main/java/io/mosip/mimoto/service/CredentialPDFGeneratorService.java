@@ -92,6 +92,8 @@ public class CredentialPDFGeneratorService {
     @Value("${mosip.injiweb.mask.disclosures:true}")
     private boolean maskDisclosures;
 
+    private static final String CLAIM_169_KEY = "claim169";
+    
     public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
         // Check if the credential can support SVG based rendering
         if (isSvgBasedRenderingSupported(vcCredentialResponse)) {
@@ -177,7 +179,13 @@ public class CredentialPDFGeneratorService {
         if (QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type())) {
             qrCodeImage = constructQRCodeWithAuthorizeRequest(vcCredentialResponse, dataShareUrl);
         } else if (QRCodeType.EmbeddedVC.equals(issuerDTO.getQr_code_type())) {
-            qrCodeImage = constructQRCodeWithVCData(vcCredentialResponse);
+            String claim169Qr = extractClaim169Qr(vcCredentialResponse);
+            if(!claim169Qr.isEmpty()) {
+                qrCodeImage = constructQRCode(claim169Qr);
+            }
+            else {
+                qrCodeImage = constructQRCodeWithVCData(vcCredentialResponse);
+            }
         }
 
         // is sd-jwt and has disclosures
@@ -196,6 +204,20 @@ public class CredentialPDFGeneratorService {
         data.put("titleName", credentialSupportedType);
         data.put("face", face);
         return data;
+    }
+
+    private String extractClaim169Qr(VCCredentialResponse vcCredentialResponse) {
+        CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(vcCredentialResponse.getFormat());
+        Map<String, Object> credentialSubject = credentialFormatHandler.extractCredentialClaims(vcCredentialResponse);
+        Object claim169QrObj = credentialSubject.get(CLAIM_169_KEY);
+        if (claim169QrObj instanceof Map<?, ?> claim169Map) {
+            if (!claim169Map.isEmpty()) {
+                Object firstValue = claim169Map.values().iterator().next();
+                return firstValue != null ? firstValue.toString() : "";
+            }
+            return "";
+        }
+        return "";
     }
 
     private SelectedFace extractFace(VCCredentialResponse vcCredentialResponse) {
@@ -309,8 +331,6 @@ public class CredentialPDFGeneratorService {
 
         if (contextField instanceof List<?> contextList)
             return contextList.stream().anyMatch(entry -> LdpVcV2Constants.V2_CONTEXT_URL.equals(entry.toString()));
-        if (contextField instanceof String contextString)
-            return LdpVcV2Constants.V2_CONTEXT_URL.equals(contextString);
 
         return false;
     }
