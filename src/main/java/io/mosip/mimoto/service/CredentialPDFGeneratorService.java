@@ -115,7 +115,7 @@ public class CredentialPDFGeneratorService {
                     processor.loadDisplayPropertiesFromWellknown(credentialProperties, credentialsSupportedResponse, locale);
 
             Map<String, Object> data = getPdfResourceFromVcProperties(displayProperties, credentialsSupportedResponse,
-                    vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity);
+                    vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity, locale);
 
             return renderVCInCredentialTemplate(data, issuerDTO.getIssuer_id(), credentialConfigurationId);
         }
@@ -127,22 +127,27 @@ public class CredentialPDFGeneratorService {
             VCCredentialResponse vcCredentialResponse,
             IssuerDTO issuerDTO,
             String dataShareUrl,
-            String credentialValidity) throws IOException, WriterException {
+            String credentialValidity,
+            String userLocale) throws IOException, WriterException {
 
         Map<String, Object> data = new HashMap<>();
         LinkedHashMap<String, Object> rowProperties = new LinkedHashMap<>();
 
-        CredentialSupportedDisplayResponse firstDisplay = Optional.ofNullable(credentialsSupportedResponse.getDisplay())
-                .filter(list -> !list.isEmpty())
-                .map(List::getFirst)
-                .orElse(null);
+        CredentialSupportedDisplayResponse resolvedDisplay =
+                Optional.ofNullable(credentialsSupportedResponse.getDisplay())
+                        .filter(list -> !list.isEmpty())
+                        .map(list -> list.stream()
+                                .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
+                                .findFirst()
+                                .orElseGet(list::getFirst))
+                        .orElse(null);
 
-        String backgroundColor = firstDisplay != null ? firstDisplay.getBackgroundColor() : null;
-        String backgroundImage = firstDisplay != null && firstDisplay.getBackgroundImage() != null
-                ? firstDisplay.getBackgroundImage().getUri()
+        String backgroundColor = resolvedDisplay != null ? resolvedDisplay.getBackgroundColor() : null;
+        String backgroundImage = resolvedDisplay != null && resolvedDisplay.getBackgroundImage() != null
+                ? resolvedDisplay.getBackgroundImage().getUri()
                 : null;
-        String textColor = firstDisplay != null ? firstDisplay.getTextColor() : null;
-        String credentialSupportedType = firstDisplay != null ? firstDisplay.getName() : null;
+        String textColor = resolvedDisplay != null ? resolvedDisplay.getTextColor() : null;
+        String credentialSupportedType = resolvedDisplay != null ? resolvedDisplay.getName() : null;
 
         SelectedFace selectedFace = extractFace(vcCredentialResponse);
         String face = selectedFace.face();

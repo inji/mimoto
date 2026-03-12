@@ -18,6 +18,7 @@ import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.service.impl.LdpVcCredentialFormatHandler;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
 import io.mosip.mimoto.service.impl.VcSdJwtCredentialFormatHandler;
+import io.mosip.mimoto.util.LocaleUtils;
 import io.mosip.mimoto.util.SvgFixerUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.pixelpass.PixelPass;
@@ -1836,5 +1837,114 @@ class CredentialPDFGeneratorServiceTest {
         assertNotNull(result);
         verify(pixelPass, never()).generateQRData(anyString(), anyString());
         verify(presentationService, never()).constructPresentationDefinition(any());
+    }
+
+   @Test
+    void testTitleNameWithMatchingLocaleFromGetPdfResource() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
+        issuerDTO.setQr_code_type(QRCodeType.None);
+
+        CredentialSupportedDisplayResponse fr = new CredentialSupportedDisplayResponse();
+        fr.setName("French Title");
+        fr.setLocale("fr");
+
+        CredentialSupportedDisplayResponse en = new CredentialSupportedDisplayResponse();
+        en.setName("English Title");
+        en.setLocale("en");
+
+        credentialsSupportedResponse.setDisplay(List.of(fr, en));
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+
+        Map<String, Object> data = ReflectionTestUtils.invokeMethod(
+                credentialPDFGeneratorService,
+                "getPdfResourceFromVcProperties",
+                displayProperties,
+                credentialsSupportedResponse,
+                vcCredentialResponse,
+                issuerDTO,
+                "",
+                "-1",
+                "en"
+        );
+
+        assertNotNull(data);
+        assertEquals("English Title", data.get("titleName"));
+    }
+
+    @Test
+    void testTitleNameFallsBackToFirstWhenLocaleNotFoundFromGetPdfResource() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
+        issuerDTO.setQr_code_type(QRCodeType.None);
+
+        CredentialSupportedDisplayResponse fr = new CredentialSupportedDisplayResponse();
+        fr.setName("French Title");
+        fr.setLocale("fr");
+
+        CredentialSupportedDisplayResponse en = new CredentialSupportedDisplayResponse();
+        en.setName("English Title");
+        en.setLocale("en");
+
+        credentialsSupportedResponse.setDisplay(List.of(fr, en));
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+
+        Map<String, Object> data = ReflectionTestUtils.invokeMethod(
+                credentialPDFGeneratorService,
+                "getPdfResourceFromVcProperties",
+                displayProperties,
+                credentialsSupportedResponse,
+                vcCredentialResponse,
+                issuerDTO,
+                "",
+                "-1",
+                "es"
+        );
+
+        assertNotNull(data);
+        assertEquals("French Title", data.get("titleName")); // fallback to first
+    }
+
+    @Test
+    void testTitleNameNullWhenDisplayListNullOrEmptyFromGetPdfResource() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
+        issuerDTO.setQr_code_type(QRCodeType.None);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
+
+        // null display list
+        credentialsSupportedResponse.setDisplay(null);
+        Map<String, Object> dataNull = ReflectionTestUtils.invokeMethod(
+                credentialPDFGeneratorService,
+                "getPdfResourceFromVcProperties",
+                displayProperties,
+                credentialsSupportedResponse,
+                vcCredentialResponse,
+                issuerDTO,
+                "",
+                "-1",
+                "en"
+        );
+        assertNotNull(dataNull);
+        assertNull(dataNull.get("titleName"));
+
+        // empty display list
+        credentialsSupportedResponse.setDisplay(new ArrayList<>());
+        Map<String, Object> dataEmpty = ReflectionTestUtils.invokeMethod(
+                credentialPDFGeneratorService,
+                "getPdfResourceFromVcProperties",
+                displayProperties,
+                credentialsSupportedResponse,
+                vcCredentialResponse,
+                issuerDTO,
+                "",
+                "-1",
+                "en"
+        );
+        assertNotNull(dataEmpty);
+        assertNull(dataEmpty.get("titleName"));
     }
 }
