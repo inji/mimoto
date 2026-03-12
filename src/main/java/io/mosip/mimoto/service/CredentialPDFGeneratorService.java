@@ -130,15 +130,14 @@ public class CredentialPDFGeneratorService {
         Map<String, Object> data = new HashMap<>();
         LinkedHashMap<String, Object> rowProperties = new LinkedHashMap<>();
 
-        List<CredentialSupportedDisplayResponse> displayList = credentialsSupportedResponse.getDisplay();
-
-        CredentialSupportedDisplayResponse resolvedDisplay = Optional.ofNullable(displayList)
-                .filter(list -> !list.isEmpty())
-                .map(list -> list.stream()
-                        .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
-                        .findFirst()
-                        .orElseGet(list::getFirst))
-                .orElse(null);
+        CredentialSupportedDisplayResponse resolvedDisplay =
+                Optional.ofNullable(credentialsSupportedResponse.getDisplay())
+                        .filter(list -> !list.isEmpty())
+                        .map(list -> list.stream()
+                                .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
+                                .findFirst()
+                                .orElseGet(list::getFirst))
+                        .orElse(null);
 
         String backgroundColor = resolvedDisplay != null ? resolvedDisplay.getBackgroundColor() : null;
         String backgroundImage = resolvedDisplay != null && resolvedDisplay.getBackgroundImage() != null
