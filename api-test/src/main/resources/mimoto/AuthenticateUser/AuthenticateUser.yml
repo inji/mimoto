@@ -1,7 +1,7 @@
 AuthenticateUser:
    Mimoto_ESignet_AuthenticateUserIDP_uin_Otp_Valid_Smoke:
       endPoint: /v1/esignet/authorization/authenticate
-      description: Verify that the user is successfully authenticated and able to download credentials when all valid parameters are provided
+      description: Verify that the user is successfully authenticated for the credential download flow when all valid parameters are provided
       uniqueIdentifier: TC_Mimoto_AuthenticateUser_01
       role: resident
       restMethod: post

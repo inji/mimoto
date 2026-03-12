@@ -1,7 +1,7 @@
 WalletBinding:
    Mimoto_WalletBinding_uin_OTP_Valid_Smoke:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with valid UIN
+      description: Verify that the system generates an OTP when a valid UIN is provided for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_01
       role: resident
       validityCheckRequired: true
@@ -35,7 +35,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_OTP_Valid_Smoke:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with valid VID
+      description: Verify that the system generates an OTP when a valid VID is provided for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_02
       role: resident
       validityCheckRequired: true
@@ -69,7 +69,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Invalid_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with invalid request time
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid request time is provided for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_03
       role: resident
       validityCheckRequired: true
@@ -108,7 +108,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_PastVal_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with past request time
+      description: Verify that the system rejects the request and does not generate an OTP when a past request time is provided for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_04
       role: resident
       validityCheckRequired: true
@@ -147,7 +147,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_FutureVal_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with future request time
+      description: Verify that the system rejects the request and does not generate an OTP when a future request time is provided for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_05
       role: resident
       validityCheckRequired: true
@@ -186,7 +186,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Empty_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with empty requestime
+      description: Verify that the system rejects the request and does not generate an OTP when the requestTime field is empty for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_06
       role: resident
       validityCheckRequired: true
@@ -225,7 +225,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Missing_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with missing requestime
+      description: Verify that the system rejects the request and does not generate an OTP when the requestTime field is missing for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_07
       role: resident
       validityCheckRequired: true
@@ -264,7 +264,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Invalid_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with invalid individualId
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid individualId is provided for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_08
       role: resident
       validityCheckRequired: true
@@ -304,7 +304,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Empty_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with empty individualId
+      description: Verify that the system rejects the request and does not generate an OTP when the individualId field is empty for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_09
       role: resident
       validityCheckRequired: true
@@ -343,7 +343,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Null_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with individualId being null
+      description: Verify that the system rejects the request and does not generate an OTP when the individualId value is null for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_10
       role: resident
       validityCheckRequired: true
@@ -383,7 +383,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Missing_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with individualId being missing
+      description: Verify that the system rejects the request and does not generate an OTP when the individualId field is missing for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_11
       role: resident
       validityCheckRequired: true
@@ -422,7 +422,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_SpaceVal_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with individualId value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the individualId contains spaces for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_12
       role: resident
       validityCheckRequired: true
@@ -461,7 +461,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Invalid_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with invalid authfactortype
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid authFactorType is provided for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_13
       role: resident
       validityCheckRequired: true
@@ -501,7 +501,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Empty_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with empty authfactortype
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType field is empty for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_14
       role: resident
       validityCheckRequired: true
@@ -541,7 +541,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Missing_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with missing authfactortype
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType field is missing for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_15
       role: resident
       validityCheckRequired: true
@@ -581,7 +581,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_SpaceVal_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with authfactortype value being just space
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType value contains only spaces for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_16
       role: resident
       validityCheckRequired: true
@@ -621,7 +621,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Null_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with authfactortype value being just null
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType value is null for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_17
       role: resident
       validityCheckRequired: true
@@ -661,7 +661,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Invalid_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with invalid challenge
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid challenge value is provided for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_18
       role: resident
       validityCheckRequired: true
@@ -701,7 +701,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Missing_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with missing challenge
+      description: Verify that the system rejects the request and does not generate an OTP when the challenge field is missing for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_19
       role: resident
       validityCheckRequired: true
@@ -741,7 +741,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Empty_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with empty challenge
+      description: Verify that the system rejects the request and does not generate an OTP when the challenge field is empty for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_20
       role: resident
       validityCheckRequired: true
@@ -781,7 +781,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_SpaceVal_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with challenge value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the challenge value contains spaces for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_21
       role: resident
       validityCheckRequired: true
@@ -821,7 +821,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Null_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with challenge value having null
+      description: Verify that the system rejects the request and does not generate an OTP when the challenge value is null for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_22
       role: resident
       validityCheckRequired: true
@@ -861,7 +861,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Invalid_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with invalid formate
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid format value is provided for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_23
       role: resident
       validityCheckRequired: true
@@ -901,7 +901,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Missing_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with missing formate
+      description: Verify that the system rejects the request and does not generate an OTP when the format field is missing for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_24
       role: resident
       validityCheckRequired: true
@@ -941,7 +941,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Empty_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with empty formate
+      description: Verify that the system rejects the request and does not generate an OTP when the format field is empty for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_25
       role: resident
       validityCheckRequired: true
@@ -981,7 +981,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_SpaceVal_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with formate value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the format value contains spaces for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_26
       role: resident
       validityCheckRequired: true
@@ -1021,7 +1021,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Null_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with formate value having null
+      description: Verify that the system rejects the request and does not generate an OTP when the format value is null for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_27
       role: resident
       validityCheckRequired: true
@@ -1061,7 +1061,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Invalid_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with invalid authFactorType1
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid authFactorType1 is provided for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_28
       role: resident
       validityCheckRequired: true
@@ -1100,7 +1100,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Missing_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with missing authFactorType1
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType1 field is missing for VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_29
       role: resident
       validityCheckRequired: true
@@ -1139,7 +1139,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Empty_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with empty authFactorType1
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType1 field is empty for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_30
       role: resident
       validityCheckRequired: true
@@ -1178,7 +1178,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_SpaceVal_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with authFactorType1 value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType1 value contains spaces for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_31
       role: resident
       validityCheckRequired: true
@@ -1217,7 +1217,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Null_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with authFactorType1 value having null
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType1 value is null for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_32
       role: resident
       validityCheckRequired: true
@@ -1256,7 +1256,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Invalid_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with invalid format1
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid format1 value is provided for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_33
       role: resident
       validityCheckRequired: true
@@ -1295,7 +1295,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Missing_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with missing format1
+      description: Verify that the system rejects the request and does not generate an OTP when the format1 field is missing for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_34
       role: resident
       validityCheckRequired: true
@@ -1334,7 +1334,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Empty_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with empty format1
+      description: Verify that the system rejects the request and does not generate an OTP when the format1 field is empty for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_35
       role: resident
       validityCheckRequired: true
@@ -1373,7 +1373,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_SpaceVal_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with format1 value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the format1 value contains spaces for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_36
       role: resident
       validityCheckRequired: true
@@ -1412,7 +1412,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Null_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with format1 value having null
+      description: Verify that the system rejects the request and does not generate an OTP when the format1 value is null for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_37
       role: resident
       validityCheckRequired: true
@@ -1451,7 +1451,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Invalid_publicKey_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with invalid publickey
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid publicKey is provided for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_38
       role: resident
       validityCheckRequired: true
@@ -1490,7 +1490,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Null_publicKey_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with null as publickey
+      description: Verify that the system rejects the request and does not generate an OTP when the publicKey value is null for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_39
       role: resident
       validityCheckRequired: true
@@ -1529,7 +1529,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_uin_Missing_publicKey_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VC with missing publickey
+      description: Verify that the system rejects the request and does not generate an OTP when the publicKey field is missing for VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_40
       role: resident
       validityCheckRequired: true
@@ -1568,7 +1568,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Invalid_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with invalid request time
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid requestTime is provided for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_41
       role: resident
       validityCheckRequired: true
@@ -1607,7 +1607,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_PastVal_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with past request time
+      description: Verify that the system rejects the request and does not generate an OTP when a past requestTime is provided for VID-based VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_42
       role: resident
       validityCheckRequired: true
@@ -1646,7 +1646,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_FutureVal_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with future request time
+      description: Verify that the system rejects the request and does not generate an OTP when a future requestTime is provided for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_43
       role: resident
       validityCheckRequired: true
@@ -1685,7 +1685,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Empty_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with empty request time
+      description: Verify that the system rejects the request and does not generate an OTP when the requestTime field is empty for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_44
       role: resident
       validityCheckRequired: true
@@ -1724,7 +1724,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Missing_RequestTime_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with missing request time
+      description: Verify that generating an OTP to bind a VID VC fails when requestTime is missing
       uniqueIdentifier: TC_Mimoto_WalletBinding_45
       role: resident
       validityCheckRequired: true
@@ -1763,7 +1763,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Invalid_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with invalid individualId
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid individualId is provided for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_46
       role: resident
       validityCheckRequired: true
@@ -1803,7 +1803,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Empty_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with empty individualId
+      description: Verify that the system rejects the request and does not generate an OTP when the individualId field is empty for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_47
       role: resident
       validityCheckRequired: true
@@ -1842,7 +1842,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Null_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with null individualId
+      description: Verify that the system rejects the request and does not generate an OTP when the individualId value is null for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_48
       role: resident
       validityCheckRequired: true
@@ -1882,7 +1882,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Missing_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind vid VC with missing individualId
+      description: Verify that the system rejects the request and does not generate an OTP when the individualId field is missing for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_49
       role: resident
       validityCheckRequired: true
@@ -1921,7 +1921,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_SpaceVal_IndividualId_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with individualId value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the individualId contains spaces for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_50
       role: resident
       validityCheckRequired: true
@@ -1960,7 +1960,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Invalid_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with invalid authfactortype
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid authFactorType is provided for VID-based VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_51
       role: resident
       validityCheckRequired: true
@@ -2000,7 +2000,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Empty_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with empty authfactortype
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType field is empty for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_52
       role: resident
       validityCheckRequired: true
@@ -2040,7 +2040,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Missing_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with missing authfactortype
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType field is missing for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_53
       role: resident
       validityCheckRequired: true
@@ -2080,7 +2080,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_SpaceVal_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with authfactortype value being just space
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType value contains only spaces for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_54
       role: resident
       validityCheckRequired: true
@@ -2120,7 +2120,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Null_AuthFactorType_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with authfactortype value being just null
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType value is null for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_55
       role: resident
       validityCheckRequired: true
@@ -2159,7 +2159,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Invalid_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with invalid challenge
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid challenge value is provided for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_56
       role: resident
       validityCheckRequired: true
@@ -2199,7 +2199,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Missing_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with missing challenge
+      description: Verify that the system rejects the request and does not generate an OTP when the challenge field is missing for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_57
       role: resident
       validityCheckRequired: true
@@ -2239,7 +2239,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Empty_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with empty challenge
+      description: Verify that the system rejects the request and does not generate an OTP when the challenge field is empty for VID-based VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_58
       role: resident
       validityCheckRequired: true
@@ -2279,7 +2279,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_SpaceVal_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with challenge value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the challenge value contains spaces for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_59
       role: resident
       validityCheckRequired: true
@@ -2319,7 +2319,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Null_Challenge_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with challenge value having null
+      description: Verify that the system rejects the request and does not generate an OTP when the challenge value is null for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_60
       role: resident
       validityCheckRequired: true
@@ -2358,7 +2358,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Invalid_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with invalid formate
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid format value is provided for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_61
       role: resident
       validityCheckRequired: true
@@ -2397,7 +2397,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Missing_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with missing formate
+      description: Verify that the system rejects the request and does not generate an OTP when the format field is missing for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_62
       role: resident
       validityCheckRequired: true
@@ -2437,7 +2437,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Empty_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with empty formate
+      description: Verify that the system rejects the request and does not generate an OTP when the format field is empty for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_63
       role: resident
       validityCheckRequired: true
@@ -2477,7 +2477,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_SpaceVal_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with formate value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the format value contains spaces for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_64
       role: resident
       validityCheckRequired: true
@@ -2517,7 +2517,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Null_Formate_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with formate value having null
+      description: Verify that the system rejects the request and does not generate an OTP when the format value is null for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_65
       role: resident
       validityCheckRequired: true
@@ -2556,7 +2556,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Invalid_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with invalid authFactorType1
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid authFactorType1 is provided for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_66
       role: resident
       validityCheckRequired: true
@@ -2595,7 +2595,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Missing_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with missing authFactorType1
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType1 field is missing for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_67
       role: resident
       validityCheckRequired: true
@@ -2634,7 +2634,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Empty_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with empty authFactorType1
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType1 field is empty for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_68
       role: resident
       validityCheckRequired: true
@@ -2673,7 +2673,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_SpaceVal_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with authFactorType1 value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType1 value contains spaces for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_69
       role: resident
       validityCheckRequired: true
@@ -2712,7 +2712,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Null_authFactorType1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with authFactorType1 value having null
+      description: Verify that the system rejects the request and does not generate an OTP when the authFactorType1 value is null for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_70
       role: resident
       validityCheckRequired: true
@@ -2751,7 +2751,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Invalid_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with invalid format1
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid format1 value is provided for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_71
       role: resident
       validityCheckRequired: true
@@ -2790,7 +2790,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Missing_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with missing format1
+      description: Verify that the system rejects the request and does not generate an OTP when the format1 field is missing for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_72
       role: resident
       validityCheckRequired: true
@@ -2829,7 +2829,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Empty_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with empty format1
+      description: Verify that the system rejects the request and does not generate an OTP when the format1 field is empty for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_73
       role: resident
       validityCheckRequired: true
@@ -2868,7 +2868,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_SpaceVal_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with format1 value having space
+      description: Verify that the system rejects the request and does not generate an OTP when the format1 value contains spaces for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_74
       role: resident
       validityCheckRequired: true
@@ -2907,7 +2907,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Null_format1_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with format1 value having null
+      description: Verify that the system rejects the request and does not generate an OTP when the format1 value is null for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_75
       role: resident
       validityCheckRequired: true
@@ -2946,7 +2946,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Invalid_publicKey_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with invalid publickey
+      description: Verify that the system rejects the request and does not generate an OTP when an invalid publicKey is provided for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_76
       role: resident
       validityCheckRequired: true
@@ -2985,7 +2985,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Null_publicKey_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with null as publickey
+      description: Verify that the system rejects the request and does not generate an OTP when the publicKey is null for VID-based VC binding
       uniqueIdentifier: TC_Mimoto_WalletBinding_77
       role: resident
       validityCheckRequired: true
@@ -3024,7 +3024,7 @@ WalletBinding:
 
    Mimoto_WalletBinding_vid_Missing_publicKey_Neg:
       endPoint: /v1/mimoto/wallet-binding
-      description: Generating OTP to bind VID VC with missing publickey
+      description: Verify that the system rejects the request and does not generate an OTP when the publicKey field is missing for VID-based VC binding.
       uniqueIdentifier: TC_Mimoto_WalletBinding_78
       role: resident
       validityCheckRequired: true

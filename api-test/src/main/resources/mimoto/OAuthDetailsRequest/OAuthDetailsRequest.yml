@@ -1,7 +1,7 @@
 OAuthDetailsRequest:
    Mimoto_ESignet_OAuthDetailsRequest_all_Valid_Smoke_sid:
       endPoint: /v1/esignet/authorization/v2/oauth-details
-      description: Creating Oauth's details with all valid parameters
+      description: Verify that the system successfully retrieves the authentication details for downloading the Sunbird credential when all valid parameters are provided
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequest_01
       role: resident
       restMethod: post

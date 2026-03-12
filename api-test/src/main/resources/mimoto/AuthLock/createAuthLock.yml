@@ -127,7 +127,7 @@ AuthLock:
 }'
    Mimoto_AuthLock_with_invalidVID_Valid_Otp:
       endPoint: /v1/mimoto/req/auth/lock
-      description: Verify that the system does not lock a authentication when an invalid OTP is provided
+      description: Verify that the system does not lock authentication when an invalid VID is provided
       uniqueIdentifier: TC_Mimoto_AuthLock_05
       role: resident
       checkErrorsOnlyInResponse: true

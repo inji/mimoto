@@ -1,7 +1,7 @@
 AddTrustedVerifier:
    Mimoto_AddTrustedVerifier_all_Valid_Smoke_sid:
       endPoint: /v1/mimoto/wallets/{walletId}/trusted-verifiers
-      description: Add trusted verifier with valid data
+      description: Validate adding a trusted verifier with valid data and verify that the operation succeeds
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_01
       role: userDefinedCookie
       restMethod: post
@@ -20,7 +20,7 @@ AddTrustedVerifier:
 
    Mimoto_AddTrustedVerifier_withEmpty_verifierId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/trusted-verifiers
-      description: Add trusted verifier with empty verifierId
+      description: Verify that adding a trusted verifier without a verifierId is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_02
       role: userDefinedCookie
       restMethod: post
@@ -39,7 +39,7 @@ AddTrustedVerifier:
 
    Mimoto_AddTrustedVerifier_withInvalid_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/trusted-verifiers
-      description: Add trusted verifier with invalid walletId - fail
+      description: Verify that adding a trusted verifier using an invalid walletId is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_03
       role: userDefinedCookie
       restMethod: post
@@ -58,7 +58,7 @@ AddTrustedVerifier:
 
    Mimoto_AddTrustedVerifier_withEmptyWalletID_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/trusted-verifiers
-      description: Add trusted verifier with empty walletId
+      description: Verify that adding a trusted verifier without a walletId is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_04
       role: userDefinedCookie
       restMethod: post
@@ -78,7 +78,7 @@ AddTrustedVerifier:
 
    Mimoto_AddTrustedVerifier_withLocked_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/trusted-verifiers
-      description: Add trusted verifier with locked walletId
+      description: Verify that adding a trusted verifier with a locked walletId is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_05
       role: userDefinedCookie
       restMethod: post
@@ -96,7 +96,7 @@ AddTrustedVerifier:
 
    Mimoto_AddTrustedVerifier_withInvalidSession_unAuthorized_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/trusted-verifiers
-      description: Add trusted verifier with invalid session
+      description: Verify that adding a trusted verifier using an invalid or expired session is not allowed and returns an appropriate authentication error
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_06
       role: userDefinedCookie
       restMethod: post
@@ -116,7 +116,7 @@ AddTrustedVerifier:
 
    Mimoto_AddTrustedVerifier_all_Valid_duplicateVerifierID_Smoke_sid:
       endPoint: /v1/mimoto/wallets/{walletId}/trusted-verifiers
-      description: Add trusted verifier with valid data for duplicate verifier ID scenario
+      description: Verify that adding a trusted verifier with an already existing verifier ID is not allowed and returns an appropriate duplicate entry error
       uniqueIdentifier: TC_Mimoto_AddTrustedVerifier_07
       role: userDefinedCookie
       restMethod: post

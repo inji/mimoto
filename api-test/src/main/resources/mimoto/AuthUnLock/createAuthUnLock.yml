@@ -61,7 +61,7 @@ AuthUnlock:
 }'
    Mimoto_AuthUnLock_With_InValid_OTP_All:
       endPoint: /v1/mimoto/req/auth/unlock
-      description: Validate that the system does not unlock the UIN when an invalid OTP is provided and displays the appropriate error message
+      description: Validate that the system does not unlock the UIN when an invalid OTP is provided and returns the expected error code
       uniqueIdentifier: TC_Mimoto_AuthLock_09
       role: resident
       checkErrorsOnlyInResponse: true

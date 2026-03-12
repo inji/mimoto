@@ -81,7 +81,7 @@ BindingOtp:
 
    Mimoto_BindingOtp_UIN_Empty_individualId_Neg:
       endPoint: /v1/mimoto/binding-otp
-      description: Validate that the system does not generate an OTP when the individualID is missing 
+      description: Validate that the system does not generate an OTP when the individualID is empty 
       uniqueIdentifier: TC_Mimoto_BindingOtp_05
       role: resident
       restMethod: post
@@ -277,7 +277,7 @@ BindingOtp:
 
    Mimoto_BindingOtp_UIN_Null_OtpChannel_Neg:
       endPoint: /v1/mimoto/binding-otp
-      description: Verify that the system prevents OTP generation when the OTP channel is empty
+      description: Verify that the system prevents OTP generation when the OTP channel value is null
       uniqueIdentifier: TC_Mimoto_BindingOtp_14
       role: resident
       restMethod: post

@@ -1,7 +1,7 @@
 GetPolicySunBirdR:
    Mimoto_ESignet_SunBirdR_GetPolicy_NOAUTH_Valid_Smoke:
       endPoint: $SUNBIRDBASEURL$/api/v1/Insurance/{insuranceid}
-      description: Getting sunbird policy with valid parameters
+      description: Validating the retrieval of the Sunbird policy with valid parameters
       uniqueIdentifier: TC_Mimoto_GetPolicySunBirdR_01
       role: resident
       restMethod: get

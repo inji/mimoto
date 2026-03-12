@@ -1,7 +1,7 @@
 OAuthDetailsRequestSunBirdC:
    Mimoto_ESignet_OAuthDetailsRequest_SunBirdC_all_Valid_Smoke_sid:
       endPoint: $ESIGNETMOCKBASEURL$/v1/esignet/authorization/v2/oauth-details
-      description: Getting auth details for downloading sunbird credentials
+      description: Verifying that the authentication details are retrieved successfully for downloading the Sunbird credentials
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestSunBirdC_01
       role: resident
       restMethod: post

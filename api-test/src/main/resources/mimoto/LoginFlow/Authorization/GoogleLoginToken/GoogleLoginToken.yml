@@ -62,7 +62,7 @@ GoogleLoginToken:
 
    Mimoto_GoogleLoginToken_EmptyToken_Neg:
       endPoint: /v1/mimoto/auth/google/token-login
-      description: Creating the sesion token for google login with expired token and expects it to fail
+      description: Verify that the system fails to create a session token for Google login when the ID token is empty
       uniqueIdentifier: TC_Mimoto_GoogleLoginToken_05
       role: userDefinedCookie
       restMethod: post

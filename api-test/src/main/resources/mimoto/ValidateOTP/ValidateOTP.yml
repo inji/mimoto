@@ -1,7 +1,7 @@
 SendOTP:
    Resident_SendOTP_Valid_UIN_All_Smoke:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with valid UIN
+      description: Validate OTP generation using a valid UIN.
       uniqueIdentifier: TC_Mimoto_SendOTP_05
       role: resident
       restMethod: post
@@ -17,7 +17,7 @@ SendOTP:
     }'
    Resident_SendOTP_Valid_UIN_Phone_Smoke:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with OTP channel as phone
+      description: Verifying that the OTP is generated successfully when the OTP channel is set to phone
       uniqueIdentifier: TC_Mimoto_SendOTP_06
       role: resident
       checkErrorsOnlyInResponse: true
@@ -35,7 +35,7 @@ SendOTP:
     }'
    Resident_SendOTP_Valid_UIN_Email_Smoke:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with OTP channel as email
+      description: Verifying that the OTP is generated successfully when the OTP channel is set to email.
       uniqueIdentifier: TC_Mimoto_SendOTP_07
       role: resident
       restMethod: post
@@ -52,7 +52,7 @@ SendOTP:
     }'
    Resident_SendOTP_RevokedVID_Invalid:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with revoked VID
+      description: Validate OTP generation using a revoked VID
       uniqueIdentifier: TC_Mimoto_SendOTP_08
       role: resident
       restMethod: post
@@ -69,7 +69,7 @@ SendOTP:
     }'
    Resident_SendOTP_Valid_UIN_Invalid_empty_otpChannel:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with empty OTP channel
+      description: Validate OTP generation when the OTP channel field is empty.
       uniqueIdentifier: TC_Mimoto_SendOTP_09
       role: resident
       restMethod: post
@@ -87,7 +87,7 @@ SendOTP:
     }'
    Resident_SendOTP_InValid_individualId:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with invalid individualID
+      description: Validating the OTP generation with an invalid Individual ID
       uniqueIdentifier: TC_Mimoto_SendOTP_10
       role: resident
       restMethod: post
@@ -104,7 +104,7 @@ SendOTP:
     }'
    Resident_SendOTP_InValid_Missing_individualId:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with missing individualID
+      description: Validating the OTP generation with a missing Individual ID
       uniqueIdentifier: TC_Mimoto_SendOTP_11
       role: resident
       restMethod: post
@@ -121,7 +121,7 @@ SendOTP:
     }'
    Resident_SendOTP_InValid_Empty_transactionID:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with empty transactionID
+      description: Validating the OTP generation with an empty transaction ID
       uniqueIdentifier: TC_Mimoto_SendOTP_12
       role: resident
       restMethod: post
@@ -138,7 +138,7 @@ SendOTP:
     }'
    Resident_SendOTP_InValid_transactionID:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with invalid transactionID
+      description: Validate OTP generation using an invalid transaction ID
       uniqueIdentifier: TC_Mimoto_SendOTP_13
       role: resident
       restMethod: post
@@ -155,7 +155,7 @@ SendOTP:
     }'
    Resident_SendOTP_InValid_Missing_transactionID:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with missing transactionID
+      description: Validating the OTP generation with a missing transaction ID
       uniqueIdentifier: TC_Mimoto_SendOTP_14
       role: resident
       restMethod: post
@@ -172,7 +172,7 @@ SendOTP:
     }'
    Resident_SendOTP_InValid_Empty_requestTime:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with empty request time
+      description: Validating the OTP generation with an empty request time
       uniqueIdentifier: TC_Mimoto_SendOTP_15
       role: resident
       restMethod: post
@@ -189,7 +189,7 @@ SendOTP:
     }'
    Resident_SendOTP_InValid_requestTime:
       endPoint: /resident/v1/req/otp
-      description: Generating OTP with invalid request time
+      description: Verifying that the system returns an appropriate error when generating an OTP with an invalid request time.
       uniqueIdentifier: TC_Mimoto_SendOTP_16
       role: resident
       restMethod: post

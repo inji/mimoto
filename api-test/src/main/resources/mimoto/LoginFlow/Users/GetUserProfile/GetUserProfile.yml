@@ -1,7 +1,7 @@
 GetUserProfile:
    Mimoto_GetUserProfile_all_Valid_Smoke:
       endPoint: /v1/mimoto/users/me
-      description: Get the user profile details for the session login
+      description: Verify that the system successfully returns user profile details when requested with a valid login session.
       uniqueIdentifier: TC_Mimoto_GetUserProfile_01
       role: userDefinedCookie
       restMethod: get

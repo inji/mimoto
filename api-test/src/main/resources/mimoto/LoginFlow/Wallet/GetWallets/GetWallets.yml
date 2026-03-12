@@ -1,7 +1,7 @@
 GetWallets:
    Mimoto_GetWallets_all_Valid_Smoke:
       endPoint: /v1/mimoto/wallets
-      description: Get list of all the wallets that is present in DB
+      description: Verify that the system successfully fetches and displays the list of all wallets stored in the database.
       uniqueIdentifier: TC_Mimoto_GetWallets_01
       role: userDefinedCookie
       restMethod: get
@@ -17,7 +17,7 @@ GetWallets:
 
    Mimoto_GetWallets_WithoutLogin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Get list of all the wallets that is present in DB without login and expects to fail
+      description: Verify that fetching the list of wallets without a valid login session is not allowed and returns an appropriate authentication error
       uniqueIdentifier: TC_Mimoto_GetWallets_02
       role: userDefinedCookie
       restMethod: get
@@ -34,7 +34,7 @@ GetWallets:
 
    Mimoto_GetWallets_WithExpiredSession_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Get list of all the wallets that is present in DB with expired login and expects to fail
+      description: Verify that fetching the list of wallets with an expired session is not allowed and returns an appropriate session expiry or authentication error
       uniqueIdentifier: TC_Mimoto_GetWallets_03
       role: userDefinedCookie
       restMethod: get

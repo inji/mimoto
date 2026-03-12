@@ -1,7 +1,7 @@
 SendOTP:
    Resident_SendOTP_Valid_UIN_All_Smoke:
       endPoint: /resident/v1/req/otp
-      description: Creating resident requesting OTP with valid UIN
+      description: Verifying that the OTP request is created successfully for a resident with a valid UIN
       uniqueIdentifier: TC_Mimoto_SendOTP_01
       role: resident
       checkErrorsOnlyInResponse: true
@@ -20,7 +20,7 @@ SendOTP:
 
    Resident_SendOTP_Invalid_UIN_Neg:
       endPoint: /resident/v1/req/otp
-      description: Creating resident requesting OTP with invalid UIN
+      description: Validating the resident OTP request creation with an invalid UIN
       uniqueIdentifier: TC_Mimoto_SendOTP_02
       role: resident
       checkErrorsOnlyInResponse: true
@@ -39,7 +39,7 @@ SendOTP:
 
    Resident_SendOTP_Invalid_VID_Neg:
       endPoint: /resident/v1/req/otp
-      description: Creating requesting OTP with invalid VID
+      description: Verifying that the system returns an appropriate error when creating an OTP request with an invalid VID
       uniqueIdentifier: TC_Mimoto_SendOTP_03
       role: resident
       restMethod: post

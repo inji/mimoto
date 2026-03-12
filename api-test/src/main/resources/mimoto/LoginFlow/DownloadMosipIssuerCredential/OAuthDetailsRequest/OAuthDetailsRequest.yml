@@ -29,7 +29,7 @@ OAuthDetailsRequestForGoogleLogin:
 
    Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg:
       endPoint: /v1/esignet/authorization/v2/oauth-details
-      description: Creating Oauth's details with all valid parameters for Neg scenario
+      description: Verify that creating OAuth details with invalid or missing parameters fails as expected
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_02
       role: resident
       restMethod: post
