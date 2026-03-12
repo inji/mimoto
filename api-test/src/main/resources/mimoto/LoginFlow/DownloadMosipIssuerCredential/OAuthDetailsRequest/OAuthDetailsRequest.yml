@@ -1,7 +1,7 @@
 OAuthDetailsRequestForGoogleLogin:
    Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_Smoke_sid:
       endPoint: /v1/esignet/authorization/v2/oauth-details
-      description: Creating Oauth's details with all valid parameters
+      description: Verify that the system successfully retrieves the authentication details for downloading the MOSIP identity credential when all valid parameters are provided
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_01
       role: resident
       restMethod: post
