@@ -96,7 +96,7 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withNullWalletID_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Verify that the request to create a Verifiable Presentation (VP) is rejected when the wallet ID is null.
+      description: Verify that the request to create a Verifiable Presentation (VP) is rejected when the wallet ID is "null".
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_06
       role: userDefinedCookie
       restMethod: post

@@ -1,7 +1,7 @@
 RejectPresentation:
    Mimoto_RejectPresentation_all_Valid_Smoke_sid:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations/{presentationId}
-      description: Validate that the request is rejected with an Access Denied error when the user does not have the required permissions
+      description: Validate that a presentation can be successfully rejected with user-denied authorization
       uniqueIdentifier: TC_Mimoto_RejectPresentation_01
       role: userDefinedCookie
       restMethod: patch
@@ -21,7 +21,7 @@ RejectPresentation:
 
    Mimoto_RejectPresentation_invalidWalletID_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations/{presentationId}
-      description: Verify that the request is rejected with an Invalid Request error when the wallet ID is invalid.
+      description: Validate that the request returns an invalid_request error when the wallet ID is invalid.
       uniqueIdentifier: TC_Mimoto_RejectPresentation_02
       role: userDefinedCookie
       restMethod: patch
@@ -41,7 +41,7 @@ RejectPresentation:
 
    Mimoto_RejectPresentation_emptyWalletID_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations/{presentationId}
-      description: Verify that the request is rejected with an Invalid Request error when the wallet ID is empty.
+      description: Validate that the request returns an invalid_request error when the wallet ID is empty
       uniqueIdentifier: TC_Mimoto_RejectPresentation_03
       role: userDefinedCookie
       restMethod: patch
@@ -61,7 +61,7 @@ RejectPresentation:
 
    Mimoto_RejectPresentation_invalidPresentationId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations/{presentationId}
-      description: Verify that the request is rejected with an Access Denied error when the presentation ID is invalid
+      description: Verify that the request returns an invalid_request error when the presentation ID is invalid
       uniqueIdentifier: TC_Mimoto_RejectPresentation_04
       role: userDefinedCookie
       restMethod: patch
@@ -81,7 +81,7 @@ RejectPresentation:
 
    Mimoto_RejectPresentation_emptyPresentationId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations/{presentationId}
-      description: Verify that the request is rejected with an Access Denied error when the presentation ID is empty
+      description: Verify that the request returns an invalid_request error when the presentation ID is empty
       uniqueIdentifier: TC_Mimoto_RejectPresentation_05
       role: userDefinedCookie
       restMethod: patch
@@ -101,7 +101,7 @@ RejectPresentation:
 
    Mimoto_RejectPresentation_lockedWalletID_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations/{presentationId}
-      description: Verify that the request is rejected with an Access Denied error when the wallet ID is locked
+      description: Verify that the request returns a wallet_locked error when the wallet ID is locked
       uniqueIdentifier: TC_Mimoto_RejectPresentation_06
       role: userDefinedCookie
       restMethod: patch
@@ -121,7 +121,7 @@ RejectPresentation:
 
    Mimoto_RejectPresentation_invalidSession_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations/{presentationId}
-      description: Verify that the request is rejected with an Access Denied error when the session ID is invalid
+      description: Verify that the request returns HTTP 401 when the session ID is invalid
       uniqueIdentifier: TC_Mimoto_RejectPresentation_07
       role: userDefinedCookie
       checkOnlyStatusCodeInResponse: true

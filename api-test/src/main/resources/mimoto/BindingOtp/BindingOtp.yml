@@ -277,7 +277,7 @@ BindingOtp:
 
    Mimoto_BindingOtp_UIN_Null_OtpChannel_Neg:
       endPoint: /v1/mimoto/binding-otp
-      description: Verify that the system prevents OTP generation when the OTP channel value is null
+      description: Verify that the system prevents OTP generation when the otpChannels field is the string "null"
       uniqueIdentifier: TC_Mimoto_BindingOtp_14
       role: resident
       restMethod: post

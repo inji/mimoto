@@ -1,7 +1,7 @@
 DownloadCredential:
    Mimoto_CredentialsStatus_All_Valid_Smoke_euin:
       endPoint: /v1/mimoto/credentialshare/download
-      description: Verifying that the credential status is retrieved successfully with all valid parameters
+      description: Verify that the credential is downloaded successfully with all valid parameters
       uniqueIdentifier: TC_Mimoto_DownloadCredential_01
       role: resident
       checkErrorsOnlyInResponse: true
