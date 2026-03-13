@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.inji</groupId>
     <artifactId>mimoto</artifactId>
-    <version>0.21.0-SNAPSHOT</version>
+    <version>0.21.0</version>
     <name>mimoto</name>
     <url>https://github.com/inji/mimoto</url>
     <description>Mobile server backend supporting Inji.</description>
@@ -437,7 +437,7 @@
         <dependency>
             <groupId>io.inji</groupId>
             <artifactId>injivcrenderer-jar</artifactId>
-            <version>0.2.0-SNAPSHOT</version>
+            <version>0.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
