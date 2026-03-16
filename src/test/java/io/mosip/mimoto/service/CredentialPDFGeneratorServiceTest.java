@@ -1910,113 +1910,129 @@ class CredentialPDFGeneratorServiceTest {
         assertNull(dataEmpty.get("titleName"));
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> invokePdfResourceFromVcProperties(
+            LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties,
+            CredentialsSupportedResponse credentialsSupportedResponse,
+            VCCredentialResponse vcCredentialResponse,
+            IssuerDTO issuerDTO,
+            String dataShareUrl,
+            String credentialValidity,
+            String locale) throws Exception {
+        Method method = CredentialPDFGeneratorService.class.getDeclaredMethod(
+                "getPdfResourceFromVcProperties",
+                LinkedHashMap.class,
+                CredentialsSupportedResponse.class,
+                VCCredentialResponse.class,
+                IssuerDTO.class,
+                String.class,
+                String.class,
+                String.class);
+        method.setAccessible(true);
+        return (Map<String, Object>) method.invoke(
+                credentialPDFGeneratorService,
+                displayProperties, credentialsSupportedResponse,
+                vcCredentialResponse, issuerDTO,
+                dataShareUrl, credentialValidity, locale);
+    }
+
     @Test
     void testIsFaceKeyFalseWhenSelectedFaceKeyNotNullButKeyDoesNotMatch() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.None);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
         subjectData.put("dateOfBirth", "1990-01-01");
-        subjectData.put("face", "base64-encoded-image"); // face key present, so selectedFaceKey = "face"
-
+        subjectData.put("face", "base64-encoded-image");
         ((VCCredentialProperties) vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
 
-        Map<String, CredentialDisplayResponseDto> credSubjectMap = new HashMap<>();
-        credSubjectMap.put("name", createDisplay("Full Name"));
-        credSubjectMap.put("dateOfBirth", createDisplay("Date of Birth"));
-        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(credSubjectMap);
-        credentialsSupportedResponse.setOrder(List.of("name", "dateOfBirth"));
-
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(subjectData);
-        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
-                .thenCallRealMethod();
-        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>$rowProperties</body></html>");
-        when(presentationService.constructPresentationDefinition(any()))
-                .thenReturn(new PresentationDefinitionDTO());
-        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
-        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "2025-12-31", "en");
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Full Name", "en"), "John Doe"));
+        displayProps.put("dateOfBirth", Map.of(createDisplayResponse("Date of Birth", "en"), "1990-01-01"));
 
-        assertNotNull(result);
+        Map<String, Object> data = invokePdfResourceFromVcProperties(
+                displayProps, credentialsSupportedResponse, vcCredentialResponse,
+                issuerDTO, "https://example.com/share", "2025-12-31", "en");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rowProperties = (Map<String, Object>) data.get("rowProperties");
+
+        assertTrue(rowProperties.containsKey("name"),
+                "Expected 'name' in rowProperties because isFaceKey=false for 'name'");
+        assertTrue(rowProperties.containsKey("dateOfBirth"),
+                "Expected 'dateOfBirth' in rowProperties because isFaceKey=false for 'dateOfBirth'");
+        assertFalse(rowProperties.containsKey("face"),
+                "Expected 'face' absent from rowProperties (not in displayProperties)");
     }
 
     @Test
     void testIsFaceKeyTrueWhenSelectedFaceKeyMatchesCurrentKey() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.None);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
         subjectData.put("face", "base64-encoded-image");
-
         ((VCCredentialProperties) vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
 
-        Map<String, CredentialDisplayResponseDto> credSubjectMap = new HashMap<>();
-        credSubjectMap.put("name", createDisplay("Full Name"));
-        credSubjectMap.put("face", createDisplay("Face Image")); // face is also in display properties
-        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(credSubjectMap);
-        credentialsSupportedResponse.setOrder(List.of("name", "face"));
-
-        Map<String, Object> claimsWithFace = new HashMap<>(subjectData);
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claimsWithFace);
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(subjectData);
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
         displayProps.put("name", Map.of(createDisplayResponse("Full Name", "en"), "John Doe"));
         displayProps.put("face", Map.of(createDisplayResponse("Face Image", "en"), "base64-encoded-image"));
-        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
-                .thenReturn(displayProps);
 
-        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>$face $rowProperties</body></html>");
-        when(presentationService.constructPresentationDefinition(any()))
-                .thenReturn(new PresentationDefinitionDTO());
-        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+        Map<String, Object> data = invokePdfResourceFromVcProperties(
+                displayProps, credentialsSupportedResponse, vcCredentialResponse,
+                issuerDTO, "https://example.com/share", "2025-12-31", "en");
 
-        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "2025-12-31", "en");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rowProperties = (Map<String, Object>) data.get("rowProperties");
 
-        assertNotNull(result);
+
+        assertFalse(rowProperties.containsKey("face"),
+                "Expected 'face' excluded from rowProperties because isFaceKey=true");
+
+        assertTrue(rowProperties.containsKey("name"),
+                "Expected 'name' in rowProperties because isFaceKey=false for 'name'");
+
+        assertEquals("base64-encoded-image", data.get("face"),
+                "Expected the face value to be stored in data['face']");
     }
 
     @Test
     void testIsFaceKeyFalseWhenSelectedFaceKeyIsNull() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.None);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
         subjectData.put("dateOfBirth", "1990-01-01");
-
         ((VCCredentialProperties) vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
 
-        Map<String, CredentialDisplayResponseDto> credSubjectMap = new HashMap<>();
-        credSubjectMap.put("name", createDisplay("Full Name"));
-        credSubjectMap.put("dateOfBirth", createDisplay("Date of Birth"));
-        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(credSubjectMap);
-        credentialsSupportedResponse.setOrder(List.of("name", "dateOfBirth"));
-
-        Map<String, Object> claims = new HashMap<>(subjectData);
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claims);
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(subjectData);
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
         displayProps.put("name", Map.of(createDisplayResponse("Full Name", "en"), "John Doe"));
         displayProps.put("dateOfBirth", Map.of(createDisplayResponse("Date of Birth", "en"), "1990-01-01"));
-        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
-                .thenReturn(displayProps);
 
-        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>$rowProperties</body></html>");
-        when(presentationService.constructPresentationDefinition(any()))
-                .thenReturn(new PresentationDefinitionDTO());
-        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+        Map<String, Object> data = invokePdfResourceFromVcProperties(
+                displayProps, credentialsSupportedResponse, vcCredentialResponse,
+                issuerDTO, "https://example.com/share", "2025-12-31", "en");
 
-        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "2025-12-31", "en");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rowProperties = (Map<String, Object>) data.get("rowProperties");
 
-        assertNotNull(result);
+        // selectedFaceKey = null → isFaceKey = false for ALL keys → all must appear in rowProperties
+        assertTrue(rowProperties.containsKey("name"),
+                "Expected 'name' in rowProperties because selectedFaceKey=null → isFaceKey=false");
+        assertTrue(rowProperties.containsKey("dateOfBirth"),
+                "Expected 'dateOfBirth' in rowProperties because selectedFaceKey=null → isFaceKey=false");
+        // face value in data must be null (no face key found)
+        assertNull(data.get("face"),
+                "Expected data['face'] to be null when no face key exists in credential");
     }
 
     @Test

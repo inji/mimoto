@@ -324,6 +324,12 @@ public class DataProtectionServiceTest {
         String credential = "credential";
         SecretKey walletKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
         String base64WalletKey = Base64.getEncoder().encodeToString(walletKey.getEncoded());
+
+        String encrypted = dataProtectionService.encryptCredential(credential, base64WalletKey);
+        String decrypted = dataProtectionService.decryptCredential(encrypted, base64WalletKey);
+
+        assertNotNull(decrypted);
+        assertEquals(credential, decrypted);
     }
 
 

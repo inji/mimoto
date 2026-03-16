@@ -498,8 +498,11 @@ public class CredentialShareServiceTest {
         byte[] result = service.createJSONFile(credential, null);
 
         assertNotNull(result);
-        assertTrue(result.length >= 0);
+        assertTrue(result.length > 0);
+        String output = new String(result);
+        assertFalse("Missing key should not appear in output", output.contains("nonExistentField"));
     }
+
 
     @Test
     public void testGetBiometricsDataJSONWithNullInput() {
@@ -606,7 +609,7 @@ public class CredentialShareServiceTest {
     @SuppressWarnings("unchecked")
     private <T> T[] invokeMapJsonNodeToJavaObject(Class<T> type,
             org.json.simple.JSONArray array) throws Exception {
-        java.lang.reflect.Method m = service.getClass().getDeclaredMethod(
+        java.lang.reflect.Method m = CredentialShareServiceImpl.class.getDeclaredMethod(
                 "mapJsonNodeToJavaObject", Class.class, org.json.simple.JSONArray.class);
         m.setAccessible(true);
         return (T[]) m.invoke(service, type, array);
@@ -661,7 +664,7 @@ public class CredentialShareServiceTest {
         org.json.simple.JSONArray node = new org.json.simple.JSONArray();
         node.add(entry);
 
-        java.lang.reflect.Method m = service.getClass().getDeclaredMethod(
+        java.lang.reflect.Method m = CredentialShareServiceImpl.class.getDeclaredMethod(
                 "mapJsonNodeToJavaObject", Class.class, org.json.simple.JSONArray.class);
         m.setAccessible(true);
 
@@ -690,7 +693,7 @@ public class CredentialShareServiceTest {
             }
         };
 
-        java.lang.reflect.Method m = service.getClass().getDeclaredMethod(
+        java.lang.reflect.Method m = CredentialShareServiceImpl.class.getDeclaredMethod(
                 "mapJsonNodeToJavaObject", Class.class, org.json.simple.JSONArray.class);
         m.setAccessible(true);
 
