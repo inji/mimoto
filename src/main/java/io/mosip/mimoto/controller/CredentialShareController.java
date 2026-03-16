@@ -2,7 +2,6 @@ package io.mosip.mimoto.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.Gson;
-import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.kernel.websub.api.annotation.PreAuthenticateContentAndVerifyIntent;
 import io.mosip.mimoto.constant.ApiName;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
@@ -23,7 +22,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -45,17 +43,11 @@ import java.util.List;
 @Tag(name = SwaggerLiteralConstants.CREDENTIALS_SHARE_NAME, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_DESCRIPTION)
 public class CredentialShareController {
 
-    @Autowired
-    private CredentialShareServiceImpl credentialShareService;
+    private final CredentialShareServiceImpl credentialShareService;
 
-    @Autowired
-    public RestClientService<Object> restClientService;
+    private final RestClientService<Object> restClientService;
 
-    @Autowired
-    Environment env;
-
-    @Value("${mosip.event.topic}")
-    private String topic;
+    private final Environment env;
 
     @Value("${mosip.partner.encryption.key}")
     private String partnerEncryptionKey;
@@ -63,13 +55,19 @@ public class CredentialShareController {
     @Value("${mosip.partner.id}")
     private String partnerId;
 
-    @Autowired
-    RequestValidator requestValidator;
+    private final RequestValidator requestValidator;
 
     private Gson gson = new Gson();
 
-    @Autowired
-    private Utilities utilities;
+    private final Utilities utilities;
+
+    public CredentialShareController(CredentialShareServiceImpl credentialShareService, RestClientService<Object> restClientService, Environment env, RequestValidator requestValidator, Utilities utilities) {
+        this.credentialShareService = credentialShareService;
+        this.restClientService = restClientService;
+        this.env = env;
+        this.requestValidator = requestValidator;
+        this.utilities = utilities;
+    }
 
     /**
      * Websub callback for Verifiable Credential share.
