@@ -907,6 +907,79 @@ class VcSdJwtCredentialFormatHandlerTest {
         }
     }
 
+    @Test
+    void extractAllPropertiesFromSdJwtWithFiveLevelsOfNestedDisclosuresResolvesAllLevels() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Map<String, Object> level5Value = new LinkedHashMap<>();
+            level5Value.put("deep_key", "deep_value");
+
+            Disclosure d5 = mock(Disclosure.class);
+            when(d5.digest()).thenReturn("d5");
+            when(d5.getDisclosure()).thenReturn("b64d5");
+            when(d5.getClaimName()).thenReturn("l5");
+            when(d5.getClaimValue()).thenReturn(level5Value);
+
+            Map<String, Object> level4Value = new LinkedHashMap<>();
+            level4Value.put("_sd", Arrays.asList("d5"));
+
+            Disclosure d4 = mock(Disclosure.class);
+            when(d4.digest()).thenReturn("d4");
+            when(d4.getDisclosure()).thenReturn("b64d4");
+            when(d4.getClaimName()).thenReturn("l4");
+            when(d4.getClaimValue()).thenReturn(level4Value);
+
+            Map<String, Object> level3Value = new LinkedHashMap<>();
+            level3Value.put("_sd", Arrays.asList("d4"));
+
+            Disclosure d3 = mock(Disclosure.class);
+            when(d3.digest()).thenReturn("d3");
+            when(d3.getDisclosure()).thenReturn("b64d3");
+            when(d3.getClaimName()).thenReturn("l3");
+            when(d3.getClaimValue()).thenReturn(level3Value);
+
+            Map<String, Object> level2Value = new LinkedHashMap<>();
+            level2Value.put("_sd", Arrays.asList("d3"));
+
+            Disclosure d2 = mock(Disclosure.class);
+            when(d2.digest()).thenReturn("d2");
+            when(d2.getDisclosure()).thenReturn("b64d2");
+            when(d2.getClaimName()).thenReturn("l2");
+            when(d2.getClaimValue()).thenReturn(level2Value);
+
+            Map<String, Object> level1Value = new LinkedHashMap<>();
+            level1Value.put("_sd", Arrays.asList("d2"));
+
+            Disclosure d1 = mock(Disclosure.class);
+            when(d1.digest()).thenReturn("d1");
+            when(d1.getDisclosure()).thenReturn("b64d1");
+            when(d1.getClaimName()).thenReturn("l1");
+            when(d1.getClaimValue()).thenReturn(level1Value);
+
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(d1, d2, d3, d4, d5));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("_sd", Arrays.asList("d1"));
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            Map<String, Object> sdClaims = result.get("sdClaims");
+            assertTrue(sdClaims.containsKey("l1"));
+            assertTrue(sdClaims.containsKey("l1.l2"));
+            assertTrue(sdClaims.containsKey("l1.l2.l3"));
+            assertTrue(sdClaims.containsKey("l1.l2.l3.l4"));
+            assertTrue(sdClaims.containsKey("l1.l2.l3.l4.l5"));
+            assertEquals(5, sdClaims.size());
+        }
+    }
+
     // ============================================================
     // Tests for extractSdClaims uncovered branches (via extractClaimsFromSdJwt)
     // ============================================================
@@ -1090,8 +1163,6 @@ class VcSdJwtCredentialFormatHandlerTest {
         claims.put("name", new HashMap<>());
         credentialsSupportedResponse.setClaims(claims);
         credentialsSupportedResponse.setOrder(Arrays.asList("name", "extraField"));
-
-        CredentialDisplayResponseDto nameDto = createCredentialDisplayResponseDto("Name", "en");
 
         try (MockedStatic<LocaleUtils> mockedLocaleUtils = mockStatic(LocaleUtils.class)) {
             mockedLocaleUtils.when(() -> LocaleUtils.resolveLocaleWithFallback(any(), eq("en")))

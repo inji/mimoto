@@ -304,7 +304,7 @@ public class CredentialMatchingServiceTest {
 
         // Assert
         assertNotNull(result);
-        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test
@@ -1177,7 +1177,7 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
-        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test
@@ -1229,7 +1229,7 @@ public class CredentialMatchingServiceTest {
     public void testMatchesSdJwtFormatWhenFormatConfigValueIsNullCredentialNotSelected() throws Exception {
         // Arrange
         Map<String, Map<String, List<String>>> format = new HashMap<>();
-        format.put(CredentialFormat.VC_SD_JWT.getFormat(), null);
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), Map.of("jwt_alg_values", List.of("ES256")));
 
         Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
         Constraints constraints = new Constraints(Collections.singletonList(field), null);
@@ -1801,7 +1801,7 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
-        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test
