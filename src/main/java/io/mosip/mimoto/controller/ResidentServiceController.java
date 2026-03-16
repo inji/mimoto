@@ -11,7 +11,6 @@ import io.mosip.mimoto.util.DateUtils;
 import io.mosip.mimoto.util.RequestValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,14 +26,17 @@ import jakarta.validation.Valid;
 @Tag(name = SwaggerLiteralConstants.RESIDENT_NAME, description = SwaggerLiteralConstants.RESIDENT_DESCRIPTION)
 public class ResidentServiceController {
 
-    @Autowired
-    public RestClientService<Object> restClientService;
+    public final RestClientService<Object> restClientService;
 
-    @Autowired
-    RequestValidator requestValidator;
+    private final RequestValidator requestValidator;
 
-    @Autowired
-    Environment env;
+    private  final Environment env;
+
+    public ResidentServiceController(RestClientService<Object> restClientService, RequestValidator requestValidator, Environment env) {
+        this.restClientService = restClientService;
+        this.requestValidator = requestValidator;
+        this.env = env;
+    }
 
     /**
      * Request a new OTP for OTP required API.

@@ -8,7 +8,6 @@ import io.mosip.mimoto.service.VerifierService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +25,11 @@ import java.util.Collections;
 @Tag(name = SwaggerLiteralConstants.VERIFIERS_NAME, description = SwaggerLiteralConstants.VERIFIERS_DESCRIPTION)
 public class VerifiersController {
 
-    @Autowired
-    VerifierService verifierService;
+    private final VerifierService verifierService;
+
+    public VerifiersController(VerifierService verifierService) {
+        this.verifierService = verifierService;
+    }
 
     @Operation(summary = SwaggerLiteralConstants.VERIFIERS_GET_VERIFIERS_SUMMARY, description = SwaggerLiteralConstants.VERIFIERS_GET_VERIFIERS_DESCRIPTION)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
