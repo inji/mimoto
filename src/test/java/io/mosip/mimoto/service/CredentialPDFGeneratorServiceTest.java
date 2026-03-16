@@ -2330,7 +2330,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testInjiVcRendererNotInvokedWhenRenderMethodIsMapWithTemplateButWrongRenderSuite() throws Exception {
         Map<String, Object> credentialMap = new HashMap<>();
-        credentialMap.put(CONTEXT, V2_CONTEXT_URL);
+        credentialMap.put(CONTEXT, List.of(V2_CONTEXT_URL));
         credentialMap.put(RENDER_METHOD, Map.of(TEMPLATE, "<svg></svg>", RENDER_SUITE, "SomeOtherRenderSuite"));
 
         VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
