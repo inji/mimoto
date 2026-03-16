@@ -2,7 +2,6 @@ package io.mosip.mimoto.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.Gson;
-import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.kernel.websub.api.annotation.PreAuthenticateContentAndVerifyIntent;
 import io.mosip.mimoto.constant.ApiName;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
@@ -23,7 +22,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -47,9 +45,9 @@ public class CredentialShareController {
 
     private final CredentialShareServiceImpl credentialShareService;
 
-    public final RestClientService<Object> restClientService;
+    private final RestClientService<Object> restClientService;
 
-    public final Environment env;
+    private final Environment env;
 
     @Value("${mosip.partner.encryption.key}")
     private String partnerEncryptionKey;
