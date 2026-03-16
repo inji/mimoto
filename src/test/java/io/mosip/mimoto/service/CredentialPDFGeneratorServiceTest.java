@@ -2038,47 +2038,48 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testMaskingDisabledForSelectivelyDisclosableClaims() throws Exception {
         ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", false);
+        try {
+            when(credentialFormatHandlerFactory.getHandler("vc+sd-jwt")).thenReturn(sdJwtCredentialFormatHandler);
+            issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
 
-        when(credentialFormatHandlerFactory.getHandler("vc+sd-jwt")).thenReturn(sdJwtCredentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+            String validSdJwt = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiYWJjMTIzIl19.signature~WyJzYWx0IiwgIm5hbWUiLCAiSm9obiBEb2UiXQ~";
 
-        String validSdJwt = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiYWJjMTIzIl19.signature~WyJzYWx0IiwgIm5hbWUiLCAiSm9obiBEb2UiXQ~";
+            VCCredentialResponse sdJwtVcResponse = VCCredentialResponse.builder()
+                    .format("vc+sd-jwt")
+                    .credential(validSdJwt)
+                    .build();
 
-        VCCredentialResponse sdJwtVcResponse = VCCredentialResponse.builder()
-                .format("vc+sd-jwt")
-                .credential(validSdJwt)
-                .build();
+            Map<String, Object> extractedClaims = new HashMap<>();
+            extractedClaims.put("name", "John Doe");
+            when(sdJwtCredentialFormatHandler.extractCredentialClaims(sdJwtVcResponse)).thenReturn(extractedClaims);
 
-        Map<String, Object> extractedClaims = new HashMap<>();
-        extractedClaims.put("name", "John Doe");
-        when(sdJwtCredentialFormatHandler.extractCredentialClaims(sdJwtVcResponse)).thenReturn(extractedClaims);
+            CredentialIssuerDisplayResponse displayResponse = createDisplayResponse("Name", "en");
+            LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+            displayProps.put("name", Map.of(displayResponse, "John Doe"));
+            when(sdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                    .thenReturn(displayProps);
 
-        CredentialIssuerDisplayResponse displayResponse = createDisplayResponse("Name", "en");
-        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
-        displayProps.put("name", Map.of(displayResponse, "John Doe"));
-        when(sdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
-                .thenReturn(displayProps);
+            when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                    .thenReturn("<html><body>$rowProperties</body></html>");
+            when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
+            when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
-        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>$rowProperties</body></html>");
-        when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
-        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+            try (MockedStatic<SDJWT> mockedSDJWT = mockStatic(SDJWT.class)) {
+                SDJWT mockSdjwt = mock(SDJWT.class);
+                Disclosure mockDisclosure = mock(Disclosure.class);
+                when(mockDisclosure.getClaimName()).thenReturn("name");
+                when(mockSdjwt.getDisclosures()).thenReturn(List.of(mockDisclosure));
+                mockedSDJWT.when(() -> SDJWT.parse(anyString())).thenReturn(mockSdjwt);
 
-        try (MockedStatic<SDJWT> mockedSDJWT = mockStatic(SDJWT.class)) {
-            SDJWT mockSdjwt = mock(SDJWT.class);
-            Disclosure mockDisclosure = mock(Disclosure.class);
-            when(mockDisclosure.getClaimName()).thenReturn("name");
-            when(mockSdjwt.getDisclosures()).thenReturn(List.of(mockDisclosure));
-            mockedSDJWT.when(() -> SDJWT.parse(anyString())).thenReturn(mockSdjwt);
+                ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                        "TestCredential", sdJwtVcResponse, issuerDTO, credentialsSupportedResponse,
+                        "https://example.com/share", "2025-12-31", "en");
 
-            ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                    "TestCredential", sdJwtVcResponse, issuerDTO, credentialsSupportedResponse,
-                    "https://example.com/share", "2025-12-31", "en");
-
-            assertNotNull(result);
+                assertNotNull(result);
+            }
+        } finally {
+            ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", true);
         }
-
-        ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", true);
     }
 
     @Test
@@ -2292,7 +2293,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testInjiVcRendererNotInvokedWhenRenderMethodIsMapWithoutTemplate() throws Exception {
         Map<String, Object> credentialMap = new HashMap<>();
-        credentialMap.put(CONTEXT, V2_CONTEXT_URL);
+        credentialMap.put(CONTEXT, List.of(V2_CONTEXT_URL));
         credentialMap.put(RENDER_METHOD, Map.of(RENDER_SUITE, SVG_MUSTACHE_RENDER_SUITE));
 
         VCCredentialResponse localVcResponse = VCCredentialResponse.builder()

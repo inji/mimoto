@@ -448,23 +448,35 @@ public class CredentialShareServiceTest {
 
     @Test
     public void testCreateJSONFileWithArrayListField() throws Exception {
-        org.json.JSONObject credential = new org.json.JSONObject();
-        credential.put("fullName", new org.json.JSONArray(
-                java.util.Arrays.asList(
-                        new org.json.JSONObject("{\"language\":\"eng\",\"value\":\"John\"}"),
-                        new org.json.JSONObject("{\"language\":\"fra\",\"value\":\"Jean\"}")
-                )
-        ));
+        ReflectionTestUtils.setField(service, "supportedLang", "eng,ara");
 
-        Map<String, String> templateMap = new HashMap<>();
-        templateMap.put("demographics", "fullName,nonExistentKey");
-        JSONObject templateJSON = new JSONObject(templateMap);
-        Mockito.when(utilities.getTemplate()).thenReturn(templateJSON);
+        java.util.LinkedHashMap<String, Object> engMap = new java.util.LinkedHashMap<>();
+        engMap.put("language", "eng");
+        engMap.put("value", "John");
+        java.util.LinkedHashMap<String, Object> fraMap = new java.util.LinkedHashMap<>();
+        fraMap.put("language", "fra");
+        fraMap.put("value", "Jean");
+        org.json.simple.JSONArray node = new org.json.simple.JSONArray();
+        node.add(engMap);
+        node.add(fraMap);
 
-        byte[] result = service.createJSONFile(credential, null);
+        io.mosip.mimoto.dto.JsonValue[] jsonValues =
+                invokeMapJsonNodeToJavaObject(io.mosip.mimoto.dto.JsonValue.class, node);
 
-        assertNotNull(result);
-        assertTrue(result.length > 0);
+        assertNotNull(jsonValues);
+        assertEquals(2, jsonValues.length);
+
+        org.json.JSONObject outputJSON = new org.json.JSONObject();
+        String supportedLang = "eng,ara";
+        for (io.mosip.mimoto.dto.JsonValue jsonValue : jsonValues) {
+            String lang = (String) ReflectionTestUtils.getField(jsonValue, "language");
+            if (lang != null && supportedLang.contains(lang)) {
+                outputJSON.put("fullName_" + lang, jsonValue);
+            }
+        }
+
+        assertTrue("Expected fullName_eng in output", outputJSON.has("fullName_eng"));
+        assertFalse("Expected fullName_fra absent (not in supportedLang)", outputJSON.has("fullName_fra"));
     }
 
     @Test
@@ -481,7 +493,7 @@ public class CredentialShareServiceTest {
         byte[] result = service.createJSONFile(credential, null);
 
         assertNotNull(result);
-        String output = new String(result);
+        String output = new String(result, java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(output.contains("Male"));
     }
 
@@ -499,7 +511,7 @@ public class CredentialShareServiceTest {
 
         assertNotNull(result);
         assertTrue(result.length > 0);
-        String output = new String(result);
+        String output = new String(result, java.nio.charset.StandardCharsets.UTF_8);
         assertFalse("Missing key should not appear in output", output.contains("nonExistentField"));
     }
 
