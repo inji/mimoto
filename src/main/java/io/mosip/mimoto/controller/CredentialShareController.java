@@ -45,17 +45,11 @@ import java.util.List;
 @Tag(name = SwaggerLiteralConstants.CREDENTIALS_SHARE_NAME, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_DESCRIPTION)
 public class CredentialShareController {
 
-    @Autowired
-    private CredentialShareServiceImpl credentialShareService;
+    private final CredentialShareServiceImpl credentialShareService;
 
-    @Autowired
-    public RestClientService<Object> restClientService;
+    public final RestClientService<Object> restClientService;
 
-    @Autowired
-    Environment env;
-
-    @Value("${mosip.event.topic}")
-    private String topic;
+    public final Environment env;
 
     @Value("${mosip.partner.encryption.key}")
     private String partnerEncryptionKey;
@@ -63,13 +57,19 @@ public class CredentialShareController {
     @Value("${mosip.partner.id}")
     private String partnerId;
 
-    @Autowired
-    RequestValidator requestValidator;
+    private final RequestValidator requestValidator;
 
     private Gson gson = new Gson();
 
-    @Autowired
-    private Utilities utilities;
+    private final Utilities utilities;
+
+    public CredentialShareController(CredentialShareServiceImpl credentialShareService, RestClientService<Object> restClientService, Environment env, RequestValidator requestValidator, Utilities utilities) {
+        this.credentialShareService = credentialShareService;
+        this.restClientService = restClientService;
+        this.env = env;
+        this.requestValidator = requestValidator;
+        this.utilities = utilities;
+    }
 
     /**
      * Websub callback for Verifiable Credential share.
