@@ -665,59 +665,50 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testMaskingForSelectivelyDisclosableClaimsAndNonMaskedFieldsInSDJWT() throws Exception {
+        ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", true);
+
         when(credentialFormatHandlerFactory.getHandler("vc+sd-jwt")).thenReturn(sdJwtCredentialFormatHandler);
-        vcCredentialResponse.setFormat("vc+sd-jwt");
-        String mockSDJWTString = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiaGFzaDEiLCJoYXNoMiJdfQ.signature~disclosure1~disclosure2";
-        vcCredentialResponse.setCredential(mockSDJWTString);
+        issuerDTO.setQr_code_type(QRCodeType.None);
 
-        try (MockedStatic<SDJWT> mockedSDJWT = mockStatic(SDJWT.class)) {
-            SDJWT mockSDJWT = mock(SDJWT.class);
+        String validSdJwt = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiYWJjMTIzIl19.signature~WyJzYWx0IiwgIm5hbWUiLCAiSm9obiBEb2UiXQ~";
 
-            mockedSDJWT.when(() -> SDJWT.parse(mockSDJWTString)).thenReturn(mockSDJWT);
+        VCCredentialResponse sdJwtVcResponse = VCCredentialResponse.builder()
+                .format("vc+sd-jwt")
+                .credential(validSdJwt)
+                .build();
 
-            // Only name and age are selectively disclosable (will be masked)
+        Map<String, Object> extractedClaims = new HashMap<>();
+        extractedClaims.put("name", "John Doe");
+        when(sdJwtCredentialFormatHandler.extractCredentialClaims(sdJwtVcResponse)).thenReturn(extractedClaims);
+
+        CredentialIssuerDisplayResponse displayResponse = createDisplayResponse("Name", "en");
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(displayResponse, "John Doe"));
+        when(sdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                .thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html></html>");
+
+        try (MockedStatic<SDJWT> mockedSDJWT = mockStatic(SDJWT.class);
+             MockedStatic<Utilities> mockedUtilities = mockStatic(Utilities.class)) {
+
             Disclosure nameDisclosure = mock(Disclosure.class);
             when(nameDisclosure.getClaimName()).thenReturn("name");
 
-            Disclosure ageDisclosure = mock(Disclosure.class);
-            when(ageDisclosure.getClaimName()).thenReturn("age");
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            when(mockSdJwt.getDisclosures()).thenReturn(List.of(nameDisclosure));
+            mockedSDJWT.when(() -> SDJWT.parse(validSdJwt)).thenReturn(mockSdJwt);
 
-            when(mockSDJWT.getDisclosures()).thenReturn(List.of(nameDisclosure, ageDisclosure));
-
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("name", "John Doe");        // Will be masked
-            claims.put("age", "30");              // Will be masked
-            claims.put("email", "john@example.com"); // Not masked (not in disclosures)
-            claims.put("country", "USA");         // Not masked (not in disclosures)
-
-            when(sdJwtCredentialFormatHandler.extractCredentialClaims(vcCredentialResponse))
-                    .thenReturn(claims);
-
-            // Use LinkedHashMap instead of HashMap
-            LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
-            displayProps.put("name", Map.of(createDisplayResponse("Full Name", "en"), "John Doe"));
-            displayProps.put("age", Map.of(createDisplayResponse("Age", "en"), "30"));
-            displayProps.put("email", Map.of(createDisplayResponse("Email", "en"), "john@example.com"));
-            displayProps.put("country", Map.of(createDisplayResponse("Country", "en"), "USA"));
-
-            when(sdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
-                    .thenReturn(displayProps);
-
-            when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                    .thenReturn("<html>Test Template</html>");
-            when(presentationService.constructPresentationDefinition(any()))
-                    .thenReturn(new PresentationDefinitionDTO());
-            when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+            mockedUtilities.when(() -> Utilities.maskValue("John Doe")).thenReturn("****");
+            mockedUtilities.when(() -> Utilities.encodeToString(any(), anyString())).thenReturn("encoded-image");
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                    "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "https://example.com/share", "", "en");
+                    "credentialConfigId", sdJwtVcResponse, issuerDTO,
+                    credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
 
             assertNotNull(result);
-            mockedSDJWT.verify(() -> SDJWT.parse(mockSDJWTString));
-            // This test verifies that:
-            // - Fields with disclosures (name, age) are masked with maskedClaims
-            // - Fields without disclosures (email, country) are shown normally
+            mockedUtilities.verify(() -> Utilities.maskValue("John Doe"));
         }
     }
 
@@ -1917,5 +1908,436 @@ class CredentialPDFGeneratorServiceTest {
         );
         assertNotNull(dataEmpty);
         assertNull(dataEmpty.get("titleName"));
+    }
+
+    @Test
+    void testIsFaceKeyFalseWhenSelectedFaceKeyNotNullButKeyDoesNotMatch() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+
+        Map<String, Object> subjectData = new HashMap<>();
+        subjectData.put("name", "John Doe");
+        subjectData.put("dateOfBirth", "1990-01-01");
+        subjectData.put("face", "base64-encoded-image"); // face key present, so selectedFaceKey = "face"
+
+        ((VCCredentialProperties) vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
+
+        Map<String, CredentialDisplayResponseDto> credSubjectMap = new HashMap<>();
+        credSubjectMap.put("name", createDisplay("Full Name"));
+        credSubjectMap.put("dateOfBirth", createDisplay("Date of Birth"));
+        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(credSubjectMap);
+        credentialsSupportedResponse.setOrder(List.of("name", "dateOfBirth"));
+
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(subjectData);
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                .thenCallRealMethod();
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>$rowProperties</body></html>");
+        when(presentationService.constructPresentationDefinition(any()))
+                .thenReturn(new PresentationDefinitionDTO());
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "https://example.com/share", "2025-12-31", "en");
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void testIsFaceKeyTrueWhenSelectedFaceKeyMatchesCurrentKey() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+
+        Map<String, Object> subjectData = new HashMap<>();
+        subjectData.put("name", "John Doe");
+        subjectData.put("face", "base64-encoded-image");
+
+        ((VCCredentialProperties) vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
+
+        Map<String, CredentialDisplayResponseDto> credSubjectMap = new HashMap<>();
+        credSubjectMap.put("name", createDisplay("Full Name"));
+        credSubjectMap.put("face", createDisplay("Face Image")); // face is also in display properties
+        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(credSubjectMap);
+        credentialsSupportedResponse.setOrder(List.of("name", "face"));
+
+        Map<String, Object> claimsWithFace = new HashMap<>(subjectData);
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claimsWithFace);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Full Name", "en"), "John Doe"));
+        displayProps.put("face", Map.of(createDisplayResponse("Face Image", "en"), "base64-encoded-image"));
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                .thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>$face $rowProperties</body></html>");
+        when(presentationService.constructPresentationDefinition(any()))
+                .thenReturn(new PresentationDefinitionDTO());
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "https://example.com/share", "2025-12-31", "en");
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void testIsFaceKeyFalseWhenSelectedFaceKeyIsNull() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+
+        Map<String, Object> subjectData = new HashMap<>();
+        subjectData.put("name", "John Doe");
+        subjectData.put("dateOfBirth", "1990-01-01");
+
+        ((VCCredentialProperties) vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
+
+        Map<String, CredentialDisplayResponseDto> credSubjectMap = new HashMap<>();
+        credSubjectMap.put("name", createDisplay("Full Name"));
+        credSubjectMap.put("dateOfBirth", createDisplay("Date of Birth"));
+        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(credSubjectMap);
+        credentialsSupportedResponse.setOrder(List.of("name", "dateOfBirth"));
+
+        Map<String, Object> claims = new HashMap<>(subjectData);
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claims);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Full Name", "en"), "John Doe"));
+        displayProps.put("dateOfBirth", Map.of(createDisplayResponse("Date of Birth", "en"), "1990-01-01"));
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                .thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>$rowProperties</body></html>");
+        when(presentationService.constructPresentationDefinition(any()))
+                .thenReturn(new PresentationDefinitionDTO());
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "https://example.com/share", "2025-12-31", "en");
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void testMaskingDisabledForSelectivelyDisclosableClaims() throws Exception {
+        ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", false);
+
+        when(credentialFormatHandlerFactory.getHandler("vc+sd-jwt")).thenReturn(sdJwtCredentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+
+        String validSdJwt = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiYWJjMTIzIl19.signature~WyJzYWx0IiwgIm5hbWUiLCAiSm9obiBEb2UiXQ~";
+
+        VCCredentialResponse sdJwtVcResponse = VCCredentialResponse.builder()
+                .format("vc+sd-jwt")
+                .credential(validSdJwt)
+                .build();
+
+        Map<String, Object> extractedClaims = new HashMap<>();
+        extractedClaims.put("name", "John Doe");
+        when(sdJwtCredentialFormatHandler.extractCredentialClaims(sdJwtVcResponse)).thenReturn(extractedClaims);
+
+        CredentialIssuerDisplayResponse displayResponse = createDisplayResponse("Name", "en");
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(displayResponse, "John Doe"));
+        when(sdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                .thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>$rowProperties</body></html>");
+        when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+
+        try (MockedStatic<SDJWT> mockedSDJWT = mockStatic(SDJWT.class)) {
+            SDJWT mockSdjwt = mock(SDJWT.class);
+            Disclosure mockDisclosure = mock(Disclosure.class);
+            when(mockDisclosure.getClaimName()).thenReturn("name");
+            when(mockSdjwt.getDisclosures()).thenReturn(List.of(mockDisclosure));
+            mockedSDJWT.when(() -> SDJWT.parse(anyString())).thenReturn(mockSdjwt);
+
+            ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                    "TestCredential", sdJwtVcResponse, issuerDTO, credentialsSupportedResponse,
+                    "https://example.com/share", "2025-12-31", "en");
+
+            assertNotNull(result);
+        }
+
+        ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", true);
+    }
+
+    @Test
+    void testDisplayNameNullExcludesFromRowProperties() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.None);
+
+        Map<String, Object> extractedClaims = new HashMap<>();
+        extractedClaims.put("name", "John Doe");
+        extractedClaims.put("hiddenField", "some-value");
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(extractedClaims);
+
+        CredentialIssuerDisplayResponse nullNameDisplay = createDisplayResponse(null, "en");
+        CredentialIssuerDisplayResponse nameDisplay = createDisplayResponse("Full Name", "en");
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(nameDisplay, "John Doe"));
+        displayProps.put("hiddenField", Map.of(nullNameDisplay, "some-value")); // displayName is null
+
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                .thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>$rowProperties</body></html>");
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "https://example.com/share", "2025-12-31", "en");
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void testExtractFaceReturnsNullFaceWhenFaceValueIsNull() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.None);
+
+        Map<String, Object> subjectData = new HashMap<>();
+        subjectData.put("name", "John Doe");
+        subjectData.put("face", null);
+
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(subjectData);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Full Name", "en"), "John Doe"));
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                .thenReturn(displayProps);
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>$rowProperties</body></html>");
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "", "2025-12-31", "en");
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void testExtractFaceReturnsNullFaceWhenFaceValueIsEmptyString() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.None);
+
+        Map<String, Object> subjectData = new HashMap<>();
+        subjectData.put("name", "John Doe");
+        subjectData.put("face", "");
+
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(subjectData);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Full Name", "en"), "John Doe"));
+        displayProps.put("face", Map.of(createDisplayResponse("Face", "en"), ""));
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
+                .thenReturn(displayProps);
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>$rowProperties</body></html>");
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "", "2025-12-31", "en");
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void testFormatValueWithListOfNonStringNonMap() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        List<Integer> intList = Arrays.asList(1, 2, 3);
+
+        String result = (String) formatValueMethod.invoke(service, intList, "en");
+
+        assertEquals("[1, 2, 3]", result);
+    }
+
+    @Test
+    void testFormatValueWithListOfMapsWithNoLangKey() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        Map<String, String> mapNoLang = new HashMap<>();
+        mapNoLang.put("someOtherKey", "someValue");
+        mapNoLang.put(LdpVcV1Constants.VALUE, "No Lang Value");
+
+        List<Map<String, String>> value = List.of(mapNoLang);
+
+        String result = (String) formatValueMethod.invoke(service, value, "en");
+
+        assertEquals("", result);
+    }
+
+    @Test
+    void testFormatValueWithListOfMapsWithNullValueKey() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        Map<String, String> mapNoValue = new HashMap<>();
+        mapNoValue.put(LdpVcV1Constants.LANGUAGE, "en");
+
+        List<Map<String, String>> value = List.of(mapNoValue);
+
+        String result = (String) formatValueMethod.invoke(service, value, "en");
+
+        assertEquals("", result);
+    }
+
+    @Test
+    void testFormatValueWithNullVal() throws Exception {
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
+        formatValueMethod.setAccessible(true);
+
+        String result = (String) formatValueMethod.invoke(service, null, "en");
+
+        assertEquals("", result);
+    }
+
+    @Test
+    void testInjiVcRendererNotInvokedWhenRenderMethodListContainsNonMapEntry() throws Exception {
+        Map<String, Object> credentialMap = new HashMap<>();
+        credentialMap.put(CONTEXT, List.of(V2_CONTEXT_URL));
+        credentialMap.put(RENDER_METHOD, List.of("not-a-map-entry"));
+
+        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+                .format("ldp_vc")
+                .credential(credentialMap)
+                .build();
+
+        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("name", "John Doe");
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claims);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString())).thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString())).thenReturn("<html></html>");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+        when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "credentialConfigId", vcCredentialResponse, issuerDTO,
+                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+
+        assertNotNull(result);
+        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), any(), anyString(), any());
+    }
+
+    @Test
+    void testInjiVcRendererNotInvokedWhenRenderMethodListHasTemplateButWrongRenderSuite() throws Exception {
+        Map<String, Object> credentialMap = new HashMap<>();
+        credentialMap.put(CONTEXT, List.of(V2_CONTEXT_URL));
+        credentialMap.put(RENDER_METHOD, List.of(
+                Map.of(TEMPLATE, "<svg></svg>", RENDER_SUITE, "SomeOtherRenderSuite")
+        ));
+
+        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+                .format("ldp_vc")
+                .credential(credentialMap)
+                .build();
+
+        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("name", "John Doe");
+        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claims);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString())).thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString())).thenReturn("<html></html>");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+        when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "credentialConfigId", vcCredentialResponse, issuerDTO,
+                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+
+        assertNotNull(result);
+        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), any(), anyString(), any());
+    }
+
+    @Test
+    void testInjiVcRendererNotInvokedWhenRenderMethodIsMapWithoutTemplate() throws Exception {
+        Map<String, Object> credentialMap = new HashMap<>();
+        credentialMap.put(CONTEXT, V2_CONTEXT_URL);
+        credentialMap.put(RENDER_METHOD, Map.of(RENDER_SUITE, SVG_MUSTACHE_RENDER_SUITE));
+
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
+                .format("ldp_vc")
+                .credential(credentialMap)
+                .build();
+
+        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("name", "John Doe");
+        when(credentialFormatHandler.extractCredentialClaims(localVcResponse)).thenReturn(claims);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString())).thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString())).thenReturn("<html></html>");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+        when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "credentialConfigId", localVcResponse, issuerDTO,
+                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+
+        assertNotNull(result);
+        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), any(), anyString(), any());
+    }
+
+    @Test
+    void testInjiVcRendererNotInvokedWhenRenderMethodIsMapWithTemplateButWrongRenderSuite() throws Exception {
+        Map<String, Object> credentialMap = new HashMap<>();
+        credentialMap.put(CONTEXT, V2_CONTEXT_URL);
+        credentialMap.put(RENDER_METHOD, Map.of(TEMPLATE, "<svg></svg>", RENDER_SUITE, "SomeOtherRenderSuite"));
+
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
+                .format("ldp_vc")
+                .credential(credentialMap)
+                .build();
+
+        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("name", "John Doe");
+        when(credentialFormatHandler.extractCredentialClaims(localVcResponse)).thenReturn(claims);
+
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
+        displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
+        when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString())).thenReturn(displayProps);
+
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString())).thenReturn("<html></html>");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+        when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "credentialConfigId", localVcResponse, issuerDTO,
+                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+
+        assertNotNull(result);
+        verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), any(), anyString(), any());
     }
 }
