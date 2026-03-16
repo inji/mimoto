@@ -2064,18 +2064,21 @@ class CredentialPDFGeneratorServiceTest {
             when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
-            try (MockedStatic<SDJWT> mockedSDJWT = mockStatic(SDJWT.class)) {
+            try (MockedStatic<SDJWT> mockedSDJWT = mockStatic(SDJWT.class);
+                 MockedStatic<Utilities> mockedUtilities = mockStatic(Utilities.class)) {
                 SDJWT mockSdjwt = mock(SDJWT.class);
                 Disclosure mockDisclosure = mock(Disclosure.class);
                 when(mockDisclosure.getClaimName()).thenReturn("name");
                 when(mockSdjwt.getDisclosures()).thenReturn(List.of(mockDisclosure));
                 mockedSDJWT.when(() -> SDJWT.parse(anyString())).thenReturn(mockSdjwt);
+                mockedUtilities.when(() -> Utilities.encodeToString(any(), anyString())).thenReturn("encoded-image");
 
                 ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                         "TestCredential", sdJwtVcResponse, issuerDTO, credentialsSupportedResponse,
                         "https://example.com/share", "2025-12-31", "en");
 
                 assertNotNull(result);
+                mockedUtilities.verify(() -> Utilities.maskValue(anyString()), never());
             }
         } finally {
             ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", true);

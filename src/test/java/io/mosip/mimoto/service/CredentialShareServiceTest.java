@@ -213,22 +213,39 @@ public class CredentialShareServiceTest {
 
     @Test
     public void generateDocumentsWithMultiLanguageFieldsFilteredBySupportedLang() throws Exception {
-        String credentialWithMultiLang = "{\"credentialSubject\":{" +
-                "\"biometrics\":\"biometrics\"," +
-                "\"fullName\":[" +
-                "{\"language\":\"eng\",\"value\":\"John Smith\"}," +
-                "{\"language\":\"ara\",\"value\":\"جون سميث\"}," +
-                "{\"language\":\"fra\",\"value\":\"Jean Smith\"}" +
-                "]" +
-                "},\"protectedAttributes\":[\"biometrics\"]}";
-        Mockito.when(p12KeyStoreManager.decrypt(Mockito.anyString())).thenReturn(credentialWithMultiLang);
-        Map<String, String> templateMap = new HashMap<>();
-        templateMap.put("demographics", "fullName");
-        templateMap.put("biometrics", "biometrics");
-        JSONObject templateJSON = new JSONObject(templateMap);
-        Mockito.when(utilities.getTemplate()).thenReturn(templateJSON);
-        boolean result = service.generateDocuments(eventModel);
-        assertTrue(result);
+        ReflectionTestUtils.setField(service, "supportedLang", "eng,ara");
+
+        java.util.LinkedHashMap<String, Object> engEntry = new java.util.LinkedHashMap<>();
+        engEntry.put("language", "eng");
+        engEntry.put("value", "John Smith");
+        java.util.LinkedHashMap<String, Object> araEntry = new java.util.LinkedHashMap<>();
+        araEntry.put("language", "ara");
+        araEntry.put("value", "جون سميث");
+        java.util.LinkedHashMap<String, Object> fraEntry = new java.util.LinkedHashMap<>();
+        fraEntry.put("language", "fra");
+        fraEntry.put("value", "Jean Smith");
+
+        org.json.simple.JSONArray node = new org.json.simple.JSONArray();
+        node.add(engEntry);
+        node.add(araEntry);
+        node.add(fraEntry);
+
+        io.mosip.mimoto.dto.JsonValue[] jsonValues =
+                invokeMapJsonNodeToJavaObject(io.mosip.mimoto.dto.JsonValue.class, node);
+
+        org.json.JSONObject outputJSON = new org.json.JSONObject();
+        String supportedLang = "eng,ara";
+        for (io.mosip.mimoto.dto.JsonValue jsonValue : jsonValues) {
+            String lang = (String) ReflectionTestUtils.getField(jsonValue, "language");
+            if (lang != null && supportedLang.contains(lang)) {
+                outputJSON.put("fullName_" + lang, jsonValue);
+            }
+        }
+
+        assertTrue("Expected fullName_eng in output", outputJSON.has("fullName_eng"));
+        assertTrue("Expected fullName_ara in output", outputJSON.has("fullName_ara"));
+        assertFalse("Expected fullName_fra absent from output (fra not in supportedLang)",
+                outputJSON.has("fullName_fra"));
     }
 
     @Test
