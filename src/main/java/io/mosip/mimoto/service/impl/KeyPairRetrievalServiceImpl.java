@@ -9,7 +9,6 @@ import io.mosip.mimoto.service.DataProtectionService;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -24,11 +23,14 @@ import java.util.Optional;
 @Service
 public class KeyPairRetrievalServiceImpl implements KeyPairRetrievalService {
 
-    @Autowired
-    private ProofSigningKeyRepository proofSigningKeyRepository;
+    private final ProofSigningKeyRepository proofSigningKeyRepository;
 
-    @Autowired
-    private DataProtectionService dataProtectionService;
+    private final DataProtectionService dataProtectionService;
+
+    public KeyPairRetrievalServiceImpl(ProofSigningKeyRepository proofSigningKeyRepository, DataProtectionService dataProtectionService) {
+        this.proofSigningKeyRepository = proofSigningKeyRepository;
+        this.dataProtectionService = dataProtectionService;
+    }
 
     @Override
     public KeyPair getKeyPairFromDB(String walletId, String base64EncodedWalletKey, SigningAlgorithm signingAlgorithm) throws KeyGenerationException, DecryptionException {

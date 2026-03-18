@@ -35,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -56,26 +55,29 @@ public class CredentialPDFGeneratorService {
 
     private record SelectedFace(String key, String face) {}
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private PresentationServiceImpl presentationService;
+    private final PresentationServiceImpl presentationService;
 
-    @Autowired
-    private Utilities utilities;
+    private final Utilities utilities;
 
-    @Autowired
-    private PixelPass pixelPass;
+    private final PixelPass pixelPass;
 
-    @Autowired
-    private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
+    private final CredentialFormatHandlerFactory credentialFormatHandlerFactory;
 
-    @Autowired
-    private InjiVcRenderer injiVcRenderer;
+    private final InjiVcRenderer injiVcRenderer;
 
-    @Autowired
-    private SvgFixerUtil svgFixerUtil;
+    private final SvgFixerUtil svgFixerUtil;
+
+    public CredentialPDFGeneratorService(ObjectMapper objectMapper, PresentationServiceImpl presentationService, Utilities utilities, PixelPass pixelPass, CredentialFormatHandlerFactory credentialFormatHandlerFactory, InjiVcRenderer injiVcRenderer, SvgFixerUtil svgFixerUtil) {
+        this.objectMapper = objectMapper;
+        this.presentationService = presentationService;
+        this.utilities = utilities;
+        this.pixelPass = pixelPass;
+        this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
+        this.injiVcRenderer = injiVcRenderer;
+        this.svgFixerUtil = svgFixerUtil;
+    }
 
     @Value("${mosip.inji.ovp.qrdata.pattern}")
     private String ovpQRDataPattern;

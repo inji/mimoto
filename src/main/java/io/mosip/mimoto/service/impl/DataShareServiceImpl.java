@@ -12,7 +12,6 @@ import io.mosip.mimoto.util.RestApiClient;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -33,8 +32,7 @@ public class DataShareServiceImpl {
 
     private static final Pattern SAFE_URL_SEGMENT_PATTERN = Pattern.compile("^[A-Za-z0-9._\\-]+$");
 
-    @Autowired
-    RestApiClient restApiClient;
+    private final RestApiClient restApiClient;
 
     @Value("${mosip.data.share.url}")
     String dataShareHostUrl;
@@ -48,10 +46,14 @@ public class DataShareServiceImpl {
     @Value("${mosip.data.share.create.retry.count}")
     Integer maxRetryCount;
 
-    @Autowired
-    ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     PathMatcher pathMatcher ;
+
+    public DataShareServiceImpl(RestApiClient restApiClient, ObjectMapper objectMapper) {
+        this.restApiClient = restApiClient;
+        this.objectMapper = objectMapper;
+    }
 
     @PostConstruct
     public void setUp(){

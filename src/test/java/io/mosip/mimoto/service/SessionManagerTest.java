@@ -35,7 +35,7 @@ public class SessionManagerTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        sessionManager = new SessionManager();
+        sessionManager = new SessionManager(objectMapper);
         ReflectionTestUtils.setField(sessionManager, "objectMapper", objectMapper);
         userMetadataDTO = new UserMetadataDTO("Test user", "https://test.com/pic.jpg", "test@example.com", "wallet123");
     }

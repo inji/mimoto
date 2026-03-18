@@ -47,6 +47,7 @@ public class DataShareServiceTest {
         ReflectionTestUtils.setField(dataShareService, "dataShareGetUrlPattern", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*");
         ReflectionTestUtils.setField(dataShareService, "maxRetryCount", 1);
         presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        ReflectionTestUtils.setField(dataShareService, "pathMatcher", pathMatcher);
         Mockito.when(pathMatcher.match("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test")).thenReturn(true);
     }
 

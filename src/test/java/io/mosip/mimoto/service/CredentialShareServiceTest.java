@@ -16,10 +16,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.http.HttpHeaders;
 
 import java.net.URI;
 import java.security.InvalidKeyException;
@@ -33,8 +33,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(MockitoJUnitRunner.class)
 public class CredentialShareServiceTest {
 
-    @InjectMocks
-    private CredentialShareService service = new CredentialShareServiceImpl();
+    private CredentialShareService service;
 
     @Mock
     public RestApiClient restApiClient;
@@ -51,10 +50,25 @@ public class CredentialShareServiceTest {
     @Mock
     private Utilities utilities;
 
-    private EventModel eventModel = null;
+    @Mock
+    private WebSubSubscriptionHelper webSubSubscriptionHelper;
+
+    @Mock
+    private DataShareUtil dataShareUtil;
+
+    @Mock
+    private RestClientService<Object> restClientService;
+
+    @Mock
+    private org.springframework.core.env.Environment env;
+
+    @Mock
+    private io.mosip.kernel.core.websub.spi.PublisherClient<String, Object, HttpHeaders> pb;
 
     @Mock
     private CbeffToBiometricUtil util;
+
+    private EventModel eventModel = null;
 
     @Before
     public void setup() throws Exception {
@@ -98,6 +112,10 @@ public class CredentialShareServiceTest {
         List<BIR> birs = Lists.newArrayList(bir);
         Mockito.when(util.getBIRTypeList(Mockito.anyString())).thenReturn(birs);
         Mockito.when(util.getPhotoByTypeAndSubType(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn("face image strring".getBytes());
+
+        service = new CredentialShareServiceImpl(restApiClient, webSubSubscriptionHelper, dataShareUtil,
+                derivedKeyCryptoUtil, p12KeyStoreManager, util, auditLogRequestBuilder, utilities,
+                restClientService, env, pb);
 
     }
 

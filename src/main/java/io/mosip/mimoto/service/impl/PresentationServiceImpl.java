@@ -13,7 +13,6 @@ import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.PresentationService;
 import io.mosip.mimoto.util.RestApiClient;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -34,20 +33,23 @@ import static io.mosip.mimoto.util.JwtUtils.parseJwtHeader;
 @Service
 public class PresentationServiceImpl implements PresentationService {
 
-    @Autowired
-    private DataShareServiceImpl dataShareService;
+    private final DataShareServiceImpl dataShareService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private RestApiClient restApiClient;
+    private final RestApiClient restApiClient;
 
     @Value("${mosip.inji.ovp.redirect.url.pattern}")
     private String injiOvpRedirectURLPattern;
 
     @Value("${server.tomcat.max-http-response-header-size:65536}")
     private Integer maximumResponseHeaderSize;
+
+    public PresentationServiceImpl(DataShareServiceImpl dataShareService, ObjectMapper objectMapper, RestApiClient restApiClient) {
+        this.dataShareService = dataShareService;
+        this.objectMapper = objectMapper;
+        this.restApiClient = restApiClient;
+    }
 
 
     @Override

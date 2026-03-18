@@ -14,7 +14,6 @@ import io.mosip.openID4VP.constants.VPFormatType;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
 import io.mosip.openID4VP.verifier.VerifierResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -26,8 +25,11 @@ import java.util.Map;
 @Slf4j
 public class OpenID4VPService {
 
-    @Autowired
-    private VerifierService verifierService;
+    private final VerifierService verifierService;
+
+    public OpenID4VPService(VerifierService verifierService) {
+        this.verifierService = verifierService;
+    }
 
     public OpenID4VP create(String presentationId) {
         WalletMetadata walletMetadata = new WalletMetadata();
