@@ -18,6 +18,7 @@ public enum ErrorConstants {
     URI_TOO_LONG("uri_too_long", "Resource URI is too long to be handled"),
     INVALID_CLIENT("invalid_client", "The requested client doesn’t match."),
     INVALID_REDIRECT_URI("invalid_redirect_uri", "The requested redirect uri doesn’t match."),
+    INVALID_RESPONSE_URI("invalid_response_uri", "The requested response uri doesn’t match."),
     INTERNAL_SERVER_ERROR("internal_server_error", "We are unable to process request now"),
 
     PROOF_TYPE_NOT_SUPPORTED_EXCEPTION("proof_type_not_supported", "Proof Type available in received credentials is not matching with supported proof terms"),

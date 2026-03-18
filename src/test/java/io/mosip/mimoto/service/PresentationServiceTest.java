@@ -35,7 +35,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.test.util.ReflectionTestUtils;
-import io.mosip.mimoto.dto.SubmitPresentationResponseDTO;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -431,7 +430,7 @@ public class PresentationServiceTest {
 
         String result = presentationService.authorizePresentation(presentationRequestDTO);
 
-        assertEquals("test_redirect_uri", result);
+        assertEquals("https://verifier.example.com/response?status=vp_sent", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
 

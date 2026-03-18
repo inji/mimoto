@@ -64,18 +64,18 @@ public class VerifierServiceImpl implements VerifierService {
     }
 
     @Override
-    public void validateVerifier(String clientId, String redirectUri) throws ApiNotAccessibleException, JsonProcessingException {
+    public void validateVerifier(String clientId, String responseUri) throws ApiNotAccessibleException, JsonProcessingException {
         log.info("Started the presentation Validation");
         getVerifierByClientId(clientId).ifPresentOrElse(
             (verifierDTO) -> {
-                boolean isValidVerifier = verifierDTO.getRedirectUris().stream().anyMatch(registeredRedirectUri ->
-                        urlValidator.isValid(registeredRedirectUri) &&
-                        urlValidator.isValid(redirectUri) &&
-                        pathMatcher.match(registeredRedirectUri, redirectUri));
+                boolean isValidVerifier = verifierDTO.getResponseUris().stream().anyMatch(registeredResponseUri ->
+                        urlValidator.isValid(registeredResponseUri) &&
+                        urlValidator.isValid(responseUri) &&
+                        pathMatcher.match(registeredResponseUri, responseUri));
                 if(!isValidVerifier){
                     throw new InvalidVerifierException(
-                            ErrorConstants.INVALID_REDIRECT_URI.getErrorCode(),
-                            ErrorConstants.INVALID_REDIRECT_URI.getErrorMessage());
+                            ErrorConstants.INVALID_RESPONSE_URI.getErrorCode(),
+                            ErrorConstants.INVALID_RESPONSE_URI.getErrorMessage());
                 }
             },
             () -> {
@@ -106,7 +106,7 @@ public class VerifierServiceImpl implements VerifierService {
             log.warn("No client_id found in the authorization request URL");
             return false;
         }
-        if (responseUris==null || responseUris.isEmpty()) {
+        if (responseUris.isEmpty()) {
             log.warn("No response_uri found in the authorization request URL");
             return false;
         }
