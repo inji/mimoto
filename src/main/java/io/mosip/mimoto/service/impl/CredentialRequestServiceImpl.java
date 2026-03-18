@@ -20,11 +20,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CredentialRequestServiceImpl implements CredentialRequestService {
 
-
     @Value("${signing.algorithms.priority.order:ED25519,ES256K,ES256,RS256}")
     private String signingAlgorithmsPriorityOrder;
 
     private static final SigningAlgorithm FALLBACK_SIGNING_ALG = SigningAlgorithm.ED25519;
+
+    private final CredentialFormatHandlerFactory credentialFormatHandlerFactory;
+
+    private final KeyPairRetrievalService keyPairService;
 
     public CredentialRequestServiceImpl(CredentialFormatHandlerFactory credentialFormatHandlerFactory, KeyPairRetrievalService keyPairService) {
         this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
@@ -35,11 +38,6 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
         return Arrays.stream(signingAlgorithmsPriorityOrder.split(","))
                 .map(String::trim).collect(Collectors.toCollection(LinkedHashSet::new));
     }
-
-
-    private final CredentialFormatHandlerFactory credentialFormatHandlerFactory;
-
-    private final KeyPairRetrievalService keyPairService;
 
     @Override
     public VCCredentialRequest buildRequest(IssuerDTO issuerDTO,

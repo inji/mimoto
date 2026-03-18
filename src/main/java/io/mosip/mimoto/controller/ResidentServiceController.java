@@ -26,11 +26,11 @@ import jakarta.validation.Valid;
 @Tag(name = SwaggerLiteralConstants.RESIDENT_NAME, description = SwaggerLiteralConstants.RESIDENT_DESCRIPTION)
 public class ResidentServiceController {
 
-    public final RestClientService<Object> restClientService;
+    private final RestClientService<Object> restClientService;
 
     private final RequestValidator requestValidator;
 
-    private  final Environment env;
+    private final Environment env;
 
     public ResidentServiceController(RestClientService<Object> restClientService, RequestValidator requestValidator, Environment env) {
         this.restClientService = restClientService;

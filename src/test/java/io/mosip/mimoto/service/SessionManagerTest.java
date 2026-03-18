@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -36,7 +35,6 @@ public class SessionManagerTest {
     public void setUp() {
         MockitoAnnotations.openMocks(this);
         sessionManager = new SessionManager(objectMapper);
-        ReflectionTestUtils.setField(sessionManager, "objectMapper", objectMapper);
         userMetadataDTO = new UserMetadataDTO("Test user", "https://test.com/pic.jpg", "test@example.com", "wallet123");
     }
 

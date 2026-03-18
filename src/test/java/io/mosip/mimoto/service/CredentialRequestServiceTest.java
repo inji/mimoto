@@ -12,7 +12,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +33,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = {CredentialRequestServiceImpl.class})
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class CredentialRequestServiceTest {
-    @Mock
+    @MockBean
     private ObjectMapper objectMapper;
 
     @Autowired
