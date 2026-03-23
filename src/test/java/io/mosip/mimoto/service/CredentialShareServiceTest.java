@@ -121,10 +121,6 @@ public class CredentialShareServiceTest {
         Mockito.when(util.getBIRTypeList(Mockito.anyString())).thenReturn(birs);
         Mockito.when(util.getPhotoByTypeAndSubType(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn("face image strring".getBytes());
 
-        service = new CredentialShareServiceImpl(restApiClient, webSubSubscriptionHelper, dataShareUtil,
-                derivedKeyCryptoUtil, p12KeyStoreManager, util, auditLogRequestBuilder, utilities,
-                restClientService, env, pb);
-
     }
 
     @Test
@@ -443,7 +439,8 @@ public class CredentialShareServiceTest {
         Map<String, byte[]> result = service.getDocuments(credentialJson, "VERCRED", "req-123", "dummySign");
 
         assertNotNull(result);
-        assertTrue(result.containsKey(CredentialShareServiceImpl.UIN_TEXT_FILE));
+        String uinTextFile = (String) ReflectionTestUtils.getField(CredentialShareServiceImpl.class, "UIN_TEXT_FILE");
+        assertTrue(result.containsKey(uinTextFile));
     }
 
     @Test(expected = DocumentGeneratorException.class)
@@ -604,7 +601,11 @@ public class CredentialShareServiceTest {
     }
 
     private CredentialShareServiceImpl buildTestService() {
-        CredentialShareServiceImpl testService = new CredentialShareServiceImpl();
+        CredentialShareServiceImpl testService = new CredentialShareServiceImpl(
+                restApiClient, webSubSubscriptionHelper, dataShareUtil,
+                derivedKeyCryptoUtil, p12KeyStoreManager, util, auditLogRequestBuilder,
+                utilities, restClientService, env, pb
+        );
         ReflectionTestUtils.setField(testService, "util", util);
         return testService;
     }

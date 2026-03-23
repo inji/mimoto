@@ -2168,7 +2168,15 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfNonStringNonMap() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(
+            objectMapper,
+            presentationService,
+            utilities,
+            pixelPass,
+            credentialFormatHandlerFactory,
+            injiVcRenderer,
+            svgFixerUtil
+        );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -2181,7 +2189,15 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfMapsWithNoLangKey() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(
+            objectMapper,
+            presentationService,
+            utilities,
+            pixelPass,
+            credentialFormatHandlerFactory,
+            injiVcRenderer,
+            svgFixerUtil
+        );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -2198,7 +2214,15 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfMapsWithNullValueKey() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(
+            objectMapper,
+            presentationService,
+            utilities,
+            pixelPass,
+            credentialFormatHandlerFactory,
+            injiVcRenderer,
+            svgFixerUtil
+        );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -2214,7 +2238,15 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithNullVal() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(
+            objectMapper,
+            presentationService,
+            utilities,
+            pixelPass,
+            credentialFormatHandlerFactory,
+            injiVcRenderer,
+            svgFixerUtil
+        );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
