@@ -3,6 +3,7 @@ package io.mosip.mimoto.service;
 import io.mosip.mimoto.dto.mimoto.UserMetadataDTO;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.exception.OAuth2AuthenticationException;
+import io.mosip.mimoto.model.UserMetadata;
 import io.mosip.mimoto.service.impl.GoogleTokenService;
 import io.mosip.mimoto.service.impl.SecurityContextManager;
 import io.mosip.mimoto.service.impl.SessionManager;
@@ -201,5 +202,158 @@ class GoogleTokenServiceTest {
         assertEquals("invalid_token", exception.getErrorCode());
         verify(tokenDecoder).decode(idToken);
         verifyNoInteractions(userMetadataService, sessionManager, securityContextManager);
+    }
+
+    @Test
+    void processTokenWithExistingUserMetadataAndNullNameShouldUseSavedName() throws Exception {
+        // Test when userMetadata exists and name is null - should use saved display name
+        UserMetadataDTO existingMetadata = new UserMetadataDTO("Saved Name", "http://example.com/saved-pic.jpg", "test@example.com", null);
+        
+        Map<String, Object> claimsWithoutName = new HashMap<>(claims);
+        claimsWithoutName.remove("name");
+        Jwt jwtWithoutName = Jwt.withTokenValue(idToken)
+                .header("alg", "RS256")
+                .claims(claimsMap -> claimsMap.putAll(claimsWithoutName))
+                .issuer("https://accounts.google.com")
+                .audience(Collections.singletonList("google-client-id"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(tokenDecoder.decode(idToken)).thenReturn(jwtWithoutName);
+        when(userMetadataService.getUserMetadata("google-subject-id", provider))
+                .thenReturn(createUserMetadata("Saved Name", "http://example.com/saved-pic.jpg"));
+        when(userMetadataService.updateOrCreateUserMetadata("google-subject-id", provider, "Saved Name", "http://example.com/picture.jpg", "test@example.com"))
+                .thenReturn("test-user-id");
+
+        googleTokenService.processToken(idToken, provider, request, response);
+
+        verify(userMetadataService).getUserMetadata("google-subject-id", provider);
+        verify(userMetadataService).updateOrCreateUserMetadata("google-subject-id", provider, "Saved Name", "http://example.com/picture.jpg", "test@example.com");
+        verify(sessionManager).setupSession(eq(request), eq(provider), userMetadataDTOArgumentCaptor.capture(), eq("test-user-id"));
+        
+        UserMetadataDTO capturedUserMetadata = userMetadataDTOArgumentCaptor.getValue();
+        assertEquals("Saved Name", capturedUserMetadata.getDisplayName());
+    }
+
+    @Test
+    void processTokenWithExistingUserMetadataAndBlankNameShouldUseSavedName() throws Exception {
+        // Test when userMetadata exists and name is blank - should use saved display name
+        Map<String, Object> claimsWithBlankName = new HashMap<>(claims);
+        claimsWithBlankName.put("name", "   ");
+        Jwt jwtWithBlankName = Jwt.withTokenValue(idToken)
+                .header("alg", "RS256")
+                .claims(claimsMap -> claimsMap.putAll(claimsWithBlankName))
+                .issuer("https://accounts.google.com")
+                .audience(Collections.singletonList("google-client-id"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(tokenDecoder.decode(idToken)).thenReturn(jwtWithBlankName);
+        when(userMetadataService.getUserMetadata("google-subject-id", provider))
+                .thenReturn(createUserMetadata("Saved Display Name", "http://example.com/saved-pic.jpg"));
+        when(userMetadataService.updateOrCreateUserMetadata("google-subject-id", provider, "Saved Display Name", "http://example.com/picture.jpg", "test@example.com"))
+                .thenReturn("test-user-id");
+
+        googleTokenService.processToken(idToken, provider, request, response);
+
+        verify(userMetadataService).getUserMetadata("google-subject-id", provider);
+        verify(userMetadataService).updateOrCreateUserMetadata("google-subject-id", provider, "Saved Display Name", "http://example.com/picture.jpg", "test@example.com");
+    }
+
+    @Test
+    void processTokenWithExistingUserMetadataAndNullPictureShouldUseSavedPicture() throws Exception {
+        // Test when userMetadata exists and picture is null - should use saved picture URL
+        Map<String, Object> claimsWithoutPicture = new HashMap<>(claims);
+        claimsWithoutPicture.remove("picture");
+        Jwt jwtWithoutPicture = Jwt.withTokenValue(idToken)
+                .header("alg", "RS256")
+                .claims(claimsMap -> claimsMap.putAll(claimsWithoutPicture))
+                .issuer("https://accounts.google.com")
+                .audience(Collections.singletonList("google-client-id"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(tokenDecoder.decode(idToken)).thenReturn(jwtWithoutPicture);
+        when(userMetadataService.getUserMetadata("google-subject-id", provider))
+                .thenReturn(createUserMetadata("Test User", "http://example.com/saved-picture.jpg"));
+        when(userMetadataService.updateOrCreateUserMetadata("google-subject-id", provider, "Test User", "http://example.com/saved-picture.jpg", "test@example.com"))
+                .thenReturn("test-user-id");
+
+        googleTokenService.processToken(idToken, provider, request, response);
+
+        verify(userMetadataService).getUserMetadata("google-subject-id", provider);
+        verify(userMetadataService).updateOrCreateUserMetadata("google-subject-id", provider, "Test User", "http://example.com/saved-picture.jpg", "test@example.com");
+        verify(sessionManager).setupSession(eq(request), eq(provider), userMetadataDTOArgumentCaptor.capture(), eq("test-user-id"));
+        
+        UserMetadataDTO capturedUserMetadata = userMetadataDTOArgumentCaptor.getValue();
+        assertEquals("http://example.com/saved-picture.jpg", capturedUserMetadata.getProfilePictureUrl());
+    }
+
+    @Test
+    void processTokenWithExistingUserMetadataAndBlankPictureShouldUseSavedPicture() throws Exception {
+        // Test when userMetadata exists and picture is blank - should use saved picture URL
+        Map<String, Object> claimsWithBlankPicture = new HashMap<>(claims);
+        claimsWithBlankPicture.put("picture", "");
+        Jwt jwtWithBlankPicture = Jwt.withTokenValue(idToken)
+                .header("alg", "RS256")
+                .claims(claimsMap -> claimsMap.putAll(claimsWithBlankPicture))
+                .issuer("https://accounts.google.com")
+                .audience(Collections.singletonList("google-client-id"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(tokenDecoder.decode(idToken)).thenReturn(jwtWithBlankPicture);
+        when(userMetadataService.getUserMetadata("google-subject-id", provider))
+                .thenReturn(createUserMetadata("Test User", "http://example.com/saved-pic.jpg"));
+        when(userMetadataService.updateOrCreateUserMetadata("google-subject-id", provider, "Test User", "http://example.com/saved-pic.jpg", "test@example.com"))
+                .thenReturn("test-user-id");
+
+        googleTokenService.processToken(idToken, provider, request, response);
+
+        verify(userMetadataService).getUserMetadata("google-subject-id", provider);
+        verify(userMetadataService).updateOrCreateUserMetadata("google-subject-id", provider, "Test User", "http://example.com/saved-pic.jpg", "test@example.com");
+    }
+
+    @Test
+    void processTokenWithDecryptionExceptionShouldThrowRuntimeException() throws Exception {
+        // Test the DecryptionException catch block
+        when(tokenDecoder.decode(idToken)).thenReturn(validJwt);
+        when(userMetadataService.getUserMetadata("google-subject-id", provider))
+                .thenThrow(new io.mosip.mimoto.exception.DecryptionException("DEC_001", "Decryption failed"));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+                googleTokenService.processToken(idToken, provider, request, response));
+
+        verify(tokenDecoder).decode(idToken);
+        verify(userMetadataService).getUserMetadata("google-subject-id", provider);
+        verifyNoInteractions(sessionManager, securityContextManager);
+    }
+
+    @Test
+    void processTokenWithNullUserMetadataShouldProceedNormally() throws Exception {
+        // Test when userMetadata is null - should proceed with token claims
+        when(tokenDecoder.decode(idToken)).thenReturn(validJwt);
+        when(userMetadataService.getUserMetadata("google-subject-id", provider)).thenReturn(null);
+        when(userMetadataService.updateOrCreateUserMetadata("google-subject-id", provider, "Test User", "http://example.com/picture.jpg", "test@example.com"))
+                .thenReturn("test-user-id");
+
+        googleTokenService.processToken(idToken, provider, request, response);
+
+        verify(userMetadataService).getUserMetadata("google-subject-id", provider);
+        verify(userMetadataService).updateOrCreateUserMetadata("google-subject-id", provider, "Test User", "http://example.com/picture.jpg", "test@example.com");
+        verify(sessionManager).setupSession(eq(request), eq(provider), any(UserMetadataDTO.class), eq("test-user-id"));
+        verify(securityContextManager).setupSecurityContext(any(OAuth2AuthenticationToken.class), eq(request), eq(response));
+    }
+
+    // Helper method to create UserMetadata object for testing
+    private UserMetadata createUserMetadata(String displayName, String pictureUrl) {
+        UserMetadata metadata = new UserMetadata();
+        metadata.setDisplayName(displayName);
+        metadata.setProfilePictureUrl(pictureUrl);
+        return metadata;
     }
 }
