@@ -8,7 +8,6 @@ import io.mosip.mimoto.service.CredentialVerifierService;
 import io.mosip.vercred.vcverifier.CredentialsVerifier;
 import io.mosip.vercred.vcverifier.constants.CredentialFormat;
 import io.mosip.vercred.vcverifier.data.VerificationResult;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -16,11 +15,14 @@ import java.util.Objects;
 @Service
 public class CredentialVerifierServiceImpl implements CredentialVerifierService {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private CredentialsVerifier credentialsVerifier;
+    private final CredentialsVerifier credentialsVerifier;
+
+    public CredentialVerifierServiceImpl(ObjectMapper objectMapper, CredentialsVerifier credentialsVerifier) {
+        this.objectMapper = objectMapper;
+        this.credentialsVerifier = credentialsVerifier;
+    }
 
     public boolean verify(VCCredentialResponse response) throws JsonProcessingException, VCVerificationException {
         String credentialString = response.getCredential() instanceof String ? (String) response.getCredential() : objectMapper.writeValueAsString(response.getCredential());

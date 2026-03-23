@@ -18,7 +18,6 @@ import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.service.impl.LdpVcCredentialFormatHandler;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
 import io.mosip.mimoto.service.impl.VcSdJwtCredentialFormatHandler;
-import io.mosip.mimoto.util.LocaleUtils;
 import io.mosip.mimoto.util.SvgFixerUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.pixelpass.PixelPass;
@@ -901,7 +900,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithMap_AtValue() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -915,7 +914,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithMap_Value() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -929,7 +928,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfMaps_AtLanguageAndAtValue() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -962,7 +961,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfMaps_LanguageAndValue() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -995,7 +994,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfMaps_langAndValue() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService();
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 

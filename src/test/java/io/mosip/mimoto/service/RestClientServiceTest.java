@@ -16,7 +16,6 @@ import io.mosip.mimoto.exception.ApisResourceAccessException;
 import io.mosip.mimoto.service.impl.RestClientServiceImpl;
 import io.mosip.mimoto.util.RestApiClient;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
@@ -35,7 +34,7 @@ public class RestClientServiceTest {
     private static final String API_NAME = "AUDIT";
 
     @InjectMocks
-    RestClientService<Object> registrationProcessorRestClientService = new RestClientServiceImpl();
+    private RestClientServiceImpl registrationProcessorRestClientService;
     /** The rest api client. */
     @Mock
     private RestApiClient restApiClient;

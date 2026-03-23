@@ -9,7 +9,6 @@ import io.mosip.mimoto.service.CredentialRequestService;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,23 +20,24 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CredentialRequestServiceImpl implements CredentialRequestService {
 
-
     @Value("${signing.algorithms.priority.order:ED25519,ES256K,ES256,RS256}")
     private String signingAlgorithmsPriorityOrder;
 
     private static final SigningAlgorithm FALLBACK_SIGNING_ALG = SigningAlgorithm.ED25519;
 
+    private final CredentialFormatHandlerFactory credentialFormatHandlerFactory;
+
+    private final KeyPairRetrievalService keyPairService;
+
+    public CredentialRequestServiceImpl(CredentialFormatHandlerFactory credentialFormatHandlerFactory, KeyPairRetrievalService keyPairService) {
+        this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
+        this.keyPairService = keyPairService;
+    }
+
     public Set<String> getSigningAlgorithmsPriorityOrder() {
         return Arrays.stream(signingAlgorithmsPriorityOrder.split(","))
                 .map(String::trim).collect(Collectors.toCollection(LinkedHashSet::new));
     }
-
-
-    @Autowired
-    private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
-
-    @Autowired
-    private KeyPairRetrievalService keyPairService;
 
     @Override
     public VCCredentialRequest buildRequest(IssuerDTO issuerDTO,

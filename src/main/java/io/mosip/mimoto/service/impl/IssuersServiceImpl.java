@@ -13,7 +13,6 @@ import io.mosip.mimoto.util.Utilities;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -28,14 +27,17 @@ import java.util.stream.Collectors;
 @Validated
 public class IssuersServiceImpl implements IssuersService {
 
-    @Autowired
-    private Utilities utilities;
+    private final Utilities utilities;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private IssuerConfigUtil issuersConfigUtil;
+    private final IssuerConfigUtil issuersConfigUtil;
+
+    public IssuersServiceImpl(Utilities utilities, ObjectMapper objectMapper, IssuerConfigUtil issuersConfigUtil) {
+        this.utilities = utilities;
+        this.objectMapper = objectMapper;
+        this.issuersConfigUtil = issuersConfigUtil;
+    }
 
     @Override
     @Cacheable(value = "issuersConfig", key = "#p0 ?: 'allIssuersConfig'")

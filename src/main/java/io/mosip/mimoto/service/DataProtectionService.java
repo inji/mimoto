@@ -33,8 +33,8 @@ import static io.mosip.mimoto.exception.ErrorConstants.ENCRYPTION_FAILED;
 public class DataProtectionService {
     private static final String AES_ALGORITHM = "AES/GCM/NoPadding";
     private static final int NONCE_LENGTH = 12; // Recommended nonce length for GCM
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int TAG_LENGTH = 128; // Authentication tag length in bits (16 bytes)
-    public static final String USER_PII_KEY_REFERENCE_ID = "user_pii";
 
     private final CryptomanagerService cryptomanagerService;
 
@@ -121,8 +121,7 @@ public class DataProtectionService {
         try {
             // Generate a random nonce
             byte[] nonce = new byte[NONCE_LENGTH];
-            SecureRandom secureRandom = new SecureRandom();
-            secureRandom.nextBytes(nonce);
+            SECURE_RANDOM.nextBytes(nonce);
             GCMParameterSpec gcmSpec = new GCMParameterSpec(TAG_LENGTH, nonce);
 
             // Initialize cipher
