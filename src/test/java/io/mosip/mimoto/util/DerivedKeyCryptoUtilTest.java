@@ -19,11 +19,9 @@ import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import io.mosip.mimoto.dto.CryptoWithPinRequestDto;
 import io.mosip.mimoto.dto.CryptoWithPinResponseDto;
@@ -33,7 +31,6 @@ import io.mosip.mimoto.exception.ParseException;
 @ExtendWith(MockitoExtension.class)
 class DerivedKeyCryptoUtilTest {
 
-    @InjectMocks
     private DerivedKeyCryptoUtil derivedKeyCryptoUtil;
 
     private static final String AES_KEY_TYPE = "AES";
@@ -44,9 +41,7 @@ class DerivedKeyCryptoUtilTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(derivedKeyCryptoUtil, "symmetricKeyLength", 256);
-        ReflectionTestUtils.setField(derivedKeyCryptoUtil, "iterations", 100000);
-        ReflectionTestUtils.setField(derivedKeyCryptoUtil, "passwordAlgorithm", "PBKDF2WithHmacSHA512");
+        derivedKeyCryptoUtil = new DerivedKeyCryptoUtil(256, 100000, "PBKDF2WithHmacSHA512");
     }
 
     private byte[] encrypt(String data, SecretKey key, byte[] nonce, byte[] aad) throws Exception {
@@ -192,7 +187,7 @@ class DerivedKeyCryptoUtilTest {
 
     @Test
     void testHashThrowsCryptoManagerException() {
-        ReflectionTestUtils.setField(derivedKeyCryptoUtil, "passwordAlgorithm", "InvalidAlgo");
+        derivedKeyCryptoUtil = new DerivedKeyCryptoUtil(256, 100000, "InvalidAlgo");
         InvocationTargetException exception = assertThrows(InvocationTargetException.class, () -> {
             invokeHash(USER_PIN.getBytes(), SALT);
         });

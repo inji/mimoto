@@ -9,7 +9,6 @@ import io.mosip.mimoto.dto.openid.presentation.PresentationRequestDTO;
 import io.mosip.mimoto.exception.ErrorConstants;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
 import io.mosip.mimoto.util.RestApiClient;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,30 +33,32 @@ public class DataShareServiceImpl {
 
     private final RestApiClient restApiClient;
 
-    @Value("${mosip.data.share.url}")
-    String dataShareHostUrl;
+    private final String dataShareHostUrl;
 
-    @Value("${mosip.data.share.create.url}")
-    String dataShareCreateUrl;
+    private final String dataShareCreateUrl;
 
-    @Value("${mosip.data.share.get.url.pattern}")
-    String dataShareGetUrlPattern;
+    private final String dataShareGetUrlPattern;
 
-    @Value("${mosip.data.share.create.retry.count}")
-    Integer maxRetryCount;
+    private final Integer maxRetryCount;
 
     private final ObjectMapper objectMapper;
 
-    PathMatcher pathMatcher ;
+    private final PathMatcher pathMatcher = new AntPathMatcher();
 
-    public DataShareServiceImpl(RestApiClient restApiClient, ObjectMapper objectMapper) {
+    public DataShareServiceImpl(
+            RestApiClient restApiClient,
+            ObjectMapper objectMapper,
+            @Value("${mosip.data.share.url}") String dataShareHostUrl,
+            @Value("${mosip.data.share.create.url}") String dataShareCreateUrl,
+            @Value("${mosip.data.share.get.url.pattern}") String dataShareGetUrlPattern,
+            @Value("${mosip.data.share.create.retry.count}") Integer maxRetryCount) {
+
         this.restApiClient = restApiClient;
         this.objectMapper = objectMapper;
-    }
-
-    @PostConstruct
-    public void setUp(){
-        pathMatcher = new AntPathMatcher();
+        this.dataShareHostUrl = dataShareHostUrl;
+        this.dataShareCreateUrl = dataShareCreateUrl;
+        this.dataShareGetUrlPattern = dataShareGetUrlPattern;
+        this.maxRetryCount = maxRetryCount;
     }
 
     public String storeDataInDataShare(String data, String credentialValidity) throws InvalidCredentialResourceException {

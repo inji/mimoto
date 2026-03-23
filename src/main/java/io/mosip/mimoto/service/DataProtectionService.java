@@ -38,11 +38,12 @@ public class DataProtectionService {
 
     private final CryptomanagerService cryptomanagerService;
 
-    @Value("${mosip.inji.app.id:MIMOTO}")
-    private String appId;
+    private final String appId;
 
-    public DataProtectionService(CryptomanagerService cryptomanagerService) {
+    public DataProtectionService(CryptomanagerService cryptomanagerService,
+                                 @Value("${mosip.inji.app.id:MIMOTO}") String appId) {
         this.cryptomanagerService = cryptomanagerService;
+        this.appId = appId;
     }
 
     /**

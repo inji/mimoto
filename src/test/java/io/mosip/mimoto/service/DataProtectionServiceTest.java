@@ -35,7 +35,6 @@ public class DataProtectionServiceTest {
     @Mock
     private CryptomanagerService cryptomanagerService;
 
-    @InjectMocks
     private DataProtectionService dataProtectionService;
 
     private final String refId = "ref123";
@@ -50,7 +49,7 @@ public class DataProtectionServiceTest {
     @Before
     public void setUp() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
         String appId = "MIMOTO";
-        ReflectionTestUtils.setField(dataProtectionService, "appId", appId);
+        dataProtectionService = new DataProtectionService(cryptomanagerService, appId);
         encryptionKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
         keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
     }

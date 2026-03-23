@@ -14,14 +14,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.util.PathMatcher;
 import static io.mosip.mimoto.util.TestUtilities.getDataShareResponseDTO;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -34,21 +31,22 @@ public class DataShareServiceTest {
     RestApiClient restApiClient;
     @Mock
     ObjectMapper objectMapper;
-    @Mock
-    PathMatcher pathMatcher;
-    @InjectMocks
+
     DataShareServiceImpl dataShareService;
     PresentationRequestDTO presentationRequestDTO;
 
     @Before
     public void setUp() {
-        ReflectionTestUtils.setField(dataShareService, "dataShareHostUrl", "https://test-url");
-        ReflectionTestUtils.setField(dataShareService, "dataShareCreateUrl", "https://test-url");
-        ReflectionTestUtils.setField(dataShareService, "dataShareGetUrlPattern", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*");
-        ReflectionTestUtils.setField(dataShareService, "maxRetryCount", 1);
         presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
-        ReflectionTestUtils.setField(dataShareService, "pathMatcher", pathMatcher);
-        Mockito.when(pathMatcher.match("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test")).thenReturn(true);
+
+        dataShareService = new DataShareServiceImpl(
+                restApiClient,
+                objectMapper,
+                "https://test-url",
+                "https://test-url",
+                "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*",
+                1
+        );
     }
 
     @Test
@@ -63,13 +61,13 @@ public class DataShareServiceTest {
 
     @Test(expected = InvalidCredentialResourceException.class)
     public void throwRequestTimedOutExceptionWhenMaxCountIsReached() throws Exception {
-        ReflectionTestUtils.setField(dataShareService, "maxRetryCount", 0);
+        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, "https://test-url", "https://test-url", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", 0);
         dataShareService.storeDataInDataShare("SampleData", "3");
     }
 
     @Test(expected = InvalidCredentialResourceException.class)
     public void throwServiceUnavailableExceptionWhenCredentialPushIsNotDone() throws Exception {
-        ReflectionTestUtils.setField(dataShareService, "maxRetryCount", 1);
+        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, "https://test-url", "https://test-url", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", 1);
         Mockito.when(restApiClient.postApi(Mockito.anyString(), Mockito.eq(MediaType.MULTIPART_FORM_DATA), Mockito.any(), Mockito.eq(DataShareResponseWrapperDTO.class)))
                 .thenThrow(InvalidCredentialResourceException.class);
         dataShareService.storeDataInDataShare("SampleData", "3");
@@ -145,7 +143,6 @@ public class DataShareServiceTest {
     @Test
     public void throwResourceInvalidRequestExceptionWhenCredentialURLHasIllegalDirectoryCharacter() {
         String expectedExceptionMsg = "invalid_resource --> Invalid path structure in resource URL";
-        Mockito.when(pathMatcher.match("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/te..st")).thenReturn(true);
 
         presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/te..st");
 
@@ -157,7 +154,6 @@ public class DataShareServiceTest {
     @Test
     public void throwResourceInvalidRequestExceptionWhenCredentialURLHasIllegalForwardSlashCharacter() {
         String expectedExceptionMsg = "invalid_resource --> Invalid path structure in resource URL";
-        Mockito.when(pathMatcher.match("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid//test")).thenReturn(true);
 
         presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid//test");
 
@@ -169,8 +165,7 @@ public class DataShareServiceTest {
     @Test
     public void throwResourceInvalidRequestExceptionWhenCredentialURLIsMisconfiguredAndHasNoWildcard() {
         String expectedExceptionMsg = "invalid_resource --> Invalid resource identifier in URL";
-        ReflectionTestUtils.setField(dataShareService, "dataShareGetUrlPattern", "http://datashare.datashare/*");
-        Mockito.when(pathMatcher.match("http://datashare.datashare/*", "http://datashare.datashare/")).thenReturn(true);
+        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, "https://test-url", "https://test-url", "http://datashare.datashare/*", 1);
 
         presentationRequestDTO.setResource("http://datashare.datashare/");
 
@@ -184,8 +179,6 @@ public class DataShareServiceTest {
         String expectedExceptionMsg = "invalid_resource --> Invalid characters in wildcard segment";
         presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test$");
 
-        Mockito.when(pathMatcher.match("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test$")).thenReturn(true);
-
         InvalidCredentialResourceException actualException = assertThrows(InvalidCredentialResourceException.class, () -> dataShareService.downloadCredentialFromDataShare(presentationRequestDTO));
 
         assertEquals(expectedExceptionMsg, actualException.getMessage());
@@ -196,8 +189,6 @@ public class DataShareServiceTest {
         String expectedExceptionMsg = "invalid_resource --> Malformed resource URL";
         presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/%%illegal");
 
-        Mockito.when(pathMatcher.match("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/%%illegal")).thenReturn(true);
-
         InvalidCredentialResourceException actualException = assertThrows(InvalidCredentialResourceException.class, () -> dataShareService.downloadCredentialFromDataShare(presentationRequestDTO));
 
         assertEquals(expectedExceptionMsg, actualException.getMessage());
@@ -207,9 +198,6 @@ public class DataShareServiceTest {
     public void throwResourceInvalidRequestExceptionWhenCredentialURLHasDoubleEncodedPathTraversal() {
         String expectedExceptionMsg = "invalid_resource --> Invalid characters in wildcard segment";
         presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/%252e%252e");
-
-        Mockito.when(pathMatcher.match("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*",
-                "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/%252e%252e")).thenReturn(true);
 
         InvalidCredentialResourceException actualException = assertThrows(InvalidCredentialResourceException.class,
                 () -> dataShareService.downloadCredentialFromDataShare(presentationRequestDTO));

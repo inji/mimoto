@@ -23,11 +23,9 @@ import io.mosip.openID4VP.authorizationRequest.Verifier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -52,7 +50,6 @@ public class PresentationServiceTest {
     @Mock
     RestApiClient restApiClient;
 
-    @InjectMocks
     PresentationServiceImpl presentationService;
 
     String walletId, clientId, urlEncodedVPAuthorizationRequest;
@@ -64,8 +61,7 @@ public class PresentationServiceTest {
 
     @Before
     public void setup() throws JsonProcessingException {
-        ReflectionTestUtils.setField(presentationService, "injiOvpRedirectURLPattern", "%s#vp_token=%s&presentation_submission=%s");
-        ReflectionTestUtils.setField(presentationService, "maximumResponseHeaderSize", 65536);
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", 65536);
         when(objectMapper.writeValueAsString(any())).thenReturn("test-data");
 
         // Setup for Wallet presentation tests
@@ -149,7 +145,7 @@ public class PresentationServiceTest {
 
     @Test(expected = VPNotCreatedException.class)
     public void uriTooLongWithVPRequest() throws IOException {
-        ReflectionTestUtils.setField(presentationService, "maximumResponseHeaderSize", 10); // Very small limit
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", 10);
 
         VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
         PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();

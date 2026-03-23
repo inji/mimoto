@@ -39,16 +39,22 @@ public class PresentationServiceImpl implements PresentationService {
 
     private final RestApiClient restApiClient;
 
-    @Value("${mosip.inji.ovp.redirect.url.pattern}")
-    private String injiOvpRedirectURLPattern;
+    private final String injiOvpRedirectURLPattern;
 
-    @Value("${server.tomcat.max-http-response-header-size:65536}")
-    private Integer maximumResponseHeaderSize;
+    private final Integer maximumResponseHeaderSize;
 
-    public PresentationServiceImpl(DataShareServiceImpl dataShareService, ObjectMapper objectMapper, RestApiClient restApiClient) {
+    public PresentationServiceImpl(
+            DataShareServiceImpl dataShareService,
+            ObjectMapper objectMapper,
+            RestApiClient restApiClient,
+            @Value("${mosip.inji.ovp.redirect.url.pattern}") String injiOvpRedirectURLPattern,
+            @Value("${server.tomcat.max-http-response-header-size:65536}") Integer maximumResponseHeaderSize
+    ) {
         this.dataShareService = dataShareService;
         this.objectMapper = objectMapper;
         this.restApiClient = restApiClient;
+        this.injiOvpRedirectURLPattern = injiOvpRedirectURLPattern;
+        this.maximumResponseHeaderSize = maximumResponseHeaderSize;
     }
 
 
