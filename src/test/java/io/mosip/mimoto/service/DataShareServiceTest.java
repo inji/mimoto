@@ -35,6 +35,12 @@ public class DataShareServiceTest {
     DataShareServiceImpl dataShareService;
     PresentationRequestDTO presentationRequestDTO;
 
+    private static final String TEST_HOST_URL = "https://test-url";
+    private static final String TEST_CREATE_URL = "https://test-url";
+    private static final String TEST_GET_URL_PATTERN = "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*";
+    private static final String MISCONFIGURED_GET_URL_PATTERN = "http://datashare.datashare/*";
+    private static final int DEFAULT_MAX_RETRY_COUNT = 1;
+
     @Before
     public void setUp() {
         presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
@@ -42,10 +48,10 @@ public class DataShareServiceTest {
         dataShareService = new DataShareServiceImpl(
                 restApiClient,
                 objectMapper,
-                "https://test-url",
-                "https://test-url",
-                "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*",
-                1
+                TEST_HOST_URL,
+                TEST_CREATE_URL,
+                TEST_GET_URL_PATTERN,
+                DEFAULT_MAX_RETRY_COUNT
         );
     }
 
@@ -61,13 +67,12 @@ public class DataShareServiceTest {
 
     @Test(expected = InvalidCredentialResourceException.class)
     public void throwRequestTimedOutExceptionWhenMaxCountIsReached() throws Exception {
-        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, "https://test-url", "https://test-url", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", 0);
+        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, TEST_HOST_URL, TEST_CREATE_URL, TEST_GET_URL_PATTERN, 0);
         dataShareService.storeDataInDataShare("SampleData", "3");
     }
 
     @Test(expected = InvalidCredentialResourceException.class)
     public void throwServiceUnavailableExceptionWhenCredentialPushIsNotDone() throws Exception {
-        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, "https://test-url", "https://test-url", "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*", 1);
         Mockito.when(restApiClient.postApi(Mockito.anyString(), Mockito.eq(MediaType.MULTIPART_FORM_DATA), Mockito.any(), Mockito.eq(DataShareResponseWrapperDTO.class)))
                 .thenThrow(InvalidCredentialResourceException.class);
         dataShareService.storeDataInDataShare("SampleData", "3");
@@ -165,7 +170,7 @@ public class DataShareServiceTest {
     @Test
     public void throwResourceInvalidRequestExceptionWhenCredentialURLIsMisconfiguredAndHasNoWildcard() {
         String expectedExceptionMsg = "invalid_resource --> Invalid resource identifier in URL";
-        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, "https://test-url", "https://test-url", "http://datashare.datashare/*", 1);
+        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, TEST_HOST_URL, TEST_CREATE_URL, MISCONFIGURED_GET_URL_PATTERN, DEFAULT_MAX_RETRY_COUNT);
 
         presentationRequestDTO.setResource("http://datashare.datashare/");
 

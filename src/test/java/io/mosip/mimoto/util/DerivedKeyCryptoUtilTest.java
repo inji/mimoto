@@ -38,10 +38,13 @@ class DerivedKeyCryptoUtilTest {
     private static final String USER_PIN = "12345";
     private static final byte[] SALT = "testsalt123456789012345678901234".getBytes();
     private static final byte[] NONCE = "testnonce123".getBytes();
+    private static final int DEFAULT_KEY_SIZE = 256;
+    private static final int DEFAULT_ITERATIONS = 100000;
+    private static final String DEFAULT_ALGORITHM = "PBKDF2WithHmacSHA512";
 
     @BeforeEach
     void setUp() {
-        derivedKeyCryptoUtil = new DerivedKeyCryptoUtil(256, 100000, "PBKDF2WithHmacSHA512");
+        derivedKeyCryptoUtil = new DerivedKeyCryptoUtil(DEFAULT_KEY_SIZE, DEFAULT_ITERATIONS, DEFAULT_ALGORITHM);
     }
 
     private byte[] encrypt(String data, SecretKey key, byte[] nonce, byte[] aad) throws Exception {
@@ -187,7 +190,7 @@ class DerivedKeyCryptoUtilTest {
 
     @Test
     void testHashThrowsCryptoManagerException() {
-        derivedKeyCryptoUtil = new DerivedKeyCryptoUtil(256, 100000, "InvalidAlgo");
+        derivedKeyCryptoUtil = new DerivedKeyCryptoUtil(DEFAULT_KEY_SIZE, DEFAULT_ITERATIONS, "InvalidAlgo");
         InvocationTargetException exception = assertThrows(InvocationTargetException.class, () -> {
             invokeHash(USER_PIN.getBytes(), SALT);
         });
