@@ -55,15 +55,16 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     private final WalletCredentialService walletCredentialService;
 
-    public CredentialMatchingServiceImpl(ObjectMapper objectMapper, IssuersService issuersService, OpenID4VPService openID4VPService, WalletCredentialService walletCredentialService) {
+    private final CredentialFormatHandlerFactory credentialFormatHandlerFactory;
+
+    public CredentialMatchingServiceImpl(ObjectMapper objectMapper, IssuersService issuersService, OpenID4VPService openID4VPService, WalletCredentialService walletCredentialService, CredentialFormatHandlerFactory credentialFormatHandlerFactory) {
         this.objectMapper = objectMapper;
         this.issuersService = issuersService;
         this.openID4VPService = openID4VPService;
         this.walletCredentialService = walletCredentialService;
+        this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
     }
 
-    @Autowired
-    private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
 
     @Override
     public MatchingCredentialsDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {
