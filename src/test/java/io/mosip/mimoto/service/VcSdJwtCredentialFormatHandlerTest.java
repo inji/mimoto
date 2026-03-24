@@ -531,6 +531,638 @@ class VcSdJwtCredentialFormatHandlerTest {
         assertEquals("en", lastNameDisplay.getLocale());
     }
 
+    // ============================================================
+    // Tests for extractAllCredentialProperties
+    // ============================================================
+
+    @Test
+    void extractAllCredentialPropertiesWhenCredentialIsStringReturnsProperties() {
+        vcCredentialResponse.setCredential(sampleSdJwtString);
+
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+            when(mockSdJwt.getDisclosures()).thenReturn(null);
+
+            Map<String, Object> jwtPayload = new LinkedHashMap<>();
+            jwtPayload.put("name", "John");
+            jwtPayload.put("iss", "https://example.com");
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(jwtPayload);
+
+            Map<String, Map<String, Object>> result = (Map<String, Map<String, Object>>)
+                    vcSdJwtCredentialFormatHandler.extractAllCredentialProperties(vcCredentialResponse);
+
+            assertNotNull(result);
+            assertTrue(result.containsKey("publicClaims"));
+            assertTrue(result.containsKey("sdClaims"));
+            assertEquals("John", result.get("publicClaims").get("name"));
+        }
+    }
+
+    @Test
+    void extractAllCredentialPropertiesWhenCredentialIsNotStringReturnsEmptyMap() {
+        vcCredentialResponse.setCredential(new HashMap<>());
+
+        Map<String, ?> result = (Map<String, ?>) vcSdJwtCredentialFormatHandler.extractAllCredentialProperties(vcCredentialResponse);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    // ============================================================
+    // Tests for extractAllPropertiesFromSdJwt
+    // ============================================================
+
+    @Test
+    void extractAllPropertiesFromSdJwtWhenIllegalArgExceptionReturnsEmptyMap() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class)) {
+            mockedSdJwt.when(() -> SDJWT.parse("bad-jwt"))
+                    .thenThrow(new IllegalArgumentException("Invalid SD-JWT"));
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt("bad-jwt");
+
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWhenGenericExceptionReturnsEmptyMap() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class)) {
+            mockedSdJwt.when(() -> SDJWT.parse("bad-jwt"))
+                    .thenThrow(new RuntimeException("Unexpected"));
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt("bad-jwt");
+
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWhenNullPayloadReturnsSdClaimsEmpty() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+            when(mockSdJwt.getDisclosures()).thenReturn(null);
+
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(null);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertTrue(result.get("publicClaims").isEmpty());
+            assertTrue(result.get("sdClaims").isEmpty());
+        }
+    }
+
+    // ============================================================
+    // Tests for resolveDisclosures via extractAllPropertiesFromSdJwt
+    // ============================================================
+
+    @Test
+    void extractAllPropertiesFromSdJwtWithSdDigestsInPayloadResolvesSdClaims() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure disclosure = mock(Disclosure.class);
+            when(disclosure.digest()).thenReturn("digest1");
+            when(disclosure.getDisclosure()).thenReturn("base64disclosure1");
+            when(disclosure.getClaimName()).thenReturn("given_name");
+            when(disclosure.getClaimValue()).thenReturn("John");
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(disclosure));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("_sd", Arrays.asList("digest1"));
+            payload.put("iss", "https://example.com");
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            Map<String, Object> sdClaims = result.get("sdClaims");
+            assertTrue(sdClaims.containsKey("given_name"));
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWithNullDisclosureForDigestSkipsDigest() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+            when(mockSdJwt.getDisclosures()).thenReturn(Collections.emptyList());
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("_sd", Arrays.asList("unknownDigest"));
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertTrue(result.get("sdClaims").isEmpty());
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWhenClaimNameIsSdOrKeySkipsDigest() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure sdDisclosure = mock(Disclosure.class);
+            when(sdDisclosure.digest()).thenReturn("digest_sd");
+            when(sdDisclosure.getDisclosure()).thenReturn("b64sd");
+            when(sdDisclosure.getClaimName()).thenReturn("_sd");
+
+            Disclosure keyDisclosure = mock(Disclosure.class);
+            when(keyDisclosure.digest()).thenReturn("digest_key");
+            when(keyDisclosure.getDisclosure()).thenReturn("b64key");
+            when(keyDisclosure.getClaimName()).thenReturn("...");
+
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(sdDisclosure, keyDisclosure));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("_sd", Arrays.asList("digest_sd", "digest_key"));
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            Map<String, Object> sdClaims = result.get("sdClaims");
+            assertFalse(sdClaims.containsKey("_sd"));
+            assertFalse(sdClaims.containsKey("..."));
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWithNestedMapContainingSdDigestsResolvesNestedPaths() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure disclosure = mock(Disclosure.class);
+            when(disclosure.digest()).thenReturn("nested_digest");
+            when(disclosure.getDisclosure()).thenReturn("b64nested");
+            when(disclosure.getClaimName()).thenReturn("city");
+            when(disclosure.getClaimValue()).thenReturn("Berlin");
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(disclosure));
+
+            Map<String, Object> addressMap = new LinkedHashMap<>();
+            addressMap.put("_sd", Arrays.asList("nested_digest"));
+            addressMap.put("country", "Germany");
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("address", addressMap);
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            Map<String, Object> sdClaims = result.get("sdClaims");
+            assertTrue(sdClaims.containsKey("address.city"));
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWithArrayDisclosureResolvesArrayItems() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure disclosure = mock(Disclosure.class);
+            when(disclosure.digest()).thenReturn("arr_digest");
+            when(disclosure.getDisclosure()).thenReturn("b64arr");
+            when(disclosure.getClaimValue()).thenReturn("disclosed_item");
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(disclosure));
+
+            // Array with a disclosure marker {"...": "arr_digest"} and a regular item
+            Map<String, Object> disclosureMarker = new LinkedHashMap<>();
+            disclosureMarker.put("...", "arr_digest");
+
+            List<Object> arrayWithDisclosure = new ArrayList<>();
+            arrayWithDisclosure.add(disclosureMarker);
+            arrayWithDisclosure.add("regular_item");
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("nationalities", arrayWithDisclosure);
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            Map<String, Object> sdClaims = result.get("sdClaims");
+            assertTrue(sdClaims.containsKey("nationalities[0]"));
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWithArrayDisclosureNotFoundSkipsMarker() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+            when(mockSdJwt.getDisclosures()).thenReturn(Collections.emptyList());
+
+            Map<String, Object> disclosureMarker = new LinkedHashMap<>();
+            disclosureMarker.put("...", "unknown_digest");
+
+            List<Object> arrayWithDisclosure = new ArrayList<>();
+            arrayWithDisclosure.add(disclosureMarker);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("items", arrayWithDisclosure);
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertTrue(result.get("sdClaims").isEmpty());
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWithArrayContainingRegularMapRecursesIntoMap() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure disclosure = mock(Disclosure.class);
+            when(disclosure.digest()).thenReturn("inner_digest");
+            when(disclosure.getDisclosure()).thenReturn("b64inner");
+            when(disclosure.getClaimName()).thenReturn("secret");
+            when(disclosure.getClaimValue()).thenReturn("value");
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(disclosure));
+
+            // Regular map (not a disclosure marker) inside a list, containing _sd
+            Map<String, Object> innerMap = new LinkedHashMap<>();
+            innerMap.put("_sd", Arrays.asList("inner_digest"));
+            innerMap.put("visible", "yes");
+
+            List<Object> listValue = new ArrayList<>();
+            listValue.add(innerMap);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("entries", listValue);
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            Map<String, Object> sdClaims = result.get("sdClaims");
+            assertTrue(sdClaims.containsKey("entries[0].secret"));
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWithEmptyPayloadReturnsSdClaimsEmpty() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+            when(mockSdJwt.getDisclosures()).thenReturn(null);
+
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString))
+                    .thenReturn(new HashMap<>());
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertTrue(result.get("sdClaims").isEmpty());
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWhenDisclosureClaimNameNullSkipsDisclosure() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure disclosure = mock(Disclosure.class);
+            when(disclosure.digest()).thenReturn("digest_null_name");
+            when(disclosure.getDisclosure()).thenReturn("b64null");
+            when(disclosure.getClaimName()).thenReturn(null);
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(disclosure));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("_sd", Arrays.asList("digest_null_name"));
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertTrue(result.get("sdClaims").isEmpty());
+        }
+    }
+
+    @Test
+    void extractAllPropertiesFromSdJwtWithFiveLevelsOfNestedDisclosuresResolvesAllLevels() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Map<String, Object> level5Value = new LinkedHashMap<>();
+            level5Value.put("deep_key", "deep_value");
+
+            Disclosure d5 = mock(Disclosure.class);
+            when(d5.digest()).thenReturn("d5");
+            when(d5.getDisclosure()).thenReturn("b64d5");
+            when(d5.getClaimName()).thenReturn("l5");
+            when(d5.getClaimValue()).thenReturn(level5Value);
+
+            Map<String, Object> level4Value = new LinkedHashMap<>();
+            level4Value.put("_sd", Arrays.asList("d5"));
+
+            Disclosure d4 = mock(Disclosure.class);
+            when(d4.digest()).thenReturn("d4");
+            when(d4.getDisclosure()).thenReturn("b64d4");
+            when(d4.getClaimName()).thenReturn("l4");
+            when(d4.getClaimValue()).thenReturn(level4Value);
+
+            Map<String, Object> level3Value = new LinkedHashMap<>();
+            level3Value.put("_sd", Arrays.asList("d4"));
+
+            Disclosure d3 = mock(Disclosure.class);
+            when(d3.digest()).thenReturn("d3");
+            when(d3.getDisclosure()).thenReturn("b64d3");
+            when(d3.getClaimName()).thenReturn("l3");
+            when(d3.getClaimValue()).thenReturn(level3Value);
+
+            Map<String, Object> level2Value = new LinkedHashMap<>();
+            level2Value.put("_sd", Arrays.asList("d3"));
+
+            Disclosure d2 = mock(Disclosure.class);
+            when(d2.digest()).thenReturn("d2");
+            when(d2.getDisclosure()).thenReturn("b64d2");
+            when(d2.getClaimName()).thenReturn("l2");
+            when(d2.getClaimValue()).thenReturn(level2Value);
+
+            Map<String, Object> level1Value = new LinkedHashMap<>();
+            level1Value.put("_sd", Arrays.asList("d2"));
+
+            Disclosure d1 = mock(Disclosure.class);
+            when(d1.digest()).thenReturn("d1");
+            when(d1.getDisclosure()).thenReturn("b64d1");
+            when(d1.getClaimName()).thenReturn("l1");
+            when(d1.getClaimValue()).thenReturn(level1Value);
+
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(d1, d2, d3, d4, d5));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("_sd", Arrays.asList("d1"));
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(payload);
+
+            Map<String, Map<String, Object>> result = vcSdJwtCredentialFormatHandler.extractAllPropertiesFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            Map<String, Object> sdClaims = result.get("sdClaims");
+            assertTrue(sdClaims.containsKey("l1"));
+            assertTrue(sdClaims.containsKey("l1.l2"));
+            assertTrue(sdClaims.containsKey("l1.l2.l3"));
+            assertTrue(sdClaims.containsKey("l1.l2.l3.l4"));
+            assertTrue(sdClaims.containsKey("l1.l2.l3.l4.l5"));
+            assertEquals(5, sdClaims.size());
+        }
+    }
+
+    // ============================================================
+    // Tests for extractSdClaims uncovered branches (via extractClaimsFromSdJwt)
+    // ============================================================
+
+    @Test
+    void extractClaimsFromSdJwtWhenDisclosuresNullReturnsPublicClaimsOnly() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+            when(mockSdJwt.getDisclosures()).thenReturn(null);
+
+            Map<String, Object> jwtPayload = new LinkedHashMap<>();
+            jwtPayload.put("name", "John");
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(jwtPayload);
+
+            Map<String, Object> result = vcSdJwtCredentialFormatHandler.extractClaimsFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertEquals("John", result.get("name"));
+        }
+    }
+
+    @Test
+    void extractClaimsFromSdJwtWhenDisclosureClaimNameNullSkipsDisclosure() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure disclosure = mock(Disclosure.class);
+            when(disclosure.getClaimName()).thenReturn(null);
+            when(disclosure.getClaimValue()).thenReturn("someValue");
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(disclosure));
+
+            Map<String, Object> jwtPayload = new LinkedHashMap<>();
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(jwtPayload);
+
+            Map<String, Object> result = vcSdJwtCredentialFormatHandler.extractClaimsFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertFalse(result.containsValue("someValue"));
+        }
+    }
+
+    @Test
+    void extractClaimsFromSdJwtWhenDisclosureClaimValueNullSkipsDisclosure() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure disclosure = mock(Disclosure.class);
+            when(disclosure.getClaimName()).thenReturn("age");
+            when(disclosure.getClaimValue()).thenReturn(null);
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(disclosure));
+
+            Map<String, Object> jwtPayload = new LinkedHashMap<>();
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(jwtPayload);
+
+            Map<String, Object> result = vcSdJwtCredentialFormatHandler.extractClaimsFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertFalse(result.containsKey("age"));
+        }
+    }
+
+    @Test
+    void extractClaimsFromSdJwtWhenDisclosureThrowsExceptionSkipsAndContinues() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+
+            Disclosure badDisclosure = mock(Disclosure.class);
+            when(badDisclosure.getClaimName()).thenThrow(new RuntimeException("decode error"));
+
+            Disclosure goodDisclosure = mock(Disclosure.class);
+            when(goodDisclosure.getClaimName()).thenReturn("name");
+            when(goodDisclosure.getClaimValue()).thenReturn("Alice");
+
+            when(mockSdJwt.getDisclosures()).thenReturn(Arrays.asList(badDisclosure, goodDisclosure));
+
+            Map<String, Object> jwtPayload = new LinkedHashMap<>();
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(jwtPayload);
+
+            Map<String, Object> result = vcSdJwtCredentialFormatHandler.extractClaimsFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertEquals("Alice", result.get("name"));
+        }
+    }
+
+    @Test
+    void extractClaimsFromSdJwtWhenGenericExceptionReturnsEmptyMap() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class)) {
+            mockedSdJwt.when(() -> SDJWT.parse("crash-jwt"))
+                    .thenThrow(new RuntimeException("Unexpected crash"));
+
+            Map<String, Object> result = vcSdJwtCredentialFormatHandler.extractClaimsFromSdJwt("crash-jwt");
+
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Test
+    void extractClaimsFromSdJwtWhenJwtPayloadNullReturnsEmptyPublicClaims() {
+        try (MockedStatic<SDJWT> mockedSdJwt = mockStatic(SDJWT.class);
+             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+
+            SDJWT mockSdJwt = mock(SDJWT.class);
+            mockedSdJwt.when(() -> SDJWT.parse(sampleSdJwtString)).thenReturn(mockSdJwt);
+            when(mockSdJwt.getCredentialJwt()).thenReturn(sampleJwtString);
+            when(mockSdJwt.getDisclosures()).thenReturn(Collections.emptyList());
+
+            mockedJwtUtils.when(() -> JwtUtils.parseJwtPayload(sampleJwtString)).thenReturn(null);
+
+            Map<String, Object> result = vcSdJwtCredentialFormatHandler.extractClaimsFromSdJwt(sampleSdJwtString);
+
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    // ============================================================
+    // Tests for loadDisplayPropertiesFromWellknown uncovered branches
+    // ============================================================
+
+    @Test
+    void loadDisplayPropertiesFromWellknownWhenValueNullInOrderedKeysSkipsField() {
+        // Arrange - credentialProperties has a key with null value
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("name", "John");
+        credentialProperties.put("address", null);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("name", new HashMap<>());
+        claims.put("address", new HashMap<>());
+        credentialsSupportedResponse.setClaims(claims);
+        credentialsSupportedResponse.setOrder(Arrays.asList("name", "address"));
+
+        CredentialDisplayResponseDto nameDto = createCredentialDisplayResponseDto("Name", "en");
+        CredentialDisplayResponseDto addressDto = createCredentialDisplayResponseDto("Address", "en");
+        when(objectMapper.convertValue(any(), eq(CredentialDisplayResponseDto.class)))
+                .thenReturn(nameDto, addressDto);
+
+        try (MockedStatic<LocaleUtils> mockedLocaleUtils = mockStatic(LocaleUtils.class)) {
+            mockedLocaleUtils.when(() -> LocaleUtils.resolveLocaleWithFallback(any(), eq("en")))
+                    .thenReturn("en");
+            mockedLocaleUtils.when(() -> LocaleUtils.matchesLocale(eq("en"), eq("en")))
+                    .thenReturn(true);
+
+            LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                    vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                            credentialProperties, credentialsSupportedResponse, "en");
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            assertTrue(result.containsKey("name"));
+            assertFalse(result.containsKey("address"));
+        }
+    }
+
+    @Test
+    void loadDisplayPropertiesFromWellknownWhenDisplayNullFallsBackToGeneratedDisplay() {
+        // Arrange - orderedKeys has a key not in claims config (display not found in localizedDisplayMap)
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("name", "John");
+        credentialProperties.put("extraField", "extraValue");
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("name", new HashMap<>());
+        credentialsSupportedResponse.setClaims(claims);
+        credentialsSupportedResponse.setOrder(Arrays.asList("name", "extraField"));
+
+        try (MockedStatic<LocaleUtils> mockedLocaleUtils = mockStatic(LocaleUtils.class)) {
+            mockedLocaleUtils.when(() -> LocaleUtils.resolveLocaleWithFallback(any(), eq("en")))
+                    .thenReturn("en");
+            mockedLocaleUtils.when(() -> LocaleUtils.matchesLocale(eq("en"), eq("en")))
+                    .thenReturn(true);
+
+            LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                    vcSdJwtCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                            credentialProperties, credentialsSupportedResponse, "en");
+
+            assertNotNull(result);
+            assertEquals(2, result.size());
+            assertTrue(result.containsKey("extraField"));
+
+            CredentialIssuerDisplayResponse extraDisplay = result.get("extraField").keySet().iterator().next();
+            assertEquals("Extra Field", extraDisplay.getName());
+            assertEquals("en", extraDisplay.getLocale());
+        }
+    }
+
     // Helper methods
     private Map<String, Object> createSampleClaims() {
         Map<String, Object> claims = new HashMap<>();

@@ -331,6 +331,76 @@ class LdpVcCredentialFormatHandlerTest {
         assertEquals(CredentialFormat.LDP_VC.getFormat(), result);
     }
 
+    @Test
+    void extractAllCredentialPropertiesWithMapCredentialReturnsLinkedHashMap() {
+        // Arrange
+        Map<String, Object> credentialMap = new LinkedHashMap<>();
+        credentialMap.put("type", Arrays.asList("VerifiableCredential"));
+        credentialMap.put("credentialSubject", Map.of("name", "John"));
+        vcCredentialResponse.setCredential(credentialMap);
+
+        // Act
+        Map<String, Object> result = ldpVcCredentialFormatHandler.extractAllCredentialProperties(vcCredentialResponse);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result instanceof LinkedHashMap);
+        assertTrue(result.containsKey("type"));
+        assertTrue(result.containsKey("credentialSubject"));
+    }
+
+    @Test
+    void loadDisplayPropertiesFromWellknownWhenOrderHasKeyNotInCredentialPropertiesSkipsIt() {
+        // Arrange - order has "extraKey" not present in credentialProperties
+        Map<String, Object> credentialProperties = new HashMap<>();
+        credentialProperties.put("firstName", "John");
+
+        Map<String, CredentialDisplayResponseDto> credentialSubjectConfig = createCredentialSubjectConfig();
+        credentialDefinition.setCredentialSubject(credentialSubjectConfig);
+        credentialsSupportedResponse.setCredentialDefinition(credentialDefinition);
+        credentialsSupportedResponse.setOrder(Arrays.asList("firstName", "nonExistentKey"));
+
+        try (MockedStatic<LocaleUtils> mockedLocaleUtils = mockStatic(LocaleUtils.class)) {
+            mockedLocaleUtils.when(() -> LocaleUtils.resolveLocaleWithFallback(any(), eq("en")))
+                    .thenReturn("en");
+            mockedLocaleUtils.when(() -> LocaleUtils.matchesLocale(eq("en"), eq("en")))
+                    .thenReturn(true);
+
+            // Act
+            LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                    ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                            credentialProperties, credentialsSupportedResponse, "en");
+
+            // Assert - nonExistentKey skipped (display null for it since not in credentialProperties)
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            assertTrue(result.containsKey("firstName"));
+            assertFalse(result.containsKey("nonExistentKey"));
+        }
+    }
+
+    @Test
+    void buildFallbackDisplayPropertiesWhenOrderedKeysIsNullUsesCredentialPropertiesKeySet() {
+        // Arrange - null credentialDefinition triggers fallback; null order
+        Map<String, Object> credentialProperties = new LinkedHashMap<>();
+        credentialProperties.put("name", "John");
+        credentialProperties.put("age", 30);
+
+        credentialsSupportedResponse.setCredentialDefinition(null);
+        credentialsSupportedResponse.setOrder(null);
+
+        // Act
+        LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> result =
+                ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
+                        credentialProperties, credentialsSupportedResponse, "en");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey("name"));
+        assertTrue(result.containsKey("age"));
+    }
+
     // Helper methods
     private Map<String, CredentialDisplayResponseDto> createCredentialSubjectConfig() {
         Map<String, CredentialDisplayResponseDto> config = new LinkedHashMap<>();

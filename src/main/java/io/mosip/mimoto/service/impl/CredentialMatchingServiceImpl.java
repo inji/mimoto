@@ -16,13 +16,17 @@ import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
 import io.mosip.mimoto.exception.InvalidRequestException;
-import static io.mosip.mimoto.exception.ErrorConstants.UNSUPPORTED_FORMAT;
+import io.mosip.mimoto.service.CredentialFormatHandlerFactory;
+import io.mosip.mimoto.service.CredentialFormatHandler;
 import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
+import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import static io.mosip.mimoto.exception.ErrorConstants.UNSUPPORTED_FORMAT;
 
 import java.io.IOException;
 import java.util.*;
@@ -37,6 +41,11 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     private static final String JSON_PATH_PREFIX = "$.";
     private static final String LDP_VC_FORMAT = "ldp_vc";
     private static final String PROOF_TYPE_KEY = "proof_type";
+    private static final String SD_JWT_ALG_VALUES_KEY = "sd-jwt_alg_values";
+    private static final String CREDENTIAL_SUBJECT_PREFIX = "credentialSubject.";
+    private static final String ALG = "alg";
+    private static final String CREDENTIAL_SUBJECT = "credentialSubject";
+    private static final String SD = "_sd";
 
     private final ObjectMapper objectMapper;
 
@@ -46,12 +55,16 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     private final WalletCredentialService walletCredentialService;
 
-    public CredentialMatchingServiceImpl(ObjectMapper objectMapper, IssuersService issuersService, OpenID4VPService openID4VPService, WalletCredentialService walletCredentialService) {
+    private final CredentialFormatHandlerFactory credentialFormatHandlerFactory;
+
+    public CredentialMatchingServiceImpl(ObjectMapper objectMapper, IssuersService issuersService, OpenID4VPService openID4VPService, WalletCredentialService walletCredentialService, CredentialFormatHandlerFactory credentialFormatHandlerFactory) {
         this.objectMapper = objectMapper;
         this.issuersService = issuersService;
         this.openID4VPService = openID4VPService;
         this.walletCredentialService = walletCredentialService;
+        this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
     }
+
 
     @Override
     public MatchingCredentialsDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {
@@ -59,11 +72,6 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         // Extract presentation definition from the session data
         PresentationDefinition presentationDefinition = openID4VPService.resolvePresentationDefinition(sessionData.getPresentationId(), sessionData.getAuthorizationRequest(), sessionData.isVerifierClientPreregistered());
-
-        if (presentationDefinition == null) {
-            log.warn("No presentation definition found in session data");
-            throw new IllegalArgumentException("Presentation definition not found in session data");
-        }
 
         validateInputParameters(presentationDefinition, walletId, base64Key);
 
@@ -93,7 +101,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                     } else {
                         missingClaims.addAll(extractClaimsFromInputDescriptor(descriptor));
                     }
-                });
+        });
 
         // Flatten all matching credentials into a single list, removing duplicates by credential ID
         Set<String> addedCredentialIds = new HashSet<>();
@@ -202,21 +210,70 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         String vcFormat = vc.getFormat();
 
-        if (!CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) || !descriptorFormat.containsKey(LDP_VC_FORMAT)) {
+        if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(CredentialFormat.VC_SD_JWT.getFormat())) {
+            return matchesSdJwtAlgorithm(vc, descriptorFormat);
+        }
+        if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
+            return matchesLdpVcFormat(vc, descriptorFormat);
+        }
+        return false;
+    }
+
+    private boolean matchesLdpVcFormat(VCCredentialResponse vc, Map<String, Map<String, List<String>>> descriptorFormat) {
+        Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
+
+        if (ldpVcFormat == null) {
             return false;
         }
 
-        Map<String, List<String>> ldpVcFormat = descriptorFormat.get(LDP_VC_FORMAT);
-
         if (!ldpVcFormat.containsKey(PROOF_TYPE_KEY)) {
-            return true;
+            return false;
         }
 
         VCCredentialProperties ldpCredential = objectMapper.convertValue(vc.getCredential(), VCCredentialProperties.class);
         String vcProofType = ldpCredential.getProof() != null ? ldpCredential.getProof().getType() : null;
         List<String> requiredProofTypes = ldpVcFormat.get(PROOF_TYPE_KEY);
 
+        if (requiredProofTypes == null || requiredProofTypes.isEmpty()) {
+            return true;
+        }
+
         return vcProofType != null && requiredProofTypes.contains(vcProofType);
+    }
+
+    private boolean matchesSdJwtAlgorithm(VCCredentialResponse vc, Map<String, Map<String, List<String>>> requestFormat) {
+        Map<String, List<String>> sdJwtFormat = requestFormat.get(CredentialFormat.VC_SD_JWT.getFormat());
+        if (vc.getCredential() == null || !(vc.getCredential() instanceof String sdJwtString)) {
+            return false;
+        }
+
+        if (!sdJwtFormat.containsKey(SD_JWT_ALG_VALUES_KEY)) {
+            return false;
+        }
+
+        String sdJwtAlgorithm = extractSdJwtAlgorithm(sdJwtString);
+        Map<String, List<String>> requestFormatMap = requestFormat.get(CredentialFormat.VC_SD_JWT.getFormat());
+        if (requestFormatMap != null) {
+            List<?> requestAlgorithms = requestFormatMap.get(SD_JWT_ALG_VALUES_KEY);
+            if (requestAlgorithms != null) {
+                return requestAlgorithms.contains(sdJwtAlgorithm);
+            }
+            return true; // If no specific algorithms are required, any algorithm is acceptable
+        }
+        return false;
+    }
+
+    private String extractSdJwtAlgorithm(String sdJwtString) {
+        if (sdJwtString == null || sdJwtString.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            Map<String, Object> header = JwtUtils.parseJwtHeader(sdJwtString);
+            return (String) header.get(ALG);
+        } catch (Exception e) {
+            log.warn("Failed to extract algorithm from SD-JWT header", e);
+            return null;
+        }
     }
 
     private boolean matchesConstraints(VCCredentialResponse vc, Constraints constraints) {
@@ -237,7 +294,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         List<Object> matches = evaluateJsonPath(path, credentialData);
 
-        if (matches == null || matches.isEmpty()) {
+        if (matches.isEmpty()) {
             return false;
         }
 
@@ -246,21 +303,22 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     private Object getCredentialData(VCCredentialResponse vc) {
         String format = vc.getFormat();
+        CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(vc.getFormat());
 
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format)) {
-            Object credentialData = vc.getCredential();
-
-            if (credentialData instanceof Map) {
-                return credentialData;
-            } else {
-                return objectMapper.convertValue(credentialData, VCCredentialProperties.class);
+            return credentialFormatHandler.extractAllCredentialProperties(vc);
+        } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+            Map<String, ?> extractedMap = credentialFormatHandler.extractAllCredentialProperties(vc);
+            if (extractedMap == null) {
+                return Collections.emptyMap();
             }
-        } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format) || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), 
-                "SD-JWT credential format (" + format + ") is not supported for credential matching");
+            Map<String, Map<String, Object>> allCredentialProperties = (Map<String, Map<String, Object>>) extractedMap;
+            Map<String, Object> credentialClaimsMap = new HashMap<>();
+            allCredentialProperties.values().forEach(credentialClaimsMap::putAll);
+            return credentialClaimsMap;
+        } else {
+            throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), "Unsupported credential format: " + format);
         }
-
-        return vc.getCredential();
     }
 
     private boolean matchesFilter(Object match, Filter filter) {
@@ -333,6 +391,11 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         String credentialTypeDisplayName = "Unknown Credential";
         String credentialTypeLogo = null;
+        Map<String, Object> publicClaimsMap;
+        Map<String, Object> sdClaimsMap;
+
+        List<String> publicClaims = new ArrayList<>();
+        List<String> sdClaims = new ArrayList<>();
 
         try {
             IssuerConfig issuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
@@ -345,13 +408,107 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
         }
 
+        if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(decryptedCredentialDTO.getCredential().getFormat())) {
+            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(CredentialFormat.VC_SD_JWT.getFormat());
+            Map<String, Map<String, Object>> allClaims = (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(decryptedCredentialDTO.getCredential());
+
+            publicClaimsMap = allClaims.get("publicClaims");
+            sdClaimsMap = allClaims.get("sdClaims");
+
+            if (publicClaimsMap != null) {
+                publicClaims = extractPublicClaimPaths(publicClaimsMap);
+            }
+
+            if (sdClaimsMap != null) {
+                sdClaims = extractSdClaimPaths(sdClaimsMap);
+            }
+
+        }
+
+
         return CredentialDTO.builder()
                 .credentialId(decryptedCredentialDTO.getId())
                 .credentialTypeDisplayName(credentialTypeDisplayName)
                 .credentialTypeLogo(credentialTypeLogo)
-                .format(decryptedCredentialDTO.getCredential()
-                .getFormat())
+                .format(decryptedCredentialDTO.getCredential().getFormat())
+                .claims(publicClaims)
+                .sdClaims(sdClaims)
                 .build();
     }
 
+    private List<String> extractPublicClaimPaths(Map<String, Object> publicClaimsMap) {
+        List<String> paths = new ArrayList<>();
+        Object credentialSubject = publicClaimsMap.get(CREDENTIAL_SUBJECT);
+        if (credentialSubject instanceof Map) {
+            Map<String, Object> csMap = (Map<String, Object>) credentialSubject;
+            collectPaths(csMap, "$", paths);
+        } else {
+            // Remove standard JWT claims and SD-JWT metadata
+            List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", SD, "_sd_alg", "id");
+            metadataKeys.forEach(publicClaimsMap::remove);
+            collectPaths(publicClaimsMap, "$", paths);
+        }
+        return paths;
+    }
+
+    private List<String> extractSdClaimPaths(Map<String, Object> sdClaimsMap) {
+        List<String> paths = new ArrayList<>();
+        for (String key : sdClaimsMap.keySet()) {
+            String cleanKey = key.startsWith(CREDENTIAL_SUBJECT_PREFIX)
+                    ? key.substring(CREDENTIAL_SUBJECT_PREFIX.length())
+                    : key;
+            paths.add(JSON_PATH_PREFIX + cleanKey);
+        }
+        return paths;
+    }
+
+    private void collectPaths(Map<String, Object> publicClaimsMap, String prefix, List<String> paths) {
+        for (Map.Entry<String, Object> entry : publicClaimsMap.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            // Skip _sd keys
+            if (SD.equals(key)) {
+                continue;
+            }
+
+            String currentPath = prefix + "." + key;
+
+            if (value instanceof Map) {
+                collectPaths((Map<String, Object>) value, currentPath, paths);
+            } else if (value instanceof List<?> listValue) {
+                if (hasUniformKeys(listValue)) {
+                    paths.add(currentPath);
+                } else {
+                    paths.add(currentPath);
+                    for (Object item : listValue) {
+                        if (item instanceof Map<?, ?> mapItem) {
+                            collectPaths((Map<String, Object>) mapItem, currentPath, paths);
+                        }
+                    }
+                }
+            } else {
+                paths.add(currentPath);
+            }
+        }
+    }
+
+    private boolean hasUniformKeys(List<?> list) {
+        List<Set<Object>> keySets = list.stream()
+                .filter(item -> item instanceof Map<?, ?>)
+                .map(item -> {
+                    Map<?, ?> m = (Map<?, ?>) item;
+                    return new HashSet<Object>(m.keySet());
+                })
+                .collect(Collectors.toList());
+    
+        if (keySets.size() < 2 || keySets.size() != list.size()) {
+            return false;
+        }
+
+        Set<Object> intersectionKeys = new HashSet<>(keySets.getFirst());
+        keySets.forEach(intersectionKeys::retainAll);
+
+        return !intersectionKeys.isEmpty();
+    }
 }
