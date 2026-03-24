@@ -20,7 +20,6 @@ GetAllIssuersV2:
       uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_02
       role: resident
       restMethod: get
-      checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
       outputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2Result
       input: '{
