@@ -1,5 +1,5 @@
-GetAllIssuersV2V2:
-   Mimoto_GetAllIssuersV2V2_All_Valid_Smoke:
+GetAllIssuersV2:
+   Mimoto_GetAllIssuersV2_All_Valid_Smoke:
       endPoint: /v1/mimoto/v2/issuers
       description: Validate that the system successfully retrieves issuer details when all input parameters are valid
       uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_01
