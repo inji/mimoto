@@ -1,0 +1,131 @@
+GetAllIssuersV2V2:
+   Mimoto_GetAllIssuersV2V2_All_Valid_Smoke:
+      endPoint: /v1/mimoto/v2/issuers
+      description: Validate that the system successfully retrieves issuer details when all input parameters are valid
+      uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_01
+      role: resident
+      restMethod: get
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
+      outputTemplate: mimoto/responseCode
+      input: '{
+}'
+      output: '{
+        "responseCode": "200"
+}'
+
+   Mimoto_GetAllIssuersV2_SpecificIssuer_All_Valid_Smoke:
+      endPoint: /v1/mimoto/v2/issuers/Mosip
+      description: Validate that the system successfully retrieves the specific issuer details when all input parameters are valid
+      uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_02
+      role: resident
+      restMethod: get
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
+      outputTemplate: mimoto/responseCode
+      input: '{
+}'
+      output: '{
+        "responseCode": "200"
+}'
+
+   Mimoto_GetAllIssuersV2_SpecificIssuer_InvalidIssuerID_Neg:
+      endPoint: /v1/mimoto/v2/issuers/invalid
+      description: Validate that the system does not retrieve issuer details when an invalid issuer is provided
+      uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_03
+      role: resident
+      restMethod: get
+      checkErrorsOnlyInResponse: true
+      inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
+      outputTemplate: mimoto/error
+      input: '{
+}'
+      output: '{
+	"errors":[
+		{
+		"errorCode":"RESIDENT-APP-035"
+		}
+	]
+}'
+   Mimoto_GetAllIssuersV2_SpecificIssuer_Null_Issuer_Neg:
+      endPoint: /v1/mimoto/v2/issuers/Null
+      description: Validate that the system does not retrieve issuer details when an Null issuer is provided
+      uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_04
+      role: resident
+      restMethod: get
+      checkErrorsOnlyInResponse: true
+      inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
+      outputTemplate: mimoto/error
+      input: '{
+}'
+      output: '{
+	"errors":[
+		{
+		"errorCode":"RESIDENT-APP-035"
+		}
+	]
+}'
+   Mimoto_GetAllIssuersV2_SpecificIssuer_SpecialCharacters_Issuer_Neg:
+      endPoint: /v1/mimoto/v2/issuers/@#$#@%#
+      description: Validate that the system does not retrieve issuer details when an Special Characters issuer is provided
+      uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_05
+      role: resident
+      restMethod: get
+      checkErrorsOnlyInResponse: true
+      inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
+      outputTemplate: mimoto/error
+      input: '{
+}'
+      output: '{
+	"errors":[
+		{
+		"errorCode":"RESIDENT-APP-035"
+		}
+	]
+}'
+   Mimoto_GetAllIssuersV2_SpecificIssuer_caseSensitive_Issuer_Neg:
+      endPoint: /v1/mimoto/v2/issuers/mOSIP
+      description: Validate that the system does not retrieve issuer details when an issuer case does not match
+      uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_06
+      role: resident
+      restMethod: get
+      checkErrorsOnlyInResponse: true
+      inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
+      outputTemplate: mimoto/error
+      input: '{
+}'
+      output: '{
+	"errors":[
+		{
+		"errorCode":"RESIDENT-APP-035"
+		}
+	]
+}'
+   Mimoto_GetAllIssuersV2_AllIssuer_invalidURL_Neg:
+      endPoint: /v1/mimoto/v2/issuersInvalidURL
+      description: Validate that the system does not retrieve issuer details when an invalid URL is provided
+      uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_07
+      role: resident
+      restMethod: get
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
+      outputTemplate: mimoto/responseCode
+      input: '{
+}'
+      output: '{
+        "responseCode": "401"
+}'
+   Mimoto_GetAllIssuersV2_AllIssuer_NullURL_Neg:
+      endPoint: /v1/mimoto/v2/null
+      description: Validate that the system does not retrieve issuer details when an null is provided in the URL 
+      uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_08
+      role: resident
+      restMethod: get
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
+      outputTemplate: mimoto/responseCode
+      input: '{
+}'
+      output: '{
+        "responseCode": "401"
+}'
