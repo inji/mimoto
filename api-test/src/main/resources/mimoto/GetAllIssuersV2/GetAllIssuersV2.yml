@@ -20,13 +20,13 @@ GetAllIssuersV2:
       uniqueIdentifier: TC_Mimoto_GetAllIssuersV2_02
       role: resident
       restMethod: get
-      checkOnlyStatusCodeInResponse: true
+      checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2
-      outputTemplate: mimoto/responseCode
+      outputTemplate: mimoto/GetAllIssuersV2/GetAllIssuersV2Result
       input: '{
 }'
       output: '{
-        "responseCode": "200"
+        "issuer_id": "Mosip"
 }'
 
    Mimoto_GetAllIssuersV2_SpecificIssuer_InvalidIssuerID_Neg:
