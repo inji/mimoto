@@ -3,8 +3,6 @@ package io.mosip.mimoto.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
-import io.mosip.mimoto.dto.ErrorDTO;
-import io.mosip.mimoto.dto.VPResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponseProof;
@@ -15,32 +13,24 @@ import io.mosip.mimoto.dto.openid.presentation.InputDescriptorDTO;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
 import io.mosip.mimoto.dto.openid.presentation.PresentationRequestDTO;
 import io.mosip.mimoto.exception.ErrorConstants;
-import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
-import io.mosip.mimoto.exception.VPErrorNotSentException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.impl.DataShareServiceImpl;
-import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
 import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.TestUtilities;
-import io.mosip.openID4VP.OpenID4VP;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
-import io.mosip.openID4VP.verifier.VerifierResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 
-import static io.mosip.mimoto.exception.ErrorConstants.REJECTED_VERIFIER;
 import static io.mosip.mimoto.util.JwtUtils.parseJwtHeader;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -48,12 +38,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static io.mosip.mimoto.util.TestUtilities.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PresentationServiceTest {
-    @Mock
-    VerifierService verifierService;
     @Mock
     DataShareServiceImpl dataShareService;
 
@@ -61,12 +48,8 @@ public class PresentationServiceTest {
     ObjectMapper objectMapper;
 
     @Mock
-    private OpenID4VPService openID4VPService;
-
-    @Mock
     RestApiClient restApiClient;
 
-    @InjectMocks
     PresentationServiceImpl presentationService;
 
     String walletId, clientId, urlEncodedVPAuthorizationRequest;
@@ -78,8 +61,7 @@ public class PresentationServiceTest {
 
     @Before
     public void setup() throws JsonProcessingException {
-        ReflectionTestUtils.setField(presentationService, "injiOvpRedirectURLPattern", "%s#vp_token=%s&presentation_submission=%s");
-        ReflectionTestUtils.setField(presentationService, "maximumResponseHeaderSize", 65536);
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", 65536);
         when(objectMapper.writeValueAsString(any())).thenReturn("test-data");
 
         // Setup for Wallet presentation tests
@@ -171,7 +153,7 @@ public class PresentationServiceTest {
 
     @Test(expected = VPNotCreatedException.class)
     public void uriTooLongWithVPRequest() throws IOException {
-        ReflectionTestUtils.setField(presentationService, "maximumResponseHeaderSize", 10); // Very small limit
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", 10);
 
         VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
         PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();

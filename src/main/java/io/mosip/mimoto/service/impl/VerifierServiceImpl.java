@@ -15,7 +15,6 @@ import io.mosip.mimoto.util.Utilities;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.validator.routines.UrlValidator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
@@ -32,14 +31,11 @@ import static org.apache.commons.validator.routines.UrlValidator.ALLOW_LOCAL_URL
 @Service
 public class VerifierServiceImpl implements VerifierService {
 
-    @Autowired
-    Utilities utilities;
+    private final Utilities utilities;
 
-    @Autowired
-    ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private VerifierRepository verifierRepository;
+    private final VerifierRepository verifierRepository;
 
     private static final PathMatcher pathMatcher;
     private static final UrlValidator urlValidator;
@@ -47,6 +43,12 @@ public class VerifierServiceImpl implements VerifierService {
     static {
         pathMatcher = new AntPathMatcher();
         urlValidator = new UrlValidator(ALLOW_ALL_SCHEMES+ALLOW_LOCAL_URLS);
+    }
+
+    public VerifierServiceImpl(Utilities utilities, ObjectMapper objectMapper, VerifierRepository verifierRepository) {
+        this.utilities = utilities;
+        this.objectMapper = objectMapper;
+        this.verifierRepository = verifierRepository;
     }
 
     @Cacheable(value = "preRegisteredTrustedVerifiersCache", key = "'preRegisteredTrustedVerifiers'")

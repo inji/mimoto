@@ -8,7 +8,6 @@ import io.mosip.mimoto.exception.BaseUncheckedException;
 import io.mosip.mimoto.exception.IdpException;
 import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.service.impl.IdpServiceImpl;
-import io.mosip.mimoto.service.impl.IssuersServiceImpl;
 import io.mosip.mimoto.util.*;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.message.BasicNameValuePair;

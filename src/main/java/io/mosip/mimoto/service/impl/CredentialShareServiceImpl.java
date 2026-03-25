@@ -21,7 +21,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
@@ -51,62 +50,62 @@ public class CredentialShareServiceImpl implements CredentialShareService {
     public static final String CARD_JSON_FILE_NAME = "%s_VCD.json";
 
     /** The Constant FINGER. */
-    public static final String FINGER = "Finger";
     public static final String DATA_IMAGE_JPG_BASE_64 = "data:image/jpg;base64,";
     public static final String DATA_BINARY_BASE_64 = "data:binary;base64,";
 
     private Gson gson = new Gson();
 
-    public String topic = "CREDENTIAL_STATUS_UPDATE";
+    private final WebSubSubscriptionHelper webSubSubscriptionHelper;
 
-    @Autowired
-    public WebSubSubscriptionHelper webSubSubscriptionHelper;
+    private final DataShareUtil dataShareUtil;
 
-    @Autowired
-    public DataShareUtil dataShareUtil;
+    private final DerivedKeyCryptoUtil derivedKeyCryptoUtil;
 
-    @Autowired
-    DerivedKeyCryptoUtil derivedKeyCryptoUtil;
+    private final RestApiClient restApiClient;
 
-    @Autowired
-    public RestApiClient restApiClient;
+    private final P12KeyStoreManager p12KeyStoreManager;
 
-    @Autowired
-    public P12KeyStoreManager p12KeyStoreManager;
-
-    @Autowired
-    CbeffToBiometricUtil util;
+    private final CbeffToBiometricUtil util;
 
     /** The Constant VALUE. */
     public static final String VALUE = "value";
 
     /** The Constant UIN_TEXT_FILE. */
-    public static final String UIN_TEXT_FILE = "textFile";
+    private static final String UIN_TEXT_FILE = "textFile";
 
     @Value("${vercred.type.vid:PCN}")
     private String vid;
 
     /** The core audit request builder. */
-    @Autowired
-    private AuditLogRequestBuilder auditLogRequestBuilder;
+    private final AuditLogRequestBuilder auditLogRequestBuilder;
 
     /** The utilities. */
-    @Autowired
-    private Utilities utilities;
+    private final Utilities utilities;
 
     /** The rest client service. */
-    @Autowired
-    private RestClientService<Object> restClientService;
+    private final RestClientService<Object> restClientService;
 
     /** The env. */
-    @Autowired
-    private Environment env;
+    private final Environment env;
 
-    @Autowired
-    private PublisherClient<String, Object, HttpHeaders> pb;
+    private final PublisherClient<String, Object, HttpHeaders> pb;
 
     @Value("#{'${mosip.mandatory-languages:}'.concat('${mosip.optional-languages:}')}")
     private String supportedLang;
+
+    public CredentialShareServiceImpl(RestApiClient restApiClient, WebSubSubscriptionHelper webSubSubscriptionHelper, DataShareUtil dataShareUtil, DerivedKeyCryptoUtil derivedKeyCryptoUtil, P12KeyStoreManager p12KeyStoreManager, CbeffToBiometricUtil util, AuditLogRequestBuilder auditLogRequestBuilder, Utilities utilities, RestClientService<Object> restClientService, Environment env, PublisherClient<String, Object, HttpHeaders> pb) {
+        this.restApiClient = restApiClient;
+        this.webSubSubscriptionHelper = webSubSubscriptionHelper;
+        this.dataShareUtil = dataShareUtil;
+        this.derivedKeyCryptoUtil = derivedKeyCryptoUtil;
+        this.p12KeyStoreManager = p12KeyStoreManager;
+        this.util = util;
+        this.auditLogRequestBuilder = auditLogRequestBuilder;
+        this.utilities = utilities;
+        this.restClientService = restClientService;
+        this.env = env;
+        this.pb = pb;
+    }
 
     public boolean generateDocuments(EventModel eventModel) throws Exception {
         Path eventFilePath = Path.of(utilities.getDataPath(),

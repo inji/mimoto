@@ -22,7 +22,6 @@ import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -36,21 +35,23 @@ import java.util.stream.Stream;
 public class CredentialMatchingServiceImpl implements CredentialMatchingService {
 
     private static final String JSON_PATH_PREFIX = "$.";
-    private static final String TYPE_PATH = "$.type";
     private static final String LDP_VC_FORMAT = "ldp_vc";
     private static final String PROOF_TYPE_KEY = "proof_type";
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private IssuersService issuersService;
+    private final IssuersService issuersService;
 
-    @Autowired
-    private OpenID4VPService openID4VPService;
+    private final OpenID4VPService openID4VPService;
 
-    @Autowired
-    private WalletCredentialService walletCredentialService;
+    private final WalletCredentialService walletCredentialService;
+
+    public CredentialMatchingServiceImpl(ObjectMapper objectMapper, IssuersService issuersService, OpenID4VPService openID4VPService, WalletCredentialService walletCredentialService) {
+        this.objectMapper = objectMapper;
+        this.issuersService = issuersService;
+        this.openID4VPService = openID4VPService;
+        this.walletCredentialService = walletCredentialService;
+    }
 
     @Override
     public MatchingCredentialsDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {

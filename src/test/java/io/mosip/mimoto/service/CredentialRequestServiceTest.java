@@ -1,5 +1,6 @@
 package io.mosip.mimoto.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.*;
@@ -32,6 +33,9 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = {CredentialRequestServiceImpl.class})
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class CredentialRequestServiceTest {
+    @MockBean
+    private ObjectMapper objectMapper;
+
     @Autowired
     private CredentialRequestServiceImpl credentialRequestServiceImpl;
 
@@ -53,7 +57,7 @@ public class CredentialRequestServiceTest {
     public void setUp() {
         issuerId = "issuer1";
         issuerDTO = getIssuerConfigDTO(issuerId);
-        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(new LdpVcCredentialFormatHandler());
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(new LdpVcCredentialFormatHandler(objectMapper));
     }
 
     @After

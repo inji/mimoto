@@ -1,6 +1,5 @@
 package io.inji.testrig.apirig.mimoto.testscripts;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 
@@ -16,8 +15,6 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import org.testng.internal.BaseTestMethod;
-import org.testng.internal.TestResult;
 
 import io.inji.testrig.apirig.mimoto.utils.MimotoConfigManager;
 import io.inji.testrig.apirig.mimoto.utils.MimotoUtil;
@@ -26,7 +23,6 @@ import io.mosip.testrig.apirig.dto.TestCaseDTO;
 import io.mosip.testrig.apirig.testrunner.BaseTestCase;
 import io.mosip.testrig.apirig.testrunner.HealthChecker;
 import io.mosip.testrig.apirig.utils.AdminTestException;
-import io.mosip.testrig.apirig.utils.AdminTestUtil;
 import io.mosip.testrig.apirig.utils.AuthenticationTestException;
 import io.mosip.testrig.apirig.utils.GlobalConstants;
 import io.mosip.testrig.apirig.utils.NotificationListener;

@@ -7,7 +7,6 @@ import io.mosip.mimoto.exception.PlatformErrorMessages;
 import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.util.RestApiClient;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -28,12 +27,15 @@ import java.util.List;
 public class RestClientServiceImpl implements RestClientService<Object> {
 
     /** The rest api client. */
-    @Autowired
-    private RestApiClient restApiClient;
+    private final RestApiClient restApiClient;
 
     /** The env. */
-    @Autowired
-    private Environment env;
+    private final Environment env;
+
+    public RestClientServiceImpl(RestApiClient restApiClient, Environment env) {
+        this.restApiClient = restApiClient;
+        this.env = env;
+    }
 
     /*
      * (non-Javadoc)

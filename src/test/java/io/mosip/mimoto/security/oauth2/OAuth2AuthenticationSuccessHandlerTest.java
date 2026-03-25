@@ -10,12 +10,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 
@@ -25,7 +23,6 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class OAuth2AuthenticationSuccessHandlerTest {
 
-    @InjectMocks
     private OAuth2AuthenticationSuccessHandler successHandler;
 
     @Mock
@@ -52,8 +49,7 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 
     @Before
     public void setUp() throws Exception {
-        ReflectionTestUtils.setField(successHandler, "authenticationSuccessRedirectUrl", AUTH_SUCCESS_REDIRECT_URL);
-
+        successHandler = new OAuth2AuthenticationSuccessHandler(AUTH_SUCCESS_REDIRECT_URL);
         when(request.getSession(false)).thenReturn(session);
     }
 

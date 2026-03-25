@@ -7,7 +7,6 @@ import io.mosip.mimoto.service.CredentialFormatHandler;
 import io.mosip.mimoto.util.LocaleUtils;
 import static io.mosip.mimoto.util.IssuerConfigUtil.camelToTitleCase;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -16,8 +15,11 @@ import java.util.*;
 @Component("ldp_vc")
 public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
+
+    public LdpVcCredentialFormatHandler(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public String getSupportedFormat() {
