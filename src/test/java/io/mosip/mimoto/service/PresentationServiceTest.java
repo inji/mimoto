@@ -109,15 +109,20 @@ public class PresentationServiceTest {
     public void credentialProofMatchingWithVPRequest() throws Exception {
         VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
         PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        presentationRequestDTO.setResponseMode("direct_post");
+        presentationRequestDTO.setResponseUri("https://verifier.example.com/response");
+
+        Map<String, Object> mockPostResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
 
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
         when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
-        String expectedRedirectUrl = "test_redirect_uri#vp_token=dGVzdC1kYXRh&presentation_submission=test-data";
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockPostResponse);
 
-        String actualRedirectUrl = presentationService.authorizePresentation(TestUtilities.getPresentationRequestDTO());
+        String actualRedirectUrl = presentationService.authorizePresentation(presentationRequestDTO);
 
-        assertEquals(expectedRedirectUrl, actualRedirectUrl);
+        assertEquals("https://verifier.example.com/success", actualRedirectUrl);
+        verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
 
     @Test(expected = VPNotCreatedException.class)
@@ -134,19 +139,22 @@ public class PresentationServiceTest {
     public void sdJwtCredentialMatchingWithVPRequest() throws Exception {
         VCCredentialResponse vcCredentialResponse = createSDJwtCredentialResponse("vc+sd-jwt");
         PresentationRequestDTO presentationRequestDTO = createSDJwtPresentationRequest();
+        presentationRequestDTO.setResponseMode("direct_post");
+        presentationRequestDTO.setResponseUri("https://verifier.example.com/response");
         Map<String, Object> jwtHeaders = Map.of("alg", "ES256", "typ", "JWT");
-
+        Map<String, Object> mockPostResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
         when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(String.class)))
                 .thenReturn("eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.test.signature");
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockPostResponse);
 
         try (MockedStatic<JwtUtils> jwtUtilsMock = mockStatic(JwtUtils.class)) {
             jwtUtilsMock.when(() -> parseJwtHeader(anyString())).thenReturn(jwtHeaders);
 
-            String expectedRedirectUrl = "test_redirect_uri#vp_token=dGVzdC1kYXRh&presentation_submission=test-data";
             String actualRedirectUrl = presentationService.authorizePresentation(presentationRequestDTO);
 
-            assertEquals(expectedRedirectUrl, actualRedirectUrl);
+            assertEquals("https://verifier.example.com/success", actualRedirectUrl);
+            verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
         }
     }
 
@@ -353,7 +361,7 @@ public class PresentationServiceTest {
 
         String result = presentationService.authorizePresentation(presentationRequestDTO);
 
-        assertEquals("test_redirect_uri", result);
+        assertEquals("https://verifier.example.com/success", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
 
@@ -430,7 +438,7 @@ public class PresentationServiceTest {
 
         String result = presentationService.authorizePresentation(presentationRequestDTO);
 
-        assertEquals("https://verifier.example.com/response?status=vp_sent", result);
+        assertEquals("test_redirect_uri", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
 

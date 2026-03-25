@@ -185,29 +185,14 @@ public class PresentationServiceImpl implements PresentationService {
             );
         }
 
-        // Otherwise, do redirect
-        String redirectString = buildRedirectString(
-                vpToken,
-                presentationRequestDTO.getRedirectUri(),
-                presentationSubmission
-        );
-
-        if (redirectString.length() > maximumResponseHeaderSize) {
-            throw new VPNotCreatedException(ErrorConstants.URI_TOO_LONG.getErrorCode(), ErrorConstants.URI_TOO_LONG.getErrorMessage());
+        //throw exception if the response_mode is not direct_post
+        else {
+            throw new VPNotCreatedException(ErrorConstants.INVALID_RESPONSE_MODE.getErrorCode(), ErrorConstants.INVALID_RESPONSE_MODE.getErrorMessage());
         }
-
-        return redirectString;
     }
 
     private String createVpToken(VerifiablePresentationDTO vpDTO) throws JsonProcessingException {
         return objectMapper.writeValueAsString(vpDTO);
-    }
-
-    private String buildRedirectString(String vpToken, String redirectUri, String presentationSubmission) {
-        return String.format(injiOvpRedirectURLPattern,
-                redirectUri,
-                Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)),
-                URLEncoder.encode(presentationSubmission, StandardCharsets.UTF_8));
     }
 
     private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken, String presentationSubmission, String state, String nonce) throws JsonProcessingException {
@@ -236,6 +221,12 @@ public class PresentationServiceImpl implements PresentationService {
                 if (responseRedirectUri != null && !responseRedirectUri.isEmpty()) {
                     return responseRedirectUri;
                 }
+            }
+
+            // Use request's redirectUri if it's non-blank
+            if (redirectUri != null && !redirectUri.isBlank()) {
+                log.info("Using redirectUri from request: {}", redirectUri);
+                return redirectUri;
             }
 
             // Fallback behavior if redirect_uri is not provided
