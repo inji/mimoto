@@ -1,7 +1,7 @@
 Logout:
    Mimoto_Logout_all_Valid_Smoke:
       endPoint: /v1/mimoto/logout
-      description: Logout the session that is created
+      description: Verify that the user is successfully logged out of the created session
       uniqueIdentifier: TC_Mimoto_Logout_01
       role: userDefinedCookie
       restMethod: post
@@ -18,7 +18,7 @@ Logout:
 
    Mimoto_Logout_WithoutLogin_Neg:
       endPoint: /v1/mimoto/logout
-      description: Logout the session without creating the login session and providing random cookie value and expects it to fail
+      description: Verify that the logout request fails when a random cookie value is provided without creating a login session
       uniqueIdentifier: TC_Mimoto_Logout_02
       role: userDefinedCookie
       restMethod: post
@@ -35,7 +35,7 @@ Logout:
 
    Mimoto_Logout_WithExpiredSession_Neg:
       endPoint: /v1/mimoto/logout
-      description: Logout the session with expired login session and expects it to fail
+      description: Verify that the logout request fails when the login session has expired
       uniqueIdentifier: TC_Mimoto_Logout_03
       role: userDefinedCookie
       restMethod: post

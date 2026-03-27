@@ -17,7 +17,7 @@ DownloadCredential:
 }'
    Mimoto_CredentialsStatus_StatusCode_InValid_Smoke_euin:
       endPoint: /v1/mimoto/credentialshare/download
-      description: Checking credential status with invalid StatusCode
+      description: Verify that the system returns an appropriate error when checking credential status with an invalid StatusCode
       uniqueIdentifier: TC_Mimoto_DownloadCredential_02
       role: resident
       restMethod: get

@@ -1,7 +1,7 @@
 GetWallets:
    Mimoto_GetWallets_all_Valid_Smoke:
       endPoint: /v1/mimoto/wallets
-      description: Verify that the system successfully fetches and displays the list of all wallets stored in the database.
+      description: Verify that the system successfully fetches and displays the list of all wallets stored in the database
       uniqueIdentifier: TC_Mimoto_GetWallets_01
       role: userDefinedCookie
       restMethod: get

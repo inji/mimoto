@@ -1,7 +1,7 @@
 GetIssuerWellKnown:
    Mimoto_GetIssuerWellKnown_All_Valid_Smoke:
       endPoint: /v1/mimoto/issuers/{issuerId}/well-known-proxy
-      description: Verify that the system successfully generates the issuer .well-known configuration with all valid parameters.
+      description: Verify that the system successfully generates the issuer well-known configuration with all valid parameters
       role: resident
       restMethod: get
       checkErrorsOnlyInResponse: true
@@ -16,7 +16,7 @@ GetIssuerWellKnown:
 
 #   Mimoto_GetIssuerWellKnown_Invalid_Issuer_Neg:
 #      endPoint: /v1/mimoto/issuers/{issuerId}/well-known-proxy
-#      description: Verify that the system fails to generate the issuer .well-known configuration with invalid parameters.
+#      description: Verify that the system fails to generate the issuer well-known configuration with invalid parameters
 #      role: resident
 #      restMethod: get
 #      checkErrorsOnlyInResponse: true

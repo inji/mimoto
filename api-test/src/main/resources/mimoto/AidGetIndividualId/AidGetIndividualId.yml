@@ -28,7 +28,7 @@ AidGetIndividualId:
 
    Mimoto_AidGetIndividualId_Getting_With_Invalid_AID_Neg:
       endPoint: /v1/mimoto/aid/get-individual-id
-      description: Validate that the system does not generate an individualID when an invalid AID is provided, and returns the appropriate error response
+      description: Validate that the system does not generate an individualID when an invalid AID is provided and returns the appropriate error response
       uniqueIdentifier: TC_Mimoto_AidGetIndividualId_02
       role: resident
       checkErrorsOnlyInResponse: true
@@ -117,7 +117,7 @@ AidGetIndividualId:
 
    Mimoto_AidGetIndividualId_Getting_With_Invalid_lenght_Of_AID_Neg:
       endPoint: /v1/mimoto/aid/get-individual-id
-      description: Validate that the system does not generate an individualID when an invalid length AID is provided, and returns the appropriate error response
+      description: Validate that the system does not generate an individualID when an invalid length AID is provided and returns the appropriate error response
       uniqueIdentifier: TC_Mimoto_AidGetIndividualId_05
       role: resident
       checkErrorsOnlyInResponse: true

@@ -1,7 +1,7 @@
 AuthenticateUserSunBirdCForGoogleLogin:
    Mimoto_ESignet_AuthenticateUserSunBirdCForGoogleLogin_SunBirdC_Valid_Smoke:
       endPoint: $ESIGNETMOCKBASEURL$/v1/esignet/authorization/authenticate
-      description: Authenticating user for downloading stayprotected credential with google login
+      description: Verify successful user authentication for downloading the StayProtected credential through Google login
       uniqueIdentifier: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_01
       role: resident
       restMethod: post
@@ -24,7 +24,7 @@ AuthenticateUserSunBirdCForGoogleLogin:
 
    Mimoto_ESignet_AuthenticateUserSunBirdCForGoogleLogin_SunBirdC_MultipleVC_Valid_Smoke:
       endPoint: $ESIGNETMOCKBASEURL$/v1/esignet/authorization/authenticate
-      description: Authenticating user for downloading stayprotected credential with google login
+      description: Verify that the user is successfully authenticated to download the StayProtected credential using Google login
       uniqueIdentifier: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_02
       role: resident
       restMethod: post

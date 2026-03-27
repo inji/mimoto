@@ -1,7 +1,7 @@
 AuthenticateUserForGoogleLogin:
    Mimoto_ESignet_AuthenticateUserIDPForGoogleLogin_uin_Otp_Valid_Smoke:
       endPoint: /v1/esignet/authorization/authenticate
-      description: Authenticate user to download credentials with all valid parameters
+      description: Verify that the user can authenticate successfully to download credentials with all valid parameters
       uniqueIdentifier: TC_Mimoto_AuthenticateUserForGoogleLogin_01
       role: resident
       restMethod: post
@@ -36,7 +36,7 @@ AuthenticateUserForGoogleLogin:
 
    Mimoto_ESignet_AuthenticateUserIDPForGoogleLogin_uin_Otp_Valid_ForNeg:
       endPoint: /v1/esignet/authorization/authenticate
-      description: Authenticate user to download credentials with all valid parameters for neg scenario
+      description: Verify that user authentication fails when attempting to download credentials with invalid parameters
       uniqueIdentifier: TC_Mimoto_AuthenticateUserForGoogleLogin_02
       role: resident
       restMethod: post

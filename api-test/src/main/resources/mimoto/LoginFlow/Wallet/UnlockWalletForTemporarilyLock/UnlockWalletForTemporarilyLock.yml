@@ -1,7 +1,7 @@
 UnlockWalletForTemporarilyLock:
    Mimoto_UnlockWalletForTemporarilyLock_TemporaryLocker_IncorrectWalletPin_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/unlock
-      description: Verify that the wallet becomes temporarily locked when incorrect PIN is entered repeatedly up to the allowed limit, and that further unlock attempts fail until the lock expires or is reset.
+      description: Verify that the wallet becomes temporarily locked when incorrect PIN is entered repeatedly up to the allowed limit and that further unlock attempts fail until the lock expires or is reset.
       uniqueIdentifier: TC_Mimoto_UnlockWalletForTemporarilyLock_01
       role: userDefinedCookie
       restMethod: post

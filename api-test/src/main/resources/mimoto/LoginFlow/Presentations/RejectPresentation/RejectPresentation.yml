@@ -21,7 +21,7 @@ RejectPresentation:
 
    Mimoto_RejectPresentation_invalidWalletID_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations/{presentationId}
-      description: Validate that the request returns an invalid_request error when the wallet ID is invalid.
+      description: Validate that the request returns an invalid_request error when the wallet ID is invalid
       uniqueIdentifier: TC_Mimoto_RejectPresentation_02
       role: userDefinedCookie
       restMethod: patch

@@ -1,7 +1,7 @@
 UnlockWalletAfterDelete:
    Mimoto_UnlockWalletAfterDelete_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/unlock
-      description: Verify that attempting to unlock a deleted wallet is not allowed and returns an appropriate error message.
+      description: Verify that attempting to unlock a deleted wallet is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_UnlockWalletAfterDelete_01
       role: userDefinedCookie
       restMethod: post

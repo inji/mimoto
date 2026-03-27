@@ -1,7 +1,7 @@
 VerifiablePresentationAuthorization:
    Mimoto_VerifiablePresentationAuthorization_all_Valid_Smoke_sid:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Verify that a Verifiable Presentation (VP) is successfully created when valid data is provided
+      description: Verify that a Verifiable Presentation is successfully created when valid data is provided
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_01
       role: userDefinedCookie
       restMethod: post
@@ -20,7 +20,7 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withInvalid_authorizationRequestUrl_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Verify that the request to create a Verifiable Presentation (VP) is rejected or fails when the authorizationRequestUrl is invalid
+      description: Verify that the request to create a Verifiable Presentation is rejected or fails when the authorizationRequestUrl is invalid
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_02
       role: userDefinedCookie
       restMethod: post
@@ -39,7 +39,7 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withInvalid_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Verify that the request to create a Verifiable Presentation (VP) is rejected when the wallet ID is invalid
+      description: Verify that the request to create a Verifiable Presentation is rejected when the wallet ID is invalid
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_03
       role: userDefinedCookie
       restMethod: post
@@ -58,7 +58,7 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withLocked_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Verify that the request to create a Verifiable Presentation (VP) is rejected when the wallet ID is locked.
+      description: Verify that the request to create a Verifiable Presentation is rejected when the wallet ID is locked
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_04
       role: userDefinedCookie
       restMethod: post
@@ -76,7 +76,7 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withInvalidSession_unAuthorized_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Verify that the request to create a Verifiable Presentation (VP) is rejected when the session ID is invalid
+      description: Verify that the request to create a Verifiable Presentation  is rejected when the session ID is invalid
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_05
       role: userDefinedCookie
       restMethod: post
@@ -96,7 +96,7 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withNullWalletID_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Verify that the request to create a Verifiable Presentation (VP) is rejected when the wallet ID is "null".
+      description: Verify that the request to create a Verifiable Presentation  is rejected when the wallet ID is "null".
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_06
       role: userDefinedCookie
       restMethod: post

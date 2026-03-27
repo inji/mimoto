@@ -1,7 +1,7 @@
 AuthorizationCodeForGoogleLogin:
    Mimoto_ESignet_AuthorizationCode_GoogleLogin_uin_All_Valid_Smoke_sid:
       endPoint: /v1/esignet/authorization/auth-code
-      description: Generate authorization code to download credential issuer
+      description: Verify that an authorization code is successfully generated to download the credential from the issuer
       uniqueIdentifier: TC_Mimoto_AuthorizationCodeForGoogleLogin_01
       role: resident
       restMethod: post
@@ -20,7 +20,7 @@ AuthorizationCodeForGoogleLogin:
 
    Mimoto_ESignet_AuthorizationCode_GoogleLogin_uin_All_Valid_sid_ForNeg:
       endPoint: /v1/esignet/authorization/auth-code
-      description: Generate authorization code to download credential issuer for Neg scenario
+      description: Verify that authorization code generation fails when invalid or negative conditions are applied while downloading the credential from the issuer
       uniqueIdentifier: TC_Mimoto_AuthorizationCodeForGoogleLogin_02
       role: resident
       restMethod: post

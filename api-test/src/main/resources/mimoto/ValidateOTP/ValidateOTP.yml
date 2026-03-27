@@ -1,7 +1,7 @@
 SendOTP:
    Resident_SendOTP_Valid_UIN_All_Smoke:
       endPoint: /resident/v1/req/otp
-      description: Validate OTP generation using a valid UIN.
+      description: Validate OTP generation using a valid UIN
       uniqueIdentifier: TC_Mimoto_SendOTP_05
       role: resident
       restMethod: post
@@ -35,7 +35,7 @@ SendOTP:
     }'
    Resident_SendOTP_Valid_UIN_Email_Smoke:
       endPoint: /resident/v1/req/otp
-      description: Verifying that the OTP is generated successfully when the OTP channel is set to email.
+      description: Verifying that the OTP is generated successfully when the OTP channel is set to email
       uniqueIdentifier: TC_Mimoto_SendOTP_07
       role: resident
       restMethod: post
@@ -69,7 +69,7 @@ SendOTP:
     }'
    Resident_SendOTP_Valid_UIN_Invalid_empty_otpChannel:
       endPoint: /resident/v1/req/otp
-      description: Validate OTP generation when the OTP channel field is empty.
+      description: Validate OTP generation when the OTP channel field is empty
       uniqueIdentifier: TC_Mimoto_SendOTP_09
       role: resident
       restMethod: post
@@ -189,7 +189,7 @@ SendOTP:
     }'
    Resident_SendOTP_InValid_requestTime:
       endPoint: /resident/v1/req/otp
-      description: Verifying that the system returns an appropriate error when generating an OTP with an invalid request time.
+      description: Verifying that the system returns an appropriate error when generating an OTP with an invalid request time
       uniqueIdentifier: TC_Mimoto_SendOTP_16
       role: resident
       restMethod: post

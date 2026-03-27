@@ -98,7 +98,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_InvalidWalletName_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Verify that creating a new wallet with an invalid wallet name is not allowed and returns an appropriate error.
+      description: Verify that creating a new wallet with an invalid wallet name is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_06
       role: userDefinedCookie
       restMethod: post

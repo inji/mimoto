@@ -1,7 +1,7 @@
 GoogleLoginToken:
    Mimoto_GoogleLoginToken_all_Valid_Smoke:
       endPoint: /v1/mimoto/auth/google/token-login
-      description: Creating the sesion token for google login
+      description: Verify and validate the session token generation during Google login
       uniqueIdentifier: TC_Mimoto_GoogleLoginToken_01
       role: userDefinedCookie
       restMethod: post
@@ -17,7 +17,7 @@ GoogleLoginToken:
 
    Mimoto_GoogleLoginToken_Invalid_Provider_Neg:
       endPoint: /v1/mimoto/auth/invalid/token-login
-      description: Creating the sesion token for google login with invalid provider
+      description: Verify the behavior when creating a session token for Google login with an invalid provider
       uniqueIdentifier: TC_Mimoto_GoogleLoginToken_02
       role: userDefinedCookie
       restMethod: post
@@ -32,7 +32,7 @@ GoogleLoginToken:
 
    Mimoto_GoogleLoginToken_InvalidToken_Neg:
       endPoint: /v1/mimoto/auth/google/token-login
-      description: Creating the sesion token for google login with invalid IDT token and expects it to fail
+      description: Verify and validate that session token creation fails when Google login is attempted with an invalid IDT token
       uniqueIdentifier: TC_Mimoto_GoogleLoginToken_03
       role: userDefinedCookie
       restMethod: post
@@ -47,7 +47,7 @@ GoogleLoginToken:
 
    Mimoto_GoogleLoginToken_ExpiredToken_Neg:
       endPoint: /v1/mimoto/auth/google/token-login
-      description: Creating the sesion token for google login with expired token and expects it to fail
+      description: Verify and validate that session token creation fails when Google login is attempted with an expired token
       uniqueIdentifier: TC_Mimoto_GoogleLoginToken_04
       role: userDefinedCookie
       restMethod: post
@@ -76,7 +76,7 @@ GoogleLoginToken:
 }'
    Mimoto_GoogleLoginToken_all_ValidForLockedWallet_Smoke:
       endPoint: /v1/mimoto/auth/google/token-login
-      description: Creating the sesion token for google login for locked wallet scenarios
+      description: Verify and validate the session token creation for Google login when the wallet is locked
       uniqueIdentifier: TC_Mimoto_GoogleLoginToken_06
       role: userDefinedCookie
       restMethod: post

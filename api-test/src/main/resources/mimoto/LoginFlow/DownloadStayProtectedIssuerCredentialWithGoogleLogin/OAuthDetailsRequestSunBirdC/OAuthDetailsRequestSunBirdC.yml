@@ -1,7 +1,7 @@
 OAuthDetailsRequestSunBirdCForGoogleLogin:
    Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_SunBirdC_all_Valid_Smoke_sid:
       endPoint: $ESIGNETMOCKBASEURL$/v1/esignet/authorization/v2/oauth-details
-      description: Getting auth details for downloading sunbird credentials with google login
+      description: Verify that authentication details are successfully retrieved for downloading Sunbird credentials using Google login
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestSunBirdCForGoogleLogin_01
       role: resident
       restMethod: post
@@ -29,7 +29,7 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
 
    Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_SunBirdC_MultipleVC_all_Valid_Smoke_sid:
       endPoint: $ESIGNETMOCKBASEURL$/v1/esignet/authorization/v2/oauth-details
-      description: Getting auth details for downloading multiple sunbird credentials with google login
+      description: Verify that authentication details are successfully retrieved for downloading multiple Sunbird credentials using Google login
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestSunBirdCForGoogleLogin_02
       role: resident
       restMethod: post
