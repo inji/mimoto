@@ -8,7 +8,7 @@ import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.service.IdpService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.util.JoseUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -41,14 +41,17 @@ public class IdpServiceImpl implements IdpService {
     @Value("${mosip.oidc.p12.path}")
     String keyStorePath;
 
-    @Autowired
-    JoseUtil joseUtil;
+    private final JoseUtil joseUtil;
 
-    @Autowired
-    RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
-    @Autowired
-    IssuersService issuersService;
+    private final IssuersService issuersService;
+
+    public IdpServiceImpl(JoseUtil joseUtil, @Qualifier("restTemplate") RestTemplate restTemplate, IssuersService issuersService) {
+        this.joseUtil = joseUtil;
+        this.restTemplate = restTemplate;
+        this.issuersService = issuersService;
+    }
 
     @Override
     public HttpEntity<MultiValueMap<String, String>> constructGetTokenRequest(Map<String, String> params, IssuerDTO issuerDTO, String authorizationAudience) throws IOException, IssuerOnboardingException {

@@ -180,6 +180,14 @@
 					name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
 		</classes>
 	</test>
+	<test name="GetAllIssuersV2">
+		<parameter name="ymlFile"
+			value="mimoto/GetAllIssuersV2/GetAllIssuersV2.yml" />
+		<classes>
+			<class
+				name="io.inji.testrig.apirig.mimoto.testscripts.GetWithParam" />
+		</classes>
+	</test>
 	<test name="GetIssuerWellKnown">
 		<parameter name="ymlFile"
 				   value="mimoto/GetIssuerWellKnown/GetIssuerWellKnown.yml" />

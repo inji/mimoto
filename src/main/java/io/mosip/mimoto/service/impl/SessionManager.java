@@ -8,7 +8,6 @@ import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -19,8 +18,11 @@ import java.util.Map;
 @Slf4j
 public class SessionManager {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
+
+    public SessionManager(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     public void setupSession(HttpServletRequest request, String provider, UserMetadataDTO userMetadata, String userId) {
         HttpSession session = request.getSession(true);

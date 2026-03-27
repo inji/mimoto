@@ -15,7 +15,6 @@ import io.mosip.mimoto.util.Utilities;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.validator.routines.UrlValidator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
@@ -32,14 +31,11 @@ import static org.apache.commons.validator.routines.UrlValidator.ALLOW_LOCAL_URL
 @Service
 public class VerifierServiceImpl implements VerifierService {
 
-    @Autowired
-    Utilities utilities;
+    private final Utilities utilities;
 
-    @Autowired
-    ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private VerifierRepository verifierRepository;
+    private final VerifierRepository verifierRepository;
 
     private static final PathMatcher pathMatcher;
     private static final UrlValidator urlValidator;
@@ -47,6 +43,12 @@ public class VerifierServiceImpl implements VerifierService {
     static {
         pathMatcher = new AntPathMatcher();
         urlValidator = new UrlValidator(ALLOW_ALL_SCHEMES+ALLOW_LOCAL_URLS);
+    }
+
+    public VerifierServiceImpl(Utilities utilities, ObjectMapper objectMapper, VerifierRepository verifierRepository) {
+        this.utilities = utilities;
+        this.objectMapper = objectMapper;
+        this.verifierRepository = verifierRepository;
     }
 
     @Cacheable(value = "preRegisteredTrustedVerifiersCache", key = "'preRegisteredTrustedVerifiers'")
@@ -64,18 +66,18 @@ public class VerifierServiceImpl implements VerifierService {
     }
 
     @Override
-    public void validateVerifier(String clientId, String redirectUri) throws ApiNotAccessibleException, JsonProcessingException {
+    public void validateVerifier(String clientId, String responseUri) throws ApiNotAccessibleException, JsonProcessingException {
         log.info("Started the presentation Validation");
         getVerifierByClientId(clientId).ifPresentOrElse(
             (verifierDTO) -> {
-                boolean isValidVerifier = verifierDTO.getRedirectUris().stream().anyMatch(registeredRedirectUri ->
-                        urlValidator.isValid(registeredRedirectUri) &&
-                        urlValidator.isValid(redirectUri) &&
-                        pathMatcher.match(registeredRedirectUri, redirectUri));
+                boolean isValidVerifier = verifierDTO.getResponseUris().stream().anyMatch(registeredResponseUri ->
+                        urlValidator.isValid(registeredResponseUri) &&
+                        urlValidator.isValid(responseUri) &&
+                        pathMatcher.match(registeredResponseUri, responseUri));
                 if(!isValidVerifier){
                     throw new InvalidVerifierException(
-                            ErrorConstants.INVALID_REDIRECT_URI.getErrorCode(),
-                            ErrorConstants.INVALID_REDIRECT_URI.getErrorMessage());
+                            ErrorConstants.INVALID_RESPONSE_URI.getErrorCode(),
+                            ErrorConstants.INVALID_RESPONSE_URI.getErrorMessage());
                 }
             },
             () -> {
@@ -106,7 +108,7 @@ public class VerifierServiceImpl implements VerifierService {
             log.warn("No client_id found in the authorization request URL");
             return false;
         }
-        if (responseUris==null || responseUris.isEmpty()) {
+        if (responseUris.isEmpty()) {
             log.warn("No response_uri found in the authorization request URL");
             return false;
         }

@@ -16,7 +16,9 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.nimbusds.jose.util.Base64URL;
 import io.mosip.injivcrenderer.InjiVcRenderer;
 import io.mosip.mimoto.constant.CredentialFormat;
+import io.mosip.mimoto.constant.LdpVcV1Constants;
 import io.mosip.mimoto.constant.LdpVcV2Constants;
+import io.mosip.mimoto.constant.SdJwtVcConstants;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerDisplayResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse;
@@ -33,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +47,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -53,26 +55,29 @@ public class CredentialPDFGeneratorService {
 
     private record SelectedFace(String key, String face) {}
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private PresentationServiceImpl presentationService;
+    private final PresentationServiceImpl presentationService;
 
-    @Autowired
-    private Utilities utilities;
+    private final Utilities utilities;
 
-    @Autowired
-    private PixelPass pixelPass;
+    private final PixelPass pixelPass;
 
-    @Autowired
-    private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
+    private final CredentialFormatHandlerFactory credentialFormatHandlerFactory;
 
-    @Autowired
-    private InjiVcRenderer injiVcRenderer;
+    private final InjiVcRenderer injiVcRenderer;
 
-    @Autowired
-    private SvgFixerUtil svgFixerUtil;
+    private final SvgFixerUtil svgFixerUtil;
+
+    public CredentialPDFGeneratorService(ObjectMapper objectMapper, PresentationServiceImpl presentationService, Utilities utilities, PixelPass pixelPass, CredentialFormatHandlerFactory credentialFormatHandlerFactory, InjiVcRenderer injiVcRenderer, SvgFixerUtil svgFixerUtil) {
+        this.objectMapper = objectMapper;
+        this.presentationService = presentationService;
+        this.utilities = utilities;
+        this.pixelPass = pixelPass;
+        this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
+        this.injiVcRenderer = injiVcRenderer;
+        this.svgFixerUtil = svgFixerUtil;
+    }
 
     @Value("${mosip.inji.ovp.qrdata.pattern}")
     private String ovpQRDataPattern;
@@ -112,7 +117,7 @@ public class CredentialPDFGeneratorService {
                     processor.loadDisplayPropertiesFromWellknown(credentialProperties, credentialsSupportedResponse, locale);
 
             Map<String, Object> data = getPdfResourceFromVcProperties(displayProperties, credentialsSupportedResponse,
-                    vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity);
+                    vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity, locale);
 
             return renderVCInCredentialTemplate(data, issuerDTO.getIssuer_id(), credentialConfigurationId);
         }
@@ -124,22 +129,27 @@ public class CredentialPDFGeneratorService {
             VCCredentialResponse vcCredentialResponse,
             IssuerDTO issuerDTO,
             String dataShareUrl,
-            String credentialValidity) throws IOException, WriterException {
+            String credentialValidity,
+            String userLocale) throws IOException, WriterException {
 
         Map<String, Object> data = new HashMap<>();
         LinkedHashMap<String, Object> rowProperties = new LinkedHashMap<>();
 
-        CredentialSupportedDisplayResponse firstDisplay = Optional.ofNullable(credentialsSupportedResponse.getDisplay())
-                .filter(list -> !list.isEmpty())
-                .map(List::getFirst)
-                .orElse(null);
+        CredentialSupportedDisplayResponse resolvedDisplay =
+                Optional.ofNullable(credentialsSupportedResponse.getDisplay())
+                        .filter(list -> !list.isEmpty())
+                        .map(list -> list.stream()
+                                .filter(d -> LocaleUtils.matchesLocale(d.getLocale(), userLocale))
+                                .findFirst()
+                                .orElseGet(list::getFirst))
+                        .orElse(null);
 
-        String backgroundColor = firstDisplay != null ? firstDisplay.getBackgroundColor() : null;
-        String backgroundImage = firstDisplay != null && firstDisplay.getBackgroundImage() != null
-                ? firstDisplay.getBackgroundImage().getUri()
+        String backgroundColor = resolvedDisplay != null ? resolvedDisplay.getBackgroundColor() : null;
+        String backgroundImage = resolvedDisplay != null && resolvedDisplay.getBackgroundImage() != null
+                ? resolvedDisplay.getBackgroundImage().getUri()
                 : null;
-        String textColor = firstDisplay != null ? firstDisplay.getTextColor() : null;
-        String credentialSupportedType = firstDisplay != null ? firstDisplay.getName() : null;
+        String textColor = resolvedDisplay != null ? resolvedDisplay.getTextColor() : null;
+        String credentialSupportedType = resolvedDisplay != null ? resolvedDisplay.getName() : null;
 
         SelectedFace selectedFace = extractFace(vcCredentialResponse);
         String face = selectedFace.face();
@@ -241,7 +251,15 @@ public class CredentialPDFGeneratorService {
 
     private String formatValue(Object val, String locale) {
         if (val instanceof Map) {
-            return Optional.ofNullable(((Map<?, ?>) val).get("value")).map(Object::toString).orElse("");
+            return Optional.ofNullable(Stream.of(
+                                    ((Map<?, ?>) val).get(LdpVcV2Constants.VALUE),
+                                    ((Map<?, ?>) val).get(LdpVcV1Constants.VALUE),
+                                    ((Map<?, ?>) val).get(SdJwtVcConstants.VALUE)
+                            ).filter(Objects::nonNull)
+                            .findFirst()
+                            .orElse(null))
+                    .map(Object::toString)
+                    .orElse("");
         } else if (val instanceof List) {
             List<?> list = (List<?>) val;
             if (list.isEmpty()) return "";
@@ -252,11 +270,25 @@ public class CredentialPDFGeneratorService {
                         .filter(Objects::nonNull)
                         .map(item -> (Map<?, ?>) item)
                         .filter(m -> {
-                            Object lang = m.get("language");  // Safely get language
+                            Object lang = Stream.of(
+                                            m.get(LdpVcV2Constants.LANGUAGE),
+                                            m.get(LdpVcV1Constants.LANGUAGE),
+                                            m.get(SdJwtVcConstants.LANGUAGE)
+                                    ).filter(Objects::nonNull)
+                                    .findFirst()
+                                    .orElse(null);
+
                             return lang != null && LocaleUtils.matchesLocale(lang.toString(), locale);
                         })
                         .map(m -> {
-                            Object value = m.get("value");  // Safely get value
+                            Object value = Stream.of(
+                                            m.get(LdpVcV2Constants.VALUE),
+                                            m.get(LdpVcV1Constants.VALUE),
+                                            m.get(SdJwtVcConstants.VALUE)
+                                    ).filter(Objects::nonNull)
+                                    .findFirst()
+                                    .orElse(null);
+
                             return value != null ? value.toString() : null;
                         })
                         .filter(Objects::nonNull)
@@ -331,8 +363,6 @@ public class CredentialPDFGeneratorService {
 
         if (contextField instanceof List<?> contextList)
             return contextList.stream().anyMatch(entry -> LdpVcV2Constants.V2_CONTEXT_URL.equals(entry.toString()));
-        if (contextField instanceof String contextString)
-            return LdpVcV2Constants.V2_CONTEXT_URL.equals(contextString);
 
         return false;
     }

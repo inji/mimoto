@@ -35,14 +35,20 @@ public class DerivedKeyCryptoUtil {
 
     private static final String AES_KEY_TYPE = "AES";
 
-    @Value("${mosip.kernel.crypto.hash-symmetric-key-length:256}")
-    private int symmetricKeyLength;
+    private final int symmetricKeyLength;
 
-    @Value("${mosip.kernel.crypto.hash-iteration:100000}")
-    private int iterations;
+    private final int iterations;
 
-    @Value("${mosip.kernel.crypto.hash-algorithm-name:PBKDF2WithHmacSHA512}")
-    private String passwordAlgorithm;
+    private final String passwordAlgorithm;
+
+    public DerivedKeyCryptoUtil(
+            @Value("${mosip.kernel.crypto.hash-symmetric-key-length:256}") int symmetricKeyLength,
+            @Value("${mosip.kernel.crypto.hash-iteration:100000}") int iterations,
+            @Value("${mosip.kernel.crypto.hash-algorithm-name:PBKDF2WithHmacSHA512}") String passwordAlgorithm) {
+        this.symmetricKeyLength = symmetricKeyLength;
+        this.iterations = iterations;
+        this.passwordAlgorithm = passwordAlgorithm;
+    }
 
     public CryptoWithPinResponseDto decryptWithPin(CryptoWithPinRequestDto requestDto)
             throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException,

@@ -38,7 +38,6 @@ import io.mosip.openID4VP.authorizationResponse.vpTokenSigningResult.types.ldp.L
 import io.mosip.openID4VP.constants.FormatType;
 import io.mosip.openID4VP.verifier.VerifierResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -67,26 +66,29 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     private static final String EMPTY_JSON = "{}";
     private static final String DEFAULT_SIGNING_ALGORITHM_NAME = "ED25519";
 
-    @Autowired
-    private VerifierService verifierService;
+    private final VerifierService verifierService;
 
-    @Autowired
-    private OpenID4VPService openID4VPService;
+    private final OpenID4VPService openID4VPService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private KeyPairRetrievalService keyPairService;
+    private final KeyPairRetrievalService keyPairService;
 
-    @Autowired
-    private CredentialMatchingService credentialMatchingService;
+    private final CredentialMatchingService credentialMatchingService;
 
-    @Autowired
-    private VerifiablePresentationsRepository verifiablePresentationsRepository;
+    private final VerifiablePresentationsRepository verifiablePresentationsRepository;
 
-    @Autowired
-    private DataProtectionService dataProtectionService;
+    private final DataProtectionService dataProtectionService;
+
+    public WalletPresentationServiceImpl(VerifierService verifierService, OpenID4VPService openID4VPService, ObjectMapper objectMapper, KeyPairRetrievalService keyPairService, CredentialMatchingService credentialMatchingService, VerifiablePresentationsRepository verifiablePresentationsRepository, DataProtectionService dataProtectionService) {
+        this.verifierService = verifierService;
+        this.openID4VPService = openID4VPService;
+        this.objectMapper = objectMapper;
+        this.keyPairService = keyPairService;
+        this.credentialMatchingService = credentialMatchingService;
+        this.verifiablePresentationsRepository = verifiablePresentationsRepository;
+        this.dataProtectionService = dataProtectionService;
+    }
 
     @Override
     public VPResponseDTO handleVPAuthorizationRequest(String urlEncodedVPAuthorizationRequest, String walletId) throws ApiNotAccessibleException, IOException, URISyntaxException {

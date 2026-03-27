@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,8 +22,11 @@ import java.util.Map;
 @Tag(name = SwaggerLiteralConstants.COMMON_INJI_NAME, description = SwaggerLiteralConstants.COMMON_INJI_DESCRIPTION)
 public class CommonInjiController {
 
-    @Autowired
-    private Map<String, String> injiConfig;
+    private final Map<String, String> injiConfig;
+
+    public CommonInjiController(Map<String, String> injiConfig) {
+        this.injiConfig = injiConfig;
+    }
 
     @Operation( summary = SwaggerLiteralConstants.COMMON_INJI_GET_PROPERTIES_SUMMARY, description = SwaggerLiteralConstants.COMMON_INJI_GET_PROPERTIES_DESCRIPTION)
     @ApiResponses({@ApiResponse(responseCode = "200",content = { @Content(schema = @Schema(implementation = ResponseWrapper.class),

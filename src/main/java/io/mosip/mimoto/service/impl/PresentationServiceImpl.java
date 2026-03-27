@@ -13,7 +13,6 @@ import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.PresentationService;
 import io.mosip.mimoto.util.RestApiClient;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -34,20 +33,29 @@ import static io.mosip.mimoto.util.JwtUtils.parseJwtHeader;
 @Service
 public class PresentationServiceImpl implements PresentationService {
 
-    @Autowired
-    private DataShareServiceImpl dataShareService;
+    private final DataShareServiceImpl dataShareService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private RestApiClient restApiClient;
+    private final RestApiClient restApiClient;
 
-    @Value("${mosip.inji.ovp.redirect.url.pattern}")
-    private String injiOvpRedirectURLPattern;
+    private final String injiOvpRedirectURLPattern;
 
-    @Value("${server.tomcat.max-http-response-header-size:65536}")
-    private Integer maximumResponseHeaderSize;
+    private final Integer maximumResponseHeaderSize;
+
+    public PresentationServiceImpl(
+            DataShareServiceImpl dataShareService,
+            ObjectMapper objectMapper,
+            RestApiClient restApiClient,
+            @Value("${mosip.inji.ovp.redirect.url.pattern}") String injiOvpRedirectURLPattern,
+            @Value("${server.tomcat.max-http-response-header-size:65536}") Integer maximumResponseHeaderSize
+    ) {
+        this.dataShareService = dataShareService;
+        this.objectMapper = objectMapper;
+        this.restApiClient = restApiClient;
+        this.injiOvpRedirectURLPattern = injiOvpRedirectURLPattern;
+        this.maximumResponseHeaderSize = maximumResponseHeaderSize;
+    }
 
 
     @Override
@@ -185,29 +193,14 @@ public class PresentationServiceImpl implements PresentationService {
             );
         }
 
-        // Otherwise, do redirect
-        String redirectString = buildRedirectString(
-                vpToken,
-                presentationRequestDTO.getRedirectUri(),
-                presentationSubmission
-        );
-
-        if (redirectString.length() > maximumResponseHeaderSize) {
-            throw new VPNotCreatedException(ErrorConstants.URI_TOO_LONG.getErrorCode(), ErrorConstants.URI_TOO_LONG.getErrorMessage());
+        //throw exception if the response_mode is not direct_post
+        else {
+            throw new VPNotCreatedException(ErrorConstants.INVALID_RESPONSE_MODE.getErrorCode(), ErrorConstants.INVALID_RESPONSE_MODE.getErrorMessage());
         }
-
-        return redirectString;
     }
 
     private String createVpToken(VerifiablePresentationDTO vpDTO) throws JsonProcessingException {
         return objectMapper.writeValueAsString(vpDTO);
-    }
-
-    private String buildRedirectString(String vpToken, String redirectUri, String presentationSubmission) {
-        return String.format(injiOvpRedirectURLPattern,
-                redirectUri,
-                Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)),
-                URLEncoder.encode(presentationSubmission, StandardCharsets.UTF_8));
     }
 
     private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken, String presentationSubmission, String state, String nonce) throws JsonProcessingException {
@@ -228,12 +221,6 @@ public class PresentationServiceImpl implements PresentationService {
                     Map.class
             );
 
-            // Use request's redirectUri if it's non-blank
-            if (redirectUri != null && !redirectUri.isBlank()) {
-                log.info("Using redirectUri from request: {}", redirectUri);
-                return redirectUri;
-            }
-
             log.info("Response from verifier after POST: {}", postResponse);
 
             // Check for redirect_uri in response first
@@ -242,6 +229,12 @@ public class PresentationServiceImpl implements PresentationService {
                 if (responseRedirectUri != null && !responseRedirectUri.isEmpty()) {
                     return responseRedirectUri;
                 }
+            }
+
+            // Use request's redirectUri if it's non-blank
+            if (redirectUri != null && !redirectUri.isBlank()) {
+                log.info("Using redirectUri from request: {}", redirectUri);
+                return redirectUri;
             }
 
             // Fallback behavior if redirect_uri is not provided

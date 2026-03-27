@@ -18,9 +18,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,8 +33,7 @@ import java.util.Arrays;
 @Tag(name = SwaggerLiteralConstants.PRESENTATION_NAME, description = SwaggerLiteralConstants.PRESENTATION_DESCRIPTION)
 public class PresentationController {
 
-    @Autowired
-    PresentationService presentationService;
+    private final PresentationService presentationService;
 
     @Value("${mosip.inji.ovp.error.redirect.url.pattern}")
     String injiOvpErrorRedirectUrlPattern;
@@ -45,11 +41,15 @@ public class PresentationController {
     @Value("${mosip.inji.web.redirect.url}")
     String injiWebRedirectUrl;
 
-    @Autowired
-    VerifierService verifierService;
+    private final VerifierService verifierService;
 
-    @Autowired
-    ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
+
+    public PresentationController(PresentationService presentationService, VerifierService verifierService, ObjectMapper objectMapper) {
+        this.presentationService = presentationService;
+        this.verifierService = verifierService;
+        this.objectMapper = objectMapper;
+    }
 
     @Operation( summary = SwaggerLiteralConstants.PRESENTATION_AUTHORIZE_SUMMARY, description = SwaggerLiteralConstants.PRESENTATION_AUTHORIZE_DESCRIPTION)
     @ApiResponses({ @ApiResponse(responseCode = "302", content = { @Content(mediaType = "application/text") }) })
@@ -67,7 +67,7 @@ public class PresentationController {
 
         try {
             log.info("Started Presentation Authorization in the controller.");
-            verifierService.validateVerifier(clientId, redirectUri);
+            verifierService.validateVerifier(clientId, responseUri);
             PresentationDefinitionDTO presentationDefinitionDTO = objectMapper.readValue(presentationDefinition, PresentationDefinitionDTO.class);
             PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
                     .responseType(responseType)
