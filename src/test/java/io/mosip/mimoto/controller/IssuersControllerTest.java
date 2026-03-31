@@ -3,6 +3,7 @@ package io.mosip.mimoto.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuersDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
@@ -156,6 +157,53 @@ public class IssuersControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
+    }
+
+    @Test
+    public void getIssuerDetailsLogoDtoWithUrlProperty() throws Exception {
+        IssuerDTO issuer = getIssuerConfigDTO("Issuer1");
+        issuer.getDisplay().get(0).getLogo().setUrl("https://example.com/logo-via-url.png");
+        issuer.getDisplay().get(0).getLogo().setAlt_text("alt-url");
+
+        Mockito.when(issuersService.getIssuerDetails("id-url")).thenReturn(issuer);
+
+        mockMvc.perform(get("/issuers/id-url").accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.response.display[0].logo.url", Matchers.is("https://example.com/logo-via-url.png")))
+                .andExpect(jsonPath("$.response.display[0].logo.alt_text", Matchers.is("alt-url")));
+    }
+
+    @Test
+    public void getIssuerDetailsLogoDtoFromJsonWithUriAlias() throws Exception {
+        String issuerJson = """
+                {
+                  "issuer_id": "Issuer1id",
+                  "protocol": "OpenId4VCI",
+                  "display": [{
+                    "name": "Issuer1",
+                    "title": "Download via Issuer1",
+                    "description": "Issuer1 description",
+                    "language": "en",
+                    "logo": {
+                      "uri": "https://example.com/logo-via-uri.png",
+                      "alt_text": "alt-uri"
+                    }
+                  }],
+                  "client_id": "123",
+                  "client_alias": "test-client-alias",
+                  "enabled": "true",
+                  "credential_issuer_host": "https://issuer.env.net",
+                  "token_endpoint": "https://dev/Issuer1id"
+                }
+                """;
+        IssuerDTO issuer = new ObjectMapper().readValue(issuerJson, IssuerDTO.class);
+
+        Mockito.when(issuersService.getIssuerDetails("id-uri")).thenReturn(issuer);
+
+        mockMvc.perform(get("/issuers/id-uri").accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.response.display[0].logo.url", Matchers.is("https://example.com/logo-via-uri.png")))
+                .andExpect(jsonPath("$.response.display[0].logo.alt_text", Matchers.is("alt-uri")));
     }
 
     @Test
