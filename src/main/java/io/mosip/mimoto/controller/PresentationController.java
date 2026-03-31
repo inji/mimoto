@@ -67,7 +67,7 @@ public class PresentationController {
 
         try {
             log.info("Started Presentation Authorization in the controller.");
-            verifierService.validateVerifier(clientId, responseUri);
+            verifierService.validateVerifier(clientId, responseUri, redirectUri);
             PresentationDefinitionDTO presentationDefinitionDTO = objectMapper.readValue(presentationDefinition, PresentationDefinitionDTO.class);
             PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
                     .responseType(responseType)

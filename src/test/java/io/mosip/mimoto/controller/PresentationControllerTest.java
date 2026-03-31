@@ -78,7 +78,7 @@ public class PresentationControllerTest {
                 .thenReturn(mockPresentationDefinitionDTO);
         when(presentationService.authorizePresentation(any(PresentationRequestDTO.class)))
                 .thenReturn(SUCCESS_REDIRECT_URL);
-        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
 
         // Act & Assert
         mockMvc.perform(get("/authorize")
@@ -92,7 +92,7 @@ public class PresentationControllerTest {
                 .andExpect(redirectedUrl(SUCCESS_REDIRECT_URL));
 
         // Verify service calls
-        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(objectMapper).readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class);
 
         ArgumentCaptor<PresentationRequestDTO> captor = ArgumentCaptor.forClass(PresentationRequestDTO.class);
@@ -113,7 +113,7 @@ public class PresentationControllerTest {
         String errorMessage = "Invalid verifier provided";
         InvalidVerifierException exception = new InvalidVerifierException(errorCode, errorMessage);
 
-        doThrow(exception).when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        doThrow(exception).when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
 
         String expectedRedirectUrl = String.format(
                 "https://inji.web.redirect.url?error_code=%s&error_message=%s",
@@ -132,7 +132,7 @@ public class PresentationControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirectUrl));
 
-        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(presentationService, never()).authorizePresentation(any());
     }
 
@@ -146,7 +146,7 @@ public class PresentationControllerTest {
         PresentationDefinitionDTO mockPresentationDefinitionDTO = new PresentationDefinitionDTO();
         when(objectMapper.readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class))
                 .thenReturn(mockPresentationDefinitionDTO);
-        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         when(presentationService.authorizePresentation(any(PresentationRequestDTO.class)))
                 .thenThrow(exception);
 
@@ -168,7 +168,7 @@ public class PresentationControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirectUrl));
 
-        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(presentationService).authorizePresentation(any(PresentationRequestDTO.class));
     }
 
@@ -182,7 +182,7 @@ public class PresentationControllerTest {
         PresentationDefinitionDTO mockPresentationDefinitionDTO = new PresentationDefinitionDTO();
         when(objectMapper.readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class))
                 .thenReturn(mockPresentationDefinitionDTO);
-        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         when(presentationService.authorizePresentation(any(PresentationRequestDTO.class)))
                 .thenThrow(exception);
 
@@ -204,7 +204,7 @@ public class PresentationControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirectUrl));
 
-        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(presentationService).authorizePresentation(any(PresentationRequestDTO.class));
     }
 
@@ -216,7 +216,7 @@ public class PresentationControllerTest {
         PresentationDefinitionDTO mockPresentationDefinitionDTO = new PresentationDefinitionDTO();
         when(objectMapper.readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class))
                 .thenReturn(mockPresentationDefinitionDTO);
-        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         when(presentationService.authorizePresentation(any(PresentationRequestDTO.class)))
                 .thenThrow(exception);
 
@@ -238,7 +238,7 @@ public class PresentationControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirectUrl));
 
-        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(presentationService).authorizePresentation(any(PresentationRequestDTO.class));
     }
 
@@ -247,7 +247,7 @@ public class PresentationControllerTest {
         // Arrange
         when(objectMapper.readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class))
                 .thenThrow(new RuntimeException("JSON parsing failed"));
-        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
 
         String expectedRedirectUrl = String.format(
                 "%s?error_code=%s&error_message=%s",
@@ -267,7 +267,7 @@ public class PresentationControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirectUrl));
 
-        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(presentationService, never()).authorizePresentation(any());
     }
 
@@ -306,7 +306,7 @@ public class PresentationControllerTest {
                 .andExpect(status().isBadRequest());
 
         // Verify no service calls were made
-        verify(verifierService, never()).validateVerifier(anyString(), anyString());
+        verify(verifierService, never()).validateVerifier(anyString(), anyString(), anyString());
         verify(presentationService, never()).authorizePresentation(any());
     }
 
@@ -314,7 +314,7 @@ public class PresentationControllerTest {
     public void testPerformAuthorizationEmptyParameters() throws Exception {
         // Arrange
         doThrow(new InvalidVerifierException("EMPTY_CLIENT_ID", "Client ID cannot be empty"))
-                .when(verifierService).validateVerifier("", "");
+                .when(verifierService).validateVerifier("", "", "");
 
         String expectedRedirectUrl = String.format(
                 "https://inji.web.redirect.url?error_code=%s&error_message=%s",
@@ -347,7 +347,7 @@ public class PresentationControllerTest {
         String specialResponseUri = "https://example.com/v0/verify/vp-submission/direct-post?session=abc";
         when(presentationService.authorizePresentation(any(PresentationRequestDTO.class)))
                 .thenReturn(SUCCESS_REDIRECT_URL);
-        doNothing().when(verifierService).validateVerifier(specialClientId, specialResponseUri);
+        doNothing().when(verifierService).validateVerifier(specialClientId, specialResponseUri, specialRedirectUri);
 
         // Act & Assert
         mockMvc.perform(get("/authorize")
@@ -360,7 +360,7 @@ public class PresentationControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(SUCCESS_REDIRECT_URL));
 
-        verify(verifierService).validateVerifier(specialClientId, specialResponseUri);
+        verify(verifierService).validateVerifier(specialClientId, specialResponseUri, specialRedirectUri);
         verify(presentationService).authorizePresentation(any(PresentationRequestDTO.class));
     }
 
@@ -385,7 +385,7 @@ public class PresentationControllerTest {
                 .thenReturn(mockPresentationDefinitionDTO);
         when(presentationService.authorizePresentation(any(PresentationRequestDTO.class)))
                 .thenReturn(SUCCESS_REDIRECT_URL);
-        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
 
         mockMvc.perform(get("/authorize")
                         .param("response_type", RESPONSE_TYPE)
@@ -404,7 +404,7 @@ public class PresentationControllerTest {
         String malformedJson = "{invalid_json}";
         when(objectMapper.readValue(malformedJson, PresentationDefinitionDTO.class))
                 .thenThrow(new RuntimeException("Malformed JSON"));
-        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI);
+        doNothing().when(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
 
         String expectedRedirectUrl = String.format(
                 "%s?error_code=%s&error_message=%s",
@@ -434,7 +434,7 @@ public class PresentationControllerTest {
                         .param("redirect_uri", (String) null))
                 .andExpect(status().isBadRequest());
 
-        verify(verifierService, never()).validateVerifier(anyString(), anyString());
+        verify(verifierService, never()).validateVerifier(anyString(), anyString(), anyString());
         verify(presentationService, never()).authorizePresentation(any());
     }
 

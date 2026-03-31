@@ -181,22 +181,7 @@ public class PresentationServiceImpl implements PresentationService {
         // Create PresentationSubmission
         String presentationSubmission = constructPresentationSubmission(format, vpDTO, presentationDefinitionDTO, inputDescriptorDTO);
 
-        // If response_uri is present, POST the response
-        if (presentationRequestDTO.getResponseMode() != null && "direct_post".equals(presentationRequestDTO.getResponseMode())) {
-            return postVpToResponseUri(
-                    presentationRequestDTO.getResponseUri(),
-                    presentationRequestDTO.getRedirectUri(),
-                    vpToken,
-                    presentationSubmission,
-                    presentationRequestDTO.getState(),
-                    presentationRequestDTO.getNonce()
-            );
-        }
-
-        //throw exception if the response_mode is not direct_post
-        else {
-            throw new VPNotCreatedException(ErrorConstants.INVALID_RESPONSE_MODE.getErrorCode(), ErrorConstants.INVALID_RESPONSE_MODE.getErrorMessage());
-        }
+        return postVpToResponseUri(presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri(), vpToken, presentationSubmission, presentationRequestDTO.getState(), presentationRequestDTO.getNonce());
     }
 
     private String createVpToken(VerifiablePresentationDTO vpDTO) throws JsonProcessingException {

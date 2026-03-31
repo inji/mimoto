@@ -151,21 +151,6 @@ public class PresentationServiceTest {
         presentationService.authorizePresentation(presentationRequestDTO);
     }
 
-    @Test(expected = VPNotCreatedException.class)
-    public void uriTooLongWithVPRequest() throws IOException {
-        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", 10);
-
-        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
-        PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
-
-        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
-        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
-                .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
-        when(objectMapper.writeValueAsString(any())).thenReturn("very-long-test-data-that-exceeds-limit");
-
-        presentationService.authorizePresentation(presentationRequestDTO);
-    }
-
     @Test
     public void constructPresentationDefinitionForLdpVcCredential() {
         VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
