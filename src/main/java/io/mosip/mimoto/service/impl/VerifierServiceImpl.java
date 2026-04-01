@@ -21,6 +21,7 @@ import org.springframework.util.PathMatcher;
 import org.springframework.cache.annotation.Cacheable;
 
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,7 +72,9 @@ public class VerifierServiceImpl implements VerifierService {
         if (responseUri != null && !responseUri.trim().isEmpty()) {
             getVerifierByClientId(clientId).ifPresentOrElse(
                     (verifierDTO) -> {
-                        boolean isValidVerifier = verifierDTO.getResponseUris().stream().anyMatch(registeredResponseUri ->
+                        List<String> registeredResponseUris = Optional.ofNullable(verifierDTO.getResponseUris())
+                                .orElseGet(Collections::emptyList);
+                        boolean isValidVerifier = registeredResponseUris.stream().anyMatch(registeredResponseUri ->
                                 urlValidator.isValid(registeredResponseUri) &&
                                         urlValidator.isValid(responseUri) &&
                                         pathMatcher.match(registeredResponseUri, responseUri));
@@ -90,7 +93,9 @@ public class VerifierServiceImpl implements VerifierService {
         } else {
             getVerifierByClientId(clientId).ifPresentOrElse(
                     (verifierDTO) -> {
-                        boolean isValidVerifier = verifierDTO.getRedirectUris().stream().anyMatch(registeredRedirectUri ->
+                        List<String> registeredRedirectUris = Optional.ofNullable(verifierDTO.getRedirectUris())
+                                .orElseGet(Collections::emptyList);
+                        boolean isValidVerifier = registeredRedirectUris.stream().anyMatch(registeredRedirectUri ->
                                 urlValidator.isValid(registeredRedirectUri) &&
                                         urlValidator.isValid(redirectUri) &&
                                         pathMatcher.match(registeredRedirectUri, redirectUri));
