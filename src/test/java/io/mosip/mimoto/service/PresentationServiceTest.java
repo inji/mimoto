@@ -28,6 +28,8 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 
@@ -105,6 +107,59 @@ public class PresentationServiceTest {
 
         assertEquals("https://verifier.example.com/success", actualRedirectUrl);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void authorizePresentation_redirectMode_returnsRedirectUrlWithVpTokenAndPresentationSubmission() throws Exception {
+        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
+        PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        presentationRequestDTO.setResponseMode(null);
+
+        doReturn(vcCredentialResponse).when(dataShareService).downloadCredentialFromDataShare(eq(presentationRequestDTO));
+        doReturn((VCCredentialProperties) vcCredentialResponse.getCredential()).when(objectMapper)
+                .convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class));
+        doReturn("test-data").when(objectMapper).writeValueAsString(any());
+
+        String vpToken = "test-data";
+        String presentationSubmission = "test-data";
+        String redirectUri = presentationRequestDTO.getRedirectUri();
+        String expected = String.format("%s#vp_token=%s&presentation_submission=%s",
+                redirectUri,
+                Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)),
+                URLEncoder.encode(presentationSubmission, StandardCharsets.UTF_8));
+
+        String actual = presentationService.authorizePresentation(presentationRequestDTO);
+
+        assertEquals(expected, actual);
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void authorizePresentation_redirectMode_throwsWhenRedirectUrlExceedsMaxHeaderSize() throws Exception {
+        PresentationServiceImpl serviceWithSmallHeaderLimit = new PresentationServiceImpl(
+                dataShareService,
+                objectMapper,
+                restApiClient,
+                "%s#vp_token=%s&presentation_submission=%s",
+                200
+        );
+
+        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
+        PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        presentationRequestDTO.setResponseMode(null);
+
+        doReturn(vcCredentialResponse).when(dataShareService).downloadCredentialFromDataShare(eq(presentationRequestDTO));
+        doReturn((VCCredentialProperties) vcCredentialResponse.getCredential()).when(objectMapper)
+                .convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class));
+        doReturn("p".repeat(500)).when(objectMapper).writeValueAsString(any());
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> serviceWithSmallHeaderLimit.authorizePresentation(presentationRequestDTO));
+
+        assertEquals(
+                ErrorConstants.URI_TOO_LONG.getErrorCode() + " --> " + ErrorConstants.URI_TOO_LONG.getErrorMessage(),
+                ex.getMessage());
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
     }
 
     @Test(expected = VPNotCreatedException.class)

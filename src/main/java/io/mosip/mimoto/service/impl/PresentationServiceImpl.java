@@ -181,7 +181,37 @@ public class PresentationServiceImpl implements PresentationService {
         // Create PresentationSubmission
         String presentationSubmission = constructPresentationSubmission(format, vpDTO, presentationDefinitionDTO, inputDescriptorDTO);
 
-        return postVpToResponseUri(presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri(), vpToken, presentationSubmission, presentationRequestDTO.getState(), presentationRequestDTO.getNonce());
+        // If response_uri is present, POST the response
+        if (presentationRequestDTO.getResponseMode() != null && "direct_post".equals(presentationRequestDTO.getResponseMode())) {
+            return postVpToResponseUri(
+                    presentationRequestDTO.getResponseUri(),
+                    presentationRequestDTO.getRedirectUri(),
+                    vpToken,
+                    presentationSubmission,
+                    presentationRequestDTO.getState(),
+                    presentationRequestDTO.getNonce()
+            );
+        }
+
+        // Otherwise, do redirect
+        String redirectString = buildRedirectString(
+                vpToken,
+                presentationRequestDTO.getRedirectUri(),
+                presentationSubmission
+        );
+
+        if (redirectString.length() > maximumResponseHeaderSize) {
+            throw new VPNotCreatedException(ErrorConstants.URI_TOO_LONG.getErrorCode(), ErrorConstants.URI_TOO_LONG.getErrorMessage());
+        }
+
+        return redirectString;
+    }
+
+    private String buildRedirectString(String vpToken, String redirectUri, String presentationSubmission) {
+        return String.format(injiOvpRedirectURLPattern,
+                redirectUri,
+                Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)),
+                URLEncoder.encode(presentationSubmission, StandardCharsets.UTF_8));
     }
 
     private String createVpToken(VerifiablePresentationDTO vpDTO) throws JsonProcessingException {
