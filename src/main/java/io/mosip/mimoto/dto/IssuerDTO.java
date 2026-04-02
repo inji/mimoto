@@ -40,7 +40,6 @@ public class IssuerDTO {
     String authorization_audience;
 
     @URL
-    @NotBlank
     @Schema(description = "Mimoto Token Endpoint Fetching the Token From Authorization Server with Client Assertion")
     String token_endpoint;
 

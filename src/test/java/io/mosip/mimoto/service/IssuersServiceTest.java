@@ -356,4 +356,74 @@ public class IssuersServiceTest {
         assertThrows(ApiNotAccessibleException.class, () -> issuersService.getIssuerV2Details("Issuer3id"));
         verify(utilities, times(1)).getIssuersConfigJsonValue();
     }
+
+    @Test
+    public void shouldGenerateTokenEndpointWhenMissingInV1() throws Exception {
+        String publicUrl = "https://api.dev.mosip.net";
+        String context = "/v4/mimoto";
+        String getTokenPath = "/get-token/";
+        IssuersServiceImpl serviceWithConfig = new IssuersServiceImpl(
+                utilities, objectMapper, issuersConfigUtil, publicUrl, context);
+
+        String issuerIdMissing = "Issuer-Missing";
+        String issuerIdExisting = "Issuer-Existing";
+        String existingUrl = "https://external-idp.com/token";
+
+        IssuerDTO issuerA = getIssuerConfigDTO(issuerIdMissing);
+        issuerA.setIssuer_id(issuerIdMissing);
+        issuerA.setToken_endpoint(null);
+
+        IssuerDTO issuerB = getIssuerConfigDTO(issuerIdExisting);
+        issuerB.setToken_endpoint(existingUrl);
+
+        IssuersDTO mockIssuers = new IssuersDTO(List.of(issuerA, issuerB));
+        String json = objectMapper.writeValueAsString(mockIssuers);
+
+        when(utilities.getIssuersConfigJsonValue()).thenReturn(json);
+        when(objectMapper.readValue(json, IssuersDTO.class)).thenReturn(mockIssuers);
+
+        IssuersDTO result = serviceWithConfig.getAllIssuers();
+
+        String expectedGeneratedUrl = publicUrl + context + getTokenPath + issuerIdMissing;
+
+        assertEquals(expectedGeneratedUrl, result.getIssuers().get(0).getToken_endpoint());
+        assertEquals(existingUrl, result.getIssuers().get(1).getToken_endpoint());
+    }
+
+    @Test
+    public void shouldGenerateTokenEndpointWhenMissingInV2() throws Exception {
+        // Arrange
+        String publicUrl = "https://api.dev.mosip.net";
+        String context = "/v4/mimoto";
+        String getTokenPath = "/get-token/";
+
+        IssuersServiceImpl serviceWithConfig = new IssuersServiceImpl(
+                utilities, objectMapper, issuersConfigUtil, publicUrl, context);
+
+        String issuerIdMissing = "IssuerV2-Missing";
+        String issuerIdExisting = "Issuer-Existing";
+        String existingUrl = "https://external-idp.com/token";
+
+        IssuerDTO issuerA = getIssuerConfigDTO(issuerIdMissing);
+        issuerA.setIssuer_id(issuerIdMissing);
+        issuerA.setToken_endpoint("");
+
+        IssuerDTO issuerB = getIssuerConfigDTO(issuerIdExisting);
+        issuerB.setToken_endpoint(existingUrl);
+
+        IssuersDTO mockIssuers = new IssuersDTO(List.of(issuerA, issuerB));
+        String json = objectMapper.writeValueAsString(mockIssuers);
+
+        when(utilities.getIssuersConfigJsonValue()).thenReturn(json);
+        when(objectMapper.readValue(json, IssuersDTO.class)).thenReturn(mockIssuers);
+
+        IssuersV2DTO result = serviceWithConfig.getIssuersV2DTO();
+
+        String expectedGeneratedUrl = publicUrl + context + getTokenPath + issuerIdMissing;
+
+        assertEquals(2, result.getIssuers().size());
+
+        assertEquals(expectedGeneratedUrl, result.getIssuers().get(0).getTokenEndpoint());
+        assertEquals(existingUrl, result.getIssuers().get(1).getTokenEndpoint());
+    }
 }

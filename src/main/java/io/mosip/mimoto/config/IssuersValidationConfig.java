@@ -62,17 +62,11 @@ public class IssuersValidationConfig implements ApplicationRunner {
 
                     }
 
-                    String[] tokenEndpointArray = issuerDTO.getToken_endpoint().split("/");
                     Set<String> currentIssuers = credentialIssuers.get();
 
                     if (!currentIssuers.add(issuerId)) {
                         issuerHasErrors = true;
                         issuerErrors.append("- Duplicate value found for the issuerId. More than one issuer is having the same issuerId").append("\n");
-                    }
-
-                    if (!tokenEndpointArray[tokenEndpointArray.length - 1].equals(issuerId)) {
-                        issuerHasErrors = true;
-                        issuerErrors.append("- TokenEndpoint does not match with the credential issuerId").append("\n");
                     }
 
                     if (issuerHasErrors) {

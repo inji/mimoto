@@ -16,6 +16,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,10 +34,20 @@ public class IssuersServiceImpl implements IssuersService {
 
     private final IssuerConfigUtil issuersConfigUtil;
 
-    public IssuersServiceImpl(Utilities utilities, ObjectMapper objectMapper, IssuerConfigUtil issuersConfigUtil) {
+    private final String mosipApiPublicUrl;
+
+    private final String contextPath;
+
+    private static final String GET_TOKEN_PATH = "/get-token/";
+
+    public IssuersServiceImpl(Utilities utilities, ObjectMapper objectMapper, IssuerConfigUtil issuersConfigUtil,
+                              @Value("${mosip.api.public.url}") String mosipApiPublicUrl,
+                              @Value("${server.servlet.context-path}") String contextPath) {
         this.utilities = utilities;
         this.objectMapper = objectMapper;
         this.issuersConfigUtil = issuersConfigUtil;
+        this.mosipApiPublicUrl = mosipApiPublicUrl;
+        this.contextPath = contextPath;
     }
 
     @Override
@@ -86,6 +97,14 @@ public class IssuersServiceImpl implements IssuersService {
         }
 
         issuersDTO = objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class);
+
+        if (issuersDTO != null && issuersDTO.getIssuers() != null) {
+            for (IssuerDTO issuer : issuersDTO.getIssuers()) {
+                if (issuer != null) {
+                    buildTokenEndpoint(issuer);
+                }
+            }
+        }
 
         return issuersDTO;
     }
@@ -155,5 +174,15 @@ public class IssuersServiceImpl implements IssuersService {
         issuerV2DTO.setCredentialIssuerHost(issuer.getCredential_issuer_host());
 
         return issuerV2DTO;
+    }
+
+    /**
+    * Builds the token_endpoint for the issuer if it is not already set in the config.
+    */
+    private void buildTokenEndpoint(IssuerDTO issuer) {
+        if (StringUtils.isBlank(issuer.getToken_endpoint())) {
+            String generatedTokenEndpoint = mosipApiPublicUrl + contextPath + GET_TOKEN_PATH + issuer.getIssuer_id();
+            issuer.setToken_endpoint(generatedTokenEndpoint);
+        }
     }
 }

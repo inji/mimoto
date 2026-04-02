@@ -39,7 +39,6 @@ public class IssuerV2DTO {
     private String clientAlias;
 
     @URL
-    @NotBlank
     @JsonProperty("token_endpoint")
     @Schema(description = "Mimoto Token Endpoint Fetching the Token From Authorization Server with Client Assertion")
     private String tokenEndpoint;
