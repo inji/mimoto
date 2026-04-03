@@ -99,11 +99,13 @@ public class IssuersServiceImpl implements IssuersService {
         issuersDTO = objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class);
 
         if (issuersDTO != null && issuersDTO.getIssuers() != null) {
-            for (IssuerDTO issuer : issuersDTO.getIssuers()) {
-                if (issuer != null) {
-                    buildTokenEndpoint(issuer);
-                }
-            }
+            String baseTokenEndpoint = new StringBuilder()
+                    .append(mosipApiPublicUrl).append(contextPath).append(GET_TOKEN_PATH)
+                    .toString();
+
+            issuersDTO.getIssuers().stream()
+                    .filter(java.util.Objects::nonNull)
+                    .forEach(issuer -> issuer.setToken_endpoint(baseTokenEndpoint + issuer.getIssuer_id()));
         }
 
         return issuersDTO;
@@ -174,15 +176,5 @@ public class IssuersServiceImpl implements IssuersService {
         issuerV2DTO.setCredentialIssuerHost(issuer.getCredential_issuer_host());
 
         return issuerV2DTO;
-    }
-
-    /**
-    * Builds the token_endpoint for the issuer if it is not already set in the config.
-    */
-    private void buildTokenEndpoint(IssuerDTO issuer) {
-        if (StringUtils.isBlank(issuer.getToken_endpoint())) {
-            String generatedTokenEndpoint = mosipApiPublicUrl + contextPath + GET_TOKEN_PATH + issuer.getIssuer_id();
-            issuer.setToken_endpoint(generatedTokenEndpoint);
-        }
     }
 }
