@@ -86,7 +86,7 @@ public class InjiTestRunner {
 			MimotoConfigManager.getEsignetBaseUrl();
 
 			HealthChecker healthcheck = new HealthChecker();
-			healthcheck.setCurrentRunningModule(BaseTestCase.currentModule);
+			healthcheck.setCurrentRunningModule(GlobalConstants.MIMOTO);
 			Thread trigger = new Thread(healthcheck);
 			trigger.start();
 			
