@@ -17,7 +17,7 @@
       "protocol": "OpenId4VCI",
       "client_id": "wallet-demo",
       "client_alias": "wallet-demo-client",
-      "token_endpoint": "https://api.collab.mosip.net/v1/mimoto/get-token/Mock",
+      "token_endpoint": "https://localhost:8099/v1/mimoto/get-token/Mock",
       "qr_code_type": "OnlineSharing",
       "credential_issuer_host": "https://injicertify-mock.collab.mosip.net",
       "enabled": "true"
