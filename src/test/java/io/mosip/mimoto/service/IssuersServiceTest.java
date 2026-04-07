@@ -27,6 +27,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -181,6 +182,50 @@ public class IssuersServiceTest {
         CredentialIssuerConfiguration actualCredentialIssuerConfiguration = issuersService.getIssuerConfiguration("Issuer3id");
 
         assertEquals(expectedCredentialIssuerConfiguration, actualCredentialIssuerConfiguration);
+    }
+
+    @Test
+    public void shouldSetAuthorizationServersToCredentialIssuerHostWhenNull() throws AuthorizationServerWellknownResponseException, ApiNotAccessibleException, IOException, InvalidWellknownResponseException {
+        expectedCredentialIssuerWellKnownResponse.setAuthorizationServers(null);
+        Mockito.when(issuersConfigUtil.getIssuerWellknown(credentialIssuerHostUrl))
+                .thenReturn(expectedCredentialIssuerWellKnownResponse);
+        Mockito.when(issuersConfigUtil.getAuthServerWellknown(credentialIssuerHostUrl))
+                .thenReturn(expectedCredentialIssuerConfiguration.getAuthorizationServerWellKnownResponse());
+
+        CredentialIssuerConfiguration actual = issuersService.getIssuerConfiguration(issuerId);
+
+        CredentialIssuerConfiguration expected = new CredentialIssuerConfiguration(
+                expectedCredentialIssuerWellKnownResponse.getCredentialIssuer(),
+                List.of(credentialIssuerHostUrl),
+                expectedCredentialIssuerWellKnownResponse.getCredentialEndPoint(),
+                expectedCredentialIssuerWellKnownResponse.getCredentialConfigurationsSupported(),
+                expectedCredentialIssuerConfiguration.getAuthorizationServerWellKnownResponse()
+        );
+        assertEquals(expected, actual);
+        verify(issuersConfigUtil, times(1)).getAuthServerWellknown(credentialIssuerHostUrl);
+        verify(issuersConfigUtil, never()).getAuthServerWellknown(authServerWellknownUrl);
+    }
+
+    @Test
+    public void shouldSetAuthorizationServersToCredentialIssuerHostWhenEmpty() throws AuthorizationServerWellknownResponseException, ApiNotAccessibleException, IOException, InvalidWellknownResponseException {
+        expectedCredentialIssuerWellKnownResponse.setAuthorizationServers(Collections.emptyList());
+        Mockito.when(issuersConfigUtil.getIssuerWellknown(credentialIssuerHostUrl))
+                .thenReturn(expectedCredentialIssuerWellKnownResponse);
+        Mockito.when(issuersConfigUtil.getAuthServerWellknown(credentialIssuerHostUrl))
+                .thenReturn(expectedCredentialIssuerConfiguration.getAuthorizationServerWellKnownResponse());
+
+        CredentialIssuerConfiguration actual = issuersService.getIssuerConfiguration(issuerId);
+
+        CredentialIssuerConfiguration expected = new CredentialIssuerConfiguration(
+                expectedCredentialIssuerWellKnownResponse.getCredentialIssuer(),
+                List.of(credentialIssuerHostUrl),
+                expectedCredentialIssuerWellKnownResponse.getCredentialEndPoint(),
+                expectedCredentialIssuerWellKnownResponse.getCredentialConfigurationsSupported(),
+                expectedCredentialIssuerConfiguration.getAuthorizationServerWellKnownResponse()
+        );
+        assertEquals(expected, actual);
+        verify(issuersConfigUtil, times(1)).getAuthServerWellknown(credentialIssuerHostUrl);
+        verify(issuersConfigUtil, never()).getAuthServerWellknown(authServerWellknownUrl);
     }
 
     @Test

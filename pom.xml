@@ -137,14 +137,14 @@
             <version>20231002</version>
         </dependency>
         <dependency>
-            <groupId>io.mosip</groupId>
+            <groupId>io.inji</groupId>
             <artifactId>vcverifier-jar</artifactId>
-            <version>1.6.0</version>
+            <version>1.7.0</version>
         </dependency>
         <dependency>
-            <groupId>io.mosip</groupId>
+            <groupId>io.inji</groupId>
             <artifactId>inji-openid4vp-jar</artifactId>
-            <version>0.6.0</version>
+            <version>0.7.0</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -502,7 +502,7 @@
         <dependency>
             <groupId>io.mosip.kernel</groupId>
             <artifactId>kernel-keymanager-service</artifactId>
-            <version>1.3.0</version>
+            <version>1.4.0</version>
             <classifier>lib</classifier>
             <exclusions>
                 <exclusion>

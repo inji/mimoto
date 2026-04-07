@@ -1,24 +1,24 @@
 {
   "issuers": [
     {
-      "issuer_id": "StayProtected",
+      "issuer_id": "Mock",
       "display": [
         {
-          "name": "StayProtected Insurance",
+          "name": "Mock Identity",
           "logo": {
-            "url": "https://raw.githubusercontent.com/tw-mosip/file-server/master/StayProtectedInsurance.png",
-            "alt_text": "a square logo of a Sunbird"
+            "url": "https://inji.github.io/inji-config/logos/mosipid-logo.png",
+            "alt_text": "mosip-logo"
           },
-          "language": "en",
-          "title": "Download StayProtected Insurance Credentials",
-          "description": "Download insurance credential"
+          "title": "Mock Identity",
+          "description": "Download Mock Identity Credential",
+          "language": "en"
         }
       ],
       "protocol": "OpenId4VCI",
       "client_id": "wallet-demo",
       "client_alias": "wallet-demo-client",
       "qr_code_type": "OnlineSharing",
-      "credential_issuer_host": "https://injicertify-insurance.collab.mosip.net",
+      "credential_issuer_host": "https://injicertify-mock.collab.mosip.net",
       "enabled": "true"
     }
   ]
