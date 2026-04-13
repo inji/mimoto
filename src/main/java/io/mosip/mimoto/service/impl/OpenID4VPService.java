@@ -95,6 +95,9 @@ public class OpenID4VPService {
      * matches (e.g. {@link OpenID4VPErrorCodes#INVALID_TRANSACTION_DATA} vs {@link OpenID4VPErrorCodes#ACCESS_DENIED}).
      */
     static Exception toOpenId4VpException(ErrorDTO payload) {
+        if (payload == null) {
+            throw new IllegalArgumentException("Invalid error payload");
+        }
         String message = payload.getErrorMessage() != null ? payload.getErrorMessage() : "";
         String code = payload.getErrorCode();
         String className = OpenID4VPService.class.getSimpleName();
