@@ -10,11 +10,14 @@ import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.openID4VP.OpenID4VP;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.PresentationDefinition;
+import io.mosip.openID4VP.common.OpenID4VPErrorCodes;
+import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
 import io.mosip.openID4VP.verifier.VerifierResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -357,6 +360,40 @@ public class OpenID4VPServiceTest {
         verify(verifierService).getTrustedVerifiers();
         verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"), anyList(), eq(true));
         verify(mockOpenID4VP).sendErrorInfoToVerifier(any());
+    }
+
+    @Test
+    public void testSendErrorToVerifierUsesInvalidTransactionDataWhenErrorCodeSet() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        VerifierResponse mockResponse = mock(VerifierResponse.class);
+
+        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+
+        VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
+        when(sessionData.getPresentationId()).thenReturn("presentation-123");
+        when(sessionData.getAuthorizationRequest()).thenReturn("authorization-request");
+        when(sessionData.isVerifierClientPreregistered()).thenReturn(true);
+
+        ErrorDTO payload = mock(ErrorDTO.class);
+        when(payload.getErrorCode()).thenReturn(OpenID4VPErrorCodes.INVALID_TRANSACTION_DATA);
+        when(payload.getErrorMessage()).thenReturn("No matching credentials");
+
+        VerifierResponse response = spyService.sendErrorToVerifier(sessionData, payload);
+
+        assertNotNull(response);
+        assertEquals(mockResponse, response);
+
+        ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
+        verify(mockOpenID4VP).sendErrorInfoToVerifier(captor.capture());
+        assertTrue(captor.getValue() instanceof OpenID4VPExceptions.InvalidTransactionData);
+        assertEquals(OpenID4VPErrorCodes.INVALID_TRANSACTION_DATA,
+                ((OpenID4VPExceptions) captor.getValue()).getErrorCode());
     }
 
     @Test

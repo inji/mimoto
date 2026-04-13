@@ -10,6 +10,7 @@ import io.mosip.openID4VP.authorizationRequest.VPFormatSupported;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
 import io.mosip.openID4VP.authorizationRequest.WalletMetadata;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.PresentationDefinition;
+import io.mosip.openID4VP.common.OpenID4VPErrorCodes;
 import io.mosip.openID4VP.constants.VPFormatType;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
 import io.mosip.openID4VP.verifier.VerifierResponse;
@@ -81,11 +82,32 @@ public class OpenID4VPService {
                 .toList();
 
         // authenticateVerifier to populate internal state in OpenID4VP before sending error
-        AuthorizationRequest authorizationRequest = openID4VP.authenticateVerifier(sessionData.getAuthorizationRequest(), preRegisteredVerifiers, sessionData.isVerifierClientPreregistered());
+        openID4VP.authenticateVerifier(sessionData.getAuthorizationRequest(), preRegisteredVerifiers, sessionData.isVerifierClientPreregistered());
 
-        OpenID4VPExceptions.AccessDenied accessDeniedException = new OpenID4VPExceptions.AccessDenied(payload.getErrorMessage(), "OpenID4VPService");
-        VerifierResponse verifierResponse = openID4VP.sendErrorInfoToVerifier(accessDeniedException);
+        Exception errorForVerifier = toOpenId4VpException(payload);
+        VerifierResponse verifierResponse = openID4VP.sendErrorInfoToVerifier(errorForVerifier);
         log.info("Sent rejection to verifier for presentationId {}. Response: {}", sessionData.getPresentationId(), verifierResponse);
         return verifierResponse;
+    }
+
+    /**
+     * Maps wallet {@link ErrorDTO#errorCode} to inji-openid4vp exceptions so the verifier OAuth {@code error}
+     * matches (e.g. {@link OpenID4VPErrorCodes#INVALID_TRANSACTION_DATA} vs {@link OpenID4VPErrorCodes#ACCESS_DENIED}).
+     */
+    static Exception toOpenId4VpException(ErrorDTO payload) {
+        String message = payload.getErrorMessage() != null ? payload.getErrorMessage() : "";
+        String code = payload.getErrorCode();
+        String className = OpenID4VPService.class.getSimpleName();
+
+        if (code == null || code.isBlank()) {
+            return new OpenID4VPExceptions.AccessDenied(message, className);
+        }
+        if (OpenID4VPErrorCodes.ACCESS_DENIED.equals(code)) {
+            return new OpenID4VPExceptions.AccessDenied(message, className);
+        }
+        if (OpenID4VPErrorCodes.INVALID_TRANSACTION_DATA.equals(code)) {
+            return new OpenID4VPExceptions.InvalidTransactionData(message, className);
+        }
+        return new OpenID4VPExceptions.InvalidData(message, className, code);
     }
 }
