@@ -9,7 +9,7 @@ import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponse;
 import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
-import io.mosip.mimoto.service.CredentialRequestService;
+import io.mosip.mimoto.service.Draft13CredentialRequestService;
 import io.mosip.mimoto.service.VCDownloadHandler;
 import io.mosip.mimoto.util.RestApiClient;
 import lombok.extern.slf4j.Slf4j;
@@ -22,11 +22,11 @@ import static io.mosip.mimoto.exception.ErrorConstants.SERVER_UNAVAILABLE;
 @Slf4j
 @Component("draft13")
 public class Draft13VCDownloadHandler implements VCDownloadHandler {
-    private final CredentialRequestService credentialRequestService;
+    private final Draft13CredentialRequestService draft13CredentialRequestService;
     private final RestApiClient restApiClient;
 
-    public Draft13VCDownloadHandler(CredentialRequestService credentialRequestService, RestApiClient restApiClient) {
-        this.credentialRequestService = credentialRequestService;
+    public Draft13VCDownloadHandler(Draft13CredentialRequestService draft13CredentialRequestService, RestApiClient restApiClient) {
+        this.draft13CredentialRequestService = draft13CredentialRequestService;
         this.restApiClient = restApiClient;
     }
 
@@ -34,7 +34,7 @@ public class Draft13VCDownloadHandler implements VCDownloadHandler {
     public VCCredentialResponse downloadCredential(IssuerDTO issuerDTO, String credentialConfigurationId, CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse, TokenResponseDTO tokenResponse, String walletId, String base64Key, boolean isLoginFlow) throws CredentialProcessingException, InvalidCredentialResourceException, ExternalServiceUnavailableException {
         Draft13VCCredentialRequest vcCredentialRequest;
         try {
-            vcCredentialRequest = credentialRequestService.buildRequest(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse.getC_nonce(), walletId, base64Key, isLoginFlow);
+            vcCredentialRequest = draft13CredentialRequestService.buildRequest(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse.getC_nonce(), walletId, base64Key, isLoginFlow);
         } catch (Exception e) {
             log.error("Failed to generate VC credential request for issuerId: {}", issuerDTO.getIssuer_id(), e);
             throw new CredentialProcessingException(CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(), "Unable to generate credential request", e);
@@ -67,7 +67,12 @@ public class Draft13VCDownloadHandler implements VCDownloadHandler {
         }
 
         if (response == null) {
-            throw new InvalidCredentialResourceException("VC Credential Issue API not accessible");
+            String message = String.format("Unable to download credential from issuerId: %s, credentialConfigurationId: %s", issuerId, credentialConfigId);
+            throw new ExternalServiceUnavailableException(SERVER_UNAVAILABLE.getErrorCode(), message);
+        }
+
+        if (response.getCredential() == null) {
+            throw new InvalidCredentialResourceException("Credential response did not contain a credential");
         }
 
         log.debug("VC Credential Response received");

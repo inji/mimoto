@@ -73,6 +73,7 @@ public class CredentialServiceImpl implements CredentialService {
                 credentialIssuerConfiguration.getCredentialConfigurationsSupported());
         CredentialsSupportedResponse credentialsSupportedResponse = credentialIssuerWellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
+        // TODO: Replace hardcoded "draft13" with dynamic version
         VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler("draft13");
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false);
 
@@ -98,6 +99,7 @@ public class CredentialServiceImpl implements CredentialService {
      * @throws CredentialProcessingException       If processing fails.
      * @throws ExternalServiceUnavailableException If an external service is unavailable.
      * @throws VCVerificationException             If credential verification fails.
+     * @throws InvalidCredentialResourceException  If the credential resource is invalid.
      */
     public VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
             TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
@@ -111,6 +113,7 @@ public class CredentialServiceImpl implements CredentialService {
         IssuerConfig issuerConfig = fetchIssuerConfig(issuerId, credentialConfigurationId);
 
         // Download credential from issuer
+        // TODO: Replace hardcoded "draft13" with dynamic version 
         VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler("draft13");
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true);
 

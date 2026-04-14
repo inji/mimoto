@@ -1,12 +1,8 @@
-package io.mosip.mimoto.service.impl;
+package io.mosip.mimoto.service;
 
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.*;
-import io.mosip.mimoto.service.CredentialFormatHandler;
-import io.mosip.mimoto.service.CredentialFormatHandlerFactory;
-import io.mosip.mimoto.service.CredentialRequestService;
-import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class Draft13CredentialRequestServiceImpl implements CredentialRequestService {
+public class Draft13CredentialRequestService {
 
     @Value("${signing.algorithms.priority.order:ED25519,ES256K,ES256,RS256}")
     private String signingAlgorithmsPriorityOrder;
@@ -29,7 +25,7 @@ public class Draft13CredentialRequestServiceImpl implements CredentialRequestSer
 
     private final KeyPairRetrievalService keyPairService;
 
-    public Draft13CredentialRequestServiceImpl(CredentialFormatHandlerFactory credentialFormatHandlerFactory, KeyPairRetrievalService keyPairService) {
+    public Draft13CredentialRequestService(CredentialFormatHandlerFactory credentialFormatHandlerFactory, KeyPairRetrievalService keyPairService) {
         this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
         this.keyPairService = keyPairService;
     }
@@ -39,7 +35,6 @@ public class Draft13CredentialRequestServiceImpl implements CredentialRequestSer
                 .map(String::trim).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    @Override
     public Draft13VCCredentialRequest buildRequest(IssuerDTO issuerDTO,
                                             String credentialConfigurationId,
                                             CredentialIssuerWellKnownResponse wellKnownResponse,

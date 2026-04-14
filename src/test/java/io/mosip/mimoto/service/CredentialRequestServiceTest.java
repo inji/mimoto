@@ -5,7 +5,6 @@ import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.repository.ProofSigningKeyRepository;
-import io.mosip.mimoto.service.impl.Draft13CredentialRequestServiceImpl;
 import io.mosip.mimoto.service.impl.LdpVcCredentialFormatHandler;
 import io.mosip.mimoto.util.*;
 import org.junit.After;
@@ -30,14 +29,14 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {Draft13CredentialRequestServiceImpl.class})
+@SpringBootTest(classes = {Draft13CredentialRequestService.class})
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class CredentialRequestServiceTest {
     @MockBean
     private ObjectMapper objectMapper;
 
     @Autowired
-    private Draft13CredentialRequestServiceImpl credentialRequestServiceImpl;
+    private Draft13CredentialRequestService credentialRequestServiceImpl;
 
     @MockBean
     private ProofSigningKeyRepository proofSigningKeyRepository;
