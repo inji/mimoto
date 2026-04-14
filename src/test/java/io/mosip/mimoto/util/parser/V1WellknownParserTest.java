@@ -25,17 +25,9 @@ class V1WellknownParserTest {
     private ObjectMapper objectMapper;
 
     @BeforeEach
-    void setUp() throws Exception {
-        parser = new V1WellknownParser();
+    void setUp() {
         objectMapper = new ObjectMapper();
-
-        var objectMapperField = V1WellknownParser.class.getDeclaredField("objectMapper");
-        objectMapperField.setAccessible(true);
-        objectMapperField.set(parser, objectMapper);
-
-        var validatorField = V1WellknownParser.class.getDeclaredField("wellknownResponseValidator");
-        validatorField.setAccessible(true);
-        validatorField.set(parser, new CredentialIssuerWellknownResponseValidator());
+        parser = new V1WellknownParser(objectMapper, new CredentialIssuerWellknownResponseValidator());
     }
 
     @Test
@@ -222,6 +214,34 @@ class V1WellknownParserTest {
     }
 
     @Test
+    void shouldParseV1ResponseWithCredentialMetadataButNoDisplay() throws IOException {
+        String json = """
+                {
+                    "credential_issuer": "https://issuer.example.com",
+                    "authorization_servers": ["https://auth.example.com"],
+                    "credential_endpoint": "https://issuer.example.com/credential",
+                    "credential_configurations_supported": {
+                        "TestCred": {
+                            "format": "ldp_vc",
+                            "scope": "test_scope",
+                            "proof_types_supported": {
+                                "jwt": {"proof_signing_alg_values_supported": ["ES256"]}
+                            },
+                            "credential_metadata": {}
+                        }
+                    }
+                }
+                """;
+
+        CredentialIssuerWellKnownResponse result = parser.parse(json);
+
+        CredentialsSupportedResponse cred = result.getCredentialConfigurationsSupported().get("TestCred");
+        assertNotNull(cred);
+        assertNull(cred.getDisplay());
+        assertEquals("ldp_vc", cred.getFormat());
+    }
+
+    @Test
     void shouldThrowIOExceptionForInvalidJson() {
         assertThrows(IOException.class, () -> parser.parse("not valid json"));
     }
@@ -237,16 +257,14 @@ class V1WellknownParserTest {
     }
 
     @Test
-    void shouldPropagateValidationException() throws Exception {
-        var validatorField = V1WellknownParser.class.getDeclaredField("wellknownResponseValidator");
-        validatorField.setAccessible(true);
-        validatorField.set(parser, new ThrowingValidator());
+    void shouldPropagateValidationException() {
+        V1WellknownParser throwingParser = new V1WellknownParser(objectMapper, new ThrowingValidator());
 
         CredentialIssuerWellKnownResponse response = new CredentialIssuerWellKnownResponse();
         Validator noOpValidator = new NoOpValidator();
 
         assertThrows(InvalidWellknownResponseException.class,
-                () -> parser.validate(response, noOpValidator));
+                () -> throwingParser.validate(response, noOpValidator));
     }
 
     private static class ThrowingValidator extends CredentialIssuerWellknownResponseValidator {

@@ -34,7 +34,7 @@ import static org.mockito.Mockito.verify;
 public class IssuerConfigUtilTest {
 
     @InjectMocks
-    IssuerConfigUtil issuersConfigUtil = new IssuerConfigUtil();
+    IssuerConfigUtil issuersConfigUtil;
 
     @Mock
     RestApiClient restApiClient;

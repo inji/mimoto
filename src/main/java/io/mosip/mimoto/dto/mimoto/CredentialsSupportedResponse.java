@@ -1,5 +1,6 @@
 package io.mosip.mimoto.dto.mimoto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.annotations.SerializedName;
@@ -15,6 +16,7 @@ import java.util.Map;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CredentialsSupportedResponse {
 
     @NotBlank(message = "Format must not be blank")

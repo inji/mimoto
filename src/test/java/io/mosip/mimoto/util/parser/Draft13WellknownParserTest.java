@@ -25,17 +25,9 @@ class Draft13WellknownParserTest {
     private ObjectMapper objectMapper;
 
     @BeforeEach
-    void setUp() throws Exception {
-        parser = new Draft13WellknownParser();
+    void setUp() {
         objectMapper = new ObjectMapper();
-
-        var objectMapperField = Draft13WellknownParser.class.getDeclaredField("objectMapper");
-        objectMapperField.setAccessible(true);
-        objectMapperField.set(parser, objectMapper);
-
-        var validatorField = Draft13WellknownParser.class.getDeclaredField("wellknownResponseValidator");
-        validatorField.setAccessible(true);
-        validatorField.set(parser, new CredentialIssuerWellknownResponseValidator());
+        parser = new Draft13WellknownParser(objectMapper, new CredentialIssuerWellknownResponseValidator());
     }
 
     @Test
@@ -217,16 +209,14 @@ class Draft13WellknownParserTest {
     }
 
     @Test
-    void shouldPropagateValidationException() throws Exception {
-        var validatorField = Draft13WellknownParser.class.getDeclaredField("wellknownResponseValidator");
-        validatorField.setAccessible(true);
-        validatorField.set(parser, new ThrowingValidator());
+    void shouldPropagateValidationException() {
+        Draft13WellknownParser throwingParser = new Draft13WellknownParser(objectMapper, new ThrowingValidator());
 
         CredentialIssuerWellKnownResponse response = new CredentialIssuerWellKnownResponse();
         Validator noOpValidator = new NoOpValidator();
 
         assertThrows(InvalidWellknownResponseException.class,
-                () -> parser.validate(response, noOpValidator));
+                () -> throwingParser.validate(response, noOpValidator));
     }
 
     @Test

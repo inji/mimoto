@@ -14,7 +14,6 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
@@ -25,20 +24,19 @@ import java.util.Set;
 @Slf4j
 public class IssuerConfigUtil {
 
-    @Autowired
-    private RestApiClient restApiClient;
+    private final RestApiClient restApiClient;
+    private final VCSpecVersionDetector versionDetector;
+    private final WellknownParserFactory parserFactory;
+    private final ObjectMapper objectMapper;
+    private final Validator validator;
 
-    @Autowired
-    private VCSpecVersionDetector versionDetector;
-
-    @Autowired
-    private WellknownParserFactory parserFactory;
-
-    @Autowired
-    ObjectMapper objectMapper;
-
-    @Autowired
-    private Validator validator;
+    public IssuerConfigUtil(RestApiClient restApiClient, VCSpecVersionDetector versionDetector, WellknownParserFactory parserFactory, ObjectMapper objectMapper, Validator validator) {
+        this.restApiClient = restApiClient;
+        this.versionDetector = versionDetector;
+        this.parserFactory = parserFactory;
+        this.objectMapper = objectMapper;
+        this.validator = validator;
+    }
 
     public static String camelToTitleCase(String input) {
         if (input == null || input.isEmpty()) return input;
@@ -67,7 +65,7 @@ public class IssuerConfigUtil {
         return finalResult.toString().trim();
     }
 
-//    @Cacheable(value = "issuerWellknown", key = "#p0")
+    @Cacheable(value = "issuerWellknown", key = "#p0")
     public CredentialIssuerWellKnownResponse getIssuerWellknown(String credentialIssuerHost) throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException {
         String wellknownEndpoint = credentialIssuerHost + "/.well-known/openid-credential-issuer";
         String wellknownResponse = restApiClient.getApi(wellknownEndpoint, String.class);

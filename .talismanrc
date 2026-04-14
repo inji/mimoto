@@ -241,5 +241,5 @@ fileignoreconfig:
 - filename: src/main/java/io/mosip/mimoto/util/parser/Draft13WellknownParser.java
   checksum: 15a9710874a5692a85182e8b30962122dd6cfff570a6e706a49938eadae267c4
 - filename: src/main/java/io/mosip/mimoto/util/parser/V1WellknownParser.java
-  checksum: 0e3405632b0bcc4e47929b3252fd8a6e43f17deeda2ad48cf63952b9794e98b7
+  checksum: 5a71289cada95a847050e4fa33ab6cfe5337a4345b9927b00c8a888d5fe3b0c2
 version: ""
