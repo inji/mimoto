@@ -122,7 +122,7 @@ public interface WellknownResponseParser {
                   ┌───────────┴───────────┐
                   ▼                       ▼
          ┌──────────────────────┐    ┌──────────────────────┐
-         │ Draft13VC            │    │ VCDownloadHandler    │
+         │ Draft13VC            │    │ V1VCDownloadHandler  │
          │ DownloadHandler      │    │  (V1 - default)      │
          │                      │    │                      │
          |downloadCredential()  │    │ downloadCredential() │
