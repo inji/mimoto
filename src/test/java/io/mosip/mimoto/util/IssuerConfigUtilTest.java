@@ -79,7 +79,7 @@ public class IssuerConfigUtilTest {
                 .thenReturn(Mockito.mock(JsonNode.class));
         Mockito.when(versionDetector.detectVersion(any(JsonNode.class)))
                 .thenReturn(VCSpecificationVersion.DRAFT_13);
-        Mockito.when(parserFactory.getParser(any(VCSpecificationVersion.class)))
+        Mockito.when(parserFactory.getParser(eq(VCSpecificationVersion.DRAFT_13)))
                 .thenReturn(wellknownResponseParser);
         Mockito.when(wellknownResponseParser.parse(expectedWellknownJson))
                 .thenReturn(expectedCredentialIssuerWellKnownResponse);
@@ -130,6 +130,8 @@ public class IssuerConfigUtilTest {
 
         assertEquals(expectedCredentialIssuerWellKnownResponse, actualCredentialIssuerWellKnownResponse);
         verify(restApiClient, times(1)).getApi(issuerWellKnownUrl, String.class);
+        verify(parserFactory, times(1)).getParser(eq(VCSpecificationVersion.DRAFT_13));
+        verify(wellknownResponseParser, times(1)).validate(eq(expectedCredentialIssuerWellKnownResponse), eq(validator));
     }
 
     @Test

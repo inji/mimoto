@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
 import org.hibernate.validator.constraints.URL;
 
 import lombok.Data;
@@ -32,8 +31,8 @@ public class V1WellKnownResponse {
     private List<@NotBlank @URL String> authorizationServers;
 
     @NotBlank
+    @URL
     @SerializedName("credential_endpoint")
-    @Pattern(regexp = "https?://.*?/credential$")
     @JsonProperty("credential_endpoint")
     @Schema(description = "Endpoint to download the Credential")
     private String credentialEndPoint;
