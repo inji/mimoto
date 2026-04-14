@@ -2,7 +2,7 @@
 
 This document outlines the changes expected in the INJI Web wallet to support the VCI Issuance spec 1.0, which is the latest version of the OpenID4VCI specification. The document also highlights the changes in the specification compared to draft 13 and the expected changes in mimoto, which is the reference implementation for OpenID4VCI specification.
 
-### Changes in spec 1.0 :
+## Key Changes in OpenID4VCI specific 1.0 which impacts wallet implementation:
 - `nonce_endpoint` - optional param is introduced in the well-known response. If the field is present in response, wallet has to fetch the credential from the nonce_endpoint during the proof creation and embed it in the proof. If the field is missing, c_nonce claim should not be added in proof JWT sent in the credential request.
 - `credential_configurations_supported` -> `display` object is now moved to `credential_configurations_supported` -> `credential_metadata` -> `display`
 - Credential request is now format-agnostic, with the following structure : 
@@ -12,8 +12,7 @@ This document outlines the changes expected in the INJI Web wallet to support th
       "credential_configuration_id": "org.iso.18013.5.1.mDL",
       "proofs": {
         "jwt": [
-          "eyJraWQiOiJkaWQ6ZXhhbXBsZTplYmZlYjFmNzEyZWJjNmYxYzI3NmUxMmVjMjEva2V5cy8x
-          IiwiYWxnIjoiRVMyNTYiLCJ0eXAiOiJKV1QifQ"
+          "<jwt_proof>"
         ]
       }
     }
@@ -24,7 +23,7 @@ This document outlines the changes expected in the INJI Web wallet to support th
     {
       "credentials": [
         {
-          "credential": "LUpixVCWJk0eOt4CXQe1NXK....WZwmhmn9OQp6YxX0a2L"
+          "credential": "<credential-jwt-or-ldp-vc-placeholder>"
         }
       ]
     }
@@ -59,9 +58,10 @@ Guidelines for implementation in INJI Web wallet:
 
 ### Class structure : 
 
-- Factory class to be introduced for version detection and parsing of well-known response based on the version detected. The factory class will be called in the IssuerConfigUtil, which is responsible for fetching and parsing the issuer configuration. The IssuerConfigUtil will return a common DTO, which will be used in the rest of the flow. This will help in minimizing the changes in the code and also support future versions of the specification with minimal changes.
+- Factory class to be introduced for version detection and parsing of well-known response based on the version detected. The factory class will be called in the IssuerConfigUtil, which is responsible for fetching and parsing the issuer configuration. 
+- The IssuerConfigUtil will return a common DTO, which will be used in the rest of the flow. This will help in minimizing the changes in the code and also support future versions of the specification with minimal changes.
 
-```
+```text
     ┌──────────────────────────────────────────────────────────────┐
     │                  IssuersServiceImpl                          │
     │               (High-level orchestration)                     │
@@ -84,7 +84,6 @@ Guidelines for implementation in INJI Web wallet:
             │Draft13Wellknown │    │ WellknownParser  │
             │    Parser       │    │  (V1 - default)  │
             └─────────────────┘    └──────────────────┘
-
 ```
 
 Interface for well-known response parser : 
@@ -113,7 +112,7 @@ public interface WellknownResponseParser {
 
 - VC Download handler class structure : 
 
-```
+```text
 
     ┌──────────────────────────────────────────────────────────────┐
     │              VCDownloadHandlerFactory                        │
@@ -143,7 +142,6 @@ public interface WellknownResponseParser {
                       │  - credentials[]     │
                       │  (normalized array)  │
                       └──────────────────────┘
-
 ```
 
 Interface :
@@ -161,8 +159,8 @@ public interface VCDownloadHandler {
      * Downloads credential from issuer and returns normalized response
      *
      * Responsibilities:
-     * 1. Retrieve cNonce (from token response or nonce endpoint)
-     * 2. Build proof JWT with cNonce
+     * 1. Retrieve nonce only when required by spec version/issuer metadata
+     * 2. Build proof JWT and include c_nonce only when nonce is available/required
      * 3. Construct version-specific credential request
      * 4. POST request to credential endpoint
      * 5. Parse response and normalize to common DTO
