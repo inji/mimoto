@@ -13,7 +13,7 @@ import jakarta.validation.constraints.NotNull;
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class VCCredentialRequest {
+public class Draft13VCCredentialRequest {
 
     @NotBlank
     private String format;

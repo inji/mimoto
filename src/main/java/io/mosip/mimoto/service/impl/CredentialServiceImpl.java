@@ -11,16 +11,15 @@ import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.repository.WalletCredentialsRepository;
 import io.mosip.mimoto.service.CredentialPDFGeneratorService;
-import io.mosip.mimoto.service.CredentialRequestService;
 import io.mosip.mimoto.service.CredentialService;
 import io.mosip.mimoto.service.CredentialVerifierService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.DataProtectionService;
-import io.mosip.mimoto.util.RestApiClient;
+import io.mosip.mimoto.service.VCDownloadHandler;
+import io.mosip.mimoto.service.VCDownloadHandlerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -37,10 +36,9 @@ public class CredentialServiceImpl implements CredentialService {
     private final WalletCredentialsRepository walletCredentialsRepository;
     private final IssuersService issuersService;
     private final CredentialVerifierService credentialVerifierService;
-    private final CredentialRequestService credentialRequestService;
     private final CredentialPDFGeneratorService credentialPDFGeneratorService;
-    private final RestApiClient restApiClient;
     private final DataShareServiceImpl dataShareService;
+    private final VCDownloadHandlerFactory vcDownloadHandlerFactory;
 
     @Autowired
     public CredentialServiceImpl(
@@ -49,25 +47,23 @@ public class CredentialServiceImpl implements CredentialService {
             WalletCredentialsRepository walletCredentialsRepository,
             IssuersService issuersService,
             CredentialVerifierService credentialVerifierService,
-            CredentialRequestService credentialRequestService,
             CredentialPDFGeneratorService credentialPDFGeneratorService,
-            RestApiClient restApiClient,
-            DataShareServiceImpl dataShareService) {
+            DataShareServiceImpl dataShareService,
+            VCDownloadHandlerFactory vcDownloadHandlerFactory) {
 
         this.objectMapper = objectMapper;
         this.dataProtectionService = dataProtectionService;
         this.walletCredentialsRepository = walletCredentialsRepository;
         this.issuersService = issuersService;
         this.credentialVerifierService = credentialVerifierService;
-        this.credentialRequestService = credentialRequestService;
         this.credentialPDFGeneratorService = credentialPDFGeneratorService;
-        this.restApiClient = restApiClient;
         this.dataShareService = dataShareService;
+        this.vcDownloadHandlerFactory = vcDownloadHandlerFactory;
     }
 
 
     @Override
-    public ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialConfigurationId, TokenResponseDTO response, String credentialValidity, String locale) throws Exception {
+    public ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialConfigurationId, TokenResponseDTO tokenResponse, String credentialValidity, String locale) throws Exception {
         IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
         CredentialIssuerConfiguration credentialIssuerConfiguration = issuersService.getIssuerConfiguration(issuerId);
         CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse = new CredentialIssuerWellKnownResponse(
@@ -76,28 +72,16 @@ public class CredentialServiceImpl implements CredentialService {
                 credentialIssuerConfiguration.getCredentialEndPoint(),
                 credentialIssuerConfiguration.getCredentialConfigurationsSupported());
         CredentialsSupportedResponse credentialsSupportedResponse = credentialIssuerWellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
-        VCCredentialRequest vcCredentialRequest = credentialRequestService.buildRequest(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, response.getC_nonce(), null, null, false);
 
-        VCCredentialResponse vcCredentialResponse = downloadCredential(credentialIssuerWellKnownResponse.getCredentialEndPoint(), vcCredentialRequest, response.getAccess_token());
+        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler("draft13");
+        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false);
 
         boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);
         if (verificationStatus) {
             String dataShareUrl = QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type()) ? dataShareService.storeDataInDataShare(objectMapper.writeValueAsString(vcCredentialResponse), credentialValidity) : "";
             return credentialPDFGeneratorService.generatePdfForVerifiableCredential(credentialConfigurationId, vcCredentialResponse, issuerDTO, credentialsSupportedResponse, dataShareUrl, credentialValidity, locale);
         }
-            throw new VCVerificationException(SIGNATURE_VERIFICATION_EXCEPTION.getErrorCode(),
-                    SIGNATURE_VERIFICATION_EXCEPTION.getErrorMessage());
-        }
-
-    @Override
-    public VCCredentialResponse downloadCredential(String credentialEndpoint, VCCredentialRequest vcCredentialRequest, String accessToken) throws InvalidCredentialResourceException {
-        VerifiableCredentialResponse response = restApiClient.postApi(credentialEndpoint, MediaType.APPLICATION_JSON,
-                vcCredentialRequest, VerifiableCredentialResponse.class, accessToken);
-        if (response == null)
-            throw new InvalidCredentialResourceException("VC Credential Issue API not accessible");
-        log.debug("VC Credential Response received");
-
-        return new VCCredentialResponse(vcCredentialRequest.getFormat(), response.getCredential());
+       throw new VCVerificationException(SIGNATURE_VERIFICATION_EXCEPTION.getErrorCode(), SIGNATURE_VERIFICATION_EXCEPTION.getErrorMessage());
     }
 
     /**
@@ -118,7 +102,7 @@ public class CredentialServiceImpl implements CredentialService {
     public VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
             TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
             String base64Key, String issuerId, String locale)
-            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException, VCVerificationException {
+            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException, VCVerificationException, InvalidCredentialResourceException {
 
         // Validate inputs
         validateInputs(tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId);
@@ -126,11 +110,9 @@ public class CredentialServiceImpl implements CredentialService {
         // Fetch issuer configuration
         IssuerConfig issuerConfig = fetchIssuerConfig(issuerId, credentialConfigurationId);
 
-        // Generate credential request
-        VCCredentialRequest vcCredentialRequest = buildCredentialRequest(issuerConfig, credentialConfigurationId, tokenResponse, walletId, base64Key);
-
-        // Download credential
-        VCCredentialResponse vcCredentialResponse = downloadCredentialFromIssuer(issuerConfig, vcCredentialRequest, tokenResponse, issuerId, credentialConfigurationId);
+        // Download credential from issuer
+        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler("draft13");
+        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true);
 
         // Verify credential
         boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);
@@ -186,42 +168,6 @@ public class CredentialServiceImpl implements CredentialService {
             throw new CredentialProcessingException(
                     CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(),
                     "Unable to fetch issuer configuration", e);
-        }
-    }
-
-    /**
-     * Builds credential request.
-     */
-    private VCCredentialRequest buildCredentialRequest(IssuerConfig issuerConfig, String credentialConfigurationId, TokenResponseDTO tokenResponse,
-                                                       String walletId, String base64Key) throws CredentialProcessingException {
-        try {
-            return credentialRequestService.buildRequest(
-                    issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(),
-                    tokenResponse.getC_nonce(),
-                    walletId, base64Key, true);
-        } catch (Exception e) {
-            log.error("Failed to generate VC credential request for issuerId: {}", issuerConfig.getIssuerDTO().getIssuer_id(), e);
-            throw new CredentialProcessingException(
-                    CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(),
-                    "Unable to generate credential request", e);
-        }
-    }
-
-    /**
-     * Downloads credential from issuer.
-     */
-    private VCCredentialResponse downloadCredentialFromIssuer(IssuerConfig issuerConfig, VCCredentialRequest vcCredentialRequest,
-                                                              TokenResponseDTO tokenResponse, String issuerId, String credentialConfigurationId)
-            throws ExternalServiceUnavailableException {
-        try {
-            return downloadCredential(
-                    issuerConfig.getWellKnownResponse().getCredentialEndPoint(),
-                    vcCredentialRequest, tokenResponse.getAccess_token());
-        } catch (Exception e) {
-            log.error("Failed to download credential for issuerId: {}, credentialConfigurationId: {}", issuerId, credentialConfigurationId, e);
-            throw new ExternalServiceUnavailableException(
-                    SERVER_UNAVAILABLE.getErrorCode(),
-                    "Unable to download credential from issuer", e);
         }
     }
 

@@ -325,7 +325,7 @@ class LdpVcCredentialFormatHandlerTest {
     @Test
     void buildCredentialRequestWithValidCredentialsSupportedResponseShouldReturnConfiguredRequest() {
         // Given
-        VCCredentialRequest.VCCredentialRequestBuilder builder = VCCredentialRequest.builder();
+        Draft13VCCredentialRequest.Draft13VCCredentialRequestBuilder builder = Draft13VCCredentialRequest.builder();
 
         List<String> types = Arrays.asList("VerifiableCredential", "IdentityCredential");
         List<String> context = Arrays.asList("https://www.w3.org/2018/credentials/v1", "https://example.com/contexts/identity/v1");
@@ -342,7 +342,7 @@ class LdpVcCredentialFormatHandlerTest {
                 .build();
 
         // When
-        VCCredentialRequest result = ldpVcCredentialFormatHandler.buildCredentialRequest(
+        Draft13VCCredentialRequest result = ldpVcCredentialFormatHandler.buildCredentialRequest(
                 proof, credentialsSupportedResponse);
 
         // Then
@@ -355,7 +355,7 @@ class LdpVcCredentialFormatHandlerTest {
     @Test
     void buildCredentialRequestWithNullContextShouldUseDefaultContext() {
         // Given
-        VCCredentialRequest.VCCredentialRequestBuilder builder = VCCredentialRequest.builder();
+        Draft13VCCredentialRequest.Draft13VCCredentialRequestBuilder builder = Draft13VCCredentialRequest.builder();
 
         List<String> types = Arrays.asList("VerifiableCredential", "IdentityCredential");
 
@@ -370,7 +370,7 @@ class LdpVcCredentialFormatHandlerTest {
                 .build();
 
         // When
-        VCCredentialRequest result = ldpVcCredentialFormatHandler.buildCredentialRequest(
+        Draft13VCCredentialRequest result = ldpVcCredentialFormatHandler.buildCredentialRequest(
                 proof, credentialsSupportedResponse);
 
         // Then
@@ -383,7 +383,7 @@ class LdpVcCredentialFormatHandlerTest {
     @Test
     void buildCredentialRequestWithEmptyContextShouldUseDefaultContext() {
         // Given
-        VCCredentialRequest.VCCredentialRequestBuilder builder = VCCredentialRequest.builder();
+        Draft13VCCredentialRequest.Draft13VCCredentialRequestBuilder builder = Draft13VCCredentialRequest.builder();
 
         List<String> types = Arrays.asList("VerifiableCredential", "IdentityCredential");
 
@@ -398,7 +398,7 @@ class LdpVcCredentialFormatHandlerTest {
                 .build();
 
         // When
-        VCCredentialRequest result = ldpVcCredentialFormatHandler.buildCredentialRequest(
+        Draft13VCCredentialRequest result = ldpVcCredentialFormatHandler.buildCredentialRequest(
                 proof, credentialsSupportedResponse);
 
         // Then

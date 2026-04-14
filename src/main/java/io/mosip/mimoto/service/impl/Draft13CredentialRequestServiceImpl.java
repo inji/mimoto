@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class CredentialRequestServiceImpl implements CredentialRequestService {
+public class Draft13CredentialRequestServiceImpl implements CredentialRequestService {
 
     @Value("${signing.algorithms.priority.order:ED25519,ES256K,ES256,RS256}")
     private String signingAlgorithmsPriorityOrder;
@@ -29,7 +29,7 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
 
     private final KeyPairRetrievalService keyPairService;
 
-    public CredentialRequestServiceImpl(CredentialFormatHandlerFactory credentialFormatHandlerFactory, KeyPairRetrievalService keyPairService) {
+    public Draft13CredentialRequestServiceImpl(CredentialFormatHandlerFactory credentialFormatHandlerFactory, KeyPairRetrievalService keyPairService) {
         this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
         this.keyPairService = keyPairService;
     }
@@ -40,7 +40,7 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
     }
 
     @Override
-    public VCCredentialRequest buildRequest(IssuerDTO issuerDTO,
+    public Draft13VCCredentialRequest buildRequest(IssuerDTO issuerDTO,
                                             String credentialConfigurationId,
                                             CredentialIssuerWellKnownResponse wellKnownResponse,
                                             String cNonce,

@@ -435,7 +435,7 @@ class VcSdJwtCredentialFormatHandlerTest {
         credentialsSupportedResponse.setVct("IdentityCredential");
 
         // When
-        VCCredentialRequest result = vcSdJwtCredentialFormatHandler.buildCredentialRequest(
+        Draft13VCCredentialRequest result = vcSdJwtCredentialFormatHandler.buildCredentialRequest(
                 proof, credentialsSupportedResponse);
 
         // Then

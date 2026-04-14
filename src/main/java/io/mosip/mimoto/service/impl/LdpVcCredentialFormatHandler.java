@@ -27,14 +27,14 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
     }
 
     @Override
-    public VCCredentialRequest buildCredentialRequest(VCCredentialRequestProof proof, CredentialsSupportedResponse credentialsSupportedResponse) {
+    public Draft13VCCredentialRequest buildCredentialRequest(VCCredentialRequestProof proof, CredentialsSupportedResponse credentialsSupportedResponse) {
 
         List<String> credentialContext = credentialsSupportedResponse.getCredentialDefinition().getContext();
         if (credentialContext == null || credentialContext.isEmpty()) {
             credentialContext = List.of("https://www.w3.org/2018/credentials/v1");
         }
 
-        return VCCredentialRequest.builder().format(getSupportedFormat())
+        return Draft13VCCredentialRequest.builder().format(getSupportedFormat())
                 .proof(proof)
                 .credentialDefinition(VCCredentialDefinition.builder().type(credentialsSupportedResponse.getCredentialDefinition().getType()).context(credentialContext).build())
                 .build();

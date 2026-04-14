@@ -342,9 +342,9 @@ public class TestUtilities {
                 .credentialSubject(credentialSubject).build();
     }
 
-    public static VCCredentialRequest getVCCredentialRequestDTO() {
+    public static Draft13VCCredentialRequest getVCCredentialRequestDTO() {
         CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("CredentialType1");
-        return VCCredentialRequest.builder()
+        return Draft13VCCredentialRequest.builder()
                 .format(credentialsSupportedResponse.getFormat())
                 .proof(VCCredentialRequestProof.builder()
                         .proofType(credentialsSupportedResponse.getProofTypesSupported().keySet().stream().findFirst().get())

@@ -1,8 +1,6 @@
 package io.mosip.mimoto.service;
 
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
-import io.mosip.mimoto.dto.mimoto.VCCredentialRequest;
-import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
 
@@ -24,17 +22,6 @@ public interface CredentialService {
     ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialType, TokenResponseDTO response, String credentialValidity, String locale) throws Exception;
 
     /**
-     * Downloads credential from the issuer endpoint.
-     *
-     * @param credentialEndpoint The credential endpoint
-     * @param vcCredentialRequest The credential request
-     * @param accessToken The access token
-     * @return VCCredentialResponse containing the credential
-     * @throws InvalidCredentialResourceException If the credential resource is invalid
-     */
-    VCCredentialResponse downloadCredential(String credentialEndpoint, VCCredentialRequest vcCredentialRequest, String accessToken) throws InvalidCredentialResourceException;
-
-    /**
      * Downloads credential and stores it in the database.
      *
      * @param tokenResponse             The token response containing the access token
@@ -48,9 +35,10 @@ public interface CredentialService {
      * @throws CredentialProcessingException       If processing fails
      * @throws ExternalServiceUnavailableException If an external service is unavailable
      * @throws VCVerificationException             If credential verification fails
+     * @throws InvalidCredentialResourceException  If the credential resource is invalid
      */
     VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
             TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
             String base64Key, String issuerId, String locale)
-            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException, VCVerificationException;
+            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException, VCVerificationException, InvalidCredentialResourceException;
 }
