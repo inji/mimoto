@@ -1,10 +1,14 @@
 package io.mosip.mimoto.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.AuthorizationServerWellknownResponseException;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
+import io.mosip.mimoto.util.parser.WellknownParserFactory;
+import io.mosip.mimoto.util.parser.WellknownResponseParser;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -25,7 +29,10 @@ public class IssuerConfigUtil {
     private RestApiClient restApiClient;
 
     @Autowired
-    private CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator;
+    private VCSpecVersionDetector versionDetector;
+
+    @Autowired
+    private WellknownParserFactory parserFactory;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -60,16 +67,22 @@ public class IssuerConfigUtil {
         return finalResult.toString().trim();
     }
 
-    @Cacheable(value = "issuerWellknown", key = "#p0")
+//    @Cacheable(value = "issuerWellknown", key = "#p0")
     public CredentialIssuerWellKnownResponse getIssuerWellknown(String credentialIssuerHost) throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException {
         String wellknownEndpoint = credentialIssuerHost + "/.well-known/openid-credential-issuer";
         String wellknownResponse = restApiClient.getApi(wellknownEndpoint, String.class);
         if (wellknownResponse == null) {
             throw new ApiNotAccessibleException();
         }
-        CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse = objectMapper.readValue(wellknownResponse, CredentialIssuerWellKnownResponse.class);
-        credentialIssuerWellknownResponseValidator.validate(credentialIssuerWellKnownResponse, validator);
-        return credentialIssuerWellKnownResponse;
+
+        JsonNode jsonNode = objectMapper.readTree(wellknownResponse);
+        VCSpecificationVersion version = versionDetector.detectVersion(jsonNode);
+
+        WellknownResponseParser parser = parserFactory.getParser(version);
+        CredentialIssuerWellKnownResponse parsedResponse = parser.parse(wellknownResponse);
+        parser.validate(parsedResponse, validator);
+
+        return parsedResponse;
     }
 
     @Cacheable(value = "authServerWellknown", key = "#p0")

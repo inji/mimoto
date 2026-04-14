@@ -238,4 +238,8 @@ fileignoreconfig:
   checksum: 6d9332df2edfc765ab45c8e985571bb5851c0da680afdc19becbc1e60362df20
 - filename: src/main/java/io/mosip/mimoto/controller/IssuersV2Controller.java
   checksum: 132c81d2d4552789777632e7ff61c86ceb843c10a7177a5bcbd2eb1c196cb430
+- filename: src/main/java/io/mosip/mimoto/util/parser/Draft13WellknownParser.java
+  checksum: 15a9710874a5692a85182e8b30962122dd6cfff570a6e706a49938eadae267c4
+- filename: src/main/java/io/mosip/mimoto/util/parser/V1WellknownParser.java
+  checksum: 0e3405632b0bcc4e47929b3252fd8a6e43f17deeda2ad48cf63952b9794e98b7
 version: ""

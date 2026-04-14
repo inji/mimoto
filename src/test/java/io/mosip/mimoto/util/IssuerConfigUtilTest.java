@@ -1,11 +1,15 @@
 package io.mosip.mimoto.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.dto.mimoto.AuthorizationServerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.AuthorizationServerWellknownResponseException;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
+import io.mosip.mimoto.util.parser.WellknownParserFactory;
+import io.mosip.mimoto.util.parser.WellknownResponseParser;
 import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
@@ -20,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import static io.mosip.mimoto.util.TestUtilities.*;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -42,6 +48,14 @@ public class IssuerConfigUtilTest {
     @Mock
     CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator;
 
+    @Mock
+    VCSpecVersionDetector versionDetector;
+
+    @Mock
+    WellknownParserFactory parserFactory;
+
+    @Mock
+    WellknownResponseParser wellknownResponseParser;
 
     String authorizationServerWellknownUrl, authorizationServerHostUrl, issuerWellKnownUrl,exceptionMsgPrefix, issuerId, credentialIssuerHostUrl, authServerWellknownUrl;
 
@@ -49,13 +63,11 @@ public class IssuerConfigUtilTest {
 
 
     @Before
-    public void setUp() throws IOException {
-        //Auth server wellknown setup
+    public void setUp() throws Exception {
         authorizationServerWellknownUrl = "https://dev/authorize/.well-known/oauth-authorization-server";
         authorizationServerHostUrl = "https://dev/authorize";
         exceptionMsgPrefix = "RESIDENT-APP-042 --> Invalid Authorization Server well-known from server:\n";
 
-        //Issuer wellknown setup
         credentialIssuerHostUrl = "https://issuer.env.net";
         issuerWellKnownUrl = "https://issuer.env.net/.well-known/openid-credential-issuer";
         expectedCredentialIssuerWellKnownResponse = getCredentialIssuerWellKnownResponseDto("Issuer1",
@@ -63,7 +75,14 @@ public class IssuerConfigUtilTest {
         String expectedWellknownJson = getExpectedWellKnownJson();
         Mockito.when(restApiClient.getApi(issuerWellKnownUrl, String.class))
                 .thenReturn(expectedWellknownJson);
-        Mockito.when(objectMapper.readValue(expectedWellknownJson, CredentialIssuerWellKnownResponse.class)).thenReturn(expectedCredentialIssuerWellKnownResponse);
+        Mockito.when(objectMapper.readTree(expectedWellknownJson))
+                .thenReturn(Mockito.mock(JsonNode.class));
+        Mockito.when(versionDetector.detectVersion(any(JsonNode.class)))
+                .thenReturn(VCSpecificationVersion.DRAFT_13);
+        Mockito.when(parserFactory.getParser(any(VCSpecificationVersion.class)))
+                .thenReturn(wellknownResponseParser);
+        Mockito.when(wellknownResponseParser.parse(expectedWellknownJson))
+                .thenReturn(expectedCredentialIssuerWellKnownResponse);
     }
 
     @Test

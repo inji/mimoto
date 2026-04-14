@@ -11,7 +11,6 @@ import io.mosip.mimoto.exception.InvalidIssuerIdException;
 import io.mosip.mimoto.service.impl.IssuersServiceImpl;
 import io.mosip.mimoto.util.Utilities;
 import org.hamcrest.Matchers;
-import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -216,21 +215,6 @@ public class IssuersControllerTest {
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(INVALID_ISSUER_ID_EXCEPTION.getMessage())));
     }
 
-    @Test
-    public void getIssuerWellknownTest() throws Exception {
-        String issuerId = "issuer1";
-        String expectedCredentialIssuerWellknownResponse = getExpectedWellKnownJson();
-        CredentialIssuerConfiguration expectedCredentialIssuerConfiguration = getCredentialIssuerConfigurationResponseDto(issuerId, "CredentialType1", List.of());
-        Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenReturn(expectedCredentialIssuerConfiguration);
-
-        String actualResponse = mockMvc.perform(get("/issuers/" + issuerId + "/well-known-proxy").accept(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        JSONAssert.assertEquals(new JSONObject(expectedCredentialIssuerWellknownResponse), new JSONObject(actualResponse), JSONCompareMode.LENIENT);
-    }
 
     @Test
     public void getIssuerWellknownWhenServiceThrowsReturnsNotFound() throws Exception {

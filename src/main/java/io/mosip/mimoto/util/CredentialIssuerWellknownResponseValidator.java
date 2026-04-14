@@ -3,7 +3,6 @@ package io.mosip.mimoto.util;
 import io.mosip.mimoto.dto.mimoto.CredentialDefinitionResponseDto;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
-import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -19,7 +18,7 @@ public class CredentialIssuerWellknownResponseValidator {
     public static final String MSO_MDOC = "mso_mdoc";
     public static final String LDP_VC = "ldp_vc";
 
-    public void validate(CredentialIssuerWellKnownResponse response, Validator validator) throws ApiNotAccessibleException, InvalidWellknownResponseException {
+    public void validate(CredentialIssuerWellKnownResponse response, Validator validator) throws InvalidWellknownResponseException {
         Set<ConstraintViolation<CredentialIssuerWellKnownResponse>> violations = validator.validate(response);
         if (!violations.isEmpty()) {
             StringBuilder sb = new StringBuilder("Validation failed:");
