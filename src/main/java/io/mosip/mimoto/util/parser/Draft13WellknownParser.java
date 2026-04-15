@@ -10,7 +10,6 @@ import jakarta.validation.Validator;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 
 @Component
 public class Draft13WellknownParser implements WellknownResponseParser {
@@ -31,7 +30,9 @@ public class Draft13WellknownParser implements WellknownResponseParser {
     @Override
     public CredentialIssuerWellKnownResponse parse(String jsonResponse) throws IOException {
         Draft13WellKnownResponse draft13Response = objectMapper.readValue(jsonResponse, Draft13WellKnownResponse.class);
-        return objectMapper.convertValue(draft13Response, CredentialIssuerWellKnownResponse.class);
+        CredentialIssuerWellKnownResponse wellKnownResponse = objectMapper.convertValue(draft13Response, CredentialIssuerWellKnownResponse.class);
+        wellKnownResponse.setVersion(getSupportedVersion());
+        return wellKnownResponse;
     }
 
     @Override

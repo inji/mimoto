@@ -67,6 +67,7 @@ class V1WellknownParserTest {
         assertEquals(List.of("https://auth.example.com"), result.getAuthorizationServers());
         assertEquals("https://issuer.example.com/credential", result.getCredentialEndPoint());
         assertEquals("https://issuer.example.com/nonce", result.getNonceEndpoint());
+        assertEquals(VCSpecificationVersion.V1, result.getVersion());
 
         assertNotNull(result.getCredentialConfigurationsSupported());
         CredentialsSupportedResponse cred = result.getCredentialConfigurationsSupported().get("UniversityDegree");

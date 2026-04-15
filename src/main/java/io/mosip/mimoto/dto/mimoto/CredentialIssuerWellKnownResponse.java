@@ -1,7 +1,7 @@
 package io.mosip.mimoto.dto.mimoto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.Valid;
+import io.mosip.mimoto.constant.VCSpecificationVersion;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,6 +27,9 @@ public class CredentialIssuerWellKnownResponse {
 
     @JsonProperty("nonce_endpoint")
     private String nonceEndpoint;
+
+    @JsonProperty("version")
+    private VCSpecificationVersion version;
 
     public CredentialIssuerWellKnownResponse(String credentialIssuer, List<String> authorizationServers, String credentialEndPoint, Map<String, CredentialsSupportedResponse> credentialConfigurationsSupported) {
         this.credentialIssuer = credentialIssuer;

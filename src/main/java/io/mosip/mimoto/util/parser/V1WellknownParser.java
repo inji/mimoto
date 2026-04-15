@@ -51,6 +51,7 @@ public class V1WellknownParser implements WellknownResponseParser {
         wellKnownResponse.setCredentialEndPoint(v1Response.getCredentialEndPoint());
         wellKnownResponse.setCredentialConfigurationsSupported(toCredentialConfigurations(v1Response));
         wellKnownResponse.setNonceEndpoint(v1Response.getNonceEndpoint());
+        wellKnownResponse.setVersion(getSupportedVersion());
         return wellKnownResponse;
     }
 
