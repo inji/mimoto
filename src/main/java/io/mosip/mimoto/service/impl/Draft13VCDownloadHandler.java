@@ -43,18 +43,6 @@ public class Draft13VCDownloadHandler implements VCDownloadHandler {
         return fetchCredential(credentialIssuerWellKnownResponse.getCredentialEndPoint(), vcCredentialRequest, tokenResponse.getAccess_token(), issuerDTO.getIssuer_id(), credentialConfigurationId);
     }
 
-    /**
-     * Downloads credential from the issuer endpoint.
-     *
-     * @param credentialEndpoint The credential endpoint
-     * @param vcCredentialRequest The credential request
-     * @param accessToken The access token
-     * @param issuerId The ID of the issuer
-     * @param credentialConfigId The credential configuration ID
-     * @return VCCredentialResponse containing the credential
-     * @throws InvalidCredentialResourceException If the credential resource is invalid
-     * @throws ExternalServiceUnavailableException If an external service is unavailable
-     */
     private VCCredentialResponse fetchCredential(String credentialEndpoint, Draft13VCCredentialRequest vcCredentialRequest, String accessToken, String issuerId, String credentialConfigId) throws InvalidCredentialResourceException, ExternalServiceUnavailableException {
         VerifiableCredentialResponse response;
 
