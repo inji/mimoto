@@ -20,7 +20,7 @@ import static io.mosip.mimoto.exception.ErrorConstants.CREDENTIAL_DOWNLOAD_EXCEP
 import static io.mosip.mimoto.exception.ErrorConstants.SERVER_UNAVAILABLE;
 
 @Slf4j
-@Component("draft13")
+@Component("draft-13")
 public class Draft13VCDownloadHandler implements VCDownloadHandler {
     private final Draft13CredentialRequestService draft13CredentialRequestService;
     private final RestApiClient restApiClient;

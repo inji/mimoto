@@ -27,20 +27,6 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
     }
 
     @Override
-    public Draft13VCCredentialRequest buildCredentialRequest(VCCredentialRequestProof proof, CredentialsSupportedResponse credentialsSupportedResponse) {
-
-        List<String> credentialContext = credentialsSupportedResponse.getCredentialDefinition().getContext();
-        if (credentialContext == null || credentialContext.isEmpty()) {
-            credentialContext = List.of("https://www.w3.org/2018/credentials/v1");
-        }
-
-        return Draft13VCCredentialRequest.builder().format(getSupportedFormat())
-                .proof(proof)
-                .credentialDefinition(VCCredentialDefinition.builder().type(credentialsSupportedResponse.getCredentialDefinition().getType()).context(credentialContext).build())
-                .build();
-    }
-
-    @Override
     public Map<String, Object> extractCredentialClaims(VCCredentialResponse vcCredentialResponse) {
         VCCredentialProperties credential = objectMapper.convertValue(vcCredentialResponse.getCredential(), VCCredentialProperties.class);
         return (Map<String, Object>) credential.getCredentialSubject();

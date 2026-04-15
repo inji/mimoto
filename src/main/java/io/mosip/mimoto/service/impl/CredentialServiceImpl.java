@@ -2,6 +2,7 @@ package io.mosip.mimoto.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
@@ -19,12 +20,12 @@ import io.mosip.mimoto.service.VCDownloadHandler;
 import io.mosip.mimoto.service.VCDownloadHandlerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.util.UUID;
 
+import static io.mosip.mimoto.constant.VCSpecificationVersion.DRAFT_13;
 import static io.mosip.mimoto.exception.ErrorConstants.*;
 
 @Slf4j
@@ -40,7 +41,6 @@ public class CredentialServiceImpl implements CredentialService {
     private final DataShareServiceImpl dataShareService;
     private final VCDownloadHandlerFactory vcDownloadHandlerFactory;
 
-    @Autowired
     public CredentialServiceImpl(
             ObjectMapper objectMapper,
             DataProtectionService dataProtectionService,
@@ -73,8 +73,8 @@ public class CredentialServiceImpl implements CredentialService {
                 credentialIssuerConfiguration.getCredentialConfigurationsSupported());
         CredentialsSupportedResponse credentialsSupportedResponse = credentialIssuerWellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
-        // TODO: Replace hardcoded "draft13" with dynamic version
-        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler("draft13");
+        // TODO: Replace hardcoded "draft-13" with dynamic version
+        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13.getVersion());
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false);
 
         boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);
@@ -113,8 +113,8 @@ public class CredentialServiceImpl implements CredentialService {
         IssuerConfig issuerConfig = fetchIssuerConfig(issuerId, credentialConfigurationId);
 
         // Download credential from issuer
-        // TODO: Replace hardcoded "draft13" with dynamic version 
-        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler("draft13");
+        // TODO: Replace hardcoded "draft-13" with dynamic version
+        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13.getVersion());
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true);
 
         // Verify credential

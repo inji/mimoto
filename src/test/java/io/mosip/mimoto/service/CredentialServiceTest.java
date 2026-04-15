@@ -120,7 +120,7 @@ public class CredentialServiceTest {
     public void shouldThrowExceptionIfDownloadedVCSignatureVerificationFailed() throws Exception {
         Mockito.when(issuersService.getIssuerDetails(issuerId)).thenReturn(issuerDTO);
         Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(IssuerDTO.class), any(String.class),
                 any(CredentialIssuerWellKnownResponse.class), any(TokenResponseDTO.class),
                 any(), any(), eq(false))).thenReturn(getVCCredentialResponseDTO("CredentialType1"));
@@ -135,7 +135,7 @@ public class CredentialServiceTest {
     public void shouldReturnDownloadedVCAsPDFIfSignatureVerificationIsSuccessful() throws Exception {
         Mockito.when(issuersService.getIssuerDetails(issuerId)).thenReturn(issuerDTO);
         Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(IssuerDTO.class), any(String.class),
                 any(CredentialIssuerWellKnownResponse.class), any(TokenResponseDTO.class),
                 any(), any(), eq(false))).thenReturn(getVCCredentialResponseDTO("CredentialType1"));
@@ -184,7 +184,7 @@ public class CredentialServiceTest {
 
         // Mock service calls
         when(issuersService.getIssuerConfig(issuerId, credentialConfigurationId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), eq(credentialConfigurationId), any(), any(), eq(walletId), eq(base64Key), eq(true)))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
         when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(true);
@@ -223,7 +223,7 @@ public class CredentialServiceTest {
 
         // Mock service calls
         when(issuersService.getIssuerConfig(issuerId, credentialConfigurationId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true)))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
         when(credentialVerifierService.verify(any())).thenReturn(false);
@@ -345,7 +345,7 @@ public class CredentialServiceTest {
         when(issuerConfig.getIssuerDTO()).thenReturn(mockIssuerDTO);
         when(issuerConfig.getWellKnownResponse()).thenReturn(mockWellKnownResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialConfigurationId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
 
         // Mock vcDownloadHandler to throw exception (simulating build credential request failure)
         when(vcDownloadHandler.downloadCredential(any(), eq(credentialConfigurationId), any(), any(), eq(walletId), eq(base64Key), eq(true)))
@@ -378,7 +378,7 @@ public class CredentialServiceTest {
         when(issuerConfig.getIssuerDTO()).thenReturn(mockIssuerDTO);
         when(issuerConfig.getWellKnownResponse()).thenReturn(mockWellKnownResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialConfigurationId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
 
         // Mock vcDownloadHandler to throw exception during credential download
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true)))
@@ -411,7 +411,7 @@ public class CredentialServiceTest {
         when(issuerConfig.getIssuerDTO()).thenReturn(mockIssuerDTO);
         when(issuerConfig.getWellKnownResponse()).thenReturn(mockWellKnownResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialConfigurationId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true)))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
 
@@ -446,7 +446,7 @@ public class CredentialServiceTest {
         when(issuerConfig.getIssuerDTO()).thenReturn(mockIssuerDTO);
         when(issuerConfig.getWellKnownResponse()).thenReturn(mockWellKnownResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialConfigurationId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true)))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
         when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(true);
@@ -482,7 +482,7 @@ public class CredentialServiceTest {
         when(issuerConfig.getIssuerDTO()).thenReturn(mockIssuerDTO);
         when(issuerConfig.getWellKnownResponse()).thenReturn(mockWellKnownResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialConfigurationId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true)))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
         when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(true);
@@ -519,7 +519,7 @@ public class CredentialServiceTest {
         when(issuerConfig.getIssuerDTO()).thenReturn(mockIssuerDTO);
         when(issuerConfig.getWellKnownResponse()).thenReturn(mockWellKnownResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialConfigurationId)).thenReturn(issuerConfig);
-        when(vcDownloadHandlerFactory.getHandler("draft13")).thenReturn(vcDownloadHandler);
+        when(vcDownloadHandlerFactory.getHandler("draft-13")).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true)))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
         when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(true);

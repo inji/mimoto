@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {Draft13CredentialRequestService.class})
+@SpringBootTest(classes = {Draft13CredentialRequestService.class, Draft13CredentialRequestBuilder.class})
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class CredentialRequestServiceTest {
     @MockBean
@@ -46,6 +46,9 @@ public class CredentialRequestServiceTest {
 
     @MockBean
     private KeyPairRetrievalService keyPairService;
+
+    @Autowired
+    private Draft13CredentialRequestBuilder draft13CredentialRequestBuilder;
 
     private final MockedStatic<SigningKeyUtil> keyGenerationUtilMockedStatic = Mockito.mockStatic(SigningKeyUtil.class, Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
 

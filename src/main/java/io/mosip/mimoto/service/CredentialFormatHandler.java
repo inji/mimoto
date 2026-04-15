@@ -13,11 +13,6 @@ public interface CredentialFormatHandler {
     String getSupportedFormat();
 
     /**
-     * Build format-specific fields in the credential request object
-     */
-    Draft13VCCredentialRequest buildCredentialRequest(VCCredentialRequestProof proof, CredentialsSupportedResponse credentialsSupportedResponse);
-
-    /**
      * Extract credential subject properties from VC response
      */
     Map<String, Object> extractCredentialClaims(VCCredentialResponse vcCredentialResponse);

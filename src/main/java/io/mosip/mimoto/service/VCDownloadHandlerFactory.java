@@ -1,6 +1,5 @@
 package io.mosip.mimoto.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -10,7 +9,6 @@ public class VCDownloadHandlerFactory {
 
     private final Map<String, VCDownloadHandler> handlers;
 
-    @Autowired
     public VCDownloadHandlerFactory(Map<String, VCDownloadHandler> handlers) {
         this.handlers = handlers;
     }

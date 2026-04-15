@@ -425,27 +425,6 @@ class VcSdJwtCredentialFormatHandlerTest {
     }
 
     @Test
-    void buildCredentialRequestShouldReturnBuiltRequest() {
-        // Given
-        VCCredentialRequestProof proof = VCCredentialRequestProof.builder()
-                .proofType("jwt")
-                .jwt("sample.jwt.token")
-                .build();
-
-        credentialsSupportedResponse.setVct("IdentityCredential");
-
-        // When
-        Draft13VCCredentialRequest result = vcSdJwtCredentialFormatHandler.buildCredentialRequest(
-                proof, credentialsSupportedResponse);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(CredentialFormat.VC_SD_JWT.getFormat(), result.getFormat());
-        assertEquals(proof, result.getProof());
-        assertEquals("IdentityCredential", result.getVct());
-    }
-
-    @Test
     void getSupportedFormatShouldReturnCorrectFormat() {
         // When
         String result = vcSdJwtCredentialFormatHandler.getSupportedFormat();

@@ -21,13 +21,13 @@ class VCDownloadHandlerFactoryTest {
     @BeforeEach
     void setUp() {
         Map<String, VCDownloadHandler> handlers = new HashMap<>();
-        handlers.put("draft13", mockDraft13Handler);
+        handlers.put("draft-13", mockDraft13Handler);
         factory = new VCDownloadHandlerFactory(handlers);
     }
 
     @Test
     void shouldReturnHandlerForValidVersion() {
-        VCDownloadHandler handler = factory.getHandler("draft13");
+        VCDownloadHandler handler = factory.getHandler("draft-13");
         assertNotNull(handler);
         assertEquals(mockDraft13Handler, handler);
     }

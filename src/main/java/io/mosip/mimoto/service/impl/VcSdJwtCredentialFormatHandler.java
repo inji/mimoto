@@ -34,11 +34,6 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
 
 
     @Override
-    public Draft13VCCredentialRequest buildCredentialRequest(VCCredentialRequestProof proof, CredentialsSupportedResponse credentialsSupportedResponse) {
-        return Draft13VCCredentialRequest.builder().format(getSupportedFormat()).proof(proof).vct(credentialsSupportedResponse.getVct()).build();
-    }
-
-    @Override
     public Map<String, Object> extractCredentialClaims(VCCredentialResponse vcCredentialResponse) {
         Object credential = vcCredentialResponse.getCredential();
         if (credential instanceof String) {
