@@ -58,11 +58,20 @@ public class V1WellknownParser implements WellknownResponseParser {
         if (v1Response.getCredentialConfigurationsSupported() == null) {
             return new LinkedHashMap<>();
         }
-        return v1Response.getCredentialConfigurationsSupported().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> toCredentialSupported(entry.getValue()), (existing, replacement) -> existing, LinkedHashMap::new));
+        LinkedHashMap<String, CredentialsSupportedResponse> resultMap = new LinkedHashMap<>();
+        v1Response.getCredentialConfigurationsSupported().forEach((key, value) -> resultMap.put(key, toCredentialSupported(value)));
+        return resultMap;
     }
 
     private CredentialsSupportedResponse toCredentialSupported(io.mosip.mimoto.dto.mimoto.wellknown.v1.CredentialsSupportedResponse v1CredentialSupportedResponse) {
-        CredentialsSupportedResponse credentialSupported = objectMapper.convertValue(v1CredentialSupportedResponse, CredentialsSupportedResponse.class);
+        CredentialsSupportedResponse credentialSupported = new CredentialsSupportedResponse();
+        credentialSupported.setFormat(v1CredentialSupportedResponse.getFormat());
+        credentialSupported.setScope(v1CredentialSupportedResponse.getScope());
+        credentialSupported.setDoctype(v1CredentialSupportedResponse.getDoctype());
+        credentialSupported.setProofTypesSupported(objectMapper.convertValue(v1CredentialSupportedResponse.getProofTypesSupported(), objectMapper.getTypeFactory().constructMapType(LinkedHashMap.class, String.class, io.mosip.mimoto.dto.mimoto.ProofTypesSupported.class)));
+        credentialSupported.setClaims(v1CredentialSupportedResponse.getClaims());
+        credentialSupported.setCredentialDefinition(objectMapper.convertValue(v1CredentialSupportedResponse.getCredentialDefinition(), io.mosip.mimoto.dto.mimoto.CredentialDefinitionResponseDto.class));
+        credentialSupported.setVct(v1CredentialSupportedResponse.getVct());
 
         CredentialMetaData metadata = v1CredentialSupportedResponse.getCredentialMetadata();
         if (metadata != null && metadata.getDisplay() != null) {
