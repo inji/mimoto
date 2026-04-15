@@ -100,17 +100,17 @@ public class OpenID4VPService {
         }
         String message = payload.getErrorMessage() != null ? payload.getErrorMessage() : "";
         String code = payload.getErrorCode();
-        String className = OpenID4VPService.class.getSimpleName();
 
         if (code == null || code.isBlank()) {
-            return new OpenID4VPExceptions.AccessDenied(message, className);
+            return new OpenID4VPExceptions.AccessDenied(message, "OpenID4VPService");
         }
         if (OpenID4VPErrorCodes.ACCESS_DENIED.equals(code)) {
-            return new OpenID4VPExceptions.AccessDenied(message, className);
+            return new OpenID4VPExceptions.AccessDenied(message, "OpenID4VPService");
         }
         if (OpenID4VPErrorCodes.INVALID_TRANSACTION_DATA.equals(code)) {
-            return new OpenID4VPExceptions.InvalidTransactionData(message, className);
+            return new OpenID4VPExceptions.InvalidTransactionData(message, "OpenID4VPService");
         }
-        return new OpenID4VPExceptions.InvalidData(message, className, code);
+        // Default to AccessDenied for any unrecognized error codes
+        return new OpenID4VPExceptions.AccessDenied(message, "OpenID4VPService");
     }
 }
