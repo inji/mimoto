@@ -22,6 +22,8 @@ public interface IssuersService {
 
     CredentialIssuerConfiguration getIssuerConfiguration(String issuerId) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException;
 
+    CredentialIssuerWellKnownResponse getIssuerWellKnownResponse(String credentialIssuerHost) throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException;
+
     IssuerConfig getIssuerConfig(String issuerId, @NotBlank String credentialType) throws ApiNotAccessibleException, InvalidIssuerIdException;
 
     IssuersV2DTO getIssuersV2DTO() throws ApiNotAccessibleException, IOException;

@@ -65,16 +65,10 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     public ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialConfigurationId, TokenResponseDTO tokenResponse, String credentialValidity, String locale) throws Exception {
         IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
-        CredentialIssuerConfiguration credentialIssuerConfiguration = issuersService.getIssuerConfiguration(issuerId);
-        CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse = new CredentialIssuerWellKnownResponse(
-                credentialIssuerConfiguration.getCredentialIssuer(),
-                credentialIssuerConfiguration.getAuthorizationServers(),
-                credentialIssuerConfiguration.getCredentialEndPoint(),
-                credentialIssuerConfiguration.getCredentialConfigurationsSupported());
+        CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse = issuersService.getIssuerWellKnownResponse(issuerDTO.getCredential_issuer_host());
         CredentialsSupportedResponse credentialsSupportedResponse = credentialIssuerWellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
-        // TODO: Replace hardcoded "draft-13" with dynamic version
-        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13.getVersion());
+        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(credentialIssuerWellKnownResponse.getVersion());
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false);
 
         boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);
@@ -113,8 +107,7 @@ public class CredentialServiceImpl implements CredentialService {
         IssuerConfig issuerConfig = fetchIssuerConfig(issuerId, credentialConfigurationId);
 
         // Download credential from issuer
-        // TODO: Replace hardcoded "draft-13" with dynamic version
-        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13.getVersion());
+        VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(issuerConfig.getWellKnownResponse().getVersion());
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true);
 
         // Verify credential

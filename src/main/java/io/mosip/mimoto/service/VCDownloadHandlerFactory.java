@@ -1,5 +1,6 @@
 package io.mosip.mimoto.service;
 
+import io.mosip.mimoto.constant.VCSpecificationVersion;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -13,8 +14,11 @@ public class VCDownloadHandlerFactory {
         this.handlers = handlers;
     }
 
-    public VCDownloadHandler getHandler(String version) {
-        VCDownloadHandler processor = handlers.get(version);
+    public VCDownloadHandler getHandler(VCSpecificationVersion version) {
+        if(version == null) {
+            throw new NullPointerException("Version cannot be null");
+        }
+        VCDownloadHandler processor = handlers.get(version.getVersion());
         if (processor == null) {
             throw new IllegalArgumentException("Unsupported download version: " + version);
         }

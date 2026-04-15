@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Map;
 import java.util.HashMap;
 
+import io.mosip.mimoto.constant.VCSpecificationVersion;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.Mock;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,13 +22,13 @@ class VCDownloadHandlerFactoryTest {
     @BeforeEach
     void setUp() {
         Map<String, VCDownloadHandler> handlers = new HashMap<>();
-        handlers.put("draft-13", mockDraft13Handler);
+        handlers.put(VCSpecificationVersion.DRAFT_13.getVersion(), mockDraft13Handler);
         factory = new VCDownloadHandlerFactory(handlers);
     }
 
     @Test
     void shouldReturnHandlerForValidVersion() {
-        VCDownloadHandler handler = factory.getHandler("draft-13");
+        VCDownloadHandler handler = factory.getHandler(VCSpecificationVersion.DRAFT_13);
         assertNotNull(handler);
         assertEquals(mockDraft13Handler, handler);
     }
@@ -35,14 +36,14 @@ class VCDownloadHandlerFactoryTest {
     @Test
     void shouldThrowExceptionForUnsupportedVersion() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-            () -> factory.getHandler("unsupported"));
-        assertEquals("Unsupported download version: unsupported", exception.getMessage());
+            () -> factory.getHandler(VCSpecificationVersion.V1));
+        assertEquals("Unsupported download version: V1", exception.getMessage());
     }
 
     @Test
     void shouldThrowExceptionForNullVersion() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NullPointerException exception = assertThrows(NullPointerException.class,
             () -> factory.getHandler(null));
-        assertEquals("Unsupported download version: null", exception.getMessage());
+        assertEquals("Version cannot be null", exception.getMessage());
     }
 }
