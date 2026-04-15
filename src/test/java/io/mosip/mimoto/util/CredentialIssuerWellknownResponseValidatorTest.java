@@ -5,6 +5,8 @@ import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Path;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
@@ -19,6 +21,9 @@ import java.util.*;
 import static io.mosip.mimoto.util.TestUtilities.getCredentialIssuerWellKnownResponseDto;
 import static io.mosip.mimoto.util.TestUtilities.getCredentialSupportedResponse;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 
@@ -46,8 +51,33 @@ class CredentialIssuerWellknownResponseValidatorTest {
         assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    void shouldThrowExceptionWhenFormatIsMissingInCredentialsSupported() {
+    void shouldThrowExceptionWhenBeanValidationReturnsViolations() {
+        CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
+
+        Path mockPath = mock(Path.class);
+        doReturn("credentialIssuer").when(mockPath).toString();
+
+        ConstraintViolation<CredentialIssuerWellKnownResponse> violation = mock(ConstraintViolation.class);
+        doReturn(mockPath).when(violation).getPropertyPath();
+        doReturn("must not be blank").when(violation).getMessage();
+
+        Set<ConstraintViolation<CredentialIssuerWellKnownResponse>> violations = new HashSet<>();
+        violations.add(violation);
+
+        Validator mockValidator = mock(Validator.class);
+        doReturn(violations).when(mockValidator).validate(any());
+
+        InvalidWellknownResponseException exception = assertThrows(InvalidWellknownResponseException.class, () ->
+                validatorInstance.validate(response, mockValidator));
+        String message = exception.getMessage();
+        assertTrue(message.contains("Validation failed:"));
+        assertTrue(message.contains("credentialIssuer: must not be blank"));
+    }
+
+    @Test
+    void shouldNotThrowExceptionWhenFormatIsNullSinceNeitherFormatSpecificCheckApplies() {
         CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("CredentialType1");
         credentialsSupportedResponse.setFormat(null);
         response = getCredentialIssuerWellKnownResponseDto("Issuer1",
@@ -55,15 +85,11 @@ class CredentialIssuerWellknownResponseValidatorTest {
 
         CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
 
-        InvalidWellknownResponseException exception = assertThrows(InvalidWellknownResponseException.class, () ->
-                validatorInstance.validate(response, validator));
-        assertEquals("RESIDENT-APP-041", exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Validation failed:"));
-        assertTrue(exception.getMessage().contains("Format must not be blank"));
+        assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
 
     @Test
-    void shouldIncludeAllViolationsInExceptionMessageWhenMultipleFieldsAreInvalid() {
+    void shouldNotThrowExceptionWhenMultipleFieldsAreNullSinceNoCascadeValidation() {
         CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("CredentialType1");
         credentialsSupportedResponse.setFormat(null);
         credentialsSupportedResponse.setScope(null);
@@ -74,18 +100,11 @@ class CredentialIssuerWellknownResponseValidatorTest {
 
         CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
 
-        InvalidWellknownResponseException exception = assertThrows(InvalidWellknownResponseException.class, () ->
-                validatorInstance.validate(response, validator));
-        String message = exception.getMessage();
-        assertTrue(message.contains("Validation failed:"));
-        assertTrue(message.contains("Format must not be blank"));
-        assertTrue(message.contains("Scope must not be blank"));
-        assertTrue(message.contains("Display information must not be empty"));
-        assertTrue(message.contains("Proof types supported must not be empty"));
+        assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
 
     @Test
-    void shouldThrowExceptionWhenDisplayHasInvalidNestedFields() {
+    void shouldNotThrowExceptionWhenDisplayHasInvalidNestedFieldsSinceNoCascadeValidation() {
         List<CredentialSupportedDisplayResponse> displayList = new ArrayList<>();
         CredentialSupportedDisplayResponse invalidDisplay = new CredentialSupportedDisplayResponse();
         invalidDisplay.setName(null);
@@ -98,13 +117,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
 
         CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
 
-        InvalidWellknownResponseException exception = assertThrows(InvalidWellknownResponseException.class, () ->
-                validatorInstance.validate(response, validator));
-        String message = exception.getMessage();
-        assertTrue(message.contains("Validation failed:"));
-        assertTrue(message.contains("name: must not be blank"));
-        assertTrue(message.contains("locale: must not be blank"));
-        assertTrue(message.contains("logo: must not be null"));
+        assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
 
     @Nested

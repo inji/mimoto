@@ -113,22 +113,6 @@ class V1WellknownParserTest {
     }
 
     @Test
-    void shouldReturnEmptyMapWhenConfigurationsSupportedIsNull() throws IOException {
-        String json = """
-                {
-                    "credential_issuer": "https://issuer.example.com",
-                    "authorization_servers": ["https://auth.example.com"],
-                    "credential_endpoint": "https://issuer.example.com/credential"
-                }
-                """;
-
-        CredentialIssuerWellKnownResponse result = parser.parse(json);
-
-        assertNotNull(result.getCredentialConfigurationsSupported());
-        assertTrue(result.getCredentialConfigurationsSupported().isEmpty());
-    }
-
-    @Test
     void shouldMapAllFieldsFromV1Config() throws IOException {
         String json = """
                 {

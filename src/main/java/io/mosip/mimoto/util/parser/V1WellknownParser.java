@@ -55,9 +55,6 @@ public class V1WellknownParser implements WellknownResponseParser {
     }
 
     private Map<String, CredentialsSupportedResponse> toCredentialConfigurations(V1WellKnownResponse v1Response) {
-        if (v1Response.getCredentialConfigurationsSupported() == null) {
-            return new LinkedHashMap<>();
-        }
         LinkedHashMap<String, CredentialsSupportedResponse> resultMap = new LinkedHashMap<>();
         v1Response.getCredentialConfigurationsSupported().forEach((key, value) -> resultMap.put(key, toCredentialSupported(value)));
         return resultMap;

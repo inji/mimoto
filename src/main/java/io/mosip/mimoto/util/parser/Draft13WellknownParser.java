@@ -31,11 +31,7 @@ public class Draft13WellknownParser implements WellknownResponseParser {
     @Override
     public CredentialIssuerWellKnownResponse parse(String jsonResponse) throws IOException {
         Draft13WellKnownResponse draft13Response = objectMapper.readValue(jsonResponse, Draft13WellKnownResponse.class);
-        CredentialIssuerWellKnownResponse wellKnownResponse = objectMapper.convertValue(draft13Response, CredentialIssuerWellKnownResponse.class);
-        if (wellKnownResponse.getCredentialConfigurationsSupported() == null) {
-            wellKnownResponse.setCredentialConfigurationsSupported(new LinkedHashMap<>());
-        }
-        return wellKnownResponse;
+        return objectMapper.convertValue(draft13Response, CredentialIssuerWellKnownResponse.class);
     }
 
     @Override

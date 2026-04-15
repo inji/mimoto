@@ -22,7 +22,6 @@ public class CredentialIssuerWellKnownResponse {
     @JsonProperty("credential_endpoint")
     private String credentialEndPoint;
 
-    @Valid
     @JsonProperty("credential_configurations_supported")
     private Map<String, CredentialsSupportedResponse> credentialConfigurationsSupported;
 
