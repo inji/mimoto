@@ -12,8 +12,6 @@ import lombok.Data;
 
 import java.util.Map;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-
 @Data
 public class CredentialsSupportedResponse {
     @NotBlank(message = "Format must not be blank")
@@ -24,7 +22,7 @@ public class CredentialsSupportedResponse {
     @Schema(description = "Scope of the Credential")
     private String scope;
 
-    @JsonInclude(NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(description = "document Type of the Credential")
     private String doctype;
 
@@ -35,21 +33,11 @@ public class CredentialsSupportedResponse {
     @Schema(description = "List of proof types supported")
     private Map<@NotEmpty String, @Valid ProofTypesSupported> proofTypesSupported;
 
-    @JsonInclude(NON_NULL)
-    @Schema(description = "List of Claims")
-    private Map<String, Object> claims;
-
-    @SerializedName("credential_definition")
-    @JsonProperty("credential_definition")
-    @JsonInclude(NON_NULL)
-    @Schema(description = "Credential Definition of the VC")
-    private CredentialDefinitionResponseDto credentialDefinition;
-
     @NotNull(message = "Credential metadata must not be null")
     @Valid
     @SerializedName("credential_metadata")
     @JsonProperty("credential_metadata")
-    @Schema(description = "Credential Metadata containing display properties")
+    @Schema(description = "Credential Metadata containing display and claims")
     private CredentialMetaData credentialMetadata;
 
     @Schema(description = "Identify the type or schema of the claims included")

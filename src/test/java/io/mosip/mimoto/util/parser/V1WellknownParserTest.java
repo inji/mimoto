@@ -95,7 +95,6 @@ class V1WellknownParserTest {
                             "proof_types_supported": {
                                 "jwt": {"proof_signing_alg_values_supported": ["ES256"]}
                             },
-                            "claims": {"name": {}},
                             "vct": "TestVCT"
                         }
                     }
@@ -107,9 +106,10 @@ class V1WellknownParserTest {
         CredentialsSupportedResponse cred = result.getCredentialConfigurationsSupported().get("TestCred");
         assertNotNull(cred);
         assertNull(cred.getDisplay());
+        assertNull(cred.getClaims());
         assertEquals("mso_mdoc", cred.getFormat());
         assertEquals("org.iso.18013.5.1.mDL", cred.getDoctype());
-        assertNotNull(cred.getClaims());
+        assertNull(cred.getCredentialDefinition());
         assertNull(result.getNonceEndpoint());
     }
 
@@ -130,16 +130,12 @@ class V1WellknownParserTest {
                                 "jwt": {"proof_signing_alg_values_supported": ["ES256"]},
                                 "cwt": {"proof_signing_alg_values_supported": ["EdDSA"]}
                             },
-                            "claims": {"field1": {}, "field2": {}},
-                            "credential_definition": {
-                                "type": ["VerifiableCredential"],
-                                "credentialSubject": {"name": {"display": [{"name": "Name", "locale": "en"}]}}
-                            },
                             "credential_metadata": {
                                 "display": [
                                     {"name": "Credential One", "locale": "en"},
                                     {"name": "Credenziale Uno", "locale": "it"}
-                                ]
+                                ],
+                                "claims": {"field1": {}, "field2": {}}
                             },
                             "vct": "VCT1"
                         }
@@ -156,8 +152,7 @@ class V1WellknownParserTest {
         assertEquals("doctype1", cred.getDoctype());
         assertEquals(2, cred.getProofTypesSupported().size());
         assertEquals(2, cred.getClaims().size());
-        assertNotNull(cred.getCredentialDefinition());
-        assertEquals(List.of("VerifiableCredential"), cred.getCredentialDefinition().getType());
+        assertNull(cred.getCredentialDefinition());
         assertEquals(2, cred.getDisplay().size());
         assertEquals("VCT1", cred.getVct());
     }
@@ -212,7 +207,9 @@ class V1WellknownParserTest {
                             "proof_types_supported": {
                                 "jwt": {"proof_signing_alg_values_supported": ["ES256"]}
                             },
-                            "credential_metadata": {}
+                            "credential_metadata": {
+                                "claims": {"given_name": {}}
+                            }
                         }
                     }
                 }
@@ -224,6 +221,8 @@ class V1WellknownParserTest {
         assertNotNull(cred);
         assertNull(cred.getDisplay());
         assertEquals("ldp_vc", cred.getFormat());
+        assertNotNull(cred.getClaims());
+        assertEquals(1, cred.getClaims().size());
     }
 
     @Test

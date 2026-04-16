@@ -67,14 +67,16 @@ public class V1WellknownParser implements WellknownResponseParser {
         credentialSupported.setScope(v1CredentialSupportedResponse.getScope());
         credentialSupported.setDoctype(v1CredentialSupportedResponse.getDoctype());
         credentialSupported.setProofTypesSupported(objectMapper.convertValue(v1CredentialSupportedResponse.getProofTypesSupported(), objectMapper.getTypeFactory().constructMapType(LinkedHashMap.class, String.class, io.mosip.mimoto.dto.mimoto.ProofTypesSupported.class)));
-        credentialSupported.setClaims(v1CredentialSupportedResponse.getClaims());
-        credentialSupported.setCredentialDefinition(objectMapper.convertValue(v1CredentialSupportedResponse.getCredentialDefinition(), io.mosip.mimoto.dto.mimoto.CredentialDefinitionResponseDto.class));
         credentialSupported.setVct(v1CredentialSupportedResponse.getVct());
+        credentialSupported.setCredentialDefinition(null);
 
         CredentialMetaData metadata = v1CredentialSupportedResponse.getCredentialMetadata();
-        if (metadata != null && metadata.getDisplay() != null) {
-            List<io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse> display = metadata.getDisplay().stream().map(d -> objectMapper.convertValue(d, io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse.class)).collect(Collectors.toList());
-            credentialSupported.setDisplay(display);
+        if (metadata != null) {
+            if (metadata.getDisplay() != null) {
+                List<io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse> display = metadata.getDisplay().stream().map(d -> objectMapper.convertValue(d, io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse.class)).collect(Collectors.toList());
+                credentialSupported.setDisplay(display);
+            }
+            credentialSupported.setClaims(metadata.getClaims());
         }
 
         return credentialSupported;
