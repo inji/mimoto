@@ -14,7 +14,6 @@ import java.util.Map;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class V1VCCredentialRequest {
@@ -23,6 +22,7 @@ public class V1VCCredentialRequest {
     @NotBlank
     private String credentialConfigurationId;
 
+    @JsonProperty("proofs")
     @NotNull
     private Map<String, List<String>> proofs;
 }

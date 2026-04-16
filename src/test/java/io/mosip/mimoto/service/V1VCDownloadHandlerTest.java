@@ -237,6 +237,27 @@ class V1VCDownloadHandlerTest {
     }
 
     @Test
+    void shouldThrowExceptionWithoutRetryWhenNonceEndpointIsBlank() throws Exception {
+        wellKnownResponse.setNonceEndpoint("   ");
+
+        V1VCCredentialRequest request = buildRequest("jwt-token");
+
+        when(v1CredentialRequestService.buildRequest(any(), anyString(), any(), any(), any(), anyBoolean()))
+                .thenReturn(request);
+
+        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+                eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
+                .thenReturn(null);
+
+        assertThrows(ExternalServiceUnavailableException.class,
+                () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
+                        wellKnownResponse, tokenResponse, null, null, false));
+
+        verify(v1CredentialRequestService, times(1))
+                .buildRequest(any(), anyString(), any(), any(), any(), anyBoolean());
+    }
+
+    @Test
     void shouldThrowInvalidCredentialResourceExceptionWhenCredentialsListIsNull() throws Exception {
         V1VCCredentialRequest request = buildRequest("jwt-token");
 

@@ -49,7 +49,8 @@ public class V1VCDownloadHandler implements VCDownloadHandler {
 
         V1VCCredentialResponse response = postCredentialRequest(credentialEndpoint, vcCredentialRequest, accessToken);
 
-        if (response == null && credentialIssuerWellKnownResponse.getNonceEndpoint() != null) {
+        String nonceEndpoint = credentialIssuerWellKnownResponse.getNonceEndpoint();
+        if (response == null && nonceEndpoint != null && !nonceEndpoint.isBlank()) {
             log.info("Credential request failed for issuerId: {}. Retrying with fresh nonce.", issuerId);
             vcCredentialRequest = buildCredentialRequest(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, walletId, base64Key, isLoginFlow);
             response = postCredentialRequest(credentialEndpoint, vcCredentialRequest, accessToken);

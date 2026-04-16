@@ -128,7 +128,7 @@ public class SigningKeyUtilTest {
         SignedJWT signedJWT = SignedJWT.parse(jwt);
         assertEquals("Subject should match", "test-client-id", signedJWT.getJWTClaimsSet().getSubject());
         assertEquals("Audience should match", "test-audience", signedJWT.getJWTClaimsSet().getAudience().getFirst());
-        assertNull("Nonce claim should be absent", signedJWT.getJWTClaimsSet().getStringClaim("nonce"));
+        assertFalse("Nonce claim should be absent", signedJWT.getJWTClaimsSet().getClaims().containsKey("nonce"));
     }
 
     @Test
