@@ -359,7 +359,11 @@ public class OpenID4VPServiceTest {
         assertEquals(mockResponse, response);
         verify(verifierService).getTrustedVerifiers();
         verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"), anyList(), eq(true));
-        verify(mockOpenID4VP).sendErrorInfoToVerifier(any());
+        ArgumentCaptor<Exception> errorCaptor = ArgumentCaptor.forClass(Exception.class);
+        verify(mockOpenID4VP).sendErrorInfoToVerifier(errorCaptor.capture());
+        assertTrue(errorCaptor.getValue() instanceof OpenID4VPExceptions.AccessDenied);
+        assertEquals(OpenID4VPErrorCodes.ACCESS_DENIED,
+                ((OpenID4VPExceptions) errorCaptor.getValue()).getErrorCode());
     }
 
     @Test
@@ -394,6 +398,143 @@ public class OpenID4VPServiceTest {
         assertTrue(captor.getValue() instanceof OpenID4VPExceptions.InvalidTransactionData);
         assertEquals(OpenID4VPErrorCodes.INVALID_TRANSACTION_DATA,
                 ((OpenID4VPExceptions) captor.getValue()).getErrorCode());
+    }
+
+    @Test
+    public void testSendErrorToVerifierWithNullErrorPayload() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+
+        VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
+        when(sessionData.getPresentationId()).thenReturn("presentation-123");
+        when(sessionData.getAuthorizationRequest()).thenReturn("authorization-request");
+        when(sessionData.isVerifierClientPreregistered()).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> spyService.sendErrorToVerifier(sessionData, null));
+        verify(mockOpenID4VP, never()).sendErrorInfoToVerifier(any());
+    }
+
+    @Test
+    public void testSendErrorToVerifierMapsBlankErrorCodeToAccessDenied() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        VerifierResponse mockResponse = mock(VerifierResponse.class);
+        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+
+        VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
+        when(sessionData.getPresentationId()).thenReturn("presentation-123");
+        when(sessionData.getAuthorizationRequest()).thenReturn("authorization-request");
+        when(sessionData.isVerifierClientPreregistered()).thenReturn(true);
+
+        ErrorDTO payload = mock(ErrorDTO.class);
+        when(payload.getErrorCode()).thenReturn("   ");
+        when(payload.getErrorMessage()).thenReturn("msg");
+
+        spyService.sendErrorToVerifier(sessionData, payload);
+
+        ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
+        verify(mockOpenID4VP).sendErrorInfoToVerifier(captor.capture());
+        assertTrue(captor.getValue() instanceof OpenID4VPExceptions.AccessDenied);
+        assertEquals(OpenID4VPErrorCodes.ACCESS_DENIED,
+                ((OpenID4VPExceptions) captor.getValue()).getErrorCode());
+    }
+
+    @Test
+    public void testSendErrorToVerifierMapsAccessDeniedCodeToAccessDenied() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        VerifierResponse mockResponse = mock(VerifierResponse.class);
+        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+
+        VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
+        when(sessionData.getPresentationId()).thenReturn("presentation-123");
+        when(sessionData.getAuthorizationRequest()).thenReturn("authorization-request");
+        when(sessionData.isVerifierClientPreregistered()).thenReturn(true);
+
+        ErrorDTO payload = mock(ErrorDTO.class);
+        when(payload.getErrorCode()).thenReturn(OpenID4VPErrorCodes.ACCESS_DENIED);
+        when(payload.getErrorMessage()).thenReturn("user denied");
+
+        spyService.sendErrorToVerifier(sessionData, payload);
+
+        ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
+        verify(mockOpenID4VP).sendErrorInfoToVerifier(captor.capture());
+        assertTrue(captor.getValue() instanceof OpenID4VPExceptions.AccessDenied);
+        assertEquals(OpenID4VPErrorCodes.ACCESS_DENIED,
+                ((OpenID4VPExceptions) captor.getValue()).getErrorCode());
+    }
+
+    @Test
+    public void testSendErrorToVerifierMapsUnknownErrorCodeToAccessDenied() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        VerifierResponse mockResponse = mock(VerifierResponse.class);
+        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+
+        VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
+        when(sessionData.getPresentationId()).thenReturn("presentation-123");
+        when(sessionData.getAuthorizationRequest()).thenReturn("authorization-request");
+        when(sessionData.isVerifierClientPreregistered()).thenReturn(true);
+
+        ErrorDTO payload = mock(ErrorDTO.class);
+        when(payload.getErrorCode()).thenReturn("invalid_request");
+        when(payload.getErrorMessage()).thenReturn("bad");
+
+        spyService.sendErrorToVerifier(sessionData, payload);
+
+        ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
+        verify(mockOpenID4VP).sendErrorInfoToVerifier(captor.capture());
+        assertTrue(captor.getValue() instanceof OpenID4VPExceptions.AccessDenied);
+        assertEquals(OpenID4VPErrorCodes.ACCESS_DENIED,
+                ((OpenID4VPExceptions) captor.getValue()).getErrorCode());
+    }
+
+    @Test
+    public void testSendErrorToVerifierUsesEmptyMessageWhenErrorMessageNull() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        VerifierResponse mockResponse = mock(VerifierResponse.class);
+        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+
+        VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
+        when(sessionData.getPresentationId()).thenReturn("presentation-123");
+        when(sessionData.getAuthorizationRequest()).thenReturn("authorization-request");
+        when(sessionData.isVerifierClientPreregistered()).thenReturn(true);
+
+        ErrorDTO payload = mock(ErrorDTO.class);
+        when(payload.getErrorCode()).thenReturn(OpenID4VPErrorCodes.ACCESS_DENIED);
+        when(payload.getErrorMessage()).thenReturn(null);
+
+        spyService.sendErrorToVerifier(sessionData, payload);
+
+        ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
+        verify(mockOpenID4VP).sendErrorInfoToVerifier(captor.capture());
+        assertEquals("", captor.getValue().getMessage());
     }
 
     @Test
