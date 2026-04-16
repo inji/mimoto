@@ -68,8 +68,7 @@ public class V1WellknownParser implements WellknownResponseParser {
         credentialSupported.setDoctype(v1CredentialSupportedResponse.getDoctype());
         credentialSupported.setProofTypesSupported(objectMapper.convertValue(v1CredentialSupportedResponse.getProofTypesSupported(), objectMapper.getTypeFactory().constructMapType(LinkedHashMap.class, String.class, io.mosip.mimoto.dto.mimoto.ProofTypesSupported.class)));
         credentialSupported.setVct(v1CredentialSupportedResponse.getVct());
-        credentialSupported.setCredentialDefinition(null);
-
+        
         CredentialMetaData metadata = v1CredentialSupportedResponse.getCredentialMetadata();
         if (metadata != null) {
             if (metadata.getDisplay() != null) {
