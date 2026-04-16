@@ -233,7 +233,7 @@ fileignoreconfig:
 - filename: src/main/java/io/mosip/mimoto/util/SigningKeyUtil.java
   checksum: b5eec9b76f972f685cf22002360d81dd55ea8a798e2d8b9a6f4fb382fa10b021
 - filename: src/test/java/io/mosip/mimoto/util/SigningKeyUtilTest.java
-  checksum: 561e00d1163216122eef55a10a018ce8f9a96fa2f26f9247797d514482a7f259
+  checksum: eeebabe81b6e2a60eece03f4505c9bd9b4a9f7059e1873b71c63dca5722847f2
 - filename: src/main/java/io/mosip/mimoto/util/factory/Ed25519AlgorithmHandler.java
   checksum: 6d9332df2edfc765ab45c8e985571bb5851c0da680afdc19becbc1e60362df20
 - filename: src/main/java/io/mosip/mimoto/controller/IssuersV2Controller.java
@@ -242,4 +242,12 @@ fileignoreconfig:
   checksum: 15a9710874a5692a85182e8b30962122dd6cfff570a6e706a49938eadae267c4
 - filename: src/main/java/io/mosip/mimoto/util/parser/V1WellknownParser.java
   checksum: 0a73dce3de65135f7f87bd1b92f6037169fdeae0048df326c45b7e496f75e01d
+- filename: src/main/java/io/mosip/mimoto/service/impl/V1VCDownloadHandler.java
+  checksum: 621c5c9b0819d81ab69dae829862d6e740b9ff4da2567d9ea1ba6df3f8600dac
+- filename: src/main/java/io/mosip/mimoto/service/V1CredentialRequestService.java
+  checksum: 7296598632d713db09024635937c8ac2b7f4a81bcc66ab236917e2a64c1989bf
+- filename: src/test/java/io/mosip/mimoto/service/V1CredentialRequestServiceTest.java
+  checksum: 260b355b96c6618f7df5d80edca2c1398c1f3b9e54f6368fe3b850d4bd5829b4
+- filename: src/test/java/io/mosip/mimoto/service/V1VCDownloadHandlerTest.java
+  checksum: cbab428bf3c7cce688810eadd32025237c387110a1b4951498943f3c427fde27
 version: ""

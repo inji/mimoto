@@ -10,6 +10,7 @@ import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
 import io.mosip.mimoto.service.Draft13CredentialRequestService;
+import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.service.VCDownloadHandler;
 import io.mosip.mimoto.util.RestApiClient;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,7 @@ import static io.mosip.mimoto.exception.ErrorConstants.CREDENTIAL_DOWNLOAD_EXCEP
 import static io.mosip.mimoto.exception.ErrorConstants.SERVER_UNAVAILABLE;
 
 @Slf4j
-@Component("draft-13")
+@Component(VCSpecificationVersion.DRAFT_13_VERSION)
 public class Draft13VCDownloadHandler implements VCDownloadHandler {
     private final Draft13CredentialRequestService draft13CredentialRequestService;
     private final RestApiClient restApiClient;

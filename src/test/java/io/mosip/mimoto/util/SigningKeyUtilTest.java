@@ -118,6 +118,20 @@ public class SigningKeyUtilTest {
     }
 
     @Test
+    public void shouldGenerateJwtWithoutNonceClaimWhenCNonceIsNull() throws Exception {
+        KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.RS256);
+        String jwt = SigningKeyUtil.generateJwt(SigningAlgorithm.RS256, "test-audience", "test-client-id", null, keyPair);
+
+        assertNotNull("JWT should not be null", jwt);
+        assertFalse("JWT should not be empty", jwt.isEmpty());
+
+        SignedJWT signedJWT = SignedJWT.parse(jwt);
+        assertEquals("Subject should match", "test-client-id", signedJWT.getJWTClaimsSet().getSubject());
+        assertEquals("Audience should match", "test-audience", signedJWT.getJWTClaimsSet().getAudience().getFirst());
+        assertNull("Nonce claim should be absent", signedJWT.getJWTClaimsSet().getStringClaim("nonce"));
+    }
+
+    @Test
     public void shouldGenerateJwkSuccessfully() throws Exception {
         KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.RS256);
         JWK jwk = SigningKeyUtil.generateJwk(SigningAlgorithm.RS256, keyPair);

@@ -179,6 +179,12 @@ public class SigningKeyUtil {
         Date issuedAt = new Date(nowSeconds * 1000);
         Date expiresAt = new Date((nowSeconds + JWT_EXPIRATION_SECONDS) * 1000);
 
-        return new JWTClaimsSet.Builder().subject(clientId).audience(audience).issuer(clientId).issueTime(issuedAt).expirationTime(expiresAt).claim("nonce", cNonce).build();
+        JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(clientId).audience(audience).issuer(clientId).issueTime(issuedAt).expirationTime(expiresAt);
+
+        if (cNonce != null) {
+            builder.claim("nonce", cNonce);
+        }
+
+        return builder.build();
     }
 }
