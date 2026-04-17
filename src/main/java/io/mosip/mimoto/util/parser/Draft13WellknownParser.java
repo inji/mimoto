@@ -5,7 +5,7 @@ import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.wellknown.draft13.Draft13WellKnownResponse;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
-import io.mosip.mimoto.util.CredentialIssuerWellknownResponseValidator;
+import io.mosip.mimoto.util.Draft13CredentialIssuerWellknownResponseValidator;
 import jakarta.validation.Validator;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +15,9 @@ import java.io.IOException;
 public class Draft13WellknownParser implements WellknownResponseParser {
 
     private final ObjectMapper objectMapper;
-    private final CredentialIssuerWellknownResponseValidator wellknownResponseValidator;
+    private final Draft13CredentialIssuerWellknownResponseValidator wellknownResponseValidator;
 
-    public Draft13WellknownParser(ObjectMapper objectMapper, CredentialIssuerWellknownResponseValidator wellknownResponseValidator) {
+    public Draft13WellknownParser(ObjectMapper objectMapper, Draft13CredentialIssuerWellknownResponseValidator wellknownResponseValidator) {
         this.objectMapper = objectMapper;
         this.wellknownResponseValidator = wellknownResponseValidator;
     }

@@ -5,7 +5,7 @@ import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
-import io.mosip.mimoto.util.CredentialIssuerWellknownResponseValidator;
+import io.mosip.mimoto.util.Draft13CredentialIssuerWellknownResponseValidator;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +27,7 @@ class Draft13WellknownParserTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        parser = new Draft13WellknownParser(objectMapper, new CredentialIssuerWellknownResponseValidator());
+        parser = new Draft13WellknownParser(objectMapper, new Draft13CredentialIssuerWellknownResponseValidator());
     }
 
     @Test
@@ -233,7 +233,7 @@ class Draft13WellknownParserTest {
         assertNull(cred.getOrder());
     }
 
-    private static class ThrowingValidator extends CredentialIssuerWellknownResponseValidator {
+    private static class ThrowingValidator extends Draft13CredentialIssuerWellknownResponseValidator {
         @Override
         public void validate(CredentialIssuerWellKnownResponse response, Validator validator) throws InvalidWellknownResponseException {
             throw new InvalidWellknownResponseException("test error");

@@ -7,8 +7,9 @@ import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.dto.mimoto.wellknown.v1.CredentialMetaData;
 import io.mosip.mimoto.dto.mimoto.wellknown.v1.V1WellKnownResponse;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
-import io.mosip.mimoto.util.CredentialIssuerWellknownResponseValidator;
+import io.mosip.mimoto.util.V1CredentialIssuerWellknownResponseValidator;
 import jakarta.validation.Validator;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -17,13 +18,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class V1WellknownParser implements WellknownResponseParser {
 
     private final ObjectMapper objectMapper;
-    private final CredentialIssuerWellknownResponseValidator wellknownResponseValidator;
+    private final V1CredentialIssuerWellknownResponseValidator wellknownResponseValidator;
 
-    public V1WellknownParser(ObjectMapper objectMapper, CredentialIssuerWellknownResponseValidator wellknownResponseValidator) {
+    public V1WellknownParser(ObjectMapper objectMapper, V1CredentialIssuerWellknownResponseValidator wellknownResponseValidator) {
         this.objectMapper = objectMapper;
         this.wellknownResponseValidator = wellknownResponseValidator;
     }
@@ -75,9 +77,24 @@ public class V1WellknownParser implements WellknownResponseParser {
                 List<io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse> display = metadata.getDisplay().stream().map(d -> objectMapper.convertValue(d, io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse.class)).collect(Collectors.toList());
                 credentialSupported.setDisplay(display);
             }
-            credentialSupported.setClaims(metadata.getClaims());
+            credentialSupported.setClaims(normalizeClaims(metadata.getClaims()));
         }
 
         return credentialSupported;
+    }
+
+    private Map<String, Object> normalizeClaims(List<Map<String, Object>> claimsList) {
+        if (claimsList == null || claimsList.isEmpty()) {
+            return null;
+        }
+        LinkedHashMap<String, Object> claimsMap = new LinkedHashMap<>();
+        for (Map<String, Object> claim : claimsList) {
+            List<String> path = (List<String>) claim.get("path");
+            if (path == null || path.isEmpty()) continue;
+            String key = path.getLast();
+            if (key == null) continue;
+            claimsMap.put(key, Map.of("display", claim.getOrDefault("display", List.of())));
+        }
+        return claimsMap.isEmpty() ? null : claimsMap;
     }
 }

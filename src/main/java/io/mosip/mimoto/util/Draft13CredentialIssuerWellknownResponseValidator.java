@@ -13,7 +13,7 @@ import org.springframework.util.CollectionUtils;
 import java.util.Set;
 
 @Component
-public class CredentialIssuerWellknownResponseValidator {
+public class Draft13CredentialIssuerWellknownResponseValidator {
 
     public static final String MSO_MDOC = "mso_mdoc";
     public static final String LDP_VC = "ldp_vc";
@@ -29,7 +29,6 @@ public class CredentialIssuerWellknownResponseValidator {
         }
 
         for (CredentialsSupportedResponse supportedCredentialConfiguration : response.getCredentialConfigurationsSupported().values()) {
-            //TODO: Extract the vc specific validations to separate classes
             if (MSO_MDOC.equals(supportedCredentialConfiguration.getFormat())) {
                 if (StringUtils.isBlank(supportedCredentialConfiguration.getDoctype())) {
                     throw new InvalidWellknownResponseException("Mandatory field 'doctype' missing");

@@ -27,8 +27,8 @@ import static org.mockito.Mockito.mock;
 
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 
-@SpringBootTest(classes = {CredentialIssuerWellknownResponseValidator.class, CredentialIssuerWellKnownResponse.class, ValidationAutoConfiguration.class})
-class CredentialIssuerWellknownResponseValidatorTest {
+@SpringBootTest(classes = {Draft13CredentialIssuerWellknownResponseValidator.class, CredentialIssuerWellKnownResponse.class, ValidationAutoConfiguration.class})
+class Draft13CredentialIssuerWellknownResponseValidatorTest {
 
     @Autowired
     private Validator validator;
@@ -46,7 +46,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
 
     @Test
     void shouldNotThrowExceptionWhenResponseIsFullyValid() {
-        CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
+        Draft13CredentialIssuerWellknownResponseValidator validatorInstance = new Draft13CredentialIssuerWellknownResponseValidator();
 
         assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
@@ -54,7 +54,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
     @SuppressWarnings("unchecked")
     @Test
     void shouldThrowExceptionWhenBeanValidationReturnsViolations() {
-        CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
+        Draft13CredentialIssuerWellknownResponseValidator validatorInstance = new Draft13CredentialIssuerWellknownResponseValidator();
 
         Path mockPath = mock(Path.class);
         doReturn("credentialIssuer").when(mockPath).toString();
@@ -83,7 +83,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
         response = getCredentialIssuerWellKnownResponseDto("Issuer1",
                 Map.of("CredentialType1", credentialsSupportedResponse));
 
-        CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
+        Draft13CredentialIssuerWellknownResponseValidator validatorInstance = new Draft13CredentialIssuerWellknownResponseValidator();
 
         assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
@@ -98,7 +98,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
         response = getCredentialIssuerWellKnownResponseDto("Issuer1",
                 Map.of("CredentialType1", credentialsSupportedResponse));
 
-        CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
+        Draft13CredentialIssuerWellknownResponseValidator validatorInstance = new Draft13CredentialIssuerWellknownResponseValidator();
 
         assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
@@ -115,7 +115,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
         displayList.add(invalidDisplay);
         response.getCredentialConfigurationsSupported().get("CredentialType1").setDisplay(displayList);
 
-        CredentialIssuerWellknownResponseValidator validatorInstance = new CredentialIssuerWellknownResponseValidator();
+        Draft13CredentialIssuerWellknownResponseValidator validatorInstance = new Draft13CredentialIssuerWellknownResponseValidator();
 
         assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
@@ -127,7 +127,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
             response = getCredentialIssuerWellKnownResponseDto("Issuer1",
                     Map.of("CredentialType1", getCredentialSupportedResponse("CredentialType1")));
             response.getCredentialConfigurationsSupported().get("CredentialType1").setCredentialDefinition(null);
-            CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new CredentialIssuerWellknownResponseValidator();
+            Draft13CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new Draft13CredentialIssuerWellknownResponseValidator();
 
             InvalidWellknownResponseException invalidWellknownResponseException = assertThrows(InvalidWellknownResponseException.class, () ->
                     credentialIssuerWellknownResponseValidator.validate(response, validator));
@@ -146,7 +146,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
             credentialDefinitionResponseDto.setType(null);
             response.getCredentialConfigurationsSupported().get("CredentialType1").setCredentialDefinition(credentialDefinitionResponseDto);
 
-            CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new CredentialIssuerWellknownResponseValidator();
+            Draft13CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new Draft13CredentialIssuerWellknownResponseValidator();
             InvalidWellknownResponseException invalidWellknownResponseException = assertThrows(InvalidWellknownResponseException.class, () ->
                     credentialIssuerWellknownResponseValidator.validate(response, validator)
             );
@@ -163,7 +163,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
                     Map.of("CredentialType1", getCredentialSupportedResponse("CredentialType1")));
             response.getCredentialConfigurationsSupported().get("CredentialType1").getCredentialDefinition().setType(Collections.emptyList());  // Invalid empty list
 
-            CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new CredentialIssuerWellknownResponseValidator();
+            Draft13CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new Draft13CredentialIssuerWellknownResponseValidator();
 
             InvalidWellknownResponseException invalidWellknownResponseException = assertThrows(InvalidWellknownResponseException.class, () ->
                     credentialIssuerWellknownResponseValidator.validate(response, validator));
@@ -180,7 +180,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
 
         @Test
         void shouldThrowInvalidWellKnownResponseExceptionWhenMandatoryFieldDocTypeIsNotPresent() {
-            CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new CredentialIssuerWellknownResponseValidator();
+            Draft13CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new Draft13CredentialIssuerWellknownResponseValidator();
             CredentialsSupportedResponse credentialSupportedResponse1 = getCredentialSupportedResponse("CredentialType1", "mso_mdoc");
             credentialSupportedResponse1.setDoctype("");
             CredentialIssuerWellKnownResponse wellKnownResponseWithoutDocType = getCredentialIssuerWellKnownResponseDto("Issuer1",
@@ -202,7 +202,7 @@ class CredentialIssuerWellknownResponseValidatorTest {
             CredentialIssuerWellKnownResponse wellKnownResponseWithoutClaims = getCredentialIssuerWellKnownResponseDto("Issuer1",
                     Map.of("CredentialType1", credentialSupportedResponse));
 
-            CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new CredentialIssuerWellknownResponseValidator();
+            Draft13CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new Draft13CredentialIssuerWellknownResponseValidator();
             InvalidWellknownResponseException invalidWellknownResponseException = assertThrows(InvalidWellknownResponseException.class, () ->
                     credentialIssuerWellknownResponseValidator.validate(wellKnownResponseWithoutClaims, validator)
             );
@@ -218,11 +218,12 @@ class CredentialIssuerWellknownResponseValidatorTest {
             CredentialIssuerWellKnownResponse wellKnownResponseWithoutClaims = getCredentialIssuerWellKnownResponseDto("Issuer1",
                     Map.of("CredentialType1", getCredentialSupportedResponse("CredentialType1", "mso_mdoc")));
 
-            CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new CredentialIssuerWellknownResponseValidator();
+            Draft13CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new Draft13CredentialIssuerWellknownResponseValidator();
 
             assertDoesNotThrow(() ->
                     credentialIssuerWellknownResponseValidator.validate(wellKnownResponseWithoutClaims, validator));
 
         }
     }
+
 }

@@ -1,6 +1,5 @@
 package io.mosip.mimoto.service.impl;
 
-import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
@@ -23,7 +22,7 @@ import static io.mosip.mimoto.exception.ErrorConstants.CREDENTIAL_DOWNLOAD_EXCEP
 import static io.mosip.mimoto.exception.ErrorConstants.SERVER_UNAVAILABLE;
 
 @Slf4j
-@Component(VCSpecificationVersion.V1_VERSION)
+@Component("v1")
 public class V1VCDownloadHandler implements VCDownloadHandler {
 
     private static final String DOWNLOAD_FAILURE_MESSAGE = "Unable to download credential from issuerId: %s, credentialConfigurationId: %s";

@@ -46,7 +46,7 @@ public class IssuerConfigUtilTest {
     Validator validator;
 
     @Mock
-    CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator;
+    Draft13CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator;
 
     @Mock
     VCSpecVersionDetector versionDetector;

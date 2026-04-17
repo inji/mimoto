@@ -25,5 +25,5 @@ public class CredentialMetaData {
 
     @JsonInclude(NON_NULL)
     @Schema(description = "List of Claims")
-    private Map<String, Object> claims;
+    private List<Map<String, Object>> claims;
 }
