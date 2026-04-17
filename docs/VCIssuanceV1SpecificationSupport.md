@@ -33,6 +33,7 @@ Guidelines for implementation in INJI Web wallet:
 - We will be supporting both draft 13 and v1.0 specification
 - The existing credential download code will be refactored to be made extensible to support future versions of the specification as well. 
 - The flow will be designed in such a way that the version detection logic will be implemented at the beginning of the flow and based on the version detected, the respective flow will be triggered.
+- One assumption : since INJI Web currently supports sending only single proof object in the credential request, we expect only one credential will be returned in the credential response, even though the structure supports multiple credentials.
 
 ### Changes expected in mimoto :
 
@@ -49,12 +50,8 @@ Guidelines for implementation in INJI Web wallet:
   - Extracting nonce from the nonce_endpoint in case of v1.0 specification and embedding it in the proof JWT sent in credential request. The nonce for draft 13 will be extracted from token response and embedded in the proof JWT as c_nonce.
   - Sending the credential request to the issuer
   - Handling the credential response based on the respective specification
-  - Returning the credential to the caller in a standard format(as an array of credential), so that the rest of the flow remains unaffected by the changes in the specification.
-3. The PDF download flow will still extract the first credential from the array of credentials and generate the PDF based on that, so that there is no change expected in the PDF generation flow.
-4. For logged-in users, all the credentials will be stored in the wallet and same will be returned in the API response.
-
-### Open Questions : 
-1. Should we modify the wallet credential download API to return an array of credentials instead of a single credential without maintaining backward compatibility?
+  - Returning the credential to the caller in a standard format(same as draft 13 specification), so that the rest of the flow remains unaffected by the changes in the specification.
+3. In both wallet and guest credential download flows, only the first credential from the credentials array will be extracted and used for subsequent operations.
 
 ### Class structure : 
 
@@ -139,7 +136,9 @@ public interface WellknownResponseParser {
                       ┌──────────────────────┐
                       │  Common Response DTO │
                       │ VCCredentialResponse │
-                      │  - credentials[]     │
+                      │  - Same as draft 13  │
+                      │  response with single│
+                      │  credential          │ 
                       │  (normalized array)  │
                       └──────────────────────┘
 ```
@@ -173,7 +172,7 @@ public interface VCDownloadHandler {
      * @param walletId Wallet ID for proof binding
      * @param base64Key Wallet key for proof signing
      * @param isLoginFlow indicates if the user is logged in or not
-     * @return VCCredentialResponse with normalized credentials array
+     * @return VCCredentialResponse with single credential in it
      */
     VCCredentialResponse downloadCredential(
             TokenResponseDTO tokenResponse,
