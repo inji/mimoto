@@ -21,17 +21,14 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
-import java.security.cert.X509Certificate;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -80,10 +77,8 @@ public class RestApiClient {
     @Value("${mosip.iam.adapter.disable-self-token-rest-template:false}")
     private boolean disableSelfTokenRestTemplate;
 
-
     @Autowired
     Environment environment;
-    
     /**
      * HTTP GET API
      *
