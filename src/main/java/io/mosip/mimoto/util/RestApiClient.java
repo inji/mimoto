@@ -1,10 +1,10 @@
 package io.mosip.mimoto.util;
 
 import com.google.gson.Gson;
-import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.mimoto.core.http.RequestWrapper;
 import io.mosip.mimoto.dto.SecretKeyRequest;
 import io.mosip.mimoto.exception.TokenGenerationFailedException;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
@@ -21,14 +21,17 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
+import java.security.cert.X509Certificate;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -77,8 +80,43 @@ public class RestApiClient {
     @Value("${mosip.iam.adapter.disable-self-token-rest-template:false}")
     private boolean disableSelfTokenRestTemplate;
 
+    @Value("${mosip.mimoto.ssl.trust-all:false}")
+    private boolean trustAllSsl;
+
     @Autowired
     Environment environment;
+
+    @PostConstruct
+    void configureSslTrust() throws Exception {
+        if (!trustAllSsl) {
+            return;
+        }
+        log.warn("SSL trust-all is enabled — all certificates will be trusted. Do NOT use in production.");
+
+        SSLContext sslContext = org.apache.hc.core5.ssl.SSLContextBuilder.create()
+                .loadTrustMaterial((X509Certificate[] chain, String authType) -> true)
+                .build();
+
+        org.apache.hc.core5.http.config.Registry<org.apache.hc.client5.http.socket.ConnectionSocketFactory> socketRegistry =
+                org.apache.hc.core5.http.config.RegistryBuilder.<org.apache.hc.client5.http.socket.ConnectionSocketFactory>create()
+                        .register(org.apache.hc.core5.http.URIScheme.HTTPS.getId(),
+                                new org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory(sslContext))
+                        .register(org.apache.hc.core5.http.URIScheme.HTTP.getId(),
+                                new org.apache.hc.client5.http.socket.PlainConnectionSocketFactory())
+                        .build();
+
+        org.apache.hc.client5.http.classic.HttpClient httpClient =
+                org.apache.hc.client5.http.impl.classic.HttpClientBuilder.create()
+                        .setConnectionManager(new org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager(socketRegistry))
+                        .setConnectionManagerShared(true)
+                        .build();
+
+        HttpComponentsClientHttpRequestFactory requestFactory =
+                new HttpComponentsClientHttpRequestFactory(httpClient);
+
+        restTemplate.setRequestFactory(requestFactory);
+        plainRestTemplate.setRequestFactory(requestFactory);
+    }
 
     /**
      * HTTP GET API
@@ -187,6 +225,25 @@ public class RestApiClient {
             log.error("RestApiClient::postApi()::error uri: {} {} {}", uri, e.getMessage(), e);
         }
         return result;
+    }
+
+    public <T> T postApiWithErrorResponse(String uri, MediaType mediaType, Object requestType, Class<T> responseClass, String bearerToken) {
+        try {
+            log.info("RestApiClient::postApiWithErrorResponse()::entry uri: {}", uri);
+            return plainRestTemplate.postForObject(uri, setRequestHeader(requestType, mediaType, bearerToken), responseClass);
+        } catch (HttpClientErrorException e) {
+            log.error("RestApiClient::postApiWithErrorResponse()::client error uri: {} status: {} body: {}",
+                    uri, e.getStatusCode(), e.getResponseBodyAsString());
+            try {
+                return new com.fasterxml.jackson.databind.ObjectMapper().readValue(e.getResponseBodyAsString(), responseClass);
+            } catch (Exception parseEx) {
+                log.error("RestApiClient::postApiWithErrorResponse()::failed to parse error body", parseEx);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("RestApiClient::postApiWithErrorResponse()::error uri: {} {}", uri, e.getMessage(), e);
+            return null;
+        }
     }
 
     private HttpEntity<Object> setRequestHeader(Object requestType, MediaType mediaType, String bearerToken){

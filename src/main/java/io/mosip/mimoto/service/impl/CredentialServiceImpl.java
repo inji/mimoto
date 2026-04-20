@@ -2,7 +2,6 @@ package io.mosip.mimoto.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
@@ -25,7 +24,6 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 import java.util.UUID;
 
-import static io.mosip.mimoto.constant.VCSpecificationVersion.DRAFT_13;
 import static io.mosip.mimoto.exception.ErrorConstants.*;
 
 @Slf4j

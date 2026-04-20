@@ -25,6 +25,7 @@ import static io.mosip.mimoto.exception.ErrorConstants.SERVER_UNAVAILABLE;
 @Component("v1")
 public class V1VCDownloadHandler implements VCDownloadHandler {
 
+    private static final String INVALID_NONCE = "invalid_nonce";
     private static final String DOWNLOAD_FAILURE_MESSAGE = "Unable to download credential from issuerId: %s, credentialConfigurationId: %s";
     private static final String EMPTY_CREDENTIAL_MESSAGE = "Credential response did not contain any credentials";
     private static final String REQUEST_BUILD_FAILURE_MESSAGE = "Unable to generate credential request";
@@ -49,14 +50,17 @@ public class V1VCDownloadHandler implements VCDownloadHandler {
         V1VCCredentialResponse response = postCredentialRequest(credentialEndpoint, vcCredentialRequest, accessToken);
 
         String nonceEndpoint = credentialIssuerWellKnownResponse.getNonceEndpoint();
-        if (response == null && nonceEndpoint != null && !nonceEndpoint.isBlank()) {
-            log.info("Credential request failed for issuerId: {}. Retrying with fresh nonce.", issuerId);
+        if (response != null && response.hasError() && INVALID_NONCE.equals(response.getError())
+                && nonceEndpoint != null && !nonceEndpoint.isBlank()) {
+            log.info("Received invalid_nonce error for issuerId: {}. Retrying with fresh nonce.", issuerId);
             vcCredentialRequest = buildCredentialRequest(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, walletId, base64Key, isLoginFlow);
             response = postCredentialRequest(credentialEndpoint, vcCredentialRequest, accessToken);
         }
 
-        if (response == null) {
-            throw new ExternalServiceUnavailableException(SERVER_UNAVAILABLE.getErrorCode(), String.format(DOWNLOAD_FAILURE_MESSAGE, issuerId, credentialConfigurationId));
+        if (response == null || response.hasError()) {
+            String errorDetail = response != null ? response.getError() + ": " + response.getErrorDescription() : "no response";
+            throw new ExternalServiceUnavailableException(SERVER_UNAVAILABLE.getErrorCode(),
+                    String.format(DOWNLOAD_FAILURE_MESSAGE, issuerId, credentialConfigurationId) + " - " + errorDetail);
         }
 
         List<Object> credentials = response.getCredentials();
@@ -80,11 +84,6 @@ public class V1VCDownloadHandler implements VCDownloadHandler {
     }
 
     private V1VCCredentialResponse postCredentialRequest(String credentialEndpoint, V1VCCredentialRequest request, String accessToken) {
-        try {
-            return restApiClient.postApi(credentialEndpoint, MediaType.APPLICATION_JSON, request, V1VCCredentialResponse.class, accessToken);
-        } catch (Exception e) {
-            log.error("Error posting V1 credential request to {}", credentialEndpoint, e);
-            return null;
-        }
+        return restApiClient.postApiWithErrorResponse(credentialEndpoint, MediaType.APPLICATION_JSON, request, V1VCCredentialResponse.class, accessToken);
     }
 }

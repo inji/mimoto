@@ -92,7 +92,7 @@ class V1VCDownloadHandlerTest {
                 .credentials(List.of("eyJhbGciOiJFUzI1NiJ9.credential-payload.signature"))
                 .build();
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
                 .thenReturn(mockResponse);
 
@@ -116,7 +116,7 @@ class V1VCDownloadHandlerTest {
                 .credentials(List.of("first-credential", "second-credential", "third-credential"))
                 .build();
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
                 .thenReturn(mockResponse);
 
@@ -139,7 +139,7 @@ class V1VCDownloadHandlerTest {
                 .credentials(List.of("login-credential-data"))
                 .build();
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
                 .thenReturn(mockResponse);
 
@@ -164,7 +164,7 @@ class V1VCDownloadHandlerTest {
     }
 
     @Test
-    void shouldRetryWithFreshNonceWhenFirstAttemptReturnsNull() throws Exception {
+    void shouldRetryWithFreshNonceWhenFirstAttemptReturnsInvalidNonce() throws Exception {
         V1VCCredentialRequest firstRequest = buildRequest("jwt-token-1");
         V1VCCredentialRequest retryRequest = buildRequest("jwt-token-2");
 
@@ -173,17 +173,22 @@ class V1VCDownloadHandlerTest {
                 .thenReturn(firstRequest)
                 .thenReturn(retryRequest);
 
-        V1VCCredentialResponse mockResponse = V1VCCredentialResponse.builder()
+        V1VCCredentialResponse invalidNonceResponse = V1VCCredentialResponse.builder()
+                .error("invalid_nonce")
+                .errorDescription("Nonce Transaction could not be found.")
+                .build();
+
+        V1VCCredentialResponse successResponse = V1VCCredentialResponse.builder()
                 .credentials(List.of("retry-credential-data"))
                 .build();
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(firstRequest), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
-                .thenReturn(null);
+                .thenReturn(invalidNonceResponse);
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(retryRequest), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
-                .thenReturn(mockResponse);
+                .thenReturn(successResponse);
 
         VCCredentialResponse result = handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
                 wellKnownResponse, tokenResponse, null, null, false);
@@ -196,15 +201,20 @@ class V1VCDownloadHandlerTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenRetryAlsoReturnsNull() throws Exception {
+    void shouldThrowExceptionWhenRetryAlsoReturnsInvalidNonce() throws Exception {
         V1VCCredentialRequest request = buildRequest("jwt-token");
 
         when(v1CredentialRequestService.buildRequest(any(), anyString(), any(), any(), any(), anyBoolean()))
                 .thenReturn(request);
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        V1VCCredentialResponse invalidNonceResponse = V1VCCredentialResponse.builder()
+                .error("invalid_nonce")
+                .errorDescription("Nonce Transaction could not be found.")
+                .build();
+
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
-                .thenReturn(null);
+                .thenReturn(invalidNonceResponse);
 
         ExternalServiceUnavailableException exception = assertThrows(
                 ExternalServiceUnavailableException.class,
@@ -212,7 +222,7 @@ class V1VCDownloadHandlerTest {
                         wellKnownResponse, tokenResponse, null, null, false));
 
         assertTrue(exception.getMessage().contains(ISSUER_ID));
-        assertTrue(exception.getMessage().contains(CREDENTIAL_CONFIG_ID));
+        assertTrue(exception.getMessage().contains("invalid_nonce"));
     }
 
     @Test
@@ -224,9 +234,14 @@ class V1VCDownloadHandlerTest {
         when(v1CredentialRequestService.buildRequest(any(), anyString(), any(), any(), any(), anyBoolean()))
                 .thenReturn(request);
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        V1VCCredentialResponse invalidNonceResponse = V1VCCredentialResponse.builder()
+                .error("invalid_nonce")
+                .errorDescription("Nonce Transaction could not be found.")
+                .build();
+
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
-                .thenReturn(null);
+                .thenReturn(invalidNonceResponse);
 
         assertThrows(ExternalServiceUnavailableException.class,
                 () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
@@ -245,9 +260,14 @@ class V1VCDownloadHandlerTest {
         when(v1CredentialRequestService.buildRequest(any(), anyString(), any(), any(), any(), anyBoolean()))
                 .thenReturn(request);
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        V1VCCredentialResponse invalidNonceResponse = V1VCCredentialResponse.builder()
+                .error("invalid_nonce")
+                .errorDescription("Nonce Transaction could not be found.")
+                .build();
+
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
-                .thenReturn(null);
+                .thenReturn(invalidNonceResponse);
 
         assertThrows(ExternalServiceUnavailableException.class,
                 () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
@@ -268,7 +288,7 @@ class V1VCDownloadHandlerTest {
                 .credentials(null)
                 .build();
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
                 .thenReturn(mockResponse);
 
@@ -291,7 +311,7 @@ class V1VCDownloadHandlerTest {
                 .credentials(List.of())
                 .build();
 
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
                 .thenReturn(mockResponse);
 
@@ -304,15 +324,14 @@ class V1VCDownloadHandlerTest {
     }
 
     @Test
-    void shouldThrowExternalServiceUnavailableExceptionWhenRestApiThrowsException() throws Exception {
+    void shouldThrowExceptionWhenResponseIsNull() throws Exception {
         V1VCCredentialRequest request = buildRequest("jwt-token");
 
         when(v1CredentialRequestService.buildRequest(any(), anyString(), any(), any(), any(), anyBoolean()))
                 .thenReturn(request);
 
-        when(restApiClient.postApi(anyString(), any(), any(), any(), anyString()))
-                .thenThrow(new RuntimeException("API down"))
-                .thenThrow(new RuntimeException("API still down"));
+        when(restApiClient.postApiWithErrorResponse(anyString(), any(), any(), any(), anyString()))
+                .thenReturn(null);
 
         ExternalServiceUnavailableException exception = assertThrows(
                 ExternalServiceUnavailableException.class,
@@ -320,41 +339,41 @@ class V1VCDownloadHandlerTest {
                         wellKnownResponse, tokenResponse, null, null, false));
 
         assertTrue(exception.getMessage().contains(ISSUER_ID));
-    }
-
-    @Test
-    void shouldRetryOnExceptionAndSucceedOnSecondAttempt() throws Exception {
-        V1VCCredentialRequest firstRequest = buildRequest("jwt-token-1");
-        V1VCCredentialRequest retryRequest = buildRequest("jwt-token-2");
-
-        when(v1CredentialRequestService.buildRequest(eq(issuerDTO), eq(CREDENTIAL_CONFIG_ID),
-                eq(wellKnownResponse), isNull(), isNull(), eq(false)))
-                .thenReturn(firstRequest)
-                .thenReturn(retryRequest);
-
-        V1VCCredentialResponse mockResponse = V1VCCredentialResponse.builder()
-                .credentials(List.of("recovered-credential"))
-                .build();
-
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
-                eq(firstRequest), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
-                .thenThrow(new RuntimeException("Transient failure"));
-
-        when(restApiClient.postApi(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
-                eq(retryRequest), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
-                .thenReturn(mockResponse);
-
-        VCCredentialResponse result = handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
-                wellKnownResponse, tokenResponse, null, null, false);
-
-        assertNotNull(result);
-        assertEquals("recovered-credential", result.getCredential());
-        verify(v1CredentialRequestService, times(2))
+        assertTrue(exception.getMessage().contains("no response"));
+        verify(v1CredentialRequestService, times(1))
                 .buildRequest(any(), anyString(), any(), any(), any(), anyBoolean());
     }
 
     @Test
-    void shouldNotRetryOnExceptionWhenNoNonceEndpoint() throws Exception {
+    void shouldNotRetryForNonNonceErrors() throws Exception {
+        V1VCCredentialRequest request = buildRequest("jwt-token");
+
+        when(v1CredentialRequestService.buildRequest(any(), anyString(), any(), any(), any(), anyBoolean()))
+                .thenReturn(request);
+
+        V1VCCredentialResponse errorResponse = V1VCCredentialResponse.builder()
+                .error("invalid_token")
+                .errorDescription("The access token is expired")
+                .build();
+
+        when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
+                eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN)))
+                .thenReturn(errorResponse);
+
+        ExternalServiceUnavailableException exception = assertThrows(
+                ExternalServiceUnavailableException.class,
+                () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
+                        wellKnownResponse, tokenResponse, null, null, false));
+
+        assertTrue(exception.getMessage().contains("invalid_token"));
+        verify(v1CredentialRequestService, times(1))
+                .buildRequest(any(), anyString(), any(), any(), any(), anyBoolean());
+        verify(restApiClient, times(1))
+                .postApiWithErrorResponse(anyString(), any(), any(), any(), anyString());
+    }
+
+    @Test
+    void shouldNotRetryWhenResponseIsNullAndNoNonceEndpoint() throws Exception {
         wellKnownResponse.setNonceEndpoint(null);
 
         V1VCCredentialRequest request = buildRequest("jwt-token");
@@ -362,8 +381,8 @@ class V1VCDownloadHandlerTest {
         when(v1CredentialRequestService.buildRequest(any(), anyString(), any(), any(), any(), anyBoolean()))
                 .thenReturn(request);
 
-        when(restApiClient.postApi(anyString(), any(), any(), any(), anyString()))
-                .thenThrow(new RuntimeException("API down"));
+        when(restApiClient.postApiWithErrorResponse(anyString(), any(), any(), any(), anyString()))
+                .thenReturn(null);
 
         assertThrows(ExternalServiceUnavailableException.class,
                 () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
@@ -372,6 +391,6 @@ class V1VCDownloadHandlerTest {
         verify(v1CredentialRequestService, times(1))
                 .buildRequest(any(), anyString(), any(), any(), any(), anyBoolean());
         verify(restApiClient, times(1))
-                .postApi(anyString(), any(), any(), any(), anyString());
+                .postApiWithErrorResponse(anyString(), any(), any(), any(), anyString());
     }
 }
