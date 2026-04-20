@@ -192,7 +192,8 @@ public class RestApiClient {
             log.info("RestApiClient::postApiWithErrorResponse()::entry uri: {}", uri);
             return plainRestTemplate.postForObject(uri, setRequestHeader(requestType, mediaType, bearerToken), responseClass);
         } catch (HttpClientErrorException e) {
-            log.error("RestApiClient::postApiWithErrorResponse()::client error uri: {} status: {} client error response body: {}", uri, e.getStatusCode(), e.getResponseBodyAsString());
+            log.error("RestApiClient::postApiWithErrorResponse()::client error uri: {} status: {}", uri, e.getStatusCode());
+log.debug("RestApiClient::postApiWithErrorResponse()::client error response body: {}", e.getResponseBodyAsString());
             try {
                 return new com.fasterxml.jackson.databind.ObjectMapper().readValue(e.getResponseBodyAsString(), responseClass);
             } catch (Exception ex) {
