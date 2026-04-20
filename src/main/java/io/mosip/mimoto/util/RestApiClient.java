@@ -80,44 +80,10 @@ public class RestApiClient {
     @Value("${mosip.iam.adapter.disable-self-token-rest-template:false}")
     private boolean disableSelfTokenRestTemplate;
 
-    @Value("${mosip.mimoto.ssl.trust-all:false}")
-    private boolean trustAllSsl;
 
     @Autowired
     Environment environment;
-
-    @PostConstruct
-    void configureSslTrust() throws Exception {
-        if (!trustAllSsl) {
-            return;
-        }
-        log.warn("SSL trust-all is enabled — all certificates will be trusted. Do NOT use in production.");
-
-        SSLContext sslContext = org.apache.hc.core5.ssl.SSLContextBuilder.create()
-                .loadTrustMaterial((X509Certificate[] chain, String authType) -> true)
-                .build();
-
-        org.apache.hc.core5.http.config.Registry<org.apache.hc.client5.http.socket.ConnectionSocketFactory> socketRegistry =
-                org.apache.hc.core5.http.config.RegistryBuilder.<org.apache.hc.client5.http.socket.ConnectionSocketFactory>create()
-                        .register(org.apache.hc.core5.http.URIScheme.HTTPS.getId(),
-                                new org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory(sslContext))
-                        .register(org.apache.hc.core5.http.URIScheme.HTTP.getId(),
-                                new org.apache.hc.client5.http.socket.PlainConnectionSocketFactory())
-                        .build();
-
-        org.apache.hc.client5.http.classic.HttpClient httpClient =
-                org.apache.hc.client5.http.impl.classic.HttpClientBuilder.create()
-                        .setConnectionManager(new org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager(socketRegistry))
-                        .setConnectionManagerShared(true)
-                        .build();
-
-        HttpComponentsClientHttpRequestFactory requestFactory =
-                new HttpComponentsClientHttpRequestFactory(httpClient);
-
-        restTemplate.setRequestFactory(requestFactory);
-        plainRestTemplate.setRequestFactory(requestFactory);
-    }
-
+    
     /**
      * HTTP GET API
      *
@@ -232,12 +198,11 @@ public class RestApiClient {
             log.info("RestApiClient::postApiWithErrorResponse()::entry uri: {}", uri);
             return plainRestTemplate.postForObject(uri, setRequestHeader(requestType, mediaType, bearerToken), responseClass);
         } catch (HttpClientErrorException e) {
-            log.error("RestApiClient::postApiWithErrorResponse()::client error uri: {} status: {} body: {}",
-                    uri, e.getStatusCode(), e.getResponseBodyAsString());
+            log.error("RestApiClient::postApiWithErrorResponse()::client error uri: {} status: {} client error response body: {}", uri, e.getStatusCode(), e.getResponseBodyAsString());
             try {
                 return new com.fasterxml.jackson.databind.ObjectMapper().readValue(e.getResponseBodyAsString(), responseClass);
-            } catch (Exception parseEx) {
-                log.error("RestApiClient::postApiWithErrorResponse()::failed to parse error body", parseEx);
+            } catch (Exception ex) {
+                log.error("RestApiClient::postApiWithErrorResponse()::failed to parse error body as {}: {}", responseClass.getSimpleName(), ex.getMessage());
                 return null;
             }
         } catch (Exception e) {
