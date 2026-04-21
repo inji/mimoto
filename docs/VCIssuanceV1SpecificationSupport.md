@@ -2,7 +2,7 @@
 
 This document outlines the changes expected in the INJI Web wallet to support the VCI Issuance spec 1.0, which is the latest version of the OpenID4VCI specification. The document also highlights the changes in the specification compared to draft 13 and the expected changes in mimoto, which is the reference implementation for OpenID4VCI specification.
 
-## Key Changes in OpenID4VCI specific 1.0 which impacts wallet implementation:
+## Key Changes in OpenID4VCI specification 1.0 which impacts wallet implementation:
 - `nonce_endpoint` - optional param is introduced in the well-known response. If the field is present in response, wallet has to fetch the credential from the nonce_endpoint during the proof creation and embed it in the proof. If the field is missing, c_nonce claim should not be added in proof JWT sent in the credential request.
 - `credential_configurations_supported` -> `display` object is now moved to `credential_configurations_supported` -> `credential_metadata` -> `display`
 - Credential request is now format-agnostic, with the following structure : 
@@ -39,7 +39,7 @@ Guidelines for implementation in INJI Web wallet:
 
 1. Issuer configuration fetch logic change, since we want to support both draft 13 and v1.0 VCI specification
   - Need to have version detection logic, should be checked in the following sequence in received well-known response :
-     - If `nonce_endpoint fields` exists in the response and is not empty, version will be v1
+     - If `nonce_endpoint field` exists in the response and is not empty, version will be v1
      - if `credential_configurations_supported` -> `credential_metadata` object exists, version will be v1
      - if `credential_configurations_supported` -> `display`, version will be draft13
      - Default to v1
