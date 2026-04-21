@@ -112,3 +112,63 @@ F --> G[DB]
     class O,P,Q styleWarning
 ```
 This flow ensures that sensitive user data is securely encrypted and accessible only to the user who knows the PIN.
+
+## Sequence Diagram: Secure Data Access
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as Inji Web UI
+    participant WC as WalletsController
+    participant WS as WalletService
+    participant DPS as DataProtectionService
+    participant DB as Database
+    participant KC as MOSIP Kernel<br/>(Cryptomanager)
+
+    Note over User, DB: Wallet Setup
+    User->>UI: Enter PIN
+    UI->>WC: POST /wallets
+    WC->>WS: createWallet
+    WS->>WS: Generate Wallet Key
+    WS->>WS: Protect Wallet Key using PIN (derive + encrypt)
+    WS->>DB: Store encrypted wallet data
+    WS-->>WC: Wallet Created
+    WC-->>UI: 200 OK
+
+    Note over User, DB: Wallet Unlock
+    User->>UI: Enter PIN
+    UI->>WC: POST /wallets/{id}/unlock
+    WC->>WS: unlockWallet
+    WS->>DB: Fetch encrypted wallet key
+    WS->>WS: Decrypt Wallet Key using PIN
+    WS-->>WC: Wallet Key
+    WC->>WC: Store in session
+    WC-->>UI: 200 OK
+
+    Note over User, DB: Credential Download
+    UI->>WC: Store Credential
+    WC->>DPS: encryptCredential
+    DPS->>DPS: AES-GCM encryption
+    DPS->>DB: Save encrypted credential
+
+    Note over User, DB: PII Protection
+    UI->>WC: Save/Update Profile
+    WC->>DPS: encrypt
+    DPS->>KC: Request encryption
+    KC-->>DPS: Encrypted data
+    DPS->>DB: Save encrypted metadata
+```
+
+This high-level sequence diagram shows how the UI and backend interact during wallet creation, unlock, and secure data operations.
+
+## Errors
+
+Mimoto returns specific error codes if the encryption/decryption process fails:
+
+| Error Code | HTTP Status | Description                                                                                 |
+| :--- | :--- |:--------------------------------------------------------------------------------------------|
+| invalid_request | 400 | Validation failure: Missing Wallet ID or User ID or wallet key. invalid 6-digit PIN format. |
+| invalid_pin | 400 | Incorrect PIN: Decryption of wallet_key failed; retries still available.                    |
+| unauthorized | 401 | Session expired: User ID not found in session.                                              |
+| internal_server_error | 500 | Processing error during decryption or cryptomanager operation.                              |
+| database_unavailable | 503 | Database unavailable: Unable to fetch or update required data.                              |

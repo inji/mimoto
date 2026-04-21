@@ -151,3 +151,18 @@ wallet.passcode.maxFailedAttemptsAllowedPerCycle=5
 # Maximum number of lock cycles allowed before the wallet is permanently locked (defaults to 1 if <=0)
 wallet.passcode.maxLockCyclesAllowed=3
 ```
+
+## Errors
+
+Mimoto uses the following error codes to signal wallet state and failures to the UI:
+
+| Error Code                    | HTTP Status | Description                                                                                          |
+|-------------------------------|-------------|------------------------------------------------------------------------------------------------------|
+| `invalid_request`             | 400         | Invalid input such as missing user ID, invalid wallet ID, wallet not found, or invalid PIN format    |
+| `invalid_pin`                 | 400         | Incorrect PIN, retry attempts are still available.                                                   |
+| `last_attempt_before_lockout` | 400         | Indicates the final remaining retry attempt before the wallet transitions to a permanent lock state. |
+| `unauthorized`                | 401         | User is not authenticated or user ID is missing from the session.                                    |
+| `temporarily_locked`          | 423         | Maximum attempts reached; wallet locked temporarily until cooldown period expires.                   |
+| `permanently_locked`          | 423         | Maximum lock cycles exceeded; wallet is permanently locked and cannot be unlocked using PIN.         |
+| `internal_server_error`       | 500         | Unexpected server-side failure during wallet decryption or retrieval.                                |
+| `database_unavailable`        | 503         | Failure to connect to or interact with the database.                                                 |
