@@ -114,7 +114,7 @@ sequenceDiagram
 | `TokenAuthController`          | Provides API for token-based authentication and session creation.                  |
 | `UsersController`              | Manages user profile retrieval using session-based authentication.                 |
 | `WalletsController`            | Handles wallet creation, unlocking, and deletion using session-based authentication. |
-| `WalletCredentialsController`  | Manages credential download, retrieval, and deletion for wallets.                  |---
+| `WalletCredentialsController`  | Manages credential download, retrieval, and deletion for wallets.                  |
 
 ### Configuration & Switching Providers
 If you want to change your IDP from Google to another provider, you need to update the following properties.
@@ -150,9 +150,9 @@ These map the IDP's response fields to Inji’s internal metadata:
 When login fails, Mimoto uses **302 Redirects** to pass error context back to Inji Web.
 Direct requests to protected APIs made without a valid session will return a standard 401 Unauthorized response.
 
-| Scenario | HTTP Status | Description                                                                            |
-| :--- | :--- |:---------------------------------------------------------------------------------------|
-| **Login Success** | 302 | Redirects to `${mosip.inji.web.url}/user/passcode`.                                    |
-| **Consent Denied** | 302 | Redirects to `${injiWebUrl}/?status=error&error_message=...`.                          |
-| **IDP Timeout** | 302 | Redirects to `${injiWebUrl}/?status=error&error_message=...`. IDP servers unreachable. |
-| **Unauthorized** | 401 | Returned if a user attempts to access protected APIs without an active session.        |
+| Scenario           | HTTP Status | Description                                                                           |
+|--------------------|-------------|---------------------------------------------------------------------------------------|
+| **Login Success**  | 302         | Redirects to `${mosip.inji.web.authentication.success.redirect.url}/user/passcode`.   |
+| **Consent Denied** | 302         | Redirects to `${injiWebUrl}/?status=error&error_message=...`.                         |
+| **IDP Timeout**    | 302         | Redirects to `${injiWebUrl}/?status=error&error_message=...`. IDP servers unreachable. |
+| **Unauthorized**   | 401         | Returned if a user attempts to access protected APIs without an active session.       |

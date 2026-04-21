@@ -158,7 +158,7 @@ Mimoto uses the following error codes to signal wallet state and failures to the
 
 | Error Code                    | HTTP Status | Description                                                                                          |
 |-------------------------------|-------------|------------------------------------------------------------------------------------------------------|
-| `invalid_request`             | 400         | Invalid input such as missing user ID, invalid wallet ID, wallet not found, or invalid PIN format    |
+| `invalid_request`             | 400         | Invalid input such as missing user ID, invalid wallet ID, or invalid PIN format                      |
 | `invalid_pin`                 | 400         | Incorrect PIN, retry attempts are still available.                                                   |
 | `last_attempt_before_lockout` | 400         | Indicates the final remaining retry attempt before the wallet transitions to a permanent lock state. |
 | `unauthorized`                | 401         | User is not authenticated or user ID is missing from the session.                                    |

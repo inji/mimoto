@@ -165,10 +165,10 @@ This high-level sequence diagram shows how the UI and backend interact during wa
 
 Mimoto returns specific error codes if the encryption/decryption process fails:
 
-| Error Code | HTTP Status | Description                                                                                 |
-| :--- | :--- |:--------------------------------------------------------------------------------------------|
-| invalid_request | 400 | Validation failure: Missing Wallet ID or User ID or wallet key. invalid 6-digit PIN format. |
-| invalid_pin | 400 | Incorrect PIN: Decryption of wallet_key failed; retries still available.                    |
-| unauthorized | 401 | Session expired: User ID not found in session.                                              |
-| internal_server_error | 500 | Processing error during decryption or cryptomanager operation.                              |
-| database_unavailable | 503 | Database unavailable: Unable to fetch or update required data.                              |
+| Error Code           | HTTP Status | Description                                                                                 |
+|----------------------|-------------|--------------------------------------------------------------------------------------------|
+| invalid_request      | 400         | Validation failure: Missing Wallet ID or User ID or wallet key. invalid 6-digit PIN format. |
+| invalid_pin          | 400         | Incorrect PIN: Decryption of wallet_key failed; retries still available.                    |
+| unauthorized         | 401         | Session expired: User ID not found in session.                                              |
+| internal_server_error | 500         | Processing error during decryption or cryptomanager operation.                              |
+| database_unavailable | 503         | Database unavailable: Unable to fetch or update required data.                              |
