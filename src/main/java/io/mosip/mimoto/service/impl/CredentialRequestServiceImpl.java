@@ -1,7 +1,7 @@
 package io.mosip.mimoto.service.impl;
 
 import io.mosip.mimoto.constant.SigningAlgorithm;
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.service.CredentialFormatHandler;
 import io.mosip.mimoto.service.CredentialFormatHandlerFactory;
@@ -40,7 +40,7 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
     }
 
     @Override
-    public VCCredentialRequest buildRequest(IssuerDTO issuerDTO,
+    public VCCredentialRequest buildRequest(IssuerV2DTO issuerDTO,
                                             String credentialConfigurationId,
                                             CredentialIssuerWellKnownResponse wellKnownResponse,
                                             String cNonce,
@@ -57,7 +57,7 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
         } else {
             KeyPair keyPair = SigningKeyUtil.generateKeyPair(signingAlgorithm);
             log.debug("Generated KeyPair for signing signingAlgorithm: {}", signingAlgorithm);
-            jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair);
+            jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClientId(), cNonce, keyPair);
         }
 
         String format = credentialsSupportedResponse.getFormat();
@@ -105,14 +105,14 @@ public class CredentialRequestServiceImpl implements CredentialRequestService {
                                           String base64EncodedWalletKey,
                                           SigningAlgorithm signingAlgorithm,
                                           CredentialIssuerWellKnownResponse wellKnownResponse,
-                                          IssuerDTO issuerDTO,
+                                          IssuerV2DTO issuerDTO,
                                           String cNonce) throws Exception {
 
         KeyPair keyPair = keyPairService.getKeyPairFromDB(walletId, base64EncodedWalletKey, signingAlgorithm);
 
         return SigningKeyUtil.generateJwt(signingAlgorithm,
                 wellKnownResponse.getCredentialIssuer(),
-                issuerDTO.getClient_id(),
+                issuerDTO.getClientId(),
                 cNonce,
                 keyPair);
     }

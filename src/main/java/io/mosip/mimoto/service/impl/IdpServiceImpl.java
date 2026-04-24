@@ -1,6 +1,6 @@
 package io.mosip.mimoto.service.impl;
 
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
@@ -12,19 +12,19 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpStatus;
-
-import static io.mosip.mimoto.exception.ErrorConstants.*;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
 
 @Service
 public class IdpServiceImpl implements IdpService {
@@ -54,14 +54,14 @@ public class IdpServiceImpl implements IdpService {
     }
 
     @Override
-    public HttpEntity<MultiValueMap<String, String>> constructGetTokenRequest(Map<String, String> params, IssuerDTO issuerDTO, String authorizationAudience) throws IOException, IssuerOnboardingException {
+    public HttpEntity<MultiValueMap<String, String>> constructGetTokenRequest(Map<String, String> params, IssuerV2DTO issuerDTO, String authorizationAudience) throws IOException, IssuerOnboardingException {
         HttpHeaders headers = new HttpHeaders();
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
 
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        String clientAssertion = joseUtil.getJWT(issuerDTO.getClient_id(), keyStorePath, fileName, issuerDTO.getClient_alias(), cyptoPassword, authorizationAudience);
+        String clientAssertion = joseUtil.getJWT(issuerDTO.getClientId(), keyStorePath, fileName, issuerDTO.getClientAlias(), cyptoPassword, authorizationAudience);
         map.add("code", params.get("code"));
-        map.add("client_id", issuerDTO.getClient_id());
+        map.add("client_id", issuerDTO.getClientId());
         map.add("grant_type", params.get("grant_type"));
         map.add("redirect_uri", params.get("redirect_uri"));
         map.add("client_assertion", clientAssertion.replace("[", "").replace("]", ""));
@@ -90,7 +90,7 @@ public class IdpServiceImpl implements IdpService {
                 throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Invalid code verifier.");
             }
 
-            IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
+            IssuerV2DTO issuerDTO = issuersService.getIssuerV2Details(issuerId);
             CredentialIssuerConfiguration credentialIssuerConfiguration = issuersService.getIssuerConfiguration(issuerId);
             String tokenEndpoint = getTokenEndpoint(credentialIssuerConfiguration);
             HttpEntity<MultiValueMap<String, String>> request = constructGetTokenRequest(params, issuerDTO, tokenEndpoint);

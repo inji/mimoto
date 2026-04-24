@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CredentialMatchingServiceTest {
@@ -737,7 +738,7 @@ public class CredentialMatchingServiceTest {
     }
 
     private IssuerConfig createMockIssuerConfig() {
-        IssuerDTO issuerDTO = new IssuerDTO();
+        IssuerV2DTO issuerDTO = new IssuerV2DTO();
         DisplayDTO display = new DisplayDTO();
         display.setName("Test Issuer");
         LogoDTO logoDTO = new LogoDTO();

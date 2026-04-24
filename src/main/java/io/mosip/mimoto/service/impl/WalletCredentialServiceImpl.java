@@ -3,7 +3,7 @@ package io.mosip.mimoto.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.dto.mimoto.IssuerConfig;
@@ -15,11 +15,7 @@ import io.mosip.mimoto.model.CredentialMetadata;
 import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.repository.WalletCredentialsRepository;
-import io.mosip.mimoto.service.CredentialPDFGeneratorService;
-import io.mosip.mimoto.service.CredentialService;
-import io.mosip.mimoto.service.IssuersService;
-import io.mosip.mimoto.service.WalletCredentialService;
-import io.mosip.mimoto.service.DataProtectionService;
+import io.mosip.mimoto.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,7 +162,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
             VCCredentialResponse vcCredentialResponse = objectMapper.readValue(decryptedCredential, VCCredentialResponse.class);
 
             // Fetch issuer details
-            IssuerDTO issuerDTO = issuersService.getIssuerDetails(credentialMetadata.getIssuerId());
+            IssuerV2DTO issuerDTO = issuersService.getIssuerV2Details(credentialMetadata.getIssuerId());
 
             // Fetch issuer configuration
             IssuerConfig issuerConfig = issuersService.getIssuerConfig(credentialMetadata.getIssuerId(), credentialMetadata.getCredentialType());
@@ -183,7 +179,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
                 throw new CredentialProcessingException(CREDENTIAL_FETCH_EXCEPTION.getErrorCode(), "Invalid credential type configuration");
             }
 
-            String dataShareUrl = QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type()) ? dataShareService.storeDataInDataShare(objectMapper.writeValueAsString(vcCredentialResponse), credentialValidity) : "";
+            String dataShareUrl = QRCodeType.OnlineSharing.equals(issuerDTO.getQrCodeType()) ? dataShareService.storeDataInDataShare(objectMapper.writeValueAsString(vcCredentialResponse), credentialValidity) : "";
 
 
             // Generate PDF

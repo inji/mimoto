@@ -1,6 +1,6 @@
 package io.mosip.mimoto.service;
 
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.Map;
 
 public interface IdpService {
-    HttpEntity<MultiValueMap<String, String>> constructGetTokenRequest(Map<String, String> params, IssuerDTO issuerDTO, String authorizationAudience) throws IOException, IssuerOnboardingException;
+    HttpEntity<MultiValueMap<String, String>> constructGetTokenRequest(Map<String, String> params, IssuerV2DTO issuerDTO, String authorizationAudience) throws IOException, IssuerOnboardingException;
 
     String getTokenEndpoint(CredentialIssuerConfiguration credentialIssuerConfiguration);
 

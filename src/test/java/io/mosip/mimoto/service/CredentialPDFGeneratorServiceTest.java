@@ -8,10 +8,7 @@ import io.mosip.injivcrenderer.InjiVcRenderer;
 import io.mosip.mimoto.constant.LdpVcV1Constants;
 import io.mosip.mimoto.constant.LdpVcV2Constants;
 import io.mosip.mimoto.constant.SdJwtVcConstants;
-import io.mosip.mimoto.dto.BackgroundImageDTO;
-import io.mosip.mimoto.dto.DisplayDTO;
-import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.LogoDTO;
+import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
 import io.mosip.mimoto.model.QRCodeType;
@@ -65,7 +62,7 @@ class CredentialPDFGeneratorServiceTest {
     private CredentialPDFGeneratorService credentialPDFGeneratorService;
 
     private VCCredentialResponse vcCredentialResponse;
-    private IssuerDTO issuerDTO;
+    private IssuerV2DTO issuerDTO;
     private CredentialsSupportedResponse credentialsSupportedResponse;
 
     @BeforeEach
@@ -97,9 +94,9 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(vcProperties)
                 .build();
 
-        issuerDTO = new IssuerDTO();
-        issuerDTO.setIssuer_id("test-issuer");
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO = new IssuerV2DTO();
+        issuerDTO.setIssuerId("test-issuer");
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         DisplayDTO display = new DisplayDTO();
         display.setName("Issuer Display Name");
@@ -165,7 +162,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testGeneratePdfForEmbeddedVCQR() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
         when(pixelPass.generateQRData(anyString(), anyString())).thenReturn("generated-qr-data");
         when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
@@ -189,7 +186,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testGeneratePdfShouldGeneratePresentationDefinitionForOnlineSharingQrTypeWithNonEmptyDataShareUrl() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
         when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
                 .thenReturn("<html><body>Test</body></html>");
@@ -668,7 +665,7 @@ class CredentialPDFGeneratorServiceTest {
         ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", true);
 
         when(credentialFormatHandlerFactory.getHandler("vc+sd-jwt")).thenReturn(sdJwtCredentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         String validSdJwt = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiYWJjMTIzIl19.signature~WyJzYWx0IiwgIm5hbWUiLCAiSm9obiBEb2UiXQ~";
 
@@ -1028,7 +1025,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
         when(injiVcRenderer.generateCredentialDisplayContent(any(), any(), anyString(), any()))
@@ -1071,7 +1068,7 @@ class CredentialPDFGeneratorServiceTest {
             .credential(credentialMap)
             .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
         when(injiVcRenderer.generateCredentialDisplayContent(any(), any(), anyString(), any()))
@@ -1098,7 +1095,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(credentialFormatHandler.extractCredentialClaims(any())).thenReturn(Map.of("name", "John"));
@@ -1126,7 +1123,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(credentialFormatHandler.extractCredentialClaims(any())).thenReturn(Map.of("name", "John"));
@@ -1154,7 +1151,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
         when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
@@ -1197,7 +1194,7 @@ class CredentialPDFGeneratorServiceTest {
         when(presentationService.constructPresentationDefinition(any()))
             .thenReturn(new PresentationDefinitionDTO());
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
             "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
@@ -1219,7 +1216,7 @@ class CredentialPDFGeneratorServiceTest {
             .credential(credentialMap)
             .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
 
@@ -1253,7 +1250,7 @@ class CredentialPDFGeneratorServiceTest {
             .credential(credentialMap)
             .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
 
         Map<String, Object> claims = new HashMap<>();
@@ -1303,7 +1300,7 @@ class CredentialPDFGeneratorServiceTest {
             .credential(credentialMap)
             .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John Doe"));
@@ -1334,7 +1331,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
         when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
@@ -1359,7 +1356,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
         when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
@@ -1374,7 +1371,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrWithValidIdentityQRCode() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
 
         // Setup credential with claim169 containing identityQRCode
         Map<String, Object> claim169Map = new HashMap<>();
@@ -1413,7 +1410,7 @@ class CredentialPDFGeneratorServiceTest {
     @MethodSource("provideClaim169QrFallbackScenarios")
     void testExtractClaim169QrFallbackToVCData(String scenarioName, Map<String, Object> claim169Map) throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
@@ -1464,7 +1461,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrWithClaim169NotAsMap() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
 
         // Setup credential with claim169 as String (not Map)
         Map<String, Object> subjectData = new HashMap<>();
@@ -1501,7 +1498,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrWithClaim169Missing() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
 
         // Setup credential without claim169
         Map<String, Object> subjectData = new HashMap<>();
@@ -1538,7 +1535,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrWithWhitespaceOnlyIdentityQRCode() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
 
         // Setup credential with claim169 containing whitespace-only identityQRCode
         Map<String, Object> claim169Map = new HashMap<>();
@@ -1577,7 +1574,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrWithSdJwtFormat() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("vc+sd-jwt")).thenReturn(sdJwtCredentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
         vcCredentialResponse.setFormat("vc+sd-jwt");
         String mockSDJWTString = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOltdfQ.signature";
         vcCredentialResponse.setCredential(mockSDJWTString);
@@ -1626,7 +1623,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrWithNumericIdentityQRCode() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
 
         // Setup credential with claim169 containing numeric identityQRCode (will be converted to string)
         Map<String, Object> claim169Map = new HashMap<>();
@@ -1664,7 +1661,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrWithEmptyClaim169Map() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
 
         // Setup credential with claim169 as empty Map
         Map<String, Object> claim169Map = new HashMap<>();
@@ -1702,7 +1699,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrWithClaim169AsList() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.EmbeddedVC);
+        issuerDTO.setQrCodeType(QRCodeType.EmbeddedVC);
 
         // Setup credential with claim169 as List (not Map)
         Map<String, Object> subjectData = new HashMap<>();
@@ -1738,7 +1735,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrNotCalledWhenQRCodeTypeIsNone() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         // Setup credential with claim169 containing identityQRCode
         Map<String, Object> claim169Map = new HashMap<>();
@@ -1771,7 +1768,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractClaim169QrNotCalledWhenQRCodeTypeIsNull() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(null);
+        issuerDTO.setQrCodeType(null);
 
         // Setup credential with claim169 containing identityQRCode
         Map<String, Object> claim169Map = new HashMap<>();
@@ -1805,7 +1802,7 @@ class CredentialPDFGeneratorServiceTest {
     void testTitleNameWithMatchingLocaleFromGetPdfResource() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         CredentialSupportedDisplayResponse fr = new CredentialSupportedDisplayResponse();
         fr.setName("French Title");
@@ -1839,7 +1836,7 @@ class CredentialPDFGeneratorServiceTest {
     void testTitleNameFallsBackToFirstWhenLocaleNotFoundFromGetPdfResource() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         CredentialSupportedDisplayResponse fr = new CredentialSupportedDisplayResponse();
         fr.setName("French Title");
@@ -1873,7 +1870,7 @@ class CredentialPDFGeneratorServiceTest {
     void testTitleNameNullWhenDisplayListNullOrEmptyFromGetPdfResource() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties = new LinkedHashMap<>();
 
@@ -1915,7 +1912,7 @@ class CredentialPDFGeneratorServiceTest {
             LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties,
             CredentialsSupportedResponse credentialsSupportedResponse,
             VCCredentialResponse vcCredentialResponse,
-            IssuerDTO issuerDTO,
+            IssuerV2DTO issuerDTO,
             String dataShareUrl,
             String credentialValidity,
             String locale) throws Exception {
@@ -1924,7 +1921,7 @@ class CredentialPDFGeneratorServiceTest {
                 LinkedHashMap.class,
                 CredentialsSupportedResponse.class,
                 VCCredentialResponse.class,
-                IssuerDTO.class,
+                IssuerV2DTO.class,
                 String.class,
                 String.class,
                 String.class);
@@ -1939,7 +1936,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testIsFaceKeyFalseWhenSelectedFaceKeyNotNullButKeyDoesNotMatch() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
@@ -1971,7 +1968,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testIsFaceKeyTrueWhenSelectedFaceKeyMatchesCurrentKey() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
@@ -2005,7 +2002,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testIsFaceKeyFalseWhenSelectedFaceKeyIsNull() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
@@ -2040,7 +2037,7 @@ class CredentialPDFGeneratorServiceTest {
         ReflectionTestUtils.setField(credentialPDFGeneratorService, "maskDisclosures", false);
         try {
             when(credentialFormatHandlerFactory.getHandler("vc+sd-jwt")).thenReturn(sdJwtCredentialFormatHandler);
-            issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+            issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
 
             String validSdJwt = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOlsiYWJjMTIzIl19.signature~WyJzYWx0IiwgIm5hbWUiLCAiSm9obiBEb2UiXQ~";
 
@@ -2088,7 +2085,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testDisplayNameNullExcludesFromRowProperties() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         Map<String, Object> extractedClaims = new HashMap<>();
         extractedClaims.put("name", "John Doe");
@@ -2118,7 +2115,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractFaceReturnsNullFaceWhenFaceValueIsNull() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
@@ -2143,7 +2140,7 @@ class CredentialPDFGeneratorServiceTest {
     @Test
     void testExtractFaceReturnsNullFaceWhenFaceValueIsEmptyString() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
@@ -2266,7 +2263,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
 
         Map<String, Object> claims = new HashMap<>();
@@ -2302,7 +2299,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
 
         Map<String, Object> claims = new HashMap<>();
@@ -2336,7 +2333,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
 
         Map<String, Object> claims = new HashMap<>();
@@ -2370,7 +2367,7 @@ class CredentialPDFGeneratorServiceTest {
                 .credential(credentialMap)
                 .build();
 
-        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        issuerDTO.setQrCodeType(QRCodeType.OnlineSharing);
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
 
         Map<String, Object> claims = new HashMap<>();

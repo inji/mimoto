@@ -1,7 +1,7 @@
 package io.mosip.mimoto.dto.mimoto;
 
 import io.mosip.mimoto.dto.DisplayDTO;
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,7 +42,7 @@ public class VerifiableCredentialResponseDTO {
         DisplayDTO issuerDisplayDTO;
         CredentialSupportedDisplayResponse credentialTypeDisplayDTO;
         if (null != issuerConfig) {
-            IssuerDTO issuerDTO = issuerConfig.getIssuerDTO();
+            IssuerV2DTO issuerDTO = issuerConfig.getIssuerDTO();
             CredentialsSupportedResponse credentialsSupportedResponse = issuerConfig.getCredentialsSupportedResponse();
             if (issuerDTO != null) {
                 issuerDisplayDTO = getIssuerDisplayDTOBasedOnLocale(issuerDTO.getDisplay(), locale);

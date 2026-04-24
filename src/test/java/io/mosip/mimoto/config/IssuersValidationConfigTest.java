@@ -1,8 +1,8 @@
 package io.mosip.mimoto.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.IssuersDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
+import io.mosip.mimoto.dto.IssuersV2DTO;
 import io.mosip.mimoto.service.impl.IssuersServiceImpl;
 import org.junit.Assert;
 import org.junit.Test;
@@ -13,9 +13,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+
 import java.util.List;
 
-import static io.mosip.mimoto.util.TestUtilities.*;
+import static io.mosip.mimoto.util.TestUtilities.getIssuerConfigDTO;
+import static io.mosip.mimoto.util.TestUtilities.getIssuerConfigDTOWithInvalidFieldValues;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
@@ -31,7 +33,7 @@ public class IssuersValidationConfigTest {
     @MockBean
     private IssuersServiceImpl issuersService;
 
-    IssuersDTO issuers = new IssuersDTO();
+    IssuersV2DTO issuers = new IssuersV2DTO();
 
     private static final String VALIDATION_ERROR_MSG = "\n\nValidation failed in Mimoto-issuers-config.json:";
 
@@ -50,7 +52,7 @@ public class IssuersValidationConfigTest {
     @Test
     public void shouldNotValidateIssuersWithProtocolOtp() {
         try {
-            IssuerDTO otpIssuer = getIssuerConfigDTO("OtpIssuer");
+            IssuerV2DTO otpIssuer = getIssuerConfigDTO("OtpIssuer");
             otpIssuer.setProtocol("OTP");
             issuers.setIssuers(List.of(otpIssuer));
             when(issuersService.getAllIssuers()).thenReturn(issuers);

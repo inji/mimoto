@@ -19,7 +19,7 @@ import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.constant.LdpVcV1Constants;
 import io.mosip.mimoto.constant.LdpVcV2Constants;
 import io.mosip.mimoto.constant.SdJwtVcConstants;
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerDisplayResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
@@ -99,7 +99,7 @@ public class CredentialPDFGeneratorService {
 
     private static final String CLAIM_169_KEY = "claim169";
     
-    public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
+    public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerV2DTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws Exception {
         // Check if the credential can support SVG based rendering
         if (isSvgBasedRenderingSupported(vcCredentialResponse)) {
             log.info("Detected LDP VC v2 credential with svg template, using InjiVcRenderer for PDF generation");
@@ -119,7 +119,7 @@ public class CredentialPDFGeneratorService {
             Map<String, Object> data = getPdfResourceFromVcProperties(displayProperties, credentialsSupportedResponse,
                     vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity, locale);
 
-            return renderVCInCredentialTemplate(data, issuerDTO.getIssuer_id(), credentialConfigurationId);
+            return renderVCInCredentialTemplate(data, issuerDTO.getIssuerId(), credentialConfigurationId);
         }
     }
 
@@ -127,7 +127,7 @@ public class CredentialPDFGeneratorService {
             LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProperties,
             CredentialsSupportedResponse credentialsSupportedResponse,
             VCCredentialResponse vcCredentialResponse,
-            IssuerDTO issuerDTO,
+            IssuerV2DTO issuerDTO,
             String dataShareUrl,
             String credentialValidity,
             String userLocale) throws IOException, WriterException {
@@ -186,9 +186,9 @@ public class CredentialPDFGeneratorService {
         });
 
         String qrCodeImage = "";
-        if (QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type())) {
+        if (QRCodeType.OnlineSharing.equals(issuerDTO.getQrCodeType())) {
             qrCodeImage = constructQRCodeWithAuthorizeRequest(vcCredentialResponse, dataShareUrl);
-        } else if (QRCodeType.EmbeddedVC.equals(issuerDTO.getQr_code_type())) {
+        } else if (QRCodeType.EmbeddedVC.equals(issuerDTO.getQrCodeType())) {
             String claim169Qr = extractClaim169Qr(vcCredentialResponse);
             if(!claim169Qr.isEmpty()) {
                 qrCodeImage = constructQRCode(claim169Qr);
@@ -385,14 +385,14 @@ public class CredentialPDFGeneratorService {
         return false;
     }
 
-    private ByteArrayInputStream generatePdfUsingSvgTemplate(VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, String dataShareUrl) throws Exception {
+    private ByteArrayInputStream generatePdfUsingSvgTemplate(VCCredentialResponse vcCredentialResponse, IssuerV2DTO issuerDTO, String dataShareUrl) throws Exception {
         try {
             // Get the ldp_vc credential and convert to string
             String credentialJsonString = objectMapper.writeValueAsString(vcCredentialResponse.getCredential());
 
             // Generate the QR code data to embed into the svg for Online Sharing
             String qrCodeData = null;
-            if (QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type())) {
+            if (QRCodeType.OnlineSharing.equals(issuerDTO.getQrCodeType())) {
                 PresentationDefinitionDTO presentationDefinitionDTO = presentationService.constructPresentationDefinition(vcCredentialResponse);
                 String presentationString = objectMapper.writeValueAsString(presentationDefinitionDTO);
                 qrCodeData = String.format(ovpQRDataPattern, URLEncoder.encode(dataShareUrl, StandardCharsets.UTF_8), URLEncoder.encode(presentationString, StandardCharsets.UTF_8));

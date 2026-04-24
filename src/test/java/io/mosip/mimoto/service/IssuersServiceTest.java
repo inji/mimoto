@@ -53,7 +53,7 @@ public class IssuersServiceTest {
 
     String issuerWellKnownUrl, issuerId, credentialIssuerHostUrl, authServerWellknownUrl, issuersConfigJsonValue;
     CredentialIssuerConfiguration expectedCredentialIssuerConfiguration;
-    IssuersDTO issuers = new IssuersDTO();
+    IssuersV2DTO issuers = new IssuersV2DTO();
 
     CredentialIssuerWellKnownResponse expectedCredentialIssuerWellKnownResponse;
 
@@ -67,7 +67,7 @@ public class IssuersServiceTest {
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer3"), getIssuerConfigDTO("Issuer4")));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
-        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
+        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersV2DTO.class)).thenReturn(issuers);
 
         expectedCredentialIssuerWellKnownResponse = getCredentialIssuerWellKnownResponseDto(issuerId,
                 Map.of("CredentialType1", getCredentialSupportedResponse("CredentialType1")));
@@ -83,9 +83,12 @@ public class IssuersServiceTest {
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
-        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
+        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersV2DTO.class)).thenReturn(issuers);
         IssuersDTO expectedIssuers = new IssuersDTO();
-        List<IssuerDTO> issuers = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
+
+        List<IssuerDTO> issuers = new ArrayList<>(List.of(
+                toIssuerDTO(getIssuerConfigDTO("Issuer1")),
+                toIssuerDTO(getIssuerConfigDTO("Issuer2"))));
         expectedIssuers.setIssuers(issuers);
 
         IssuersDTO allIssuers = issuersService.getIssuers(null);
@@ -98,9 +101,9 @@ public class IssuersServiceTest {
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
-        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
+        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersV2DTO.class)).thenReturn(issuers);
         IssuersDTO expectedFilteredIssuers = new IssuersDTO();
-        List<IssuerDTO> filteredIssuersList = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer1")));
+        List<IssuerDTO> filteredIssuersList = new ArrayList<>(List.of(toIssuerDTO(getIssuerConfigDTO("Issuer1"))));
         expectedFilteredIssuers.setIssuers(filteredIssuersList);
 
         IssuersDTO filteredIssuers = issuersService.getIssuers("Issuer1");
@@ -117,7 +120,7 @@ public class IssuersServiceTest {
 
     @Test
     public void shouldReturnIssuerDataAndConfigForTheIssuerIdIfExist() throws ApiNotAccessibleException, IOException, InvalidIssuerIdException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException {
-        IssuerDTO expectedIssuer = getIssuerConfigDTO("Issuer3");
+        IssuerDTO expectedIssuer = toIssuerDTO(getIssuerConfigDTO("Issuer3"));
 
         IssuerDTO issuer = issuersService.getIssuerDetails("Issuer3id");
 
@@ -126,11 +129,11 @@ public class IssuersServiceTest {
 
     @Test
     public void shouldReturnIssuerDataAndConfigForAllIssuer() throws ApiNotAccessibleException, IOException {
-        IssuersDTO expectedIssuers = new IssuersDTO();
-        List<IssuerDTO> issuers = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer3"), getIssuerConfigDTO("Issuer4")));
+        IssuersV2DTO expectedIssuers = new IssuersV2DTO();
+        List<IssuerV2DTO> issuers = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer3"), getIssuerConfigDTO("Issuer4")));
         expectedIssuers.setIssuers(issuers);
 
-        IssuersDTO issuersDTO = issuersService.getAllIssuers();
+        IssuersV2DTO issuersDTO = issuersService.getAllIssuers();
 
         assertEquals(expectedIssuers, issuersDTO);
     }
@@ -150,8 +153,8 @@ public class IssuersServiceTest {
     @Test
     public void shouldReturnOnlyEnabledIssuers() throws IOException, ApiNotAccessibleException {
         IssuersDTO issuers = new IssuersDTO();
-        IssuerDTO enabledIssuer = getIssuerConfigDTO("Issuer1");
-        IssuerDTO disabledIssuer = getIssuerConfigDTO("Issuer2");
+        IssuerDTO enabledIssuer = toIssuerDTO(getIssuerConfigDTO("Issuer1"));
+        IssuerDTO disabledIssuer = toIssuerDTO(getIssuerConfigDTO("Issuer2"));
         disabledIssuer.setEnabled("false");
         issuersConfigJsonValue = new Gson().toJson(issuers);
         issuers.setIssuers(List.of(enabledIssuer, disabledIssuer));
@@ -248,7 +251,7 @@ public class IssuersServiceTest {
         // Arrange
         String issuerId = "Issuer3id";
         String credentialType = "CredentialType1";
-        IssuerDTO expectedIssuerDTO = getIssuerConfigDTO("Issuer3");
+        IssuerV2DTO expectedIssuerDTO = getIssuerConfigDTO("Issuer3");
         CredentialIssuerWellKnownResponse wellKnownResponse = getCredentialIssuerWellKnownResponseDto(
                 issuerId, Map.of(credentialType, getCredentialSupportedResponse(credentialType)));
         IssuerConfig expectedIssuerConfig = new IssuerConfig(
@@ -352,7 +355,7 @@ public class IssuersServiceTest {
         assertEquals("123", first.getClientId());
         assertEquals("https://dev/Issuer3id", first.getTokenEndpoint());
         assertEquals("test-client-alias", first.getClientAlias());
-        assertEquals(getIssuerConfigDTO("Issuer3").getQr_code_type(), first.getQrCodeType());
+        assertEquals(getIssuerConfigDTO("Issuer3").getQrCodeType(), first.getQrCodeType());
         assertEquals("true", first.getEnabled());
         assertEquals("https://issuer.env.net", first.getCredentialIssuerHost());
         IssuerV2DTO second = result.getIssuers().get(1);
@@ -371,7 +374,7 @@ public class IssuersServiceTest {
         assertEquals("123", result.getClientId());
         assertEquals("https://dev/Issuer3id", result.getTokenEndpoint());
         assertEquals("test-client-alias", result.getClientAlias());
-        assertEquals(getIssuerConfigDTO("Issuer3").getQr_code_type(), result.getQrCodeType());
+        assertEquals(getIssuerConfigDTO("Issuer3").getQrCodeType(), result.getQrCodeType());
         assertEquals("true", result.getEnabled());
         assertEquals("https://issuer.env.net", result.getCredentialIssuerHost());
         verify(utilities, times(1)).getIssuersConfigJsonValue();

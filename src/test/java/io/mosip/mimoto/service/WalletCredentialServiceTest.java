@@ -2,7 +2,7 @@ package io.mosip.mimoto.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
@@ -88,8 +88,8 @@ public class WalletCredentialServiceTest {
         verifiableCredential.setCreatedAt(Instant.now());
         verifiableCredential.setUpdatedAt(Instant.now());
 
-        IssuerDTO issuerDTO = new IssuerDTO();
-        issuerDTO.setIssuer_id(issuerId);
+        IssuerV2DTO issuerDTO = new IssuerV2DTO();
+        issuerDTO.setIssuerId(issuerId);
         CredentialIssuerWellKnownResponse wellKnownResponse = new CredentialIssuerWellKnownResponse();
         CredentialsSupportedResponse credentialsSupportedResponse = new CredentialsSupportedResponse();
         issuerConfig = new IssuerConfig(issuerDTO, wellKnownResponse, credentialsSupportedResponse);
@@ -234,9 +234,9 @@ public class WalletCredentialServiceTest {
         when(objectMapper.readValue(decryptedCredentialJson, VCCredentialResponse.class))
                 .thenReturn(vcResponse);
         // IssuerDTO
-        IssuerDTO issuerDTO = new IssuerDTO();
-        issuerDTO.setIssuer_id(issuerId);
-        when(issuersService.getIssuerDetails(issuerId)).thenReturn(issuerDTO);
+        IssuerV2DTO issuerDTO = new IssuerV2DTO();
+        issuerDTO.setIssuerId(issuerId);
+        when(issuersService.getIssuerV2Details(issuerId)).thenReturn(issuerDTO);
 
         // Credential Definition that matches VC type
         CredentialDefinitionResponseDto credentialDefinition = new CredentialDefinitionResponseDto();
@@ -365,7 +365,7 @@ public class WalletCredentialServiceTest {
         when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().credential(VCCredentialProperties.builder().type(List.of(credentialType)).build()).build();
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class))).thenReturn(vcResponse);
-        when(issuersService.getIssuerDetails(issuerId)).thenReturn(new IssuerDTO());
+        when(issuersService.getIssuerV2Details(issuerId)).thenReturn(new IssuerV2DTO());
         when(issuersService.getIssuerConfig(issuerId, credentialType)).thenReturn(null);
 
         CredentialProcessingException exception = assertThrows(CredentialProcessingException.class, () ->
@@ -380,14 +380,14 @@ public class WalletCredentialServiceTest {
         when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().credential(VCCredentialProperties.builder().type(List.of("OtherType")).build()).build();
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class))).thenReturn(vcResponse);
-        when(issuersService.getIssuerDetails(issuerId)).thenReturn(new IssuerDTO());
+        when(issuersService.getIssuerV2Details(issuerId)).thenReturn(new IssuerV2DTO());
 
         CredentialDefinitionResponseDto credentialDefinition = new CredentialDefinitionResponseDto();
         credentialDefinition.setType(List.of(credentialType));
         CredentialsSupportedResponse supportedResponse = new CredentialsSupportedResponse();
         supportedResponse.setCredentialDefinition(credentialDefinition);
 
-        IssuerConfig issuerConfig = new IssuerConfig(new IssuerDTO(), new CredentialIssuerWellKnownResponse(), supportedResponse);
+        IssuerConfig issuerConfig = new IssuerConfig(new IssuerV2DTO(), new CredentialIssuerWellKnownResponse(), supportedResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialType)).thenReturn(issuerConfig);
 
         CredentialProcessingException exception = assertThrows(CredentialProcessingException.class, () ->
@@ -416,14 +416,14 @@ public class WalletCredentialServiceTest {
         when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("{}");
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().credential(VCCredentialProperties.builder().type(List.of(credentialType)).build()).build();
         when(objectMapper.readValue(anyString(), eq(VCCredentialResponse.class))).thenReturn(vcResponse);
-        when(issuersService.getIssuerDetails(issuerId)).thenReturn(new IssuerDTO());
+        when(issuersService.getIssuerV2Details(issuerId)).thenReturn(new IssuerV2DTO());
 
         CredentialDefinitionResponseDto credentialDefinition = new CredentialDefinitionResponseDto();
         credentialDefinition.setType(List.of(credentialType));
         CredentialsSupportedResponse supportedResponse = new CredentialsSupportedResponse();
         supportedResponse.setCredentialDefinition(credentialDefinition);
 
-        IssuerConfig issuerConfig = new IssuerConfig(new IssuerDTO(), new CredentialIssuerWellKnownResponse(), supportedResponse);
+        IssuerConfig issuerConfig = new IssuerConfig(new IssuerV2DTO(), new CredentialIssuerWellKnownResponse(), supportedResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialType)).thenReturn(issuerConfig);
 
         when(credentialPDFGeneratorService.generatePdfForVerifiableCredential(any(), any(), any(), any(), any(), any(), any()))

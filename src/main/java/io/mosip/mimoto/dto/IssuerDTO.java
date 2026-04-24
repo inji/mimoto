@@ -66,4 +66,19 @@ public class IssuerDTO {
     @NotBlank
     @Schema(description = "Credential Issuer Host")
     String credential_issuer_host;
+
+
+    public IssuerDTO mapFromIssuerV2DTO(IssuerV2DTO issuerV2DTO) {
+        this.issuer_id = issuerV2DTO.getIssuerId();
+        this.protocol = issuerV2DTO.getProtocol();
+        this.display = issuerV2DTO.getDisplay();
+        this.client_id = issuerV2DTO.getClientId();
+        this.client_alias = issuerV2DTO.getClientAlias();
+        this.token_endpoint = issuerV2DTO.getTokenEndpoint();
+        this.qr_code_type = issuerV2DTO.getQrCodeType();
+        this.enabled = issuerV2DTO.getEnabled();
+        this.credential_issuer_host = issuerV2DTO.getCredentialIssuerHost();
+
+        return this;
+    }
 }

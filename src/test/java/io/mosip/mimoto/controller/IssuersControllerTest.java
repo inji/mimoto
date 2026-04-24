@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.IssuersDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
@@ -161,11 +162,11 @@ public class IssuersControllerTest {
 
     @Test
     public void getIssuerDetailsLogoDtoWithUrlProperty() throws Exception {
-        IssuerDTO issuer = getIssuerConfigDTO("Issuer1");
+        IssuerV2DTO issuer = getIssuerConfigDTO("Issuer1");
         issuer.getDisplay().get(0).getLogo().setUrl("https://example.com/logo-via-url.png");
         issuer.getDisplay().get(0).getLogo().setAlt_text("alt-url");
 
-        Mockito.when(issuersService.getIssuerDetails("id-url")).thenReturn(issuer);
+        Mockito.when(issuersService.getIssuerDetails("id-url")).thenReturn(toIssuerDTO(issuer));
 
         mockMvc.perform(get("/issuers/id-url").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())

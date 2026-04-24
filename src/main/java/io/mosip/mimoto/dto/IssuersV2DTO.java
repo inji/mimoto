@@ -7,8 +7,9 @@ import jakarta.validation.Valid;
 
 import java.util.List;
 
+@NoArgsConstructor
 @AllArgsConstructor
-@Getter
+@Data
 public class IssuersV2DTO {
 
     @Valid

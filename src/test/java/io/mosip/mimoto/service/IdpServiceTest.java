@@ -1,6 +1,6 @@
 package io.mosip.mimoto.service;
 
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.AuthorizationServerWellKnownResponse;
@@ -56,7 +56,7 @@ public class IdpServiceTest {
     @Mock
     private TokenResponseDTO tokenResponseDTO;
 
-    private IssuerDTO issuerDTO;
+    private IssuerV2DTO issuerDTO;
     private Map<String, String> params;
     private final String authorizationAudience = "https://example.com/auth";
 
@@ -64,9 +64,9 @@ public class IdpServiceTest {
 
     @Before
     public void setUp() throws IOException {
-        issuerDTO = new IssuerDTO();
-        issuerDTO.setClient_id("client123");
-        issuerDTO.setClient_alias("clientAlias");
+        issuerDTO = new IssuerV2DTO();
+        issuerDTO.setClientId("client123");
+        issuerDTO.setClientAlias("clientAlias");
 
         params = new HashMap<>();
         params.put("code", "sampleCode");
@@ -124,11 +124,11 @@ public class IdpServiceTest {
     public void shouldThrowExceptionIfResponseIsNullWhenFetchingTokenResponse() throws Exception {
         params.put("issuer", "issuer123");
 
-        IssuerDTO mockIssuer = new IssuerDTO();
-        mockIssuer.setClient_id("client123");
-        mockIssuer.setClient_alias("clientAlias");
+        IssuerV2DTO mockIssuer = new IssuerV2DTO();
+        mockIssuer.setClientId("client123");
+        mockIssuer.setClientAlias("clientAlias");
 
-        when(issuersService.getIssuerDetails("issuer123")).thenReturn(mockIssuer);
+        when(issuersService.getIssuerV2Details("issuer123")).thenReturn(mockIssuer);
         when(issuersService.getIssuerConfiguration("issuer123")).thenReturn(credentialIssuerConfiguration);
 
         when(credentialIssuerConfiguration.getAuthorizationServerWellKnownResponse())
@@ -154,11 +154,11 @@ public class IdpServiceTest {
     public void shouldReturnTokenResponseForValidTokenEndpoint() throws Exception {
         params.put("issuer", "issuer123");
 
-        IssuerDTO mockIssuer = new IssuerDTO();
-        mockIssuer.setClient_id("client123");
-        mockIssuer.setClient_alias("clientAlias");
+        IssuerV2DTO mockIssuer = new IssuerV2DTO();
+        mockIssuer.setClientId("client123");
+        mockIssuer.setClientAlias("clientAlias");
 
-        when(issuersService.getIssuerDetails("issuer123")).thenReturn(mockIssuer);
+        when(issuersService.getIssuerV2Details("issuer123")).thenReturn(mockIssuer);
         when(issuersService.getIssuerConfiguration("issuer123")).thenReturn(credentialIssuerConfiguration);
         when(credentialIssuerConfiguration.getAuthorizationServerWellKnownResponse())
                 .thenReturn(authorizationServerWellKnownResponse);
@@ -183,11 +183,11 @@ public class IdpServiceTest {
     public void shouldThrowInvalidRequestExceptionOnBadRequestFromTokenEndpoint() throws Exception {
         params.put("issuer", "issuer123");
 
-        IssuerDTO mockIssuer = new IssuerDTO();
-        mockIssuer.setClient_id("client123");
-        mockIssuer.setClient_alias("clientAlias");
+        IssuerV2DTO mockIssuer = new IssuerV2DTO();
+        mockIssuer.setClientId("client123");
+        mockIssuer.setClientAlias("clientAlias");
 
-        when(issuersService.getIssuerDetails("issuer123")).thenReturn(mockIssuer);
+        when(issuersService.getIssuerV2Details("issuer123")).thenReturn(mockIssuer);
         when(issuersService.getIssuerConfiguration("issuer123")).thenReturn(credentialIssuerConfiguration);
         when(credentialIssuerConfiguration.getAuthorizationServerWellKnownResponse())
                 .thenReturn(authorizationServerWellKnownResponse);
@@ -219,11 +219,11 @@ public class IdpServiceTest {
         requestDTO.setCodeVerifier("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
         requestDTO.setIssuer("issuer123");
 
-        IssuerDTO mockIssuer = new IssuerDTO();
-        mockIssuer.setClient_id("client123");
-        mockIssuer.setClient_alias("clientAlias");
+        IssuerV2DTO mockIssuer = new IssuerV2DTO();
+        mockIssuer.setClientId("client123");
+        mockIssuer.setClientAlias("clientAlias");
 
-        when(issuersService.getIssuerDetails("issuer123")).thenReturn(mockIssuer);
+        when(issuersService.getIssuerV2Details("issuer123")).thenReturn(mockIssuer);
         when(issuersService.getIssuerConfiguration("issuer123")).thenReturn(credentialIssuerConfiguration);
         when(credentialIssuerConfiguration.getAuthorizationServerWellKnownResponse())
                 .thenReturn(authorizationServerWellKnownResponse);

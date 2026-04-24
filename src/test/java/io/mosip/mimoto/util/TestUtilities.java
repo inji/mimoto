@@ -188,28 +188,7 @@ public class TestUtilities {
         return issuer;
     }
 
-    /**
-     * Builds an IssuerResponseDTO for tests (e.g. IssuersController v1 which returns IssuerResponseDTO).
-     */
-    public static IssuerV2DTO getIssuerResponseDTO(String issuerName) {
-        IssuerDTO issuer = getIssuerConfigDTO(issuerName);
-
-        IssuerV2DTO issuerV2DTO= new  IssuerV2DTO();
-
-        issuerV2DTO.setIssuerId(issuer.getIssuer_id());
-        issuerV2DTO.setProtocol(issuer.getProtocol());
-        issuerV2DTO.setDisplay(issuer.getDisplay());
-        issuerV2DTO.setClientId(issuer.getClient_id());
-        issuerV2DTO.setTokenEndpoint(issuer.getToken_endpoint());
-        issuerV2DTO.setClientAlias(issuer.getClient_alias());
-        issuerV2DTO.setQrCodeType(issuer.getQr_code_type());
-        issuerV2DTO.setEnabled(issuer.getEnabled());
-        issuerV2DTO.setCredentialIssuerHost(issuer.getCredential_issuer_host());
-
-        return issuerV2DTO;
-    }
-
-    public static IssuerDTO getIssuerConfigDTO(String issuerName) {
+    public static IssuerV2DTO getIssuerConfigDTO(String issuerName) {
         LogoDTO logo = new LogoDTO();
         logo.setUrl("https://logo");
         logo.setAlt_text("logo-url");
@@ -219,19 +198,24 @@ public class TestUtilities {
         display.setDescription(issuerName + " description");
         display.setLanguage("en");
         display.setLogo(logo);
-        IssuerDTO issuer = new IssuerDTO();
-        issuer.setIssuer_id(issuerName + "id");
+        IssuerV2DTO issuer = new IssuerV2DTO();
+        issuer.setIssuerId(issuerName + "id");
         issuer.setDisplay(Collections.singletonList(display));
-        issuer.setClient_id("123");
-        issuer.setClient_alias("test-client-alias");
+        issuer.setClientId("123");
+        issuer.setClientAlias("test-client-alias");
         issuer.setEnabled("true");
         issuer.setProtocol("OpenId4VCI");
-        issuer.setCredential_issuer_host("https://issuer.env.net");
-        issuer.setToken_endpoint("https://dev/" + issuerName + "id");
+        issuer.setCredentialIssuerHost("https://issuer.env.net");
         return issuer;
     }
 
-    public static IssuerDTO getIssuerConfigDTOWithInvalidFieldValues(String issuerName, boolean emptyValues, boolean invalidUrls) {
+    public static IssuerDTO toIssuerDTO(IssuerV2DTO issuer) {
+        IssuerDTO issuerDTO = new IssuerDTO().mapFromIssuerV2DTO(issuer);
+        issuerDTO.setToken_endpoint("https://dev/" + issuer.getIssuerId());
+        return issuerDTO;
+    }
+
+    public static IssuerV2DTO getIssuerConfigDTOWithInvalidFieldValues(String issuerName, boolean emptyValues, boolean invalidUrls) {
         LogoDTO logo = new LogoDTO();
         logo.setUrl(emptyValues ? "/logo" : "https://logo");
         logo.setAlt_text("logo-url");
@@ -243,17 +227,16 @@ public class TestUtilities {
         display.setLanguage(emptyValues ? "" : "en");
         display.setLogo(logo);
 
-        IssuerDTO issuer = new IssuerDTO();
-        issuer.setIssuer_id(emptyValues ? "" : issuerName + "id");
+        IssuerV2DTO issuer = new IssuerV2DTO();
+        issuer.setIssuerId(emptyValues ? "" : issuerName + "id");
         issuer.setDisplay(Collections.singletonList(display));
-        issuer.setClient_id(emptyValues ? "" : "123");
-        issuer.setClient_alias(emptyValues ? "" : "test-client-alias");
+        issuer.setClientId(emptyValues ? "" : "123");
+        issuer.setClientAlias(emptyValues ? "" : "test-client-alias");
         issuer.setEnabled(emptyValues ? "" : "true");
         issuer.setProtocol(emptyValues ? "" : "OpenId4VCI");
 
         // Handle valid and invalid URLs
-        issuer.setCredential_issuer_host(emptyValues ? "" : (invalidUrls ? "https//issuer.env.net" : "https://issuer.env.net"));
-        issuer.setToken_endpoint(emptyValues ? "" : (invalidUrls ? "h://dev/token" : "https://dev/token"));
+        issuer.setCredentialIssuerHost(emptyValues ? "" : (invalidUrls ? "https//issuer.env.net" : "https://issuer.env.net"));
 
         return issuer;
     }

@@ -1,12 +1,14 @@
 package io.mosip.mimoto.service;
 
-import io.mosip.mimoto.dto.IssuerDTO;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
-import io.mosip.mimoto.exception.InvalidRequestException;
-import io.mosip.mimoto.exception.VCVerificationException;
+import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.model.VerifiableCredential;
+import io.mosip.mimoto.repository.WalletCredentialsRepository;
 import io.mosip.mimoto.service.impl.CredentialServiceImpl;
 import io.mosip.mimoto.service.impl.IssuersServiceImpl;
 import io.mosip.mimoto.util.RestApiClient;
@@ -24,20 +26,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import io.mosip.mimoto.exception.InvalidCredentialResourceException;
-import io.mosip.mimoto.dto.mimoto.VCCredentialRequest;
-import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
-import static org.mockito.Mockito.mock;
-import io.mosip.mimoto.repository.WalletCredentialsRepository;
-import io.mosip.mimoto.dto.mimoto.IssuerConfig;
-import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
-import io.mosip.mimoto.exception.CredentialProcessingException;
-import static io.mosip.mimoto.exception.ErrorConstants.CREDENTIAL_DOWNLOAD_EXCEPTION;
-import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
-import static io.mosip.mimoto.exception.ErrorConstants.SERVER_UNAVAILABLE;
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
@@ -45,11 +33,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.mosip.mimoto.exception.ErrorConstants.SIGNATURE_VERIFICATION_EXCEPTION;
+import static io.mosip.mimoto.exception.ErrorConstants.*;
 import static io.mosip.mimoto.util.TestUtilities.*;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -85,7 +74,7 @@ public class CredentialServiceTest {
 
     TokenResponseDTO expectedTokenResponse;
     String tokenEndpoint, issuerId;
-    IssuerDTO issuerDTO;
+    IssuerV2DTO issuerDTO;
     HttpEntity<MultiValueMap<String, String>> mockRequest;
     CredentialIssuerConfiguration issuerConfig;
 
@@ -95,7 +84,7 @@ public class CredentialServiceTest {
         issuerDTO = getIssuerConfigDTO(issuerId);
         issuerConfig = getCredentialIssuerConfigurationResponseDto(issuerId, "CredentialType1", List.of());
 
-        Mockito.when(issuersService.getIssuerDetails(issuerId)).thenReturn(issuerDTO);
+        Mockito.when(issuersService.getIssuerV2Details(issuerId)).thenReturn(issuerDTO);
         Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenReturn(issuerConfig);
 
         tokenEndpoint = issuerConfig.getAuthorizationServerWellKnownResponse().getTokenEndpoint();
@@ -121,9 +110,9 @@ public class CredentialServiceTest {
 
     @Test
     public void shouldThrowExceptionIfDownloadedVCSignatureVerificationFailed() throws Exception {
-        Mockito.when(issuersService.getIssuerDetails(issuerId)).thenReturn(issuerDTO);
+        Mockito.when(issuersService.getIssuerV2Details(issuerId)).thenReturn(issuerDTO);
         Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenReturn(issuerConfig);
-        when(credentialRequestService.buildRequest(any(IssuerDTO.class),
+        when(credentialRequestService.buildRequest(any(IssuerV2DTO.class),
                 any(String.class),
                 any(CredentialIssuerWellKnownResponse.class),
                 any(String.class), any(), any(), eq(false))).thenReturn(getVCCredentialRequestDTO());
@@ -144,9 +133,9 @@ public class CredentialServiceTest {
 
     @Test
     public void shouldReturnDownloadedVCAsPDFIfSignatureVerificationIsSuccessful() throws Exception {
-        Mockito.when(issuersService.getIssuerDetails(issuerId)).thenReturn(issuerDTO);
+        Mockito.when(issuersService.getIssuerV2Details(issuerId)).thenReturn(issuerDTO);;
         Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenReturn(issuerConfig);
-        when(credentialRequestService.buildRequest(any(IssuerDTO.class),
+        when(credentialRequestService.buildRequest(any(IssuerV2DTO.class),
                 any(String.class),
                 any(CredentialIssuerWellKnownResponse.class),
                 any(String.class), any(), any(), eq(false))).thenReturn(getVCCredentialRequestDTO());
@@ -159,7 +148,7 @@ public class CredentialServiceTest {
                 any(String.class)
         )).thenReturn(vcCredentialResponse);
         when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(true);
-        issuerDTO.setQr_code_type(QRCodeType.None);
+        issuerDTO.setQrCodeType(QRCodeType.None);
 
         ByteArrayInputStream expectedPDFByteArray = generatePdfFromHTML();
         Mockito.when(credentialUtilService.generatePdfForVerifiableCredential(
@@ -236,7 +225,7 @@ public class CredentialServiceTest {
 
         // Mock dependencies
         IssuerConfig issuerConfig = mock(IssuerConfig.class);
-        IssuerDTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
+        IssuerV2DTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
         CredentialIssuerWellKnownResponse mockWellKnownResponse = new CredentialIssuerWellKnownResponse();
         mockWellKnownResponse.setCredentialEndPoint("https://example.com/credential");
 
@@ -280,7 +269,7 @@ public class CredentialServiceTest {
 
         // Mock dependencies
         IssuerConfig issuerConfig = mock(IssuerConfig.class);
-        IssuerDTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
+        IssuerV2DTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
         CredentialIssuerWellKnownResponse mockWellKnownResponse = new CredentialIssuerWellKnownResponse();
         mockWellKnownResponse.setCredentialEndPoint("https://example.com/credential");
 
@@ -407,7 +396,7 @@ public class CredentialServiceTest {
 
         // Mock dependencies for success until buildRequest
         IssuerConfig issuerConfig = mock(IssuerConfig.class);
-        IssuerDTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
+        IssuerV2DTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
         CredentialIssuerWellKnownResponse mockWellKnownResponse = new CredentialIssuerWellKnownResponse();
 
         when(issuerConfig.getIssuerDTO()).thenReturn(mockIssuerDTO);
@@ -438,7 +427,7 @@ public class CredentialServiceTest {
 
         // Mock dependencies for success until downloadCredential
         IssuerConfig issuerConfig = mock(IssuerConfig.class);
-        IssuerDTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
+        IssuerV2DTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
         CredentialIssuerWellKnownResponse mockWellKnownResponse = new CredentialIssuerWellKnownResponse();
         mockWellKnownResponse.setCredentialEndPoint("https://example.com/credential");
 
@@ -472,7 +461,7 @@ public class CredentialServiceTest {
 
         // Mock dependencies for success until verify
         IssuerConfig issuerConfig = mock(IssuerConfig.class);
-        IssuerDTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
+        IssuerV2DTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
         CredentialIssuerWellKnownResponse mockWellKnownResponse = new CredentialIssuerWellKnownResponse();
         mockWellKnownResponse.setCredentialEndPoint("https://example.com/credential");
 
@@ -508,7 +497,7 @@ public class CredentialServiceTest {
 
         // Mock dependencies for success until serialization
         IssuerConfig issuerConfig = mock(IssuerConfig.class);
-        IssuerDTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
+        IssuerV2DTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
         CredentialIssuerWellKnownResponse mockWellKnownResponse = new CredentialIssuerWellKnownResponse();
         mockWellKnownResponse.setCredentialEndPoint("https://example.com/credential");
 
@@ -545,7 +534,7 @@ public class CredentialServiceTest {
 
         // Mock dependencies for success until encryption
         IssuerConfig issuerConfig = mock(IssuerConfig.class);
-        IssuerDTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
+        IssuerV2DTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
         CredentialIssuerWellKnownResponse mockWellKnownResponse = new CredentialIssuerWellKnownResponse();
         mockWellKnownResponse.setCredentialEndPoint("https://example.com/credential");
 
@@ -583,7 +572,7 @@ public class CredentialServiceTest {
 
         // Mock dependencies for success until save
         IssuerConfig issuerConfig = mock(IssuerConfig.class);
-        IssuerDTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
+        IssuerV2DTO mockIssuerDTO = getIssuerConfigDTO(issuerId);
         CredentialIssuerWellKnownResponse mockWellKnownResponse = new CredentialIssuerWellKnownResponse();
         mockWellKnownResponse.setCredentialEndPoint("https://example.com/credential");
 

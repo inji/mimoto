@@ -1,12 +1,12 @@
 package io.mosip.mimoto.service;
 
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialRequest;
 
 public interface CredentialRequestService {
     VCCredentialRequest buildRequest(
-            IssuerDTO issuerDTO,
+            IssuerV2DTO issuerDTO,
             String credentialConfigurationId,
             CredentialIssuerWellKnownResponse wellKnownResponse,
             String cNonce,

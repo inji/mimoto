@@ -1,7 +1,7 @@
 package io.mosip.mimoto.config;
 
-import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.IssuersDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
+import io.mosip.mimoto.dto.IssuersV2DTO;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.AuthorizationServerWellknownResponseException;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
@@ -15,6 +15,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.Validator;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,7 +35,7 @@ public class IssuersValidationConfig implements ApplicationRunner {
         List<String> allErrors = new ArrayList<>();
         AtomicReference<Set<String>> credentialIssuers = new AtomicReference<>(new HashSet<>());
 
-        IssuersDTO issuerDTOList = null;
+        IssuersV2DTO issuerDTOList = null;
         try {
             issuerDTOList = issuersService.getAllIssuers();
         } catch (Exception e) {
@@ -44,11 +45,11 @@ public class IssuersValidationConfig implements ApplicationRunner {
 
         if (issuerDTOList != null) {
             for (int index = 0; index < issuerDTOList.getIssuers().size(); index++) {
-                IssuerDTO issuerDTO = issuerDTOList.getIssuers().get(index);
+                IssuerV2DTO issuerDTO = issuerDTOList.getIssuers().get(index);
                 if (!issuerDTO.getProtocol().equals("OTP")) {
                     Errors errors = new BeanPropertyBindingResult(issuerDTO, "issuerV2DTO");
                     validator.validate(issuerDTO, errors);
-                    String issuerId = issuerDTO.getIssuer_id();
+                    String issuerId = issuerDTO.getIssuerId();
                     boolean issuerHasErrors = false;
 
                     StringBuilder issuerErrors = new StringBuilder();
@@ -62,7 +63,7 @@ public class IssuersValidationConfig implements ApplicationRunner {
 
                     }
 
-                    String[] tokenEndpointArray = issuerDTO.getToken_endpoint().split("/");
+                    String[] tokenEndpointArray = issuerDTO.getTokenEndpoint().split("/");
                     Set<String> currentIssuers = credentialIssuers.get();
 
                     if (!currentIssuers.add(issuerId)) {

@@ -18,7 +18,7 @@ public interface IssuersService {
 
     IssuerDTO getIssuerDetails(String issuerId) throws ApiNotAccessibleException, IOException, InvalidIssuerIdException;
 
-    IssuersDTO getAllIssuers() throws ApiNotAccessibleException, IOException;
+    IssuersV2DTO getAllIssuers() throws ApiNotAccessibleException, IOException;
 
     CredentialIssuerConfiguration getIssuerConfiguration(String issuerId) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException;
 

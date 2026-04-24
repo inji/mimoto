@@ -2,16 +2,20 @@ package io.mosip.mimoto.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.SigningAlgorithm;
-import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.mimoto.*;
+import io.mosip.mimoto.dto.IssuerV2DTO;
+import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
+import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
+import io.mosip.mimoto.dto.mimoto.ProofTypesSupported;
+import io.mosip.mimoto.dto.mimoto.VCCredentialRequest;
 import io.mosip.mimoto.repository.ProofSigningKeyRepository;
 import io.mosip.mimoto.service.impl.CredentialRequestServiceImpl;
 import io.mosip.mimoto.service.impl.LdpVcCredentialFormatHandler;
-import io.mosip.mimoto.util.*;
+import io.mosip.mimoto.util.SigningKeyUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,14 +23,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.mockito.ArgumentCaptor;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static io.mosip.mimoto.util.TestUtilities.*;
-import static org.junit.Assert.*;
+import static io.mosip.mimoto.util.TestUtilities.getCredentialSupportedResponse;
+import static io.mosip.mimoto.util.TestUtilities.getIssuerConfigDTO;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -50,7 +55,7 @@ public class CredentialRequestServiceTest {
 
     private final MockedStatic<SigningKeyUtil> keyGenerationUtilMockedStatic = Mockito.mockStatic(SigningKeyUtil.class, Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
 
-    IssuerDTO issuerDTO;
+    IssuerV2DTO issuerDTO;
     String issuerId;
 
     @Before

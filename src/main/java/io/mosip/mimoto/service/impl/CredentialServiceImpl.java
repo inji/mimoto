@@ -2,7 +2,7 @@ package io.mosip.mimoto.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.*;
@@ -10,12 +10,7 @@ import io.mosip.mimoto.model.CredentialMetadata;
 import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.repository.WalletCredentialsRepository;
-import io.mosip.mimoto.service.CredentialPDFGeneratorService;
-import io.mosip.mimoto.service.CredentialRequestService;
-import io.mosip.mimoto.service.CredentialService;
-import io.mosip.mimoto.service.CredentialVerifierService;
-import io.mosip.mimoto.service.IssuersService;
-import io.mosip.mimoto.service.DataProtectionService;
+import io.mosip.mimoto.service.*;
 import io.mosip.mimoto.util.RestApiClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -68,7 +63,7 @@ public class CredentialServiceImpl implements CredentialService {
 
     @Override
     public ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialConfigurationId, TokenResponseDTO response, String credentialValidity, String locale) throws Exception {
-        IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
+        IssuerV2DTO issuerDTO = issuersService.getIssuerV2Details(issuerId);
         CredentialIssuerConfiguration credentialIssuerConfiguration = issuersService.getIssuerConfiguration(issuerId);
         CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse = new CredentialIssuerWellKnownResponse(
                 credentialIssuerConfiguration.getCredentialIssuer(),
@@ -82,7 +77,7 @@ public class CredentialServiceImpl implements CredentialService {
 
         boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);
         if (verificationStatus) {
-            String dataShareUrl = QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type()) ? dataShareService.storeDataInDataShare(objectMapper.writeValueAsString(vcCredentialResponse), credentialValidity) : "";
+            String dataShareUrl = QRCodeType.OnlineSharing.equals(issuerDTO.getQrCodeType()) ? dataShareService.storeDataInDataShare(objectMapper.writeValueAsString(vcCredentialResponse), credentialValidity) : "";
             return credentialPDFGeneratorService.generatePdfForVerifiableCredential(credentialConfigurationId, vcCredentialResponse, issuerDTO, credentialsSupportedResponse, dataShareUrl, credentialValidity, locale);
         }
             throw new VCVerificationException(SIGNATURE_VERIFICATION_EXCEPTION.getErrorCode(),
@@ -200,7 +195,7 @@ public class CredentialServiceImpl implements CredentialService {
                     tokenResponse.getC_nonce(),
                     walletId, base64Key, true);
         } catch (Exception e) {
-            log.error("Failed to generate VC credential request for issuerId: {}", issuerConfig.getIssuerDTO().getIssuer_id(), e);
+            log.error("Failed to generate VC credential request for issuerId: {}", issuerConfig.getIssuerDTO().getIssuerId(), e);
             throw new CredentialProcessingException(
                     CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(),
                     "Unable to generate credential request", e);

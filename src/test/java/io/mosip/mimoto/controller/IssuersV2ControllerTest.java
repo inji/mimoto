@@ -25,7 +25,7 @@ import java.util.List;
 
 import static io.mosip.mimoto.exception.PlatformErrorMessages.API_NOT_ACCESSIBLE_EXCEPTION;
 import static io.mosip.mimoto.exception.PlatformErrorMessages.INVALID_ISSUER_ID_EXCEPTION;
-import static io.mosip.mimoto.util.TestUtilities.getIssuerResponseDTO;
+import static io.mosip.mimoto.util.TestUtilities.getIssuerConfigDTO;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -61,7 +61,7 @@ public class IssuersV2ControllerTest {
 
     @Test
     public void getAllIssuersSuccessReturnsOkWithIssuersV2DTO() throws Exception {
-        List<IssuerV2DTO> issuerList = List.of(getIssuerResponseDTO("IssuerA"), getIssuerResponseDTO("IssuerB"));
+        List<IssuerV2DTO> issuerList = List.of(getIssuerConfigDTO("IssuerA"), getIssuerConfigDTO("IssuerB"));
         Mockito.when(issuersService.getIssuersV2DTO()).thenReturn(new IssuersV2DTO(issuerList));
 
         performGetList()
@@ -113,7 +113,7 @@ public class IssuersV2ControllerTest {
 
     @Test
     public void getIssuerByIdValidIdReturnsOkWithIssuerV2DTO() throws Exception {
-        IssuerV2DTO issuer = getIssuerResponseDTO("MyIssuer");
+        IssuerV2DTO issuer = getIssuerConfigDTO("MyIssuer");
         Mockito.when(issuersService.getIssuerV2Details("MyIssuerid")).thenReturn(issuer);
 
         performGetIssuer("MyIssuerid")
