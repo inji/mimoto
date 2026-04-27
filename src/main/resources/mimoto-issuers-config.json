@@ -20,6 +20,12 @@
       "token_endpoint": "https://localhost:8099/v1/mimoto/get-token/Mock",
       "qr_code_type": "OnlineSharing",
       "credential_issuer_host": "https://injicertify-mock.collab.mosip.net",
+      "wellknown_endpoint": "https://injicertify-mock.collab.mosip.net/v1/certify/issuance/.well-known/openid-credential-issuer",
+      "redirect_uri": "io.mosip.residentapp.inji://oauthredirect",
+      "authorization_audience": "https://esignet-mock.collab.mosip.net/v1/esignet/oauth/v2/token",
+      "token_endpoint": "https://localhost:8099/v1/mimoto/get-token/Mock",
+      "proxy_token_endpoint": "https://esignet-mock.collab.mosip.net/v1/esignet/oauth/v2/token",
+      "credential_issuer": "Mock",
       "enabled": "true"
     }
   ]
