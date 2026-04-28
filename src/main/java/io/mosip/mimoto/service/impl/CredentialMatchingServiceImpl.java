@@ -99,7 +99,13 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                     if (!matches.isEmpty()) {
                         matchingCredentialsByDescriptor.put(i, matches);
                     } else {
-                        missingClaims.addAll(extractClaimsFromInputDescriptor(descriptor));
+                        boolean hasFormatMatch = decryptedCredentials.stream()
+                                .anyMatch(decrypted -> matchesFormat(decrypted.getCredential(), descriptor.getFormat()));
+                        if (hasFormatMatch) {
+                            missingClaims.addAll(extractClaimsFromInputDescriptor(descriptor));
+                        } else {
+                            missingClaims.addAll(extractFormatConstraintKeys(descriptor));
+                        }
                     }
         });
 
@@ -153,9 +159,12 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     private MatchingCredentialsResponseDTO createEmptyResponseWithMissingClaims(PresentationDefinition presentationDefinition) {
         log.info("No credentials found for wallet");
+        Set<String> missingClaims = presentationDefinition.getInputDescriptors().stream()
+                .flatMap(descriptor -> extractFormatConstraintKeys(descriptor).stream())
+                .collect(Collectors.toSet());
         return MatchingCredentialsResponseDTO.builder()
                 .availableCredentials(Collections.emptyList())
-                .missingClaims(new HashSet<>(extractRequiredClaims(presentationDefinition)))
+                .missingClaims(missingClaims)
                 .build();
     }
 
@@ -491,6 +500,23 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 paths.add(currentPath);
             }
         }
+    }
+
+    private Set<String> extractFormatConstraintKeys(InputDescriptor descriptor) {
+        Map<String, Map<String, List<String>>> format = descriptor.getFormat();
+        if (format == null || format.isEmpty()) {
+            return Collections.singleton(descriptor.getId());
+        }
+
+        Set<String> result = new HashSet<>();
+        if (format.containsKey(CredentialFormat.VC_SD_JWT.getFormat())) {
+            result.add(SD_JWT_ALG_VALUES_KEY);
+        }
+        if (format.containsKey(LDP_VC_FORMAT)) {
+            result.add(PROOF_TYPE_KEY);
+        }
+
+        return result.isEmpty() ? Collections.singleton(descriptor.getId()) : result;
     }
 
     private boolean hasUniformKeys(List<?> list) {

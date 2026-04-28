@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * DTO for submitting a presentation with selected credentials or rejecting a verifier
@@ -21,6 +22,10 @@ public class SubmitPresentationRequestDTO {
     @Schema(description = "List of credential IDs that the user has selected to include in the presentation", 
             example = "[\"cred-123\", \"cred-456\"]")
     private List<String> selectedCredentials;
+
+    @Schema(description = "Selected SD-JWT claim paths per credential ID for selective disclosure (only for SD-JWT credentials)",
+            example = "{\"cred-123\": [\"name\", \"dob\"]}")
+    private Map<String, List<String>> selectedSdClaims;
 
     @Schema(description = "Error code for rejecting the verifier (used when user denies the presentation request)", 
             example = "access_denied")

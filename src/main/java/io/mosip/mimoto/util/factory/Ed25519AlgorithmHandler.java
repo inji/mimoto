@@ -76,7 +76,7 @@ public class Ed25519AlgorithmHandler implements SigningAlgorithmHandler {
 
             @Override
             public Set<JWSAlgorithm> supportedJWSAlgorithms() {
-                return Collections.singleton(JWSAlgorithm.Ed25519);
+                return Set.of(JWSAlgorithm.Ed25519, JWSAlgorithm.EdDSA);
             }
 
             @Override
