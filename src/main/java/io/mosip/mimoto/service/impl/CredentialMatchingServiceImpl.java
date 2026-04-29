@@ -321,6 +321,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             if (extractedMap == null) {
                 return Collections.emptyMap();
             }
+            @SuppressWarnings("unchecked")
             Map<String, Map<String, Object>> allCredentialProperties = (Map<String, Map<String, Object>>) extractedMap;
             Map<String, Object> credentialClaimsMap = new HashMap<>();
             allCredentialProperties.values().forEach(credentialClaimsMap::putAll);
@@ -452,10 +453,10 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             Map<String, Object> csMap = (Map<String, Object>) credentialSubject;
             collectPaths(csMap, "$", paths);
         } else {
-            // Remove standard JWT claims and SD-JWT metadata
             List<String> metadataKeys = Arrays.asList("vct", "cnf", "iss", "sub", "aud", "exp", "nbf", "iat", "jti", SD, "_sd_alg", "id");
-            metadataKeys.forEach(publicClaimsMap::remove);
-            collectPaths(publicClaimsMap, "$", paths);
+            Map<String, Object> filteredMap = new HashMap<>(publicClaimsMap);
+            metadataKeys.forEach(filteredMap::remove);
+            collectPaths(filteredMap, "$", paths);
         }
         return paths;
     }

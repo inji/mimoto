@@ -14,6 +14,7 @@ import org.junit.Test;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 
@@ -108,6 +109,18 @@ public class Ed25519AlgorithmHandlerTest {
     public void shouldThrowExceptionWhenCreateJWKWithNonEdKeyPair() throws Exception {
         KeyPair rsaKeyPair = new RS256AlgorithmHandler().generateKeyPair();
         handler.createJWK(rsaKeyPair);
+    }
+
+    @Test
+    public void shouldSupportBothEd25519AndEdDSAAlgorithms() throws Exception {
+        KeyPair keyPair = handler.generateKeyPair();
+        JWK jwk = handler.createJWK(keyPair);
+        JWSSigner signer = handler.createSigner(jwk);
+
+        Set<JWSAlgorithm> supported = signer.supportedJWSAlgorithms();
+        assertTrue("signer must declare Ed25519 (pre-standard Nimbus name)", supported.contains(JWSAlgorithm.Ed25519));
+        assertTrue("signer must declare EdDSA (IANA RFC 8037 name used in KB-JWT alg header)", supported.contains(JWSAlgorithm.EdDSA));
+        assertEquals(2, supported.size());
     }
 
 }

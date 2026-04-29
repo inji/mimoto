@@ -270,9 +270,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         JWK jwk = SigningKeyUtil.generateJwk(signingAlgorithm, keyPair);
         Map<FormatType, UnsignedVPToken> unsignedVPToken = constructUnsignedVPToken(openID4VP, selectedCredentials, jwk, request.getSelectedSdClaims());
 
-        // Step 3: Sign token using user's private key
-        JWSSigner jwsSigner = SigningKeyUtil.createSigner(signingAlgorithm, jwk);
-        Map<FormatType, VPTokenSigningResult> vpTokenSigningResults = signVPToken(unsignedVPToken, jwsSigner);
+        // Step 3: Sign token using per-format signers
+        Map<FormatType, JWSSigner> signers = buildFormatSigners(unsignedVPToken.keySet(), signingAlgorithm, jwk, walletId, base64Key);
+        Map<FormatType, VPTokenSigningResult> vpTokenSigningResults = signVPToken(unsignedVPToken, signers);
 
         // Step 4: Share verifiable presentation with verifier using OpenID4VP JAR
         log.debug("Calling OpenID4VP JAR's shareVerifiablePresentation method");
@@ -292,14 +292,15 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     }
 
     /**
-     * Signs VP token using JWSSigner - dispatches to format-specific signing logic
+     * Signs VP token using per-format signers - dispatches to format-specific signing logic
      */
-    private Map<FormatType, VPTokenSigningResult> signVPToken(Map<FormatType, UnsignedVPToken> unsignedVPTokensMap, JWSSigner jwsSigner) {
+    private Map<FormatType, VPTokenSigningResult> signVPToken(Map<FormatType, UnsignedVPToken> unsignedVPTokensMap, Map<FormatType, JWSSigner> signers) {
         log.debug("Signing VP token for {} format types", unsignedVPTokensMap.size());
 
         return unsignedVPTokensMap.entrySet().stream().map(entry -> {
             FormatType formatType = entry.getKey();
             UnsignedVPToken unsignedVPToken = entry.getValue();
+            JWSSigner jwsSigner = signers.get(formatType);
 
             try {
                 VPTokenSigningResult signingResult;
@@ -474,7 +475,10 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
      * If selectedPaths is null/empty, all disclosures are retained.
      */
     private String buildFilteredSdJwt(DecryptedCredentialDTO credential, List<String> selectedPaths) {
-        String sdJwtString = (String) credential.getCredential().getCredential();
+        if (!(credential.getCredential().getCredential() instanceof String sdJwtString)) {
+            log.warn("Credential {} payload is not a String; skipping SD-JWT filtering", credential.getId());
+            return String.valueOf(credential.getCredential().getCredential());
+        }
 
         if (selectedPaths == null || selectedPaths.isEmpty()) {
             return sdJwtString;
@@ -543,6 +547,33 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                     return resolveAlgorithmFromSdJwt(sdJwt);
                 })
                 .orElse(SigningAlgorithm.valueOf(DEFAULT_SIGNING_ALGORITHM_NAME));
+    }
+
+    /**
+     * Builds a per-format signer map so each format uses the correct algorithm.
+     * LDP-VC is always signed with ED25519 (hardwired in signLdpVcFormat).
+     * SD-JWT uses the algorithm derived from the credential's cnf.jwk.
+     * When both formats are present and the SD-JWT algorithm differs from ED25519,
+     * a separate ED25519 key pair is fetched for the LDP-VC signer.
+     */
+    private Map<FormatType, JWSSigner> buildFormatSigners(Set<FormatType> formats, SigningAlgorithm sdJwtAlgorithm, JWK sdJwtJwk, String walletId, String base64Key) throws JOSEException, KeyGenerationException, DecryptionException {
+        Map<FormatType, JWSSigner> signers = new EnumMap<>(FormatType.class);
+
+        for (FormatType format : formats) {
+            if (format == FormatType.LDP_VC) {
+                if (sdJwtAlgorithm == SigningAlgorithm.ED25519) {
+                    signers.put(FormatType.LDP_VC, SigningKeyUtil.createSigner(SigningAlgorithm.ED25519, sdJwtJwk));
+                } else {
+                    KeyPair ldpKeyPair = keyPairService.getKeyPairFromDB(walletId, base64Key, SigningAlgorithm.ED25519);
+                    JWK ldpJwk = SigningKeyUtil.generateJwk(SigningAlgorithm.ED25519, ldpKeyPair);
+                    signers.put(FormatType.LDP_VC, SigningKeyUtil.createSigner(SigningAlgorithm.ED25519, ldpJwk));
+                }
+            } else if (format == FormatType.VC_SD_JWT) {
+                signers.put(FormatType.VC_SD_JWT, SigningKeyUtil.createSigner(sdJwtAlgorithm, sdJwtJwk));
+            }
+        }
+
+        return signers;
     }
 
     /**

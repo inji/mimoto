@@ -7,6 +7,7 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.util.Base64URL;
+import com.authlete.sd.SDJWT;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.constant.OpenID4VPConstants;
 import io.mosip.mimoto.constant.SigningAlgorithm;
@@ -19,6 +20,9 @@ import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.VerifiablePresentation;
 import io.mosip.mimoto.repository.VerifiablePresentationsRepository;
+import io.mosip.mimoto.service.CredentialFormatHandler;
+import io.mosip.mimoto.service.CredentialFormatHandlerFactory;
+import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.mimoto.service.impl.WalletPresentationServiceImpl;
 import io.mosip.mimoto.util.SigningKeyUtil;
@@ -29,7 +33,9 @@ import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
 import io.mosip.openID4VP.authorizationRequest.clientMetadata.ClientMetadata;
 import io.mosip.openID4VP.authorizationResponse.unsignedVPToken.UnsignedVPToken;
 import io.mosip.openID4VP.authorizationResponse.unsignedVPToken.types.ldp.UnsignedLdpVPToken;
+import io.mosip.openID4VP.authorizationResponse.unsignedVPToken.types.sdJwt.UnsignedSdJwtVPToken;
 import io.mosip.openID4VP.authorizationResponse.vpTokenSigningResult.types.ldp.LdpVPTokenSigningResult;
+import io.mosip.openID4VP.authorizationResponse.vpTokenSigningResult.types.sdJwt.SdJwtVPTokenSigningResult;
 import io.mosip.openID4VP.constants.FormatType;
 import io.mosip.openID4VP.verifier.VerifierResponse;
 import org.junit.Before;
@@ -41,10 +47,13 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.time.Instant;
 import java.util.*;
+import java.util.Base64;
 
 import static io.mosip.mimoto.exception.ErrorConstants.*;
 import static org.junit.Assert.*;
@@ -71,6 +80,15 @@ public class WalletPresentationServiceTest {
 
     @Mock
     private DataProtectionService dataProtectionService;
+
+    @Mock
+    private CredentialMatchingService credentialMatchingService;
+
+    @Mock
+    private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
+
+    @Mock
+    private CredentialFormatHandler credentialFormatHandler;
 
     @InjectMocks
     private WalletPresentationServiceImpl walletPresentationService;
@@ -302,6 +320,7 @@ public class WalletPresentationServiceTest {
         when(testOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
 
         Map<FormatType, UnsignedVPToken> unsignedTokens = new HashMap<>();
+        unsignedTokens.put(FormatType.LDP_VC, mock(UnsignedLdpVPToken.class));
         when(testOpenID4VP.constructUnsignedVPToken(any(), anyString(), anyString())).thenReturn(unsignedTokens);
 
         try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
@@ -1143,5 +1162,289 @@ public class WalletPresentationServiceTest {
 
         assertNotNull(response);
         assertEquals(500, response.getStatusCode().value());
+    }
+
+    // --- resolveAlgorithmFromSdJwt ---
+
+    private String buildSdJwtWithPayload(String payloadJson) {
+        String header = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"ES256\"}".getBytes(StandardCharsets.UTF_8));
+        String payload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
+        return header + "." + payload + ".sig";
+    }
+
+    @Test
+    public void testResolveAlgorithmFromSdJwtWhenInputIsNullReturnsED25519() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveAlgorithmFromSdJwt", Object.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService, (Object) null);
+        assertEquals(SigningAlgorithm.ED25519, result);
+    }
+
+    @Test
+    public void testResolveAlgorithmFromSdJwtWhenSdJwtIsBlankReturnsED25519() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveAlgorithmFromSdJwt", Object.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService, "   ");
+        assertEquals(SigningAlgorithm.ED25519, result);
+    }
+
+    @Test
+    public void testResolveAlgorithmFromSdJwtWhenCnfAbsentReturnsED25519() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveAlgorithmFromSdJwt", Object.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService,
+                buildSdJwtWithPayload("{\"iss\":\"test\"}"));
+        assertEquals(SigningAlgorithm.ED25519, result);
+    }
+
+    @Test
+    public void testResolveAlgorithmFromSdJwtWhenCnfJwkAbsentReturnsED25519() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveAlgorithmFromSdJwt", Object.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService,
+                buildSdJwtWithPayload("{\"cnf\":{\"jkt\":\"some-thumbprint\"}}"));
+        assertEquals(SigningAlgorithm.ED25519, result);
+    }
+
+    @Test
+    public void testResolveAlgorithmFromSdJwtWhenCnfJwkIsEcP256ReturnsES256() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveAlgorithmFromSdJwt", Object.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService,
+                buildSdJwtWithPayload("{\"cnf\":{\"jwk\":{\"kty\":\"EC\",\"crv\":\"P-256\"}}}"));
+        assertEquals(SigningAlgorithm.ES256, result);
+    }
+
+    @Test
+    public void testResolveAlgorithmFromSdJwtWhenCnfJwkIsEcSecp256k1ReturnsES256K() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveAlgorithmFromSdJwt", Object.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService,
+                buildSdJwtWithPayload("{\"cnf\":{\"jwk\":{\"kty\":\"EC\",\"crv\":\"secp256k1\"}}}"));
+        assertEquals(SigningAlgorithm.ES256K, result);
+    }
+
+    @Test
+    public void testResolveAlgorithmFromSdJwtWhenCnfJwkIsOkpEd25519ReturnsED25519() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveAlgorithmFromSdJwt", Object.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService,
+                buildSdJwtWithPayload("{\"cnf\":{\"jwk\":{\"kty\":\"OKP\",\"crv\":\"Ed25519\"}}}"));
+        assertEquals(SigningAlgorithm.ED25519, result);
+    }
+
+    @Test
+    public void testResolveAlgorithmFromSdJwtWhenCnfJwkHasAlgFieldUsesAlg() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveAlgorithmFromSdJwt", Object.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService,
+                buildSdJwtWithPayload("{\"cnf\":{\"jwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"alg\":\"ES256\"}}}"));
+        assertEquals(SigningAlgorithm.ES256, result);
+    }
+
+    // --- resolveSigningAlgorithm ---
+
+    @Test
+    public void testResolveSigningAlgorithmWhenOnlyLdpVcCredentialReturnsED25519() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveSigningAlgorithm", List.class);
+        method.setAccessible(true);
+
+        DecryptedCredentialDTO ldpCred = DecryptedCredentialDTO.builder()
+                .id("cred-ldp")
+                .credential(VCCredentialResponse.builder()
+                        .format(CredentialFormat.LDP_VC.getFormat())
+                        .credential(new HashMap<>())
+                        .build())
+                .build();
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService, List.of(ldpCred));
+        assertEquals(SigningAlgorithm.ED25519, result);
+    }
+
+    @Test
+    public void testResolveSigningAlgorithmWhenEmptyListReturnsED25519() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveSigningAlgorithm", List.class);
+        method.setAccessible(true);
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService, Collections.emptyList());
+        assertEquals(SigningAlgorithm.ED25519, result);
+    }
+
+    @Test
+    public void testResolveSigningAlgorithmWhenSdJwtCredentialWithEcP256ReturnsES256() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod("resolveSigningAlgorithm", List.class);
+        method.setAccessible(true);
+
+        String sdJwt = buildSdJwtWithPayload("{\"cnf\":{\"jwk\":{\"kty\":\"EC\",\"crv\":\"P-256\"}}}");
+        DecryptedCredentialDTO sdJwtCred = DecryptedCredentialDTO.builder()
+                .id("cred-sdjwt")
+                .credential(VCCredentialResponse.builder()
+                        .format(CredentialFormat.VC_SD_JWT.getFormat())
+                        .credential(sdJwt)
+                        .build())
+                .build();
+
+        SigningAlgorithm result = (SigningAlgorithm) method.invoke(walletPresentationService, List.of(sdJwtCred));
+        assertEquals(SigningAlgorithm.ES256, result);
+    }
+
+    // --- signSdJwtFormat ---
+
+    @Test
+    public void testSignSdJwtFormatSignsKBTAndReturnsSignaturePerUuid() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod(
+                "signSdJwtFormat", UnsignedVPToken.class, JWSSigner.class);
+        method.setAccessible(true);
+
+        String kbHeader = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"ES256\"}".getBytes(StandardCharsets.UTF_8));
+        String kbPayload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"nonce\":\"abc\"}".getBytes(StandardCharsets.UTF_8));
+        String unsignedKBT = kbHeader + "." + kbPayload;
+
+        Map<String, String> uuidToKBT = new HashMap<>();
+        uuidToKBT.put("uuid-1", unsignedKBT);
+
+        UnsignedSdJwtVPToken mockToken = mock(UnsignedSdJwtVPToken.class);
+        when(mockToken.getUuidToUnsignedKBT()).thenReturn(uuidToKBT);
+        when(jwsSigner.sign(any(JWSHeader.class), any(byte[].class))).thenReturn(Base64URL.encode("test-sig"));
+
+        SdJwtVPTokenSigningResult result = (SdJwtVPTokenSigningResult) method.invoke(
+                walletPresentationService, mockToken, jwsSigner);
+
+        assertNotNull(result);
+        verify(jwsSigner).sign(any(JWSHeader.class),
+                eq(unsignedKBT.getBytes(StandardCharsets.US_ASCII)));
+        assertTrue(result.getUuidToKbJWTSignature().containsKey("uuid-1"));
+        assertEquals(Base64URL.encode("test-sig").toString(), result.getUuidToKbJWTSignature().get("uuid-1"));
+    }
+
+    // --- buildFilteredSdJwt ---
+
+    @Test
+    public void testBuildFilteredSdJwtWhenSelectedPathsIsNullReturnsOriginal() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod(
+                "buildFilteredSdJwt", DecryptedCredentialDTO.class, List.class);
+        method.setAccessible(true);
+
+        String originalSdJwt = "header.payload.sig~disc1~";
+        DecryptedCredentialDTO credential = DecryptedCredentialDTO.builder()
+                .id("cred-id")
+                .credential(VCCredentialResponse.builder()
+                        .format(CredentialFormat.VC_SD_JWT.getFormat())
+                        .credential(originalSdJwt)
+                        .build())
+                .build();
+
+        String result = (String) method.invoke(walletPresentationService, credential, null);
+        assertEquals(originalSdJwt, result);
+    }
+
+    @Test
+    public void testBuildFilteredSdJwtWhenSelectedPathsFiltersToSelectedDisclosures() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod(
+                "buildFilteredSdJwt", DecryptedCredentialDTO.class, List.class);
+        method.setAccessible(true);
+
+        String originalSdJwt = "header.payload.sig~emailDiscB64~nameDiscB64~";
+        DecryptedCredentialDTO credential = DecryptedCredentialDTO.builder()
+                .id("cred-id")
+                .credential(VCCredentialResponse.builder()
+                        .format(CredentialFormat.VC_SD_JWT.getFormat())
+                        .credential(originalSdJwt)
+                        .build())
+                .build();
+
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("email", List.of("emailDiscB64"));
+        sdClaims.put("name", List.of("nameDiscB64"));
+        Map<String, Object> allProps = new HashMap<>();
+        allProps.put("sdClaims", sdClaims);
+
+        when(credentialFormatHandlerFactory.getHandler(CredentialFormat.VC_SD_JWT.getFormat()))
+                .thenReturn(credentialFormatHandler);
+        doReturn(allProps).when(credentialFormatHandler).extractAllCredentialProperties(any());
+
+        SDJWT mockSdJwt = mock(SDJWT.class);
+        when(mockSdJwt.getCredentialJwt()).thenReturn("header.payload.sig");
+
+        try (MockedStatic<SDJWT> mockedSdjwt = mockStatic(SDJWT.class)) {
+            mockedSdjwt.when(() -> SDJWT.parse(originalSdJwt)).thenReturn(mockSdJwt);
+
+            String result = (String) method.invoke(walletPresentationService, credential, List.of("$.email"));
+            assertEquals("header.payload.sig~emailDiscB64~", result);
+        }
+    }
+
+    @Test
+    public void testBuildFilteredSdJwtNormalizesPathsWithoutDollarDotPrefix() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod(
+                "buildFilteredSdJwt", DecryptedCredentialDTO.class, List.class);
+        method.setAccessible(true);
+
+        String originalSdJwt = "header.payload.sig~emailDiscB64~";
+        DecryptedCredentialDTO credential = DecryptedCredentialDTO.builder()
+                .id("cred-id")
+                .credential(VCCredentialResponse.builder()
+                        .format(CredentialFormat.VC_SD_JWT.getFormat())
+                        .credential(originalSdJwt)
+                        .build())
+                .build();
+
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("email", List.of("emailDiscB64"));
+        Map<String, Object> allProps = new HashMap<>();
+        allProps.put("sdClaims", sdClaims);
+
+        when(credentialFormatHandlerFactory.getHandler(CredentialFormat.VC_SD_JWT.getFormat()))
+                .thenReturn(credentialFormatHandler);
+        doReturn(allProps).when(credentialFormatHandler).extractAllCredentialProperties(any());
+
+        SDJWT mockSdJwt = mock(SDJWT.class);
+        when(mockSdJwt.getCredentialJwt()).thenReturn("header.payload.sig");
+
+        try (MockedStatic<SDJWT> mockedSdjwt = mockStatic(SDJWT.class)) {
+            mockedSdjwt.when(() -> SDJWT.parse(originalSdJwt)).thenReturn(mockSdJwt);
+
+            // "email" without "$." prefix should produce the same result as "$.email"
+            String result = (String) method.invoke(walletPresentationService, credential, List.of("email"));
+            assertEquals("header.payload.sig~emailDiscB64~", result);
+        }
+    }
+
+    @Test
+    public void testBuildFilteredSdJwtWhenSdClaimsKeyMissingReturnsOriginal() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod(
+                "buildFilteredSdJwt", DecryptedCredentialDTO.class, List.class);
+        method.setAccessible(true);
+
+        String originalSdJwt = "header.payload.sig~disc~";
+        DecryptedCredentialDTO credential = DecryptedCredentialDTO.builder()
+                .id("cred-id")
+                .credential(VCCredentialResponse.builder()
+                        .format(CredentialFormat.VC_SD_JWT.getFormat())
+                        .credential(originalSdJwt)
+                        .build())
+                .build();
+
+        Map<String, Object> allProps = new HashMap<>();
+        allProps.put("publicClaims", new HashMap<>());
+
+        when(credentialFormatHandlerFactory.getHandler(CredentialFormat.VC_SD_JWT.getFormat()))
+                .thenReturn(credentialFormatHandler);
+        doReturn(allProps).when(credentialFormatHandler).extractAllCredentialProperties(any());
+
+        String result = (String) method.invoke(walletPresentationService, credential, List.of("$.email"));
+        assertEquals(originalSdJwt, result);
     }
 }

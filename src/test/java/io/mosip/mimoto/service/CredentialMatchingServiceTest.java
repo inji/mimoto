@@ -79,8 +79,10 @@ public class CredentialMatchingServiceTest {
                     String format = vc.getFormat();
 
                     if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+                        Map<String, Object> publicClaims = new LinkedHashMap<>();
+                        publicClaims.put("type", Arrays.asList("VerifiableCredential", "TestCredential"));
                         Map<String, Map<String, Object>> result = new LinkedHashMap<>();
-                        result.put("publicClaims", new LinkedHashMap<>());
+                        result.put("publicClaims", publicClaims);
                         result.put("sdClaims", new LinkedHashMap<>());
                         return result;
                     }
@@ -465,9 +467,11 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = credentialMatchingService
                 .getMatchingCredentials(sessionData, walletId, base64Key);
 
-        // Assert
+        // Assert - PD has no format constraint; SD-JWT credential with $.type satisfies the constraint
         assertNotNull(result);
-        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertEquals(CredentialFormat.VC_SD_JWT.getFormat(),
+                result.getMatchingCredentialsResponse().getAvailableCredentials().get(0).getFormat());
     }
 
     @Test(expected = InvalidRequestException.class)
@@ -1226,10 +1230,12 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
-    public void testMatchesSdJwtFormatWhenFormatConfigValueIsNullCredentialNotSelected() throws Exception {
-        // Arrange
+    public void testMatchesSdJwtFormatWhenFormatConfigValueIsNullCredentialSelected() throws Exception {
+        // Arrange - sd-jwt_alg_values key present but value is explicitly null → any alg acceptable
+        Map<String, List<String>> sdJwtFormatConfig = new HashMap<>();
+        sdJwtFormatConfig.put("sd-jwt_alg_values", null);
         Map<String, Map<String, List<String>>> format = new HashMap<>();
-        format.put(CredentialFormat.VC_SD_JWT.getFormat(), Map.of("jwt_alg_values", List.of("ES256")));
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), sdJwtFormatConfig);
 
         Fields field = new Fields(Arrays.asList("$.type"), null, null, null, null, null);
         Constraints constraints = new Constraints(Collections.singletonList(field), null);
@@ -1243,8 +1249,8 @@ public class CredentialMatchingServiceTest {
         // Act
         MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
 
-        // Assert
-        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        // Assert - null alg list means no restriction, credential should be selected
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test
@@ -1940,7 +1946,7 @@ public class CredentialMatchingServiceTest {
         // Assert
         assertNotNull(result);
         assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
-        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("type"));
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("test"));
     }
 
     @Test
@@ -1963,7 +1969,7 @@ public class CredentialMatchingServiceTest {
         // Assert
         assertNotNull(result);
         assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
-        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().isEmpty());
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("sd-jwt_alg_values"));
     }
 
     @Test
@@ -1987,8 +1993,9 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
-        assertEquals(1, result.getMatchingCredentialsResponse().getMissingClaims().size());
-        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("type"));
+        assertEquals(2, result.getMatchingCredentialsResponse().getMissingClaims().size());
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("desc-1"));
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("desc-2"));
     }
 
 
@@ -2105,8 +2112,9 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
-        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("name"));
-        assertEquals(1, result.getMatchingCredentialsResponse().getMissingClaims().size());
+        assertEquals(2, result.getMatchingCredentialsResponse().getMissingClaims().size());
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("desc-null"));
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("desc-valid"));
     }
 
     @Test
@@ -2125,7 +2133,7 @@ public class CredentialMatchingServiceTest {
         MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
 
         // Assert
-        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("id"));
+        assertTrue(result.getMatchingCredentialsResponse().getMissingClaims().contains("test"));
     }
 
     @Test
@@ -2240,5 +2248,128 @@ public class CredentialMatchingServiceTest {
             map.put((String) keyValues[i], keyValues[i + 1]);
         }
         return map;
+    }
+
+    // --- extractFormatConstraintKeys ---
+
+    @Test
+    public void testExtractFormatConstraintKeysWhenVcSdJwtFormatReturnsSdJwtAlgValues() throws Exception {
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod("extractFormatConstraintKeys", InputDescriptor.class);
+        method.setAccessible(true);
+
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), new HashMap<>());
+        InputDescriptor descriptor = new InputDescriptor("test-id", null, null, format, new Constraints(null, null));
+
+        @SuppressWarnings("unchecked")
+        Set<String> result = (Set<String>) method.invoke(credentialMatchingService, descriptor);
+        assertEquals(1, result.size());
+        assertTrue(result.contains("sd-jwt_alg_values"));
+    }
+
+    @Test
+    public void testExtractFormatConstraintKeysWhenLdpVcFormatReturnsProofType() throws Exception {
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod("extractFormatConstraintKeys", InputDescriptor.class);
+        method.setAccessible(true);
+
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put("ldp_vc", new HashMap<>());
+        InputDescriptor descriptor = new InputDescriptor("test-id", null, null, format, new Constraints(null, null));
+
+        @SuppressWarnings("unchecked")
+        Set<String> result = (Set<String>) method.invoke(credentialMatchingService, descriptor);
+        assertEquals(1, result.size());
+        assertTrue(result.contains("proof_type"));
+    }
+
+    @Test
+    public void testExtractFormatConstraintKeysWhenNullFormatReturnsDescriptorId() throws Exception {
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod("extractFormatConstraintKeys", InputDescriptor.class);
+        method.setAccessible(true);
+
+        InputDescriptor descriptor = new InputDescriptor("my-descriptor-id", null, null, null, new Constraints(null, null));
+
+        @SuppressWarnings("unchecked")
+        Set<String> result = (Set<String>) method.invoke(credentialMatchingService, descriptor);
+        assertEquals(1, result.size());
+        assertTrue(result.contains("my-descriptor-id"));
+    }
+
+    @Test
+    public void testExtractFormatConstraintKeysWhenBothFormatsPresentReturnsBothKeys() throws Exception {
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod("extractFormatConstraintKeys", InputDescriptor.class);
+        method.setAccessible(true);
+
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), new HashMap<>());
+        format.put("ldp_vc", new HashMap<>());
+        InputDescriptor descriptor = new InputDescriptor("test-id", null, null, format, new Constraints(null, null));
+
+        @SuppressWarnings("unchecked")
+        Set<String> result = (Set<String>) method.invoke(credentialMatchingService, descriptor);
+        assertEquals(2, result.size());
+        assertTrue(result.contains("sd-jwt_alg_values"));
+        assertTrue(result.contains("proof_type"));
+    }
+
+    // --- getMatchingCredentials else-block: hasFormatMatch paths ---
+
+    @Test
+    public void testGetMatchingCredentialsWhenFormatMatchesButConstraintFailsUsesMissingFieldNames() throws Exception {
+        // Descriptor: ldp_vc with empty proof_type list + $.name constraint
+        // Wallet: ldp_vc credential that passes matchesFormat but not matchesConstraints
+        // Expected: missingClaims = ["name"] (field names), not "proof_type" (format key)
+        Map<String, List<String>> ldpVcFormatMap = new HashMap<>();
+        ldpVcFormatMap.put("proof_type", Collections.emptyList());
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put("ldp_vc", ldpVcFormatMap);
+
+        Fields nameField = new Fields(Arrays.asList("$.name"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(nameField), null);
+        InputDescriptor descriptor = new InputDescriptor("ldp-desc", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        // ldp_vc credential without a top-level "name" field → constraint fails
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        VCCredentialProperties props = new VCCredentialProperties();
+        doReturn(props).when(objectMapper).convertValue(any(), eq(VCCredentialProperties.class));
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertTrue("field name must appear when format matched",
+                result.getMatchingCredentialsResponse().getMissingClaims().contains("name"));
+        assertFalse("format key must NOT appear when format matched",
+                result.getMatchingCredentialsResponse().getMissingClaims().contains("proof_type"));
+    }
+
+    @Test
+    public void testGetMatchingCredentialsWhenNoFormatMatchReturnsSdJwtAlgValuesKey() throws Exception {
+        // Descriptor: vc+sd-jwt format; wallet has only ldp_vc credential
+        // Expected: missingClaims = ["sd-jwt_alg_values"] (format key), not constraint field names
+        Map<String, List<String>> sdJwtFormatMap = new HashMap<>();
+        sdJwtFormatMap.put("sd-jwt_alg_values", Arrays.asList("ES256"));
+        Map<String, Map<String, List<String>>> format = new HashMap<>();
+        format.put(CredentialFormat.VC_SD_JWT.getFormat(), sdJwtFormatMap);
+
+        Fields vctField = new Fields(Arrays.asList("$.vct"), null, null, null, null, null);
+        Constraints constraints = new Constraints(Collections.singletonList(vctField), null);
+        InputDescriptor descriptor = new InputDescriptor("sdjwt-desc", null, null, format, constraints);
+        PresentationDefinition pd = new PresentationDefinition("test-pd", Arrays.asList(descriptor), null, null, null);
+
+        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean())).thenReturn(pd);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData()); // ldp_vc credential only
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+
+        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertTrue("format key must appear when no format match",
+                result.getMatchingCredentialsResponse().getMissingClaims().contains("sd-jwt_alg_values"));
+        assertFalse("field name must NOT appear when no format match",
+                result.getMatchingCredentialsResponse().getMissingClaims().contains("vct"));
     }
 }

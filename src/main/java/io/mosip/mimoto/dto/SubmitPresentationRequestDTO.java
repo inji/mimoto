@@ -40,18 +40,19 @@ public class SubmitPresentationRequestDTO {
      */
     public boolean isSubmissionRequest() {
         boolean hasCredentials = selectedCredentials != null && !selectedCredentials.isEmpty();
-        boolean hasErrorFields = (errorCode != null && !errorCode.trim().isEmpty()) || 
+        boolean hasErrorFields = (errorCode != null && !errorCode.trim().isEmpty()) ||
                                  (errorMessage != null && !errorMessage.trim().isEmpty());
         return hasCredentials && !hasErrorFields;
     }
 
     /**
-     * Checks if this is a rejection request (has error code and message and NO credentials)
+     * Checks if this is a rejection request (has error code and message, NO credentials, NO SD-claim selections)
      */
     public boolean isRejectionRequest() {
-        boolean hasErrorFields = errorCode != null && !errorCode.trim().isEmpty() && 
+        boolean hasErrorFields = errorCode != null && !errorCode.trim().isEmpty() &&
                                 errorMessage != null && !errorMessage.trim().isEmpty();
         boolean hasCredentials = selectedCredentials != null && !selectedCredentials.isEmpty();
-        return hasErrorFields && !hasCredentials;
+        boolean hasSdClaims = selectedSdClaims != null && !selectedSdClaims.isEmpty();
+        return hasErrorFields && !hasCredentials && !hasSdClaims;
     }
 }
