@@ -17,4 +17,34 @@ public class PresentationDefinitionDTO {
     String id;
     @JsonProperty("input_descriptors")
     List<InputDescriptorDTO> inputDescriptors;
+
+    public List<InputDescriptorDTO> getInputDescriptors() {
+        return inputDescriptors;
+    }
+
+    public static PresentationDefinitionDTOBuilder builder() {
+        return new PresentationDefinitionDTOBuilder();
+    }
+
+    public static class PresentationDefinitionDTOBuilder {
+        private String id;
+        private List<InputDescriptorDTO> inputDescriptors;
+
+        public PresentationDefinitionDTOBuilder id(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public PresentationDefinitionDTOBuilder inputDescriptors(List<InputDescriptorDTO> inputDescriptors) {
+            this.inputDescriptors = inputDescriptors;
+            return this;
+        }
+
+        public PresentationDefinitionDTO build() {
+            PresentationDefinitionDTO dto = new PresentationDefinitionDTO();
+            dto.id = this.id;
+            dto.inputDescriptors = this.inputDescriptors;
+            return dto;
+        }
+    }
 }

@@ -10,6 +10,7 @@ import io.mosip.mimoto.dto.AuditResponseDto;
 import io.mosip.mimoto.exception.ApisResourceAccessException;
 import io.mosip.mimoto.service.RestClientService;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class AuditLogRequestBuilder {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(AuditLogRequestBuilder.class);
 
     /** The registration processor rest service. */
     @Autowired

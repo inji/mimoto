@@ -11,11 +11,21 @@ public class CredentialIssuerDisplayResponse {
 
     @SerializedName("name")
     @JsonProperty("name")
+    @NotBlank(message = "Name is required and cannot be blank")
     @Schema(description = "Name of the Credential Issuer")
     private String name;
 
     @SerializedName("locale")
     @JsonProperty("locale")
+    @NotBlank(message = "Locale is required and cannot be blank")
     @Schema(description = "Locale of the Credential Issuer")
     private String locale;
+
+    public String getName() {
+        return name;
+    }
+
+    public String getLocale() {
+        return locale;
+    }
 }

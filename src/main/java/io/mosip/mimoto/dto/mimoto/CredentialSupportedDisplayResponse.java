@@ -52,4 +52,24 @@ public class CredentialSupportedDisplayResponse {
     @NotBlank
     @Schema(description = "Text Colour of the Supported Credential")
     String textColor;
+
+    public String getName() {
+        return name;
+    }
+
+    public String getLocale() {
+        return locale;
+    }
+
+    public BackgroundImageDTO getBackgroundImage() {
+        return backgroundImage;
+    }
+
+    public String getBackgroundColor() {
+        return backgroundColor;
+    }
+
+    public String getTextColor() {
+        return textColor;
+    }
 }

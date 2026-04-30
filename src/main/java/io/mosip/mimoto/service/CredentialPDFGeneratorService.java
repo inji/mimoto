@@ -33,6 +33,7 @@ import io.mosip.mimoto.util.Utilities;
 import io.mosip.pixelpass.PixelPass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.slf4j.LoggerFactory;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +53,7 @@ import java.util.stream.Stream;
 @Slf4j
 @Service
 public class CredentialPDFGeneratorService {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(CredentialPDFGeneratorService.class);
 
     private record SelectedFace(String key, String face) {}
 

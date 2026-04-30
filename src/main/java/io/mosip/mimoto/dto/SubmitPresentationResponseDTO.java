@@ -6,21 +6,28 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "Response payload for successful response submission")
+@Schema(description = "Response returned after a presentation is submitted or rejected, including the processing status, message, and verifier redirect URI when available.")
 public class SubmitPresentationResponseDTO {
-    @Schema(description = "Status of the presentation submission",
+    
+    @NotBlank(message = "Status is required and cannot be blank")
+    @Schema(description = "Outcome of the presentation submission workflow, such as success when credentials were sent or error when the request was rejected.",
+            allowableValues = {"SUCCESS", "ERROR"},
             example = "SUCCESS")
     private String status;
-    @Schema(description = "Redirection URI to which the user-agent should be redirected after submission",
-            example = "https://verifier.example.com/callback?state=af0ifjsldkj")
+    
+    @Schema(description = "Verifier callback URI to which the wallet or client should redirect after the presentation flow is completed.",
+            example = "https://verifier.example/callback")
     private String redirectUri;
-    @Schema(description = "Message indicating the result of the submission",
-            example = "Presentation successfully submitted and shared with verifier")
+    
+    @NotBlank(message = "Message is required and cannot be blank")
+    @Schema(description = "Human-readable summary explaining whether the presentation was submitted successfully or rejected by the user.",
+            example = "Request processed successfully.")
     private String message;
 }

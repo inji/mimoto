@@ -1,11 +1,9 @@
 package io.mosip.mimoto.exception;
 
 import io.mosip.mimoto.model.WalletLockStatus;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public enum ErrorConstants {
 
     INVALID_REQUEST("invalid_request", "Some incorrect parameters in the request"),
@@ -58,5 +56,18 @@ public enum ErrorConstants {
 
     private final String errorCode;
     private final String errorMessage;
+
+    ErrorConstants(String errorCode, String errorMessage) {
+        this.errorCode = errorCode;
+        this.errorMessage = errorMessage;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
 
 }

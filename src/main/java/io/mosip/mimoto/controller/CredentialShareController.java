@@ -19,9 +19,15 @@ import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.service.impl.CredentialShareServiceImpl;
 import io.mosip.mimoto.util.*;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -42,6 +48,7 @@ import java.util.List;
 @Slf4j
 @Tag(name = SwaggerLiteralConstants.CREDENTIALS_SHARE_NAME, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_DESCRIPTION)
 public class CredentialShareController {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(CredentialShareController.class);
 
     private final CredentialShareServiceImpl credentialShareService;
 
@@ -78,8 +85,22 @@ public class CredentialShareController {
      */
     @PostMapping(path = {"/callback/notify", "/callback/notify/"},consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthenticateContentAndVerifyIntent(secret = "${mosip.event.secret}", callback = "/v1/mimoto/credentialshare/callback/notify", topic = "${mosip.event.topic}")
-    @Operation(summary = SwaggerLiteralConstants.CREDENTIALS_SHARE_HANDLE_SUBSCRIBED_EVENT_SUMMARY, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_HANDLE_SUBSCRIBED_EVENT_DESCRIPTION)
-    public ResponseEntity<GenericResponseDTO> handleSubscribeEvent(@RequestBody EventModel eventModel)
+    @Operation(summary = SwaggerLiteralConstants.CREDENTIALS_SHARE_HANDLE_SUBSCRIBED_EVENT_SUMMARY, 
+               description = SwaggerLiteralConstants.CREDENTIALS_SHARE_HANDLE_SUBSCRIBED_EVENT_DESCRIPTION)
+    @RequestBody(description = "Credential share callback event payload delivered by the eventing system when the issuance workflow reaches a new state.",
+                 required = true,
+                 content = @Content(schema = @Schema(implementation = EventModel.class),
+                                   mediaType = MediaType.APPLICATION_JSON_VALUE))
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", 
+                     description = "Acknowledgment returned after Mimoto accepts a credential share callback event notification.",
+                     content = @Content(schema = @Schema(implementation = GenericResponseDTO.class))),
+        @ApiResponse(responseCode = "400", 
+                     description = "Invalid request payload - Event model structure validation failed"),
+        @ApiResponse(responseCode = "500", 
+                     description = "Internal server error - Processing credential share event failed")
+    })
+    public ResponseEntity<GenericResponseDTO> handleSubscribeEvent(@jakarta.validation.Valid @org.springframework.web.bind.annotation.RequestBody EventModel eventModel)
             throws Exception {
         log.info("Received websub event:: transaction id = " + eventModel.getEvent().getTransactionId());
         GenericResponseDTO responseDTO = new GenericResponseDTO();

@@ -14,6 +14,7 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Response listing credentials that satisfy a presentation definition together with any missing claims.")
 public class MatchingCredentialsResponseDTO {
 
     @JsonProperty("availableCredentials")
@@ -21,6 +22,7 @@ public class MatchingCredentialsResponseDTO {
     private List<CredentialDTO> availableCredentials;
 
     @JsonProperty("missingClaims")
-    @Schema(description = "List of claims that are required but not available in any credential")
+    @Schema(description = "List of claims that are required but not available in any credential",
+            example = "[\"birthdate\"]")
     private Set<String> missingClaims;
 }

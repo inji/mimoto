@@ -1,6 +1,7 @@
 package io.mosip.mimoto.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,10 +17,13 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Internal DTO holding both the matching-credentials response and the decrypted credential records.")
 public class MatchingCredentialsDTO {
 
+    @Schema(description = "Presentation-definition matching result prepared for the API response.")
     private MatchingCredentialsResponseDTO matchingCredentialsResponse;
     
     @JsonIgnore
+    @Schema(description = "Decrypted credentials that matched the presentation definition.")
     private List<DecryptedCredentialDTO> matchingCredentials;
 }

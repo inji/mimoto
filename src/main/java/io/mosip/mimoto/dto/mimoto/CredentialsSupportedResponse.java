@@ -58,4 +58,24 @@ public class CredentialsSupportedResponse {
 
     @Schema(description = "Identify the type or schema of the claims included")
     private String vct;
+
+    public String getFormat() {
+        return format;
+    }
+
+    public String getDoctype() {
+        return doctype;
+    }
+
+    public Map<String, Object> getClaims() {
+        return claims;
+    }
+
+    public CredentialDefinitionResponseDto getCredentialDefinition() {
+        return credentialDefinition;
+    }
+
+    public List<CredentialSupportedDisplayResponse> getDisplay() {
+        return display;
+    }
 }

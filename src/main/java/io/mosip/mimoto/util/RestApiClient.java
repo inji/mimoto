@@ -5,6 +5,7 @@ import io.mosip.mimoto.core.http.RequestWrapper;
 import io.mosip.mimoto.dto.SecretKeyRequest;
 import io.mosip.mimoto.exception.TokenGenerationFailedException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
@@ -39,6 +40,7 @@ import java.util.Objects;
 @Slf4j
 @Component
 public class RestApiClient {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(RestApiClient.class);
 
     public static final String TOKEN = "token";
     public static final String CONTENT_TYPE = "Content-Type";

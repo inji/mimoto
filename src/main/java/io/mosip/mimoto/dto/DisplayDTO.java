@@ -29,4 +29,8 @@ public class DisplayDTO {
     @NotBlank
     @Schema(description = "Display language of the Issuer")
     String language;
+
+    public LogoDTO getLogo() {
+        return logo;
+    }
 }

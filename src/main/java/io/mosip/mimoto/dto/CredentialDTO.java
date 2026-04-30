@@ -13,22 +13,27 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Compact credential summary returned when listing credentials that match a presentation request.")
 public class CredentialDTO {
 
     @JsonProperty("credentialId")
-    @Schema(description = "Unique identifier of the credential")
+    @Schema(description = "Unique identifier of the credential",
+            example = "cred-123")
     private String credentialId;
 
     @JsonProperty("credentialTypeDisplayName")
-    @Schema(description = "Display name of the credential type")
+    @Schema(description = "Display name of the credential type",
+            example = "W3C VC")
     private String credentialTypeDisplayName;
 
     @JsonProperty("credentialTypeLogo")
-    @Schema(description = "Logo URL for the credential type")
+    @Schema(description = "Logo URL for the credential type",
+            example = "https://mosip.github.io/inji-config/logos/mosipid-logo.png")
     private String credentialTypeLogo;
 
     @JsonProperty("format")
-    @Schema(description = "Format of the credential (e.g., ldp_vc, vc+sd-jwt, dc+sd-jwt)")
+    @Schema(description = "Format of the credential (e.g., ldp_vc, vc+sd-jwt, dc+sd-jwt)",
+            example = "ldp_vc")
     private String format;
 
     @JsonProperty("claims")
@@ -39,4 +44,3 @@ public class CredentialDTO {
     @Schema(description = "Selective Disclosure Claims that require user consent to be shared")
     private List<String> sdClaims;
 }
-

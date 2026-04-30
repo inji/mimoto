@@ -7,6 +7,7 @@ import io.mosip.kernel.websub.api.model.SubscriptionChangeRequest;
 import io.mosip.kernel.websub.api.model.SubscriptionChangeResponse;
 import io.mosip.kernel.websub.api.model.UnsubscriptionRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class WebSubSubscriptionHelper {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(WebSubSubscriptionHelper.class);
 
     @Value("${mosip.event.hub.subUrl}")
     private String webSubHubSubUrl;

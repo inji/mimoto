@@ -3,6 +3,7 @@ package io.mosip.mimoto.dto.mimoto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(description = "Normalized verifiable credential payload properties, including issuer, proof, credential subject, context, and lifecycle timestamps.")
 public class VCCredentialProperties implements Serializable {
     private String issuer;
 
@@ -52,4 +54,12 @@ public class VCCredentialProperties implements Serializable {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Object renderMethod;
+
+    public VCCredentialResponseProof getProof() {
+        return proof;
+    }
+
+    public List<String> getType() {
+        return type;
+    }
 }

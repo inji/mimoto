@@ -10,9 +10,11 @@ import lombok.ToString;
 @ApiModel(description = "Model representing a unlock user wallet request")
 @Schema(description = "Unlock Wallet Request DTO", requiredProperties = {"walletPin"})
 public class UnlockWalletRequestDto {
-    @Schema(description = "PIN used to unlock the Wallet")
+    @Schema(description = "PIN used to unlock the Wallet",
+            example = "123456")
     String walletPin;
 
-    @Schema(description = "Name of the Wallet")
+    @Schema(description = "Name of the Wallet",
+            example = "My Personal Wallet")
     String walletName;
 }

@@ -11,6 +11,8 @@ import io.mosip.mimoto.service.impl.CredentialShareServiceImpl;
 import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.commons.lang.StringUtils;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,8 @@ import static io.mosip.mimoto.constant.LoggerFileConstant.DELIMITER;
 @Slf4j
 @Data
 public class Utilities {
+    private static final Logger log = LoggerFactory.getLogger(Utilities.class);
+
     private ClassLoader classLoader = Utilities.class.getClassLoader();
 
     public ObjectMapper objectMapper = new ObjectMapper();
@@ -287,5 +291,9 @@ public class Utilities {
         }
         // mask of length 20 or less
         return "X".repeat(Math.min(value.length(), 20));
+    }
+
+    public String getDataPath() {
+        return dataPath;
     }
 }
