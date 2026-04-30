@@ -3,6 +3,7 @@ package io.mosip.mimoto.service;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
+import io.mosip.mimoto.dto.mimoto.V1Credential;
 import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
@@ -80,6 +81,12 @@ class V1VCDownloadHandlerTest {
                 .build();
     }
 
+    private V1Credential v1Credential(Object credentialValue) {
+        V1Credential cred = new V1Credential();
+        cred.setCredential(credentialValue);
+        return cred;
+    }
+
     @Test
     void shouldReturnVCCredentialResponseOnSuccessfulDownload() throws Exception {
         V1VCCredentialRequest request = buildRequest("jwt-token");
@@ -89,7 +96,7 @@ class V1VCDownloadHandlerTest {
                 .thenReturn(request);
 
         V1VCCredentialResponse mockResponse = V1VCCredentialResponse.builder()
-                .credentials(List.of("eyJhbGciOiJFUzI1NiJ9.credential-payload.signature"))
+                .credentials(List.of(v1Credential("eyJhbGciOiJFUzI1NiJ9.credential-payload.signature")))
                 .build();
 
         when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
@@ -113,7 +120,7 @@ class V1VCDownloadHandlerTest {
                 .thenReturn(request);
 
         V1VCCredentialResponse mockResponse = V1VCCredentialResponse.builder()
-                .credentials(List.of("first-credential", "second-credential", "third-credential"))
+                .credentials(List.of(v1Credential("first-credential"), v1Credential("second-credential"), v1Credential("third-credential")))
                 .build();
 
         when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
@@ -136,7 +143,7 @@ class V1VCDownloadHandlerTest {
                 .thenReturn(request);
 
         V1VCCredentialResponse mockResponse = V1VCCredentialResponse.builder()
-                .credentials(List.of("login-credential-data"))
+                .credentials(List.of(v1Credential("login-credential-data")))
                 .build();
 
         when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
@@ -179,7 +186,7 @@ class V1VCDownloadHandlerTest {
                 .build();
 
         V1VCCredentialResponse successResponse = V1VCCredentialResponse.builder()
-                .credentials(List.of("retry-credential-data"))
+                .credentials(List.of(v1Credential("retry-credential-data")))
                 .build();
 
         when(restApiClient.postApiWithErrorResponse(eq(CREDENTIAL_ENDPOINT), eq(MediaType.APPLICATION_JSON),
