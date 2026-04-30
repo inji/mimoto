@@ -21,7 +21,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
@@ -45,7 +44,6 @@ import java.util.*;
 @Slf4j
 @Service
 public class CredentialShareServiceImpl implements CredentialShareService {
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(CredentialShareServiceImpl.class);
 
     public static final String VC_REQUEST_FILE_NAME = "%s.json";
     public static final String EVENT_JSON_FILE_NAME = "%s_EVENT.json";

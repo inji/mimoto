@@ -34,3 +34,7 @@ build/
 *.code-workspace
 .DS_Store
 data
+*.p12
+certs/
+api-test/certs/
+docker-compose/certs/

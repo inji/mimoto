@@ -14,7 +14,8 @@ public class AppVIDGenerateRequestDTO {
     @Schema(description = "Unique individual identifier (UIN or VID)", 
             example = "1289358704")
     private String individualId;
-    
+
+    @NotBlank
     @Pattern(regexp = "UIN|VID", message = "Only UIN or VID is allowed")
     @Schema(description = "Type of individual ID provided (UIN or VID)", 
             allowableValues = {"UIN", "VID"},

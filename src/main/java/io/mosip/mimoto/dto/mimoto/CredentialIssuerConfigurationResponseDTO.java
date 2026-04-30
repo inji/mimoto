@@ -31,6 +31,6 @@ public class CredentialIssuerConfigurationResponseDTO {
     @NotEmpty(message = "Grant types supported cannot be empty")
     @Schema(description = "Grant types supported by the issuer's authorization server.",
             example = "[\"authorization_code\"]")
-    private List<String> grantTypesSupported;
+    private List<@NotBlank String> grantTypesSupported;
 
 }

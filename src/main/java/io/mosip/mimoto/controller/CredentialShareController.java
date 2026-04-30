@@ -27,7 +27,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -48,7 +47,6 @@ import java.util.List;
 @Slf4j
 @Tag(name = SwaggerLiteralConstants.CREDENTIALS_SHARE_NAME, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_DESCRIPTION)
 public class CredentialShareController {
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(CredentialShareController.class);
 
     private final CredentialShareServiceImpl credentialShareService;
 

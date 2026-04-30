@@ -24,6 +24,5 @@ public class MatchingCredentialsDTO {
     private MatchingCredentialsResponseDTO matchingCredentialsResponse;
     
     @JsonIgnore
-    @Schema(description = "Decrypted credentials that matched the presentation definition.")
     private List<DecryptedCredentialDTO> matchingCredentials;
 }
