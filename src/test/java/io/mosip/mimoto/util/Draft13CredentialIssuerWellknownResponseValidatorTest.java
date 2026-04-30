@@ -154,7 +154,7 @@ class Draft13CredentialIssuerWellknownResponseValidatorTest {
             // Update to check message contains validation errors
             String message = invalidWellknownResponseException.getMessage();
             assertTrue(message.contains("RESIDENT-APP-041 --> Invalid Wellknown from Issuer"));
-            assertTrue(message.contains("type: must not be empty"));
+            assertTrue(message.contains("type: Type list cannot be empty"));
         }
 
         @Test
@@ -171,7 +171,7 @@ class Draft13CredentialIssuerWellknownResponseValidatorTest {
             assertEquals("""
                     RESIDENT-APP-041 --> Invalid Wellknown from Issuer
                     Validation failed:
-                    type: must not be empty""", invalidWellknownResponseException.getMessage());
+                    type: Type list cannot be empty""", invalidWellknownResponseException.getMessage());
         }
     }
 
