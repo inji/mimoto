@@ -6,6 +6,7 @@ import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.V1VCCredentialRequest;
 import io.mosip.mimoto.dto.mimoto.V1VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
+import io.mosip.mimoto.dto.mimoto.V1Credential;
 import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
@@ -63,7 +64,7 @@ public class V1VCDownloadHandler implements VCDownloadHandler {
                     String.format(DOWNLOAD_FAILURE_MESSAGE, issuerId, credentialConfigurationId) + " - " + errorDetail);
         }
 
-        List<Object> credentials = response.getCredentials();
+        List<V1Credential> credentials = response.getCredentials();
         if (credentials == null || credentials.isEmpty()) {
             throw new InvalidCredentialResourceException(EMPTY_CREDENTIAL_MESSAGE);
         }
@@ -71,7 +72,7 @@ public class V1VCDownloadHandler implements VCDownloadHandler {
         String format = credentialIssuerWellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId).getFormat();
 
         log.debug("V1 VC Credential Response received for issuerId: {}", issuerId);
-        return new VCCredentialResponse(format, credentials.getFirst());
+        return new VCCredentialResponse(format, credentials.getFirst().getCredential());
     }
 
     private V1VCCredentialRequest buildCredentialRequest(IssuerDTO issuerDTO, String credentialConfigurationId, CredentialIssuerWellKnownResponse wellKnownResponse, String walletId, String base64Key, boolean isLoginFlow) throws CredentialProcessingException {

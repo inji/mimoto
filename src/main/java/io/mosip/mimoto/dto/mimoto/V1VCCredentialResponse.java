@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 public class V1VCCredentialResponse {
 
-    private List<Object> credentials;
+    private List<V1Credential> credentials;
 
     private String error;
 
