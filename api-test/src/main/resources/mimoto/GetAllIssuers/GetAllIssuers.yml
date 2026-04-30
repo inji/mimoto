@@ -1,7 +1,7 @@
 GetAllIssuers:
    Mimoto_GetAllIssuers_All_Valid_Smoke:
       endPoint: /v1/mimoto/issuers
-      description: Retrieving issuers with all valid parameters
+      description: Validate that the system successfully retrieves issuer details when all input parameters are valid
       uniqueIdentifier: TC_Mimoto_GetAllIssuers_01
       role: resident
       restMethod: get
@@ -15,7 +15,7 @@ GetAllIssuers:
 
    Mimoto_GetAllIssuers_Specific_Issuer_All_Valid_Smoke:
       endPoint: /v1/mimoto/issuers/Mosip
-      description: Retrieving all specific issuer with all valid parameters
+      description: Validate that the system successfully retrieves the specific issuer details when all input parameters are valid
       uniqueIdentifier: TC_Mimoto_GetAllIssuers_02
       role: resident
       restMethod: get
@@ -29,7 +29,7 @@ GetAllIssuers:
 
    Mimoto_GetAllIssuers_Invalid_Issuer_Neg:
       endPoint: /v1/mimoto/issuers/invalid
-      description: Retrieving invalid issuer
+      description: Validate that the system does not retrieve issuer details when an invalid issuer is provided
       uniqueIdentifier: TC_Mimoto_GetAllIssuers_03
       role: resident
       restMethod: get

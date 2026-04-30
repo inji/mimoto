@@ -3,6 +3,7 @@ package io.mosip.mimoto.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuersDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
@@ -35,6 +36,7 @@ import static io.mosip.mimoto.util.TestUtilities.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = IssuersController.class)
@@ -158,6 +160,53 @@ public class IssuersControllerTest {
     }
 
     @Test
+    public void getIssuerDetailsLogoDtoWithUrlProperty() throws Exception {
+        IssuerDTO issuer = getIssuerConfigDTO("Issuer1");
+        issuer.getDisplay().get(0).getLogo().setUrl("https://example.com/logo-via-url.png");
+        issuer.getDisplay().get(0).getLogo().setAlt_text("alt-url");
+
+        Mockito.when(issuersService.getIssuerDetails("id-url")).thenReturn(issuer);
+
+        mockMvc.perform(get("/issuers/id-url").accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.response.display[0].logo.url", Matchers.is("https://example.com/logo-via-url.png")))
+                .andExpect(jsonPath("$.response.display[0].logo.alt_text", Matchers.is("alt-url")));
+    }
+
+    @Test
+    public void getIssuerDetailsLogoDtoFromJsonWithUriAlias() throws Exception {
+        String issuerJson = """
+                {
+                  "issuer_id": "Issuer1id",
+                  "protocol": "OpenId4VCI",
+                  "display": [{
+                    "name": "Issuer1",
+                    "title": "Download via Issuer1",
+                    "description": "Issuer1 description",
+                    "language": "en",
+                    "logo": {
+                      "uri": "https://example.com/logo-via-uri.png",
+                      "alt_text": "alt-uri"
+                    }
+                  }],
+                  "client_id": "123",
+                  "client_alias": "test-client-alias",
+                  "enabled": "true",
+                  "credential_issuer_host": "https://issuer.env.net",
+                  "token_endpoint": "https://dev/Issuer1id"
+                }
+                """;
+        IssuerDTO issuer = new ObjectMapper().readValue(issuerJson, IssuerDTO.class);
+
+        Mockito.when(issuersService.getIssuerDetails("id-uri")).thenReturn(issuer);
+
+        mockMvc.perform(get("/issuers/id-uri").accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.response.display[0].logo.url", Matchers.is("https://example.com/logo-via-uri.png")))
+                .andExpect(jsonPath("$.response.display[0].logo.alt_text", Matchers.is("alt-uri")));
+    }
+
+    @Test
     public void getIssuerDetailsTestForInvalidIssuerId() throws Exception {
         Mockito.when(issuersService.getIssuerDetails("invalidId")).thenThrow(InvalidIssuerIdException.class);
 
@@ -181,6 +230,16 @@ public class IssuersControllerTest {
                 .getContentAsString();
 
         JSONAssert.assertEquals(new JSONObject(expectedCredentialIssuerWellknownResponse), new JSONObject(actualResponse), JSONCompareMode.LENIENT);
+    }
+
+    @Test
+    public void getIssuerWellknownWhenServiceThrowsReturnsNotFound() throws Exception {
+        String issuerId = "issuer1";
+        Mockito.when(issuersService.getIssuerConfiguration(issuerId)).thenThrow(new RuntimeException("well-known unreachable"));
+
+        mockMvc.perform(get("/issuers/" + issuerId + "/well-known-proxy").accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResponse().getContentAsString().isEmpty()));
     }
 
     @Test

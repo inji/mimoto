@@ -1,7 +1,7 @@
 createSendOTP:
    Resident_SendOTP_All_Valid_Smoke:
       endPoint: /idauthentication/v1/otp/v4jO2rTUkDglaG7rCkWDnqIT3WpZaGEW9j3FMXwTA5xXKVaDpx/6001/34536061
-      description: Generating OTP with all valid parameters
+      description: Verifying that the OTP is generated successfully with all valid parameters
       uniqueIdentifier: TC_Mimoto_createSendOTP_01
       role: resident
       restMethod: post

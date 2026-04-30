@@ -18,6 +18,7 @@ public enum ErrorConstants {
     URI_TOO_LONG("uri_too_long", "Resource URI is too long to be handled"),
     INVALID_CLIENT("invalid_client", "The requested client doesn’t match."),
     INVALID_REDIRECT_URI("invalid_redirect_uri", "The requested redirect uri doesn’t match."),
+    INVALID_RESPONSE_URI("invalid_response_uri", "The requested response uri doesn’t match."),
     INTERNAL_SERVER_ERROR("internal_server_error", "We are unable to process request now"),
 
     PROOF_TYPE_NOT_SUPPORTED_EXCEPTION("proof_type_not_supported", "Proof Type available in received credentials is not matching with supported proof terms"),
@@ -52,7 +53,8 @@ public enum ErrorConstants {
     REJECTED_VERIFIER("success", "Presentation request rejected. An OpenID4VP error response has been sent to the verifier."),
     JWT_SIGNING_ERROR("jwt_signing_error", "Failed to sign JWT token during presentation submission"),
     KEY_GENERATION_ERROR("key_generation_error", "Failed to generate or retrieve cryptographic key"),
-    DECRYPTION_ERROR("decryption_error", "Failed to decrypt data");
+    DECRYPTION_ERROR("decryption_error", "Failed to decrypt data"),
+    INVALID_RESPONSE_MODE("invalid_response_mode", "The requested response mode is not supported.");
 
     private final String errorCode;
     private final String errorMessage;

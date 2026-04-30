@@ -6,7 +6,6 @@ import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.model.TrustedVerifier;
 import io.mosip.mimoto.repository.VerifierRepository;
 import io.mosip.mimoto.service.TrustedVerifierService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -16,8 +15,11 @@ import static io.mosip.mimoto.exception.ErrorConstants.*;
 @Service
 public class TrustedVerifierServiceImpl implements TrustedVerifierService {
 
-    @Autowired
-    private VerifierRepository verifierRepository;
+    private final VerifierRepository verifierRepository;
+
+    public TrustedVerifierServiceImpl(VerifierRepository verifierRepository) {
+        this.verifierRepository = verifierRepository;
+    }
 
     @Override
     public TrustedVerifierResponseDTO addTrustedVerifier(String walletId, TrustedVerifierRequest trustedVerifierRequest) {

@@ -19,7 +19,7 @@ import io.mosip.mimoto.service.CredentialPDFGeneratorService;
 import io.mosip.mimoto.service.CredentialService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
+import io.mosip.mimoto.service.DataProtectionService;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +56,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
     private final IssuersService issuersService;
     private final CredentialService credentialService;
     private final ObjectMapper objectMapper;
-    private final EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private final DataProtectionService dataProtectionService;
     private final CredentialPDFGeneratorService credentialPDFGeneratorService;
     private final DataShareServiceImpl dataShareService;
 
@@ -65,12 +65,12 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
                                        IssuersService issuersService,
                                        CredentialService credentialService,
                                        ObjectMapper objectMapper,
-                                       EncryptionDecryptionUtil encryptionDecryptionUtil,CredentialPDFGeneratorService credentialPDFGeneratorService,DataShareServiceImpl dataShareService) {
+                                       DataProtectionService dataProtectionService,CredentialPDFGeneratorService credentialPDFGeneratorService,DataShareServiceImpl dataShareService) {
         this.repository = repository;
         this.issuersService = issuersService;
         this.credentialService = credentialService;
         this.objectMapper = objectMapper;
-        this.encryptionDecryptionUtil = encryptionDecryptionUtil;
+        this.dataProtectionService = dataProtectionService;
         this.credentialPDFGeneratorService = credentialPDFGeneratorService;
         this.dataShareService = dataShareService;
     }
@@ -129,7 +129,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
                 .orElseThrow(getCredentialNotFoundExceptionSupplier(walletId, credentialId));
 
         try {
-            String decryptedCredential = encryptionDecryptionUtil.decryptCredential(credential.getCredential(), base64Key);
+            String decryptedCredential = dataProtectionService.decryptCredential(credential.getCredential(), base64Key);
 
             WalletCredentialResponseDTO response = generateCredentialResponse(decryptedCredential, credential.getCredentialMetadata(), locale);
             log.debug("Credential fetched successfully: {}", credentialId);
@@ -254,7 +254,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
             throw new IllegalArgumentException("Credential data cannot be null");
         }
 
-        String decryptedCredential = encryptionDecryptionUtil.decryptCredential(credential.getCredential(), base64Key);
+        String decryptedCredential = dataProtectionService.decryptCredential(credential.getCredential(), base64Key);
         if (decryptedCredential == null || decryptedCredential.trim().isEmpty()) {
             throw new IllegalArgumentException("Failed to decrypt credential or decrypted data is empty");
         }

@@ -1,7 +1,7 @@
 AidGetIndividualId:
    Mimoto_AidGetIndividualId_Getting_With_Valid_UIN_All:
       endPoint: /v1/mimoto/aid/get-individual-id
-      description: Generating AID status with valid AID
+      description: Validate that the system successfully generates and returns the AID status when a valid AID is provided
       uniqueIdentifier: TC_Mimoto_AidGetIndividualId_01
       role: resident
       checkErrorsOnlyInResponse: true
@@ -28,7 +28,7 @@ AidGetIndividualId:
 
    Mimoto_AidGetIndividualId_Getting_With_Invalid_AID_Neg:
       endPoint: /v1/mimoto/aid/get-individual-id
-      description: Generating individualID with invalid AID
+      description: Validate that the system does not generate an individualID when an invalid AID is provided and returns the appropriate error response
       uniqueIdentifier: TC_Mimoto_AidGetIndividualId_02
       role: resident
       checkErrorsOnlyInResponse: true
@@ -59,7 +59,7 @@ AidGetIndividualId:
 
    Mimoto_AidGetIndividualId_Getting_With_Invalid_Otp_Neg:
       endPoint: /v1/mimoto/aid/get-individual-id
-      description: Generating individualID with Invalid OTP
+      description: Validate that the system does not generate an individualID when an invalid OTP is provided
       uniqueIdentifier: TC_Mimoto_AidGetIndividualId_03
       role: resident
       checkErrorsOnlyInResponse: true
@@ -90,7 +90,7 @@ AidGetIndividualId:
 
    Mimoto_AidGetIndividualId_Getting_With_Valid_Otp_All:
       endPoint: /v1/mimoto/aid/get-individual-id
-      description: Generating individualID with valid OTP
+      description: Validate that the system successfully generates an individualID when a valid OTP is provided
       uniqueIdentifier: TC_Mimoto_AidGetIndividualId_04
       role: resident
       checkErrorsOnlyInResponse: true
@@ -117,7 +117,7 @@ AidGetIndividualId:
 
    Mimoto_AidGetIndividualId_Getting_With_Invalid_lenght_Of_AID_Neg:
       endPoint: /v1/mimoto/aid/get-individual-id
-      description: Generating individualID with invalid lengh of AID
+      description: Validate that the system does not generate an individualID when an invalid length AID is provided and returns the appropriate error response
       uniqueIdentifier: TC_Mimoto_AidGetIndividualId_05
       role: resident
       checkErrorsOnlyInResponse: true

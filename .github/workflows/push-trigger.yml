@@ -74,7 +74,7 @@ jobs:
   sonar_analysis:
     needs: build-mimoto
     if: "${{ github.event_name != 'pull_request' }}"
-    uses: mosip/kattu/.github/workflows/maven-sonar-analysis.yml@master-java21
+    uses: mosip/kattu/.github/workflows/maven-sonar-analysis.yml@dsd9685
     with:
       SERVICE_LOCATION: ./
     secrets:

@@ -1914,6 +1914,128 @@
                 }
             }
         },
+        "/v2/issuers": {
+            "get": {
+                "operationId": "getAllIssuersV2",
+                "parameters": [],
+                "tags": [
+                    "Trusted Issuers V2"
+                ],
+                "summary": "Retrieve all onboarded issuers (V2)",
+                "description": "Retrieve all onboarded issuers in V2 response format. Returns minimal issuer data from configuration (issuer_id, client_id, credential_issuer_host, qr_code_type, token_endpoint, protocol, display, etc.) without fetching well-known endpoints.",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": { "type": "string", "nullable": true },
+                                        "version": { "type": "string", "nullable": true },
+                                        "responsetime": { "type": "string", "format": "date-time", "nullable": true },
+                                        "metadata": { "type": "object", "nullable": true },
+                                        "response": {
+                                            "type": "object",
+                                            "properties": {
+                                                "issuers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/IssuerV2DTO"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "errors": { "type": "array", "items": { "type": "object", "properties": { "code": { "type": "string" }, "message": { "type": "string" } } }, "nullable": true }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - API not accessible or configuration error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "response": { "type": "object", "nullable": true },
+                                        "errors": { "type": "array", "items": { "type": "object", "properties": { "code": { "type": "string" }, "message": { "type": "string" } } } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/issuers/{issuer-id}": {
+            "get": {
+                "operationId": "getIssuerByIdV2",
+                "parameters": [
+                    {
+                        "name": "issuer-id",
+                        "in": "path",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "description": "Unique identifier of the issuer"
+                    }
+                ],
+                "tags": [
+                    "Trusted Issuers V2"
+                ],
+                "summary": "Retrieve specific issuer (V2)",
+                "description": "Retrieve a single issuer in V2 response format by issuer ID. Returns configuration-only data.",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": { "type": "string", "nullable": true },
+                                        "version": { "type": "string", "nullable": true },
+                                        "responsetime": { "type": "string", "format": "date-time", "nullable": true },
+                                        "metadata": { "type": "object", "nullable": true },
+                                        "response": { "$ref": "#/components/schemas/IssuerV2DTO" },
+                                        "errors": { "type": "array", "items": { "type": "object" }, "nullable": true }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found - Invalid issuer ID",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "response": { "type": "object", "nullable": true },
+                                        "errors": { "type": "array", "items": { "type": "object", "properties": { "code": { "type": "string" }, "message": { "type": "string" } } } }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "response": { "type": "object", "nullable": true },
+                                        "errors": { "type": "array" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/issuers/{issuer-id}/well-known-proxy": {
             "get": {
                 "operationId": "getCredentialWellknown",
@@ -5064,6 +5186,42 @@
                             "$ref": "#/components/schemas/Error"
                         }
                     }
+                }
+            },
+            "IssuerV2DTO": {
+                "type": "object",
+                "description": "Minimal issuer representation (V2 API). Data from mimoto-issuers-config only.",
+                "properties": {
+                    "issuer_id": { "type": "string", "description": "Unique identifier of the issuer" },
+                    "protocol": { "type": "string", "description": "Download flow protocol", "enum": ["OTP", "OpenId4VCI"] },
+                    "display": {
+                        "type": "array",
+                        "description": "Display properties of the issuer.",
+                        "items": {
+                            "type": "object",
+                            "description": "Localized display entry for the issuer.",
+                            "properties": {
+                                "name": { "type": "string", "description": "Display name of the issuer." },
+                                "logo": {
+                                    "type": "object",
+                                    "description": "Display logo of the issuer.",
+                                    "properties": {
+                                        "url": { "type": "string", "description": "URL of the issuer logo image." },
+                                        "alt_text": { "type": "string", "description": "Alternate text for the logo (accessibility)." }
+                                    }
+                                },
+                                "title": { "type": "string", "description": "Display title of the issuer." },
+                                "description": { "type": "string", "description": "Short description of the issuer." },
+                                "language": { "type": "string", "description": "Language code for this display entry (e.g. en, fr)." }
+                            }
+                        }
+                    },
+                    "client_id": { "type": "string", "description": "Onboarded Mimoto OIDC client ID" },
+                    "token_endpoint": { "type": "string", "description": "Token endpoint URL" },
+                    "client_alias": { "type": "string", "description": "Client alias in keyStore" },
+                    "qr_code_type": { "type": "string", "enum": ["OnlineSharing", "EmbeddedVC", "None"] },
+                    "enabled": { "type": "string", "description": "Whether issuer is enabled (\"true\", \"false\")" },
+                    "credential_issuer_host": { "type": "string", "description": "Credential issuer host URL" }
                 }
             },
             "Credential": {

@@ -1,6 +1,5 @@
 package io.mosip.mimoto.controller;
 
-import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.mimoto.constant.ApiName;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.core.http.ResponseWrapper;
@@ -21,7 +20,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -38,17 +36,20 @@ import java.util.Map;
 public class IdpController {
     private static final boolean USE_BEARER_TOKEN = true;
 
-    @Autowired
-    private RestClientService<Object> restClientService;
+    private final RestClientService<Object> restClientService;
 
-    @Autowired
-    private JoseUtil joseUtil;
+    private final JoseUtil joseUtil;
 
-    @Autowired
-    IdpService idpService;
+    private final IdpService idpService;
 
-    @Autowired
-    RequestValidator requestValidator;
+    private final RequestValidator requestValidator;
+
+    public IdpController(RestClientService<Object> restClientService, JoseUtil joseUtil, IdpService idpService, RequestValidator requestValidator) {
+        this.restClientService = restClientService;
+        this.joseUtil = joseUtil;
+        this.idpService = idpService;
+        this.requestValidator = requestValidator;
+    }
 
     @Operation(summary = SwaggerLiteralConstants.IDP_BINDING_OTP_SUMMARY, description = SwaggerLiteralConstants.IDP_BINDING_OTP_DESCRIPTION)
     @PostMapping(value = "/binding-otp", produces = MediaType.APPLICATION_JSON_VALUE)

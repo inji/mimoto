@@ -1,7 +1,7 @@
 AddIdentity:
    Mimoto_AddIdentity_withValidParameters_smoke_Pos:
       endPoint: /idrepository/v1/identity/
-      description: Creating a new identity with all valid parameters
+      description: Validate that the system successfully creates a new identity in ID Repository using all valid input parameters
       uniqueIdentifier: TC_Mimoto_AddIdentity_01
       role: idrepo
       restMethod: post
@@ -30,7 +30,7 @@ AddIdentity:
 
    Mimoto_AddIdentity_Binding_smoke_Pos:
       endPoint: /idrepository/v1/identity/
-      description: Creating a new identity with all valid parameters for Binding APIs
+      description: Validate that a new identity is successfully created using all valid parameters for Binding API workflows
       uniqueIdentifier: TC_Mimoto_AddIdentity_02
       role: idrepo
       restMethod: post
@@ -59,7 +59,7 @@ AddIdentity:
 
    Mimoto_AddIdentity_downloadIssuerCredential_smoke_Pos:
       endPoint: /idrepository/v1/identity/
-      description: Creating a new identity for downloading issuer credential
+      description: Validate that a new identity with valid inputs can download the issuer credential
       uniqueIdentifier: TC_Mimoto_AddIdentity_03
       role: idrepo
       restMethod: post
@@ -88,8 +88,8 @@ AddIdentity:
 
    Mimoto_AddIdentity_downloadIssuerCredentialWithGoogleLogin_smoke_Pos:
       endPoint: /idrepository/v1/identity/
-      description: Creating a new identity for downloading issuer credential
-      uniqueIdentifier: TC_Mimoto_AddIdentity_03
+      description: Validate that creating a new identity allows the issuer credential download process to complete successfully
+      uniqueIdentifier: TC_Mimoto_AddIdentity_04
       role: idrepo
       restMethod: post
       inputTemplate: mimoto/AddIdentity/addIdentity_$LANGNUMBER$

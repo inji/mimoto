@@ -50,9 +50,6 @@ public class WalletPresentationsControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private ObjectMapper objectMapper;
-
-    @MockBean
     private WalletPresentationService walletPresentationService;
 
     @Mock

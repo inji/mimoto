@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -39,11 +38,14 @@ import static io.mosip.mimoto.exception.PlatformErrorMessages.MIMOTO_PDF_SIGN_EX
 @Tag(name = SwaggerLiteralConstants.CREDENTIALS_NAME, description = SwaggerLiteralConstants.CREDENTIALS_DESCRIPTION)
 public class CredentialsController {
 
-    @Autowired
-    CredentialService credentialService;
+    private final CredentialService credentialService;
 
-    @Autowired
-    IdpService idpService;
+    private final IdpService idpService;
+
+    public CredentialsController(CredentialService credentialService, IdpService idpService) {
+        this.credentialService = credentialService;
+        this.idpService = idpService;
+    }
 
     @Operation(summary = SwaggerLiteralConstants.CREDENTIALS_DOWNLOAD_VC_SUMMARY, description = SwaggerLiteralConstants.CREDENTIALS_DOWNLOAD_VC_DESCRIPTION)
     @ApiResponses({

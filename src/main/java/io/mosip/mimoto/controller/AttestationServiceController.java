@@ -1,15 +1,12 @@
 package io.mosip.mimoto.controller;
 
-import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.dto.mimoto.AttestationStatement;
 import io.mosip.mimoto.dto.mimoto.GenericResponseDTO;
 import io.mosip.mimoto.util.AttestationOfflineVerify;
 import io.mosip.mimoto.util.AttestationOnlineVerify;
-import io.mosip.mimoto.util.LoggerUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,11 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = SwaggerLiteralConstants.ATTESTATION_NAME, description = SwaggerLiteralConstants.ATTESTATION_DESCRIPTION)
 public class AttestationServiceController {
 
-    @Autowired
-    AttestationOfflineVerify attestationOfflineVerify;
+    private final AttestationOfflineVerify attestationOfflineVerify;
 
-    @Autowired
-    AttestationOnlineVerify attestationOnlineVerify;
+    private final AttestationOnlineVerify attestationOnlineVerify;
+
+    public AttestationServiceController(AttestationOfflineVerify attestationOfflineVerify, AttestationOnlineVerify attestationOnlineVerify) {
+        this.attestationOfflineVerify = attestationOfflineVerify;
+        this.attestationOnlineVerify = attestationOnlineVerify;
+    }
 
     /**
      * Safetynet attestation verify using offline method.

@@ -1,7 +1,7 @@
 individualOTP:
    Mimoto_individualOTP_All_Valid_Smoke:
       endPoint: /v1/mimoto/req/individualId/otp
-      description: generating individual OTP with valid parameters
+      description: Validate OTP generation for an individual using valid parameters
       uniqueIdentifier: TC_Mimoto_individualOTP_01
       role: resident
       checkErrorsOnlyInResponse: true

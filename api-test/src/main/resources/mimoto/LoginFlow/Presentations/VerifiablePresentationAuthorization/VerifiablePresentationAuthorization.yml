@@ -1,10 +1,11 @@
 VerifiablePresentationAuthorization:
    Mimoto_VerifiablePresentationAuthorization_all_Valid_Smoke_sid:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Creating verifiable presentation with valid data
+      description: Verify that a Verifiable Presentation is successfully created when valid data is provided
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_01
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorizationResult
@@ -19,10 +20,11 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withInvalid_authorizationRequestUrl_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Creating verifiable presentation with invalid authorizationRequestUrl
+      description: Verify that the request to create a Verifiable Presentation is rejected or fails when the authorizationRequestUrl is invalid
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_02
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/error2
       input: '{
@@ -37,10 +39,11 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withInvalid_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Creating verifiable presentation with invalid walletId
+      description: Verify that the request to create a Verifiable Presentation is rejected when the wallet ID is invalid
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_03
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/error2
       input: '{
@@ -55,7 +58,7 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withLocked_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Creating verifiable presentation with locked walletId
+      description: Verify that the request to create a Verifiable Presentation is rejected when the wallet ID is locked
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_04
       role: userDefinedCookie
       restMethod: post
@@ -73,10 +76,11 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withInvalidSession_unAuthorized_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Creating verifiable presentation with invalid session
+      description: Verify that the request to create a Verifiable Presentation  is rejected when the session ID is invalid
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_05
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/responseCode
@@ -92,10 +96,11 @@ VerifiablePresentationAuthorization:
 
    Mimoto_VerifiablePresentationAuthorization_withNullWalletID_walletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}/presentations
-      description: Creating verifiable presentation with null walletId
+      description: Verify that the request to create a Verifiable Presentation  is rejected when the wallet ID is "null".
       uniqueIdentifier: TC_Mimoto_VerifiablePresentationAuthorization_06
       role: userDefinedCookie
       restMethod: post
+      additionalDependencies: TC_Mimoto_UnlockWallet_01
       inputTemplate: mimoto/LoginFlow/Presentations/VerifiablePresentationAuthorization/VerifiablePresentationAuthorization
       outputTemplate: mimoto/error2
       input: '{

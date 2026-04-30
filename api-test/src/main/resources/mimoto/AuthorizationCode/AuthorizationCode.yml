@@ -1,10 +1,11 @@
 AuthorizationCode:
    Mimoto_ESignet_AuthorizationCode_uin_All_Valid_Smoke_sid:
       endPoint: /v1/esignet/authorization/auth-code
-      description: Generate authorization code to download credential issuer
+      description: Validate that the system successfully generates an authorization code to download credentials from the issuer
       uniqueIdentifier: TC_Mimoto_AuthorizationCode_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_AuthenticateUser_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/AuthorizationCode/AuthorizationCode

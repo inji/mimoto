@@ -1,7 +1,7 @@
 CreateWallet:
    Mimoto_CreateWallet_all_Valid_Smoke_sid:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with successful login
+      description: Verifying that a new wallet is created successfully after a successful login
       uniqueIdentifier: TC_Mimoto_CreateWallet_01
       role: userDefinedCookie
       restMethod: post
@@ -20,7 +20,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_WithoutUnlock_all_Valid_Smoke_sid:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet for the same user with successful login
+      description: Verifying that a new wallet is created successfully for the same user after a successful login
       uniqueIdentifier: TC_Mimoto_CreateWallet_02
       role: userDefinedCookie
       restMethod: post
@@ -39,7 +39,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_SameName_Valid:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet for the same user with same name with successful login
+      description: Verifying that the system handles the creation of a new wallet with the same name for the same user after a successful login
       uniqueIdentifier: TC_Mimoto_CreateWallet_03
       role: userDefinedCookie
       restMethod: post
@@ -58,7 +58,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_WithoutLogin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet without login and expects to fail
+      description: Validating that wallet creation without login is not allowed
       uniqueIdentifier: TC_Mimoto_CreateWallet_04
       role: userDefinedCookie
       restMethod: post
@@ -78,7 +78,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_SessionExpired_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with expired session and expects to fail
+      description: Verifying that the system prevents the creation of a new wallet when the user session is expired
       uniqueIdentifier: TC_Mimoto_CreateWallet_05
       role: userDefinedCookie
       restMethod: post
@@ -98,7 +98,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_InvalidWalletName_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with invalid wallet name and expects to fail
+      description: Verify that creating a new wallet with an invalid wallet name is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_06
       role: userDefinedCookie
       restMethod: post
@@ -117,7 +117,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_EmptyWalletName_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with empty wallet name and expects to fail
+      description: Verifying that the system prevents the creation of a new wallet when the wallet name is empty
       uniqueIdentifier: TC_Mimoto_CreateWallet_07
       role: userDefinedCookie
       restMethod: post
@@ -136,7 +136,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_SpaceInWalletName_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with space in wallet name and expects to fail
+      description: Verifying that the system prevents the creation of a new wallet when the wallet name contains only spaces
       uniqueIdentifier: TC_Mimoto_CreateWallet_08
       role: userDefinedCookie
       restMethod: post
@@ -155,7 +155,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_MissingWalletName_Valid:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with missing wallet name
+      description: Verifying that the system prevents the creation of a new wallet when the wallet name is missing
       uniqueIdentifier: TC_Mimoto_CreateWallet_09
       role: userDefinedCookie
       restMethod: post
@@ -175,7 +175,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_MoreThan50Characters_WalletName_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with more than 50 characters in wallet name and expects to fail
+      description: Verifying that the system prevents the creation of a new wallet when the wallet name exceeds 50 characters
       uniqueIdentifier: TC_Mimoto_CreateWallet_10
       role: userDefinedCookie
       restMethod: post
@@ -194,7 +194,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_WalletNameWithSpaces_valid:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with wallet name contains spaces
+      description: Verifying that the system prevents the creation of a new wallet when the wallet name exceeds 50 characters
       uniqueIdentifier: TC_Mimoto_CreateWallet_11
       role: userDefinedCookie
       restMethod: post
@@ -213,7 +213,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_WalletNameInSpecialCharacters_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with special characters as wallet name and expects to fail
+      description: Verify that creating a new wallet with special characters in the wallet name is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_12
       role: userDefinedCookie
       restMethod: post
@@ -232,7 +232,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_WalletNameInNumbers_Valid:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with numbers as wallet name
+      description: Verify that creating a new wallet with numbers in the wallet name is allowed and the wallet is created successfully
       uniqueIdentifier: TC_Mimoto_CreateWallet_13
       role: userDefinedCookie
       restMethod: post
@@ -251,7 +251,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_MoreThan6Digits_WalletPin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with wallet pin with more than 6 digits and expects to fail
+      description: Verify that creating a new wallet with a PIN longer than 6 digits is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_14
       role: userDefinedCookie
       restMethod: post
@@ -270,7 +270,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_Empty_WalletPin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with empty wallet pin and expects to fail
+      description: Verify that creating a new wallet without a wallet PIN is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_15
       role: userDefinedCookie
       restMethod: post
@@ -289,7 +289,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_Space_WalletPin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with space in wallet pin and expects to fail
+      description: Verify that creating a new wallet with spaces in the wallet PIN is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_16
       role: userDefinedCookie
       restMethod: post
@@ -308,7 +308,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_Missing_WalletPin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with missing wallet pin and expects to fail
+      description: Verify that creating a new wallet without providing a wallet PIN is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_17
       role: userDefinedCookie
       restMethod: post
@@ -327,7 +327,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_invalid_WalletPin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with invalid wallet pin and expects to fail
+      description: Verify that creating a new wallet with an invalid wallet PIN is not allowed and returns an appropriate error.
       uniqueIdentifier: TC_Mimoto_CreateWallet_18
       role: userDefinedCookie
       restMethod: post
@@ -346,7 +346,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_StringValue_WalletPin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with string value in wallet pin and expects to fail
+      description: Verify that creating a new wallet with alphabetic characters in the wallet PIN is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_19
       role: userDefinedCookie
       restMethod: post
@@ -365,7 +365,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_SpecialCharacters_WalletPin_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with special characters in wallet pin and expects to fail
+      description: Verify that creating a new wallet with special characters in the wallet PIN is not allowed and returns an appropriate error
       uniqueIdentifier: TC_Mimoto_CreateWallet_20
       role: userDefinedCookie
       restMethod: post
@@ -384,7 +384,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_WalletPin_ConfirmWalletPin_Mismatch_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with wallet pin and confirm wallet pin mismatch and expects to fail
+      description: Verify that creating a new wallet fails when the wallet PIN and confirm wallet PIN values mismatch, returning an appropriate error.
       uniqueIdentifier: TC_Mimoto_CreateWallet_21
       role: userDefinedCookie
       restMethod: post
@@ -403,7 +403,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_Without_WalletPin_And_WalletName_Neg:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet without wallet pin and wallet name and expects to fail
+      description: Verify that creating a new wallet fails when the wallet PIN and wallet name are missing, returning appropriate error messages.
       uniqueIdentifier: TC_Mimoto_CreateWallet_22
       role: userDefinedCookie
       restMethod: post
@@ -422,7 +422,7 @@ CreateWallet:
 
    Mimoto_CreateWallet_all_ValidForLockedWallet_Smoke_sid:
       endPoint: /v1/mimoto/wallets
-      description: Creating new wallet with successful login for locked wallet scenarios
+      description: Validate wallet creation after a successful login when the previous wallet is in a locked state
       uniqueIdentifier: TC_Mimoto_CreateWallet_23
       role: userDefinedCookie
       restMethod: post

@@ -22,8 +22,8 @@ import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.KeyPairRetrievalService;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.service.WalletPresentationService;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
-import io.mosip.mimoto.util.JwtGeneratorUtil;
+import io.mosip.mimoto.service.DataProtectionService;
+import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.openID4VP.OpenID4VP;
@@ -38,7 +38,6 @@ import io.mosip.openID4VP.authorizationResponse.vpTokenSigningResult.types.ldp.L
 import io.mosip.openID4VP.constants.FormatType;
 import io.mosip.openID4VP.verifier.VerifierResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -67,26 +66,29 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     private static final String EMPTY_JSON = "{}";
     private static final String DEFAULT_SIGNING_ALGORITHM_NAME = "ED25519";
 
-    @Autowired
-    private VerifierService verifierService;
+    private final VerifierService verifierService;
 
-    @Autowired
-    private OpenID4VPService openID4VPService;
+    private final OpenID4VPService openID4VPService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private KeyPairRetrievalService keyPairService;
+    private final KeyPairRetrievalService keyPairService;
 
-    @Autowired
-    private CredentialMatchingService credentialMatchingService;
+    private final CredentialMatchingService credentialMatchingService;
 
-    @Autowired
-    private VerifiablePresentationsRepository verifiablePresentationsRepository;
+    private final VerifiablePresentationsRepository verifiablePresentationsRepository;
 
-    @Autowired
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private final DataProtectionService dataProtectionService;
+
+    public WalletPresentationServiceImpl(VerifierService verifierService, OpenID4VPService openID4VPService, ObjectMapper objectMapper, KeyPairRetrievalService keyPairService, CredentialMatchingService credentialMatchingService, VerifiablePresentationsRepository verifiablePresentationsRepository, DataProtectionService dataProtectionService) {
+        this.verifierService = verifierService;
+        this.openID4VPService = openID4VPService;
+        this.objectMapper = objectMapper;
+        this.keyPairService = keyPairService;
+        this.credentialMatchingService = credentialMatchingService;
+        this.verifiablePresentationsRepository = verifiablePresentationsRepository;
+        this.dataProtectionService = dataProtectionService;
+    }
 
     @Override
     public VPResponseDTO handleVPAuthorizationRequest(String urlEncodedVPAuthorizationRequest, String walletId) throws ApiNotAccessibleException, IOException, URISyntaxException {
@@ -256,11 +258,11 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         // Use configurable signing algorithm
         SigningAlgorithm signingAlgorithm = SigningAlgorithm.valueOf(DEFAULT_SIGNING_ALGORITHM_NAME);
         KeyPair keyPair = keyPairService.getKeyPairFromDB(walletId, base64Key, signingAlgorithm);
-        JWK jwk = JwtGeneratorUtil.generateJwk(signingAlgorithm, keyPair);
+        JWK jwk = SigningKeyUtil.generateJwk(signingAlgorithm, keyPair);
         Map<FormatType, UnsignedVPToken> unsignedVPToken = constructUnsignedVPToken(openID4VP, selectedCredentials, jwk);
 
         // Step 3: Sign token using user's private key
-        JWSSigner jwsSigner = JwtGeneratorUtil.createSigner(signingAlgorithm, jwk);
+        JWSSigner jwsSigner = SigningKeyUtil.createSigner(signingAlgorithm, jwk);
         Map<FormatType, LdpVPTokenSigningResult> vpTokenSigningResults = signVPToken(unsignedVPToken, jwsSigner);
 
         // Step 4: Share verifiable presentation with verifier using OpenID4VP JAR
@@ -317,9 +319,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.EdDSA).criticalParams(Set.of(OpenID4VPConstants.JWT_CRITICAL_PARAM_B64)).base64URLEncodePayload(false).build();
 
-        // Create detached JWT signing input using EncryptionDecryptionUtil
+        // Create detached JWT signing input using DataProtectionService
         String headerJson = header.toString();
-        byte[] inputBytes = encryptionDecryptionUtil.createDetachedJwtSigningInput(headerJson, dataToSign);
+        byte[] inputBytes = dataProtectionService.createDetachedJwtSigningInput(headerJson, dataToSign);
         
         // Get Base64URL encoded header for proof construction
         String header64 = EncoderKt.encodeToBase64Url(headerJson.getBytes(StandardCharsets.UTF_8));

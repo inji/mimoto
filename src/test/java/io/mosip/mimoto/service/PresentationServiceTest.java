@@ -3,8 +3,6 @@ package io.mosip.mimoto.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
-import io.mosip.mimoto.dto.ErrorDTO;
-import io.mosip.mimoto.dto.VPResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponseProof;
@@ -15,33 +13,26 @@ import io.mosip.mimoto.dto.openid.presentation.InputDescriptorDTO;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
 import io.mosip.mimoto.dto.openid.presentation.PresentationRequestDTO;
 import io.mosip.mimoto.exception.ErrorConstants;
-import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
-import io.mosip.mimoto.exception.VPErrorNotSentException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.impl.DataShareServiceImpl;
-import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
 import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.TestUtilities;
-import io.mosip.openID4VP.OpenID4VP;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
-import io.mosip.openID4VP.verifier.VerifierResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.util.ReflectionTestUtils;
-import io.mosip.mimoto.dto.SubmitPresentationResponseDTO;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 
-import static io.mosip.mimoto.exception.ErrorConstants.REJECTED_VERIFIER;
 import static io.mosip.mimoto.util.JwtUtils.parseJwtHeader;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -49,12 +40,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static io.mosip.mimoto.util.TestUtilities.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PresentationServiceTest {
-    @Mock
-    VerifierService verifierService;
     @Mock
     DataShareServiceImpl dataShareService;
 
@@ -62,12 +50,8 @@ public class PresentationServiceTest {
     ObjectMapper objectMapper;
 
     @Mock
-    private OpenID4VPService openID4VPService;
-
-    @Mock
     RestApiClient restApiClient;
 
-    @InjectMocks
     PresentationServiceImpl presentationService;
 
     String walletId, clientId, urlEncodedVPAuthorizationRequest;
@@ -79,8 +63,7 @@ public class PresentationServiceTest {
 
     @Before
     public void setup() throws JsonProcessingException {
-        ReflectionTestUtils.setField(presentationService, "injiOvpRedirectURLPattern", "%s#vp_token=%s&presentation_submission=%s");
-        ReflectionTestUtils.setField(presentationService, "maximumResponseHeaderSize", 65536);
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", 65536);
         when(objectMapper.writeValueAsString(any())).thenReturn("test-data");
 
         // Setup for Wallet presentation tests
@@ -110,15 +93,73 @@ public class PresentationServiceTest {
     public void credentialProofMatchingWithVPRequest() throws Exception {
         VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
         PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        presentationRequestDTO.setResponseMode("direct_post");
+        presentationRequestDTO.setResponseUri("https://verifier.example.com/response");
+
+        Map<String, Object> mockPostResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
 
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
         when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
-        String expectedRedirectUrl = "test_redirect_uri#vp_token=dGVzdC1kYXRh&presentation_submission=test-data";
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockPostResponse);
 
-        String actualRedirectUrl = presentationService.authorizePresentation(TestUtilities.getPresentationRequestDTO());
+        String actualRedirectUrl = presentationService.authorizePresentation(presentationRequestDTO);
 
-        assertEquals(expectedRedirectUrl, actualRedirectUrl);
+        assertEquals("https://verifier.example.com/success", actualRedirectUrl);
+        verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void authorizePresentation_redirectMode_returnsRedirectUrlWithVpTokenAndPresentationSubmission() throws Exception {
+        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
+        PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        presentationRequestDTO.setResponseMode(null);
+
+        doReturn(vcCredentialResponse).when(dataShareService).downloadCredentialFromDataShare(eq(presentationRequestDTO));
+        doReturn((VCCredentialProperties) vcCredentialResponse.getCredential()).when(objectMapper)
+                .convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class));
+        doReturn("test-data").when(objectMapper).writeValueAsString(any());
+
+        String vpToken = "test-data";
+        String presentationSubmission = "test-data";
+        String redirectUri = presentationRequestDTO.getRedirectUri();
+        String expected = String.format("%s#vp_token=%s&presentation_submission=%s",
+                redirectUri,
+                Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)),
+                URLEncoder.encode(presentationSubmission, StandardCharsets.UTF_8));
+
+        String actual = presentationService.authorizePresentation(presentationRequestDTO);
+
+        assertEquals(expected, actual);
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void authorizePresentation_redirectMode_throwsWhenRedirectUrlExceedsMaxHeaderSize() throws Exception {
+        PresentationServiceImpl serviceWithSmallHeaderLimit = new PresentationServiceImpl(
+                dataShareService,
+                objectMapper,
+                restApiClient,
+                "%s#vp_token=%s&presentation_submission=%s",
+                200
+        );
+
+        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
+        PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
+        presentationRequestDTO.setResponseMode(null);
+
+        doReturn(vcCredentialResponse).when(dataShareService).downloadCredentialFromDataShare(eq(presentationRequestDTO));
+        doReturn((VCCredentialProperties) vcCredentialResponse.getCredential()).when(objectMapper)
+                .convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class));
+        doReturn("p".repeat(500)).when(objectMapper).writeValueAsString(any());
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> serviceWithSmallHeaderLimit.authorizePresentation(presentationRequestDTO));
+
+        assertEquals(
+                ErrorConstants.URI_TOO_LONG.getErrorCode() + " --> " + ErrorConstants.URI_TOO_LONG.getErrorMessage(),
+                ex.getMessage());
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
     }
 
     @Test(expected = VPNotCreatedException.class)
@@ -135,19 +176,22 @@ public class PresentationServiceTest {
     public void sdJwtCredentialMatchingWithVPRequest() throws Exception {
         VCCredentialResponse vcCredentialResponse = createSDJwtCredentialResponse("vc+sd-jwt");
         PresentationRequestDTO presentationRequestDTO = createSDJwtPresentationRequest();
+        presentationRequestDTO.setResponseMode("direct_post");
+        presentationRequestDTO.setResponseUri("https://verifier.example.com/response");
         Map<String, Object> jwtHeaders = Map.of("alg", "ES256", "typ", "JWT");
-
+        Map<String, Object> mockPostResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
         when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(String.class)))
                 .thenReturn("eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.test.signature");
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockPostResponse);
 
         try (MockedStatic<JwtUtils> jwtUtilsMock = mockStatic(JwtUtils.class)) {
             jwtUtilsMock.when(() -> parseJwtHeader(anyString())).thenReturn(jwtHeaders);
 
-            String expectedRedirectUrl = "test_redirect_uri#vp_token=dGVzdC1kYXRh&presentation_submission=test-data";
             String actualRedirectUrl = presentationService.authorizePresentation(presentationRequestDTO);
 
-            assertEquals(expectedRedirectUrl, actualRedirectUrl);
+            assertEquals("https://verifier.example.com/success", actualRedirectUrl);
+            verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
         }
     }
 
@@ -158,21 +202,6 @@ public class PresentationServiceTest {
         presentationRequestDTO.setPresentationDefinition(null);
 
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
-
-        presentationService.authorizePresentation(presentationRequestDTO);
-    }
-
-    @Test(expected = VPNotCreatedException.class)
-    public void uriTooLongWithVPRequest() throws IOException {
-        ReflectionTestUtils.setField(presentationService, "maximumResponseHeaderSize", 10); // Very small limit
-
-        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
-        PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
-
-        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
-        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
-                .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
-        when(objectMapper.writeValueAsString(any())).thenReturn("very-long-test-data-that-exceeds-limit");
 
         presentationService.authorizePresentation(presentationRequestDTO);
     }
@@ -354,7 +383,7 @@ public class PresentationServiceTest {
 
         String result = presentationService.authorizePresentation(presentationRequestDTO);
 
-        assertEquals("test_redirect_uri", result);
+        assertEquals("https://verifier.example.com/success", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
 

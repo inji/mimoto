@@ -1,10 +1,11 @@
 GetUserProfileAfterLogout:
    Mimoto_GetUserProfileAfterLogout_all_Valid_Smoke:
       endPoint: /v1/mimoto/users/me
-      description: Get the user profile details for the session login
+      description: Verify that fetching user profile after logout returns unauthorized response 401
       uniqueIdentifier: TC_Mimoto_GetUserProfileAfterLogout_01
       role: userDefinedCookie
       restMethod: get
+      additionalDependencies: TC_Mimoto_Logout_01
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/Users/GetUserProfileAfterLogout/GetUserProfileAfterLogout
       outputTemplate: mimoto/responseCode

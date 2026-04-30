@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -85,6 +86,14 @@ public class VerifierServiceTest {
     }
 
     @Test
+    public void getVerifierByClientIdReturnsRegisteredRedirectUrisForClient() throws ApiNotAccessibleException, IOException {
+        Optional<VerifierDTO> verifier = verifiersService.getVerifierByClientId("test-clientId");
+
+        assertTrue(verifier.isPresent());
+        assertEquals(Collections.singletonList("https://test-redirectUri"), verifier.get().getRedirectUris());
+    }
+
+    @Test
     public void shouldThrowApiNotAccessibleExceptionOnFetchingTrustedVerifiersListFailure() {
         when(utilities.getTrustedVerifiersJsonValue()).thenReturn(null);
         String expectedExceptionMsg = "RESIDENT-APP-026 --> Api not accessible failure";
@@ -98,31 +107,144 @@ public class VerifierServiceTest {
 
     @Test
     public void validateTrustedVerifiersAndDoNothing() throws ApiNotAccessibleException, IOException {
-        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId").redirectUri("https://test-redirectUri").build();
-        verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getRedirectUri());
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId").responseUri("https://test-responseUri").redirectUri("https://test-redirectUri").build();
+        verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri());
+    }
+
+    @Test
+    public void validateVerifier_succeedsWhenResponseUriNullAndRedirectUriMatches() throws ApiNotAccessibleException, IOException {
+        verifiersService.validateVerifier("test-clientId", null, "https://test-redirectUri");
+    }
+
+    @Test
+    public void validateVerifierSucceedsWhenResponseUriEmptyAndRedirectUriMatches() throws ApiNotAccessibleException, IOException {
+        verifiersService.validateVerifier("test-clientId", "", "https://test-redirectUri");
+    }
+
+    @Test
+    public void validateVerifierThrowsInvalidRedirectUriWhenRedirectDoesNotMatchRegistered() throws ApiNotAccessibleException, IOException {
+        String expectedMsg = "invalid_redirect_uri --> The requested redirect uri doesn’t match.";
+
+        InvalidVerifierException ex = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier("test-clientId", null, "https://other-app.example/callback"));
+
+        assertEquals(expectedMsg, ex.getMessage());
+    }
+
+    @Test
+    public void validateVerifierThrowsInvalidRedirectUriWhenRedirectUriIsNotAValidUrl() throws ApiNotAccessibleException, IOException {
+        String expectedMsg = "invalid_redirect_uri --> The requested redirect uri doesn’t match.";
+
+        InvalidVerifierException ex = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier("test-clientId", null, "not-a-valid-url"));
+
+        assertEquals(expectedMsg, ex.getMessage());
+    }
+
+    @Test
+    public void validateVerifierThrowsInvalidRedirectUriWhenRedirectUriNull() throws ApiNotAccessibleException, IOException {
+        String expectedMsg = "invalid_redirect_uri --> The requested redirect uri doesn’t match.";
+
+        InvalidVerifierException ex = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier("test-clientId", null, null));
+
+        assertEquals(expectedMsg, ex.getMessage());
+    }
+
+    @Test
+    public void validateVerifierThrowsInvalidClientWhenClientNotFoundAndResponseUriSkippedForRedirectValidation() throws ApiNotAccessibleException, IOException {
+        String expectedMsg = "invalid_client --> The requested client doesn’t match.";
+
+        InvalidVerifierException ex = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier("unknown-client-id", null, "https://test-redirectUri"));
+
+        assertEquals(expectedMsg, ex.getMessage());
+    }
+
+    @Test
+    public void validateVerifierThrowsInvalidRedirectUriWhenRegisteredRedirectUriIsNotAValidUrl() throws Exception {
+        VerifierDTO verifier = VerifierDTO.builder()
+                .clientId("client-with-bad-registered-redirect")
+                .redirectUris(Collections.singletonList("not-a-valid-registered-redirect-uri"))
+                .responseUris(Collections.singletonList("https://cb.example/resp"))
+                .build();
+        VerifiersDTO dto = VerifiersDTO.builder().verifiers(Collections.singletonList(verifier)).build();
+        String json = new ObjectMapper().writeValueAsString(dto);
+        when(utilities.getTrustedVerifiersJsonValue()).thenReturn(json);
+        when(objectMapper.readValue(anyString(), eq(VerifiersDTO.class))).thenReturn(dto);
+
+        String expectedMsg = "invalid_redirect_uri --> The requested redirect uri doesn’t match.";
+
+        InvalidVerifierException ex = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier("client-with-bad-registered-redirect", null,
+                        "https://valid-redirect.example/callback"));
+
+        assertEquals(expectedMsg, ex.getMessage());
+    }
+
+    @Test
+    public void validateVerifierThrowsInvalidRedirectUriWhenRegisteredRedirectValidButPathDoesNotMatch() throws ApiNotAccessibleException, IOException {
+        String expectedMsg = "invalid_redirect_uri --> The requested redirect uri doesn’t match.";
+
+        InvalidVerifierException ex = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier("test-clientId", null,
+                        "https://test-redirectUri/extra-path"));
+
+        assertEquals(expectedMsg, ex.getMessage());
     }
 
     @Test(expected = InvalidVerifierException.class)
     public void validateTrustedVerifiersAndThrowInvalidVerifierExceptionWhenClientIdIsIncorrect() throws ApiNotAccessibleException, IOException {
-        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId2").redirectUri("https://test-redirectUri").build();
-        verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getRedirectUri());
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId2").responseUri("https://test-responseUri").build();
+        verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri());
     }
 
     @Test
     public void validateTrustedVerifiersAndThrowInvalidVerifiersExceptionForAInvalidClientId() throws ApiNotAccessibleException, IOException {
-        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId2").redirectUri("https://test-redirectUri").build();
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId2").responseUri("https://test-responseUri").build();
         String expectedExceptionMsg = "invalid_client --> The requested client doesn’t match.";
-        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class, () -> verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getRedirectUri()));
+        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class, () -> verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri()));
 
         assertEquals(expectedExceptionMsg, actualException.getMessage());
     }
 
     @Test
-    public void validateTrustedVerifiersAndThrowInvalidVerifiersExceptionWhenClientIdIsValidAndRedirectUriIsIncorrect() throws ApiNotAccessibleException, IOException {
-        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId").redirectUri("https://test-redirectUri/invalid-uri").build();
-        String expectedExceptionMsg = "invalid_redirect_uri --> The requested redirect uri doesn’t match.";
+    public void validateTrustedVerifiersAndThrowInvalidVerifiersExceptionWhenClientIdIsValidAndResponseUriIsIncorrect() throws ApiNotAccessibleException, IOException {
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId").responseUri("https://test-reponseUri/invalid-uri").build();
+        String expectedExceptionMsg = "invalid_response_uri --> The requested response uri doesn’t match.";
 
-        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class, () -> verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getRedirectUri()));
+        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class, () -> verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri()));
+
+        assertEquals(expectedExceptionMsg, actualException.getMessage());
+    }
+
+    @Test
+    public void validateVerifierThrowsExceptionWhenResponseUriIsInvalidUrl() throws ApiNotAccessibleException, IOException {
+        String expectedExceptionMsg = "invalid_response_uri --> The requested response uri doesn’t match.";
+
+        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier("test-clientId", "not-a-valid-url", ""));
+
+        assertEquals(expectedExceptionMsg, actualException.getMessage());
+    }
+
+    @Test
+    public void validateVerifierThrowsExceptionWhenRegisteredResponseUriIsInvalidUrl() throws Exception {
+        VerifierDTO verifierWithBadUri = VerifierDTO.builder()
+                .clientId("test-clientId")
+                .redirectUris(Collections.singletonList("https://test-redirectUri"))
+                .responseUris(Collections.singletonList("not-a-valid-registered-uri")).build();
+        VerifiersDTO verifiersWithBadUri = VerifiersDTO.builder()
+                .verifiers(Collections.singletonList(verifierWithBadUri)).build();
+
+        String json = new ObjectMapper().writeValueAsString(verifiersWithBadUri);
+        when(utilities.getTrustedVerifiersJsonValue()).thenReturn(json);
+        when(objectMapper.readValue(eq(json), eq(VerifiersDTO.class))).thenReturn(verifiersWithBadUri);
+
+        String expectedExceptionMsg = "invalid_response_uri --> The requested response uri doesn’t match.";
+
+        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier("test-clientId", "https://test-responseUri", ""));
 
         assertEquals(expectedExceptionMsg, actualException.getMessage());
     }

@@ -1,7 +1,7 @@
 UnlockWallet:
    Mimoto_DeleteWallet_all_Valid_Smoke:
       endPoint: /v1/mimoto/wallets/{walletId}
-      description: Delete the wallet that is created
+      description: Verify that the user is able to delete an already created wallet successfully
       uniqueIdentifier: TC_Mimoto_DeleteWallet_01
       role: userDefinedCookie
       restMethod: delete
@@ -19,7 +19,7 @@ UnlockWallet:
 
    Mimoto_DeleteWallet_AlreadyDeleted_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}
-      description: Delete the wallet that is already deleted and expects it to fail
+      description: Verify that deleting an already deleted wallet is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_DeleteWallet_02
       role: userDefinedCookie
       restMethod: delete
@@ -36,7 +36,7 @@ UnlockWallet:
 
    Mimoto_DeleteWallet_Invalid_WalletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}
-      description: Delete the wallet with invalid wallet id and expects it to fail
+      description: Verify that deleting a wallet with an invalid wallet ID is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_DeleteWallet_03
       role: userDefinedCookie
       restMethod: delete
@@ -53,7 +53,7 @@ UnlockWallet:
 
    Mimoto_DeleteWallet_Empty_WalletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}
-      description: Delete the wallet with empty wallet id and expects it to fail
+      description: Verify that deleting a wallet without providing a wallet ID is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_DeleteWallet_04
       role: userDefinedCookie
       restMethod: delete
@@ -70,7 +70,7 @@ UnlockWallet:
 
    Mimoto_DeleteWallet_Space_WalletId_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}
-      description: Delete the wallet with space wallet id and expects it to fail
+      description: Verify that deleting a wallet with spaces in the wallet ID is not allowed and returns an appropriate error message
       uniqueIdentifier: TC_Mimoto_DeleteWallet_05
       role: userDefinedCookie
       restMethod: delete
@@ -87,7 +87,7 @@ UnlockWallet:
 
    Mimoto_DeleteWallet_WithoutLogin_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}
-      description: Delete the wallet without login session and expects it to fail
+      description: Verify that deleting a wallet without a valid login session is not allowed and returns an appropriate authentication error
       uniqueIdentifier: TC_Mimoto_DeleteWallet_06
       role: userDefinedCookie
       restMethod: delete
@@ -105,7 +105,7 @@ UnlockWallet:
 
    Mimoto_DeleteWallet_ExpiredSession_Neg:
       endPoint: /v1/mimoto/wallets/{walletId}
-      description: Delete the wallet with expired login session and expects it to fail
+      description: Verify that deleting a wallet with an expired session fails as expected
       uniqueIdentifier: TC_Mimoto_DeleteWallet_07
       role: userDefinedCookie
       restMethod: delete

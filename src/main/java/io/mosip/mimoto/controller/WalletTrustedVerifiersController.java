@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,8 +31,11 @@ import static io.mosip.mimoto.exception.ErrorConstants.ERROR_ADDING_TRUSTED_VERI
 @RequestMapping("/wallets/{walletId}/trusted-verifiers")
 public class WalletTrustedVerifiersController {
 
-    @Autowired
-    TrustedVerifierService trustedVerifierService;
+    private final TrustedVerifierService trustedVerifierService;
+
+    public WalletTrustedVerifiersController(TrustedVerifierService trustedVerifierService) {
+        this.trustedVerifierService = trustedVerifierService;
+    }
 
     /**
      * Adds a trusted verifier for the specified wallet.

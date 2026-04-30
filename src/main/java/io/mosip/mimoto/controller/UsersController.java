@@ -21,7 +21,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,11 +34,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/users/me")
 @Tag(name = SwaggerLiteralConstants.USERS_NAME, description = SwaggerLiteralConstants.USERS_DESCRIPTION)
 public class UsersController {
-    @Autowired
-    private UserMetadataRepository userMetadataRepository;
+    private final UserMetadataRepository userMetadataRepository;
 
-    @Autowired
-    private EncryptionService encryptionService;
+    private final EncryptionService encryptionService;
+
+    public UsersController(UserMetadataRepository userMetadataRepository, EncryptionService encryptionService) {
+        this.userMetadataRepository = userMetadataRepository;
+        this.encryptionService = encryptionService;
+    }
 
     /**
      * Retrieves user profile information, first checking the cache and then the database if needed

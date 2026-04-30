@@ -15,7 +15,7 @@ import io.mosip.mimoto.service.CredentialRequestService;
 import io.mosip.mimoto.service.CredentialService;
 import io.mosip.mimoto.service.CredentialVerifierService;
 import io.mosip.mimoto.service.IssuersService;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
+import io.mosip.mimoto.service.DataProtectionService;
 import io.mosip.mimoto.util.RestApiClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -33,7 +33,7 @@ import static io.mosip.mimoto.exception.ErrorConstants.*;
 public class CredentialServiceImpl implements CredentialService {
 
     private final ObjectMapper objectMapper;
-    private final EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private final DataProtectionService dataProtectionService;
     private final WalletCredentialsRepository walletCredentialsRepository;
     private final IssuersService issuersService;
     private final CredentialVerifierService credentialVerifierService;
@@ -45,7 +45,7 @@ public class CredentialServiceImpl implements CredentialService {
     @Autowired
     public CredentialServiceImpl(
             ObjectMapper objectMapper,
-            EncryptionDecryptionUtil encryptionDecryptionUtil,
+            DataProtectionService dataProtectionService,
             WalletCredentialsRepository walletCredentialsRepository,
             IssuersService issuersService,
             CredentialVerifierService credentialVerifierService,
@@ -55,7 +55,7 @@ public class CredentialServiceImpl implements CredentialService {
             DataShareServiceImpl dataShareService) {
 
         this.objectMapper = objectMapper;
-        this.encryptionDecryptionUtil = encryptionDecryptionUtil;
+        this.dataProtectionService = dataProtectionService;
         this.walletCredentialsRepository = walletCredentialsRepository;
         this.issuersService = issuersService;
         this.credentialVerifierService = credentialVerifierService;
@@ -247,7 +247,7 @@ public class CredentialServiceImpl implements CredentialService {
                                                String issuerId, String credentialConfigurationId) throws CredentialProcessingException {
         try {
             String vcResponseAsJsonString = objectMapper.writeValueAsString(vcCredentialResponse);
-            return encryptionDecryptionUtil.encryptCredential(vcResponseAsJsonString, base64Key);
+            return dataProtectionService.encryptCredential(vcResponseAsJsonString, base64Key);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize credential response for issuerId: {}, credentialConfigurationId: {}", issuerId, credentialConfigurationId, e);
             throw new CredentialProcessingException(

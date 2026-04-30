@@ -1,7 +1,7 @@
 GetVerifierList:
    Mimoto_GetVerifierList_All_Valid_Smoke:
       endPoint: /v1/mimoto/verifiers
-      description: Retrieving verifiers list with all valid parameters
+      description: Verifying that the verifiers list is retrieved successfully with all valid parameters
       uniqueIdentifier: TC_Mimoto_GetVerifierList_01
       role: resident
       restMethod: get

@@ -13,7 +13,6 @@ import io.mosip.mimoto.util.Utilities;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,8 +31,11 @@ import static io.mosip.mimoto.exception.PlatformErrorMessages.*;
 @Tag(name = SwaggerLiteralConstants.ISSUERS_NAME, description = SwaggerLiteralConstants.ISSUERS_DESCRIPTION)
 public class IssuersController {
 
-    @Autowired
-    IssuersService issuersService;
+    private final IssuersService issuersService;
+
+    public IssuersController(IssuersService issuersService) {
+        this.issuersService = issuersService;
+    }
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_DESCRIPTION)
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)

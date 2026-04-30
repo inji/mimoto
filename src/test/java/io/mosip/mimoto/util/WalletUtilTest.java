@@ -1,9 +1,13 @@
 package io.mosip.mimoto.util;
 
+import io.mosip.kernel.cryptomanager.dto.CryptoWithPinRequestDto;
+import io.mosip.kernel.cryptomanager.dto.CryptoWithPinResponseDto;
+import io.mosip.kernel.cryptomanager.service.CryptomanagerService;
 import io.mosip.mimoto.constant.SessionKeys;
 import io.mosip.mimoto.model.Wallet;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.repository.WalletRepository;
+import io.mosip.mimoto.service.DataProtectionService;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +18,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 import javax.crypto.SecretKey;
+import java.security.Security;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -30,7 +37,10 @@ class WalletUtilTest {
     private WalletRepository walletRepository;
 
     @Mock
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
+
+    @Mock
+    private CryptomanagerService cryptomanagerService;
 
     @InjectMocks
     private WalletUtil walletUtil;
@@ -47,10 +57,15 @@ class WalletUtilTest {
 
     @BeforeEach
     void setUp() {
+        // Ensure BouncyCastle provider is registered (required for ES256K algorithm)
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+
         pin = "1234";
         name = "default";
         userId = UUID.randomUUID().toString();
-        encryptionKey = KeyGenerationUtil.generateEncryptionKey("AES", 256);
+        encryptionKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
         encryptedPrivateKey = "encryptedPrivateKey";
         encryptedWalletKey = "encryptedWalletKey";
         decryptedWalletKey = Base64.getEncoder().encodeToString(encryptionKey.getEncoded());
@@ -60,7 +75,9 @@ class WalletUtilTest {
 
     @Test
     void shouldDecryptWalletKeySuccessfully() {
-        when(encryptionDecryptionUtil.decryptWithPin(encryptedWalletKey, pin)).thenReturn(decryptedWalletKey);
+        CryptoWithPinResponseDto responseDto = new CryptoWithPinResponseDto();
+        responseDto.setData(decryptedWalletKey);
+        when(cryptomanagerService.decryptWithPin(any(CryptoWithPinRequestDto.class))).thenReturn(responseDto);
 
         String decrypted = walletUtil.decryptWalletKey(encryptedWalletKey, pin);
 
@@ -69,19 +86,21 @@ class WalletUtilTest {
 
     @Test
     void shouldThrowErrorWhenDecryptionOfWalletKeyFails() {
-        when(encryptionDecryptionUtil.decryptWithPin(encryptedWalletKey, pin)).thenThrow(new RuntimeException("Failed to decrypt with PIN"));
+        when(cryptomanagerService.decryptWithPin(any(CryptoWithPinRequestDto.class))).thenThrow(new RuntimeException("Failed to decrypt with PIN"));
 
         InvalidRequestException ex = assertThrows(InvalidRequestException.class,
                 () -> walletUtil.decryptWalletKey(encryptedWalletKey, pin));
         assertEquals("invalid_pin", ex.getErrorCode());
-        assertEquals("invalid_pin --> Invalid PIN or wallet key provided java.lang.RuntimeException: Failed to decrypt with PIN", ex.getMessage());
+        assertEquals("Failed to decrypt with PIN", ex.getCause().getMessage());
     }
 
 
     @Test
     void shouldCreateNewWalletSuccessfully() {
-        when(encryptionDecryptionUtil.encryptKeyWithPin(any(SecretKey.class), any(String.class))).thenReturn(encryptedWalletKey);
-        when(encryptionDecryptionUtil.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
+        CryptoWithPinResponseDto responseDto = new CryptoWithPinResponseDto();
+        responseDto.setData(encryptedWalletKey);
+        when(cryptomanagerService.encryptWithPin(any(CryptoWithPinRequestDto.class))).thenReturn(responseDto);
+        when(dataProtectionService.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
 
         String walletId = walletUtil.saveWallet(userId, name, pin, encryptionKey, encryptionAlgorithm, encryptionType);
 
@@ -90,8 +109,10 @@ class WalletUtilTest {
 
     @Test
     void shouldCreateEd25519WalletSuccessfully() {
-        when(encryptionDecryptionUtil.encryptKeyWithPin(any(SecretKey.class), any(String.class))).thenReturn(encryptedWalletKey);
-        when(encryptionDecryptionUtil.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
+        CryptoWithPinResponseDto responseDto = new CryptoWithPinResponseDto();
+        responseDto.setData(encryptedWalletKey);
+        when(cryptomanagerService.encryptWithPin(any(CryptoWithPinRequestDto.class))).thenReturn(responseDto);
+        when(dataProtectionService.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
 
         String walletId = walletUtil.createWallet(userId, name, pin);
 
@@ -100,8 +121,10 @@ class WalletUtilTest {
 
     @Test
     void shouldVerifyWalletObjectOnCreateNewWallet() {
-        when(encryptionDecryptionUtil.encryptKeyWithPin(any(SecretKey.class), any(String.class))).thenReturn(encryptedWalletKey);
-        when(encryptionDecryptionUtil.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
+        CryptoWithPinResponseDto responseDto = new CryptoWithPinResponseDto();
+        responseDto.setData(encryptedWalletKey);
+        when(cryptomanagerService.encryptWithPin(any(CryptoWithPinRequestDto.class))).thenReturn(responseDto);
+        when(dataProtectionService.encryptWithAES(any(SecretKey.class), any(byte[].class))).thenReturn(encryptedPrivateKey);
 
         String walletId = walletUtil.saveWallet(userId, name, pin, encryptionKey, encryptionAlgorithm, encryptionType);
 

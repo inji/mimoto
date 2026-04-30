@@ -13,7 +13,6 @@ import io.mosip.mimoto.model.Event;
 import io.mosip.mimoto.model.EventModel;
 import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.service.impl.CredentialShareServiceImpl;
-import io.mosip.mimoto.util.CryptoCoreUtil;
 import io.mosip.mimoto.util.RequestValidator;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.Utilities;
@@ -58,9 +57,6 @@ public class CredentialShareControllerTest {
 
     @MockBean
     Utilities utilities;
-
-    @MockBean
-    public CryptoCoreUtil cryptoCoreUtil;
 
     @MockBean
     RequestValidator requestValidator;

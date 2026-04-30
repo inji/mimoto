@@ -1,7 +1,7 @@
 InjiVerifyVpRequest:
    InjiVerify_InjiVerifyVpRequest_all_Valid_Smoke_sid:
       endPoint: $INJIVERIFYBASEURL$/v1/verify/vp-request
-      description: Creating vp request as pre-requisite for verifiable presentation
+      description: Verify the creation of a Verifiable Presentation (VP) request as a prerequisite for generating the Verifiable Presentation
       uniqueIdentifier: TC_InjiVerify_InjiVerifyVpRequest_01
       restMethod: post
       role: noauth

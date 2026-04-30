@@ -1,10 +1,11 @@
 AuthenticateUserSunBirdC:
    Mimoto_ESignet_AuthenticateUser_SunBirdC_Valid_Smoke:
       endPoint: $ESIGNETMOCKBASEURL$/v1/esignet/authorization/authenticate
-      description: Authenticating user for downloading sunbird credential
+      description: Verify that the user is successfully authenticated before downloading the Sunbird credential
       uniqueIdentifier: TC_Mimoto_AuthenticateUserSunBirdC_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_CreatePolicySunBirdR_01
       checkErrorsOnlyInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/SunBirdC/AuthenticateUserSunBirdC/AuthenticateUserSunBirdC

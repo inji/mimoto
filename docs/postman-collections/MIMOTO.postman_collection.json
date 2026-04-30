@@ -82,6 +82,37 @@
 					"response": []
 				},
 				{
+					"name": "get Issuers List (V2)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var token = pm.cookies.get('XSRF-TOKEN');",
+									"pm.environment.set('XSRF_TOKEN', token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{HOST}}/v2/issuers"
+					},
+					"response": []
+				},
+				{
+					"name": "get Issuer by ID (V2)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{HOST}}/v2/issuers/StayProtected"
+					},
+					"response": []
+				},
+				{
 					"name": "Download Credential With GetToken",
 					"request": {
 						"method": "POST",

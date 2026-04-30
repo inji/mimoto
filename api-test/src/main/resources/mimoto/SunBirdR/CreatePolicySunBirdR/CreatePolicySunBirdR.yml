@@ -1,7 +1,7 @@
 CreatePolicySunBirdR:
    Mimoto_ESignet_SunBirdR_CreatePolicy_NOAUTH_Valid_Smoke_Sid:
       endPoint: $SUNBIRDBASEURL$/api/v1/Insurance
-      description: Creating new sunbird policy with valid parameters
+      description: Verifying the creation of a new Sunbird policy with valid parameters
       uniqueIdentifier: TC_Mimoto_CreatePolicySunBirdR_01
       role: resident
       restMethod: post

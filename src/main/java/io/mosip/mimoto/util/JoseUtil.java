@@ -47,7 +47,7 @@ public class JoseUtil {
     private ObjectMapper mapper;
 
     @Autowired
-    private CryptoCoreUtil cryptoCoreUtil;
+    private P12KeyStoreManager p12KeyStoreManager;
 
     public static JwkDto getJwkFromPublicKey(String publicKeyString) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
@@ -138,7 +138,7 @@ public class JoseUtil {
         Date expiresAt = Date.from(Instant.now().plusMillis(120000));
         RSAPrivateKey privateKey = null;
         try {
-            KeyStore.PrivateKeyEntry privateKeyEntry = cryptoCoreUtil.loadP12(keyStorePathWithFileName, alias, cyptoPassword);
+            KeyStore.PrivateKeyEntry privateKeyEntry = p12KeyStoreManager.loadP12(keyStorePathWithFileName, alias, cyptoPassword);
             if(privateKeyEntry == null){
                 throw new IssuerOnboardingException("Private Key Entry is Missing for the alias " + alias);
             }

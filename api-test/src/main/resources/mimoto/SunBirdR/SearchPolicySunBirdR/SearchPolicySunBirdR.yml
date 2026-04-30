@@ -1,7 +1,7 @@
 SearchPolicySunBirdR:
    Mimoto_ESignet_SunBirdR_SearchPolicy_NOAUTH_Valid_Smoke:
       endPoint: $SUNBIRDBASEURL$/api/v1/Insurance/search
-      description: Searching sunbird policy with valid parameters
+      description: Validating the search functionality for the Sunbird policy with valid parameters
       uniqueIdentifier: TC_Mimoto_SearchPolicySunBirdR_01
       role: resident
       restMethod: post

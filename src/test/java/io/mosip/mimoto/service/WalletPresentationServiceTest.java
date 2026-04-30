@@ -20,8 +20,7 @@ import io.mosip.mimoto.model.VerifiablePresentation;
 import io.mosip.mimoto.repository.VerifiablePresentationsRepository;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.mimoto.service.impl.WalletPresentationServiceImpl;
-import io.mosip.mimoto.util.EncryptionDecryptionUtil;
-import io.mosip.mimoto.util.JwtGeneratorUtil;
+import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.openID4VP.OpenID4VP;
 import org.springframework.http.ResponseEntity;
@@ -70,7 +69,7 @@ public class WalletPresentationServiceTest {
     private VerifiablePresentationsRepository verifiablePresentationsRepository;
 
     @Mock
-    private EncryptionDecryptionUtil encryptionDecryptionUtil;
+    private DataProtectionService dataProtectionService;
 
     @InjectMocks
     private WalletPresentationServiceImpl walletPresentationService;
@@ -229,13 +228,13 @@ public class WalletPresentationServiceTest {
         when(verifierResponse.getRedirectUri()).thenReturn("https://verifier.com/success");
         when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenReturn(verifierResponse);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -303,11 +302,11 @@ public class WalletPresentationServiceTest {
         Map<FormatType, UnsignedVPToken> unsignedTokens = new HashMap<>();
         when(testOpenID4VP.constructUnsignedVPToken(any(), anyString(), anyString())).thenReturn(unsignedTokens);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
             
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any()))
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any()))
                     .thenThrow(new JOSEException("JWT signing error"));
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -417,8 +416,8 @@ public class WalletPresentationServiceTest {
 
         VerifiablePresentationSessionData nullSessionData = null;
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class)) {
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class)) {
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
 
             ResponseEntity<?> response = walletPresentationService.handlePresentationAction(
                     walletId, presentationId, request, nullSessionData, base64Key);
@@ -445,13 +444,13 @@ public class WalletPresentationServiceTest {
         when(verifierResponse.getRedirectUri()).thenReturn("https://verifier.com/success");
         when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenReturn(verifierResponse);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -487,13 +486,13 @@ public class WalletPresentationServiceTest {
         when(verifierResponse.getRedirectUri()).thenReturn("https://verifier.com/error");
         when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenReturn(verifierResponse);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -526,13 +525,13 @@ public class WalletPresentationServiceTest {
 
         when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenThrow(new RuntimeException("Network error"));
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -623,8 +622,8 @@ public class WalletPresentationServiceTest {
         when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class)) {
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class)) {
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
 
             try {
                 walletPresentationService.submitPresentation(
@@ -646,8 +645,8 @@ public class WalletPresentationServiceTest {
                 .build();
 
         
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class)) {
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class)) {
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
 
             walletPresentationService.submitPresentation(
                     nullSessionData, walletId, presentationId, request, base64Key);
@@ -675,13 +674,13 @@ public class WalletPresentationServiceTest {
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
         when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
             
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -730,8 +729,8 @@ public class WalletPresentationServiceTest {
         when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class)) {
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class)) {
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
 
             walletPresentationService.submitPresentation(
                     sessionDataWithNullFormat, walletId, presentationId, submitRequest, base64Key);
@@ -759,8 +758,8 @@ public class WalletPresentationServiceTest {
         when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class)) {
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class)) {
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
 
             walletPresentationService.submitPresentation(
                     sessionDataWithUnsupportedFormat, walletId, presentationId, submitRequest, base64Key);
@@ -771,11 +770,11 @@ public class WalletPresentationServiceTest {
     public void testStorePresentationRecordNullSessionData() throws Exception {
         VerifiablePresentationSessionData nullSessionData = null;
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -810,13 +809,13 @@ public class WalletPresentationServiceTest {
         when(verifiablePresentationsRepository.save(any(VerifiablePresentation.class)))
                 .thenThrow(new RuntimeException("Database error"));
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -854,12 +853,12 @@ public class WalletPresentationServiceTest {
         when(verifierResponse.getRedirectUri()).thenReturn("https://verifier.com/success");
         when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenReturn(verifierResponse);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class)) {
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             when(jwsSigner.sign(any(JWSHeader.class), any(byte[].class))).thenReturn(Base64URL.encode("signature"));
@@ -897,13 +896,13 @@ public class WalletPresentationServiceTest {
         when(verifierResponse.getRedirectUri()).thenReturn("https://verifier.com/success");
         when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenReturn(verifierResponse);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -944,13 +943,13 @@ public class WalletPresentationServiceTest {
         when(verifierResponse.getRedirectUri()).thenReturn("https://verifier.com/success");
         when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenReturn(verifierResponse);
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -988,13 +987,13 @@ public class WalletPresentationServiceTest {
                 .thenReturn("{\"kty\":\"OKP\"}")
                 .thenThrow(new JsonProcessingException("JSON error") {});
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
@@ -1031,13 +1030,13 @@ public class WalletPresentationServiceTest {
                 .thenReturn("{\"kty\":\"OKP\"}")
                 .thenThrow(new JsonProcessingException("JSON error") {});
 
-        try (MockedStatic<JwtGeneratorUtil> jwtUtilMock = mockStatic(JwtGeneratorUtil.class);
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
              MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
 
-            jwtUtilMock.when(() -> JwtGeneratorUtil.generateJwk(any(), any())).thenReturn(jwk);
-            jwtUtilMock.when(() -> JwtGeneratorUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
 
-            when(encryptionDecryptionUtil.createDetachedJwtSigningInput(anyString(), anyString()))
+            when(dataProtectionService.createDetachedJwtSigningInput(anyString(), anyString()))
                     .thenReturn("signing-input".getBytes());
 
             urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
