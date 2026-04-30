@@ -1180,8 +1180,8 @@ public class CredentialMatchingServiceTest {
         // Act
         MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
 
-        // Assert
-        assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        // Assert - no sd-jwt_alg_values constraint means any algorithm is acceptable
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
     }
 
     @Test

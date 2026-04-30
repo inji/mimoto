@@ -251,25 +251,16 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     }
 
     private boolean matchesSdJwtAlgorithm(VCCredentialResponse vc, Map<String, Map<String, List<String>>> requestFormat) {
-        Map<String, List<String>> sdJwtFormat = requestFormat.get(CredentialFormat.VC_SD_JWT.getFormat());
         if (vc.getCredential() == null || !(vc.getCredential() instanceof String sdJwtString)) {
             return false;
         }
 
-        if (!sdJwtFormat.containsKey(SD_JWT_ALG_VALUES_KEY)) {
-            return false;
+        Map<String, List<String>> sdJwtFormat = requestFormat.get(CredentialFormat.VC_SD_JWT.getFormat());
+        List<?> requestAlgorithms = sdJwtFormat.get(SD_JWT_ALG_VALUES_KEY);
+        if (requestAlgorithms != null) {
+            return requestAlgorithms.contains(extractSdJwtAlgorithm(sdJwtString));
         }
-
-        String sdJwtAlgorithm = extractSdJwtAlgorithm(sdJwtString);
-        Map<String, List<String>> requestFormatMap = requestFormat.get(CredentialFormat.VC_SD_JWT.getFormat());
-        if (requestFormatMap != null) {
-            List<?> requestAlgorithms = requestFormatMap.get(SD_JWT_ALG_VALUES_KEY);
-            if (requestAlgorithms != null) {
-                return requestAlgorithms.contains(sdJwtAlgorithm);
-            }
-            return true; // If no specific algorithms are required, any algorithm is acceptable
-        }
-        return false;
+        return true; // No sd-jwt_alg_values constraint → any algorithm is acceptable
     }
 
     private String extractSdJwtAlgorithm(String sdJwtString) {
@@ -321,10 +312,21 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             if (extractedMap == null) {
                 return Collections.emptyMap();
             }
-            @SuppressWarnings("unchecked")
-            Map<String, Map<String, Object>> allCredentialProperties = (Map<String, Map<String, Object>>) extractedMap;
             Map<String, Object> credentialClaimsMap = new HashMap<>();
-            allCredentialProperties.values().forEach(credentialClaimsMap::putAll);
+            // publicClaims and sdClaims are mutually exclusive by SD-JWT spec — no key collision.
+            // sdClaims values are disclosure blobs (List<String>), not decoded claim values.
+            // This supports existence-based field matching (e.g. $.given_name present).
+            // Value-filter matching on SD claims (e.g. $.age >= 18) is not supported here
+            // and requires decoding disclosures — tracked as a follow-up improvement.
+            for (Map.Entry<String, ?> outer : extractedMap.entrySet()) {
+                if (outer.getValue() instanceof Map<?, ?> innerMap) {
+                    for (Map.Entry<?, ?> inner : innerMap.entrySet()) {
+                        if (inner.getKey() instanceof String key) {
+                            credentialClaimsMap.put(key, inner.getValue());
+                        }
+                    }
+                }
+            }
             return credentialClaimsMap;
         } else {
             throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), "Unsupported credential format: " + format);
