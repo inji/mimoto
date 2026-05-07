@@ -12,6 +12,7 @@ import io.mosip.mimoto.constant.OpenID4VPConstants;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
+import io.mosip.mimoto.dto.openid.SpecVersion;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.dto.openid.VerifiersDTO;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
@@ -102,7 +103,8 @@ public class WalletPresentationServiceTest {
                 List.of("https://verifier.com/response"),
                 List.of("https://verifier.com/jwks"),
                 null,
-                false
+                false,
+                SpecVersion.V1_0
         );
         verifiersDTO = new VerifiersDTO();
         verifiersDTO.setVerifiers(List.of(verifierDTO));

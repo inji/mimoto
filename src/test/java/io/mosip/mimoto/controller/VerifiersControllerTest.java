@@ -1,5 +1,6 @@
 package io.mosip.mimoto.controller;
 
+import io.mosip.mimoto.dto.openid.SpecVersion;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.dto.openid.VerifiersDTO;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
@@ -85,6 +86,7 @@ public class VerifiersControllerTest {
                 .responseUris(Collections.singletonList("https://test-responseUri"))
                 .jwksUri("https://test/.well-known/jwks.json")
                 .allowUnsignedRequest(true)
+                .specVersion(SpecVersion.DRAFT_23)
                 .build();
 
         VerifiersDTO trustedVerifiers = VerifiersDTO.builder()
@@ -97,6 +99,7 @@ public class VerifiersControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.response.verifiers[0].allow_unsigned_request").value(true))
                 .andExpect(jsonPath("$.response.verifiers[0].client_id").value("test-clientId"))
+                .andExpect(jsonPath("$.response.verifiers[0].spec_version").value("draft23"))
                 .andExpect(jsonPath("$.response.verifiers[0].jwks_uri").value("https://test/.well-known/jwks.json"));
     }
 
@@ -118,6 +121,7 @@ public class VerifiersControllerTest {
         mockMvc.perform(get("/verifiers").accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.response.verifiers[0].allow_unsigned_request").value(false)) // allow_unsigned_request is not passed means it should take default value false
+                .andExpect(jsonPath("$.response.verifiers[0].spec_version").value("v1")) // spec version is not passed means it should take default value v1
                 .andExpect(jsonPath("$.response.verifiers[0].jwks_uri").doesNotExist()); // jwks_uri is not passed means it should not be present in trusted verifiers
     }
 }

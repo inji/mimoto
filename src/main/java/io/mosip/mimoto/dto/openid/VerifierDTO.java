@@ -39,5 +39,10 @@ public class VerifierDTO {
     @Schema(description = "Flag to indicate if unsigned Authorization Request is allowed")
     @Default
     Boolean allowUnsignedRequest = false;
+
+    @JsonProperty("spec_version")
+    @Schema(description = "OpenID4VP specification version supported by the Verifier")
+    @Default
+    SpecVersion specVersion = SpecVersion.V1_0;
 }
 

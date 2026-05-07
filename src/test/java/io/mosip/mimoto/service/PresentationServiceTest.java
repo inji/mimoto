@@ -6,6 +6,7 @@ import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponseProof;
+import io.mosip.mimoto.dto.openid.SpecVersion;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.dto.openid.VerifiersDTO;
 import io.mosip.mimoto.dto.openid.presentation.FieldDTO;
@@ -77,7 +78,8 @@ public class PresentationServiceTest {
                 List.of("redirect-uri"),
                 List.of("https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response"),
                 null,
-                false
+                false,
+                SpecVersion.V1_0
         );
         verifiersDTO = new VerifiersDTO();
         verifiersDTO.setVerifiers(List.of(verifierDTO));

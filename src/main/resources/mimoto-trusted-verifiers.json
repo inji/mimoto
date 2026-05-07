@@ -9,7 +9,8 @@
         "https://injiverify.collab.mosip.net/v1/verify/vp-submission/vp-direct-post"
       ],
       "jwks_uri": "https://injiverify.collab.mosip.net/.well-known/jwks.json",
-      "allow_unsigned_request": true
+      "allow_unsigned_request": true,
+      "spec_version": "draft23"
     }
   ]
 }
