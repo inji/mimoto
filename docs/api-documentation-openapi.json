@@ -175,6 +175,17 @@
                                                         "items": {
                                                             "type": "string"
                                                         }
+                                                    },
+                                                    "allow_unsigned_request": {
+                                                        "type": "boolean",
+                                                        "description": "Indicates whether the verifier allows unsigned requests or not.",
+                                                        "default": false
+                                                    },
+                                                    "spec_version": {
+                                                        "type": "string",
+                                                        "enum": ["draft23", "v1"],
+                                                        "description": "OpenID4VP specification version supported by the Verifier.",
+                                                        "default": "v1"
                                                     }
                                                 }
                                             }
@@ -192,7 +203,9 @@
                                                     ],
                                                     "response_uris": [
                                                         "https://injiverify.collab.mosip.net/redirect"
-                                                    ]
+                                                    ],
+                                                    "allow_unsigned_request": false,
+                                                    "spec_version": "v1"
                                                 }
                                             ]
                                         }
