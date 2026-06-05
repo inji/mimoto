@@ -26,7 +26,7 @@ POST /wallets/{id}/presentations
   │
   └─③ openID4VP.authenticateVerifier(
             urlString,
-            preRegisteredVerifiers,   ← ⚠️ passed as method arg (removed in 0.8.0)
+            preRegisteredVerifiers,   ← passed as method arg (removed in 0.8.0)
             shouldValidate
         )
 ```
@@ -44,24 +44,24 @@ POST /wallets/{id}/presentations
   │
   ├─① getPreRegisteredVerifiers()  → List<Verifier>
   │
-  ├─② OpenID4VPService.create(presentationId, trustedVerifiers)    ← ⚠️ FIXED
+  ├─② OpenID4VPService.create(presentationId, trustedVerifiers)
   │       └─ new WalletConfig(..., trustedVerifiers)
   │               ↑ verifiers now INSIDE WalletConfig at creation time
   │       └─ new OpenID4VP(id, walletConfig)
   │
   ├─③ openID4VP.authenticateVerifier(
   │         urlString,
-  │         shouldValidate            ← ⚠️ FIXED: only 2 args, no trustedVerifiers
+  │         shouldValidate            ← only 2 args, no trustedVerifiers
   │     )
   │       └─ returns AuthorizationRequest subtype
   │
-  ├─④ 🆕 detect spec version
+  ├─④ detect spec version
   │         if (authReq instanceof AuthorizationDcqlRequest)
   │               → specVersion = V1_0
   │         else
   │               → specVersion = DRAFT_23
   │
-  └─⑤ 🆕 store in session:
+  └─⑤ store in session:
             presentationId, authorizationRequest, specVersion, isPreRegistered
 ```
 
@@ -71,11 +71,11 @@ POST /wallets/{id}/presentations
 
 | # | What changes | Mimoto file | Type |
 |---|-------------|-------------|------|
-| 1 | `create()` now takes `trustedVerifiers` as second arg | `OpenID4VPService.java` | ⚠️ FIXED |
-| 2 | `WalletConfig` replaces `WalletMetadata`; verifiers go inside it | `OpenID4VPService.java` | ⚠️ FIXED |
-| 3 | `authenticateVerifier` drops the middle `trustedVerifiers` arg | `WalletPresentationServiceImpl.java` | ⚠️ FIXED |
-| 4 | Spec version is detected from the `AuthorizationRequest` subtype | `WalletPresentationServiceImpl.java` | 🆕 NEW |
-| 5 | `specVersion` field stored in session | `VerifiablePresentationSessionData.java` | 🆕 NEW |
+| 1 | `create()` now takes `trustedVerifiers` as second arg | `OpenID4VPService.java` | Fix |
+| 2 | `WalletConfig` replaces `WalletMetadata`; verifiers go inside it | `OpenID4VPService.java` | Fix |
+| 3 | `authenticateVerifier` drops the middle `trustedVerifiers` arg | `WalletPresentationServiceImpl.java` | Fix |
+| 4 | Spec version is detected from the `AuthorizationRequest` subtype | `WalletPresentationServiceImpl.java` | New |
+| 5 | `specVersion` field stored in session | `VerifiablePresentationSessionData.java` | New |
 
 > **Summary**
 > This is the entry point of the entire VP flow. The wallet receives the verifier's authorization request URL, validates who the verifier is, and sets up the session for all subsequent calls.
@@ -100,7 +100,7 @@ GET /wallets/{id}/presentations/{pid}/credentials
 📄 CredentialMatchingServiceImpl.getMatchingCredentials()
   │
   ├─ openID4VPService.resolvePresentationDefinition(presentationId, authRequest, preReg)
-  │       └─ ⚠️ called authenticateVerifier with 3 args (broken in 0.8.0)
+  │       └─ called authenticateVerifier with 3 args (broken in 0.8.0)
   │       └─ cast to AuthorizationPresentationExchangeRequest
   │       └─ return presentationDefinition
   │
@@ -108,7 +108,7 @@ GET /wallets/{id}/presentations/{pid}/credentials
   │
   ├─ for each InputDescriptor:
   │       match credentials by format + constraints/fields
-  │       ⚠️ descriptorId NOT recorded — map key will be wrong at submission
+  │       descriptorId NOT recorded — map key will be wrong at submission
   │
   └─ store matchingCredentials in session (WITHOUT descriptorId)
 ```
@@ -126,7 +126,7 @@ GET /wallets/{id}/presentations/{pid}/credentials
   ├─ session.specVersion == DRAFT_23  (or null → defaults to DRAFT_23)
   │
   ├─ openID4VPService.resolvePresentationDefinition(presentationId, authRequest, preReg)
-  │       └─ ⚠️ FIXED: authenticateVerifier now called with 2 args
+  │       └─ authenticateVerifier now called with 2 args
   │       └─ cast to AuthorizationPresentationExchangeRequest
   │       └─ return presentationDefinition
   │
@@ -134,13 +134,13 @@ GET /wallets/{id}/presentations/{pid}/credentials
   │
   ├─ for each InputDescriptor:
   │       match credentials by format + constraints/fields
-  │       🆕 record: credentialId → InputDescriptor.id  (stored as descriptorId)
+  │       record: credentialId → InputDescriptor.id  (stored as descriptorId)
   │
   ├─ build MatchingCredentialsResponseDTO:
   │       availableCredentials: List<CredentialDTO>  (flat, deduped)
   │       missingClaims: Set<String>
   │
-  └─ 🆕 store matchingCredentials WITH descriptorId per DTO in session
+  └─ store matchingCredentials WITH descriptorId per DTO in session
 ```
 
 ---
@@ -155,14 +155,14 @@ GET /wallets/{id}/presentations/{pid}/credentials
   │
   ├─ session.specVersion == V1_0
   │
-  ├─ 🆕 openID4VPService.resolveDcqlQuery(presentationId, authRequest, preReg)
+  ├─ openID4VPService.resolveDcqlQuery(presentationId, authRequest, preReg)
   │       └─ create(id, verifiers) → authenticateVerifier(url, shouldValidate)
   │       └─ cast to AuthorizationDcqlRequest
   │       └─ return dcqlQuery
   │
   ├─ walletCredentialService.getDecryptedCredentials(walletId, key)
   │
-  ├─ 🆕 for each CredentialQuery in dcqlQuery.credentials:
+  ├─ for each CredentialQuery in dcqlQuery.credentials:
   │       queryId = credentialQuery.id
   │       format  = credentialQuery.format
   │       match wallet VCs by format
@@ -170,15 +170,15 @@ GET /wallets/{id}/presentations/{pid}/credentials
   │       if credentialQuery.multiple == false → allow only 1 match
   │       store dto.descriptorId = credentialQuery.id  (queryId as bridge key)
   │
-  ├─ 🆕 evaluate credentialSets (if present):
+  ├─ evaluate credentialSets (if present):
   │       for each CredentialSetQuery:
   │           if required=true and no option satisfied → mark missing
   │
-  ├─ 🆕 build DcqlMatchingCredentialsResponseDTO:
+  ├─ build DcqlMatchingCredentialsResponseDTO:
   │       queryGroups: List<DcqlQueryGroup>
   │           each: { queryId, required, multiple, availableCredentials, missingClaims }
   │
-  └─ 🆕 store dcqlMatchingCredentials (with queryId as descriptorId) in session
+  └─ store dcqlMatchingCredentials (with queryId as descriptorId) in session
 ```
 
 ---
@@ -187,15 +187,15 @@ GET /wallets/{id}/presentations/{pid}/credentials
 
 | # | What changes | Mimoto file | Type |
 |---|-------------|-------------|------|
-| 1 | `resolvePresentationDefinition()` fixes `authenticateVerifier` to 2 args | `OpenID4VPService.java` | ⚠️ FIXED |
-| 2 | `descriptorId` recorded on each matched DTO during Draft-23 matching | `CredentialMatchingServiceImpl.java` | ⚠️ FIXED |
-| 3 | Top-level routing by `specVersion` added | `CredentialMatchingServiceImpl.java` | 🆕 NEW |
-| 4 | `resolveDcqlQuery()` new method to extract `DCQLQuery` | `OpenID4VPService.java` | 🆕 NEW |
-| 5 | `matchDcql()` — full DCQL matching loop | `CredentialMatchingServiceImpl.java` | 🆕 NEW |
-| 6 | `matchesDcqlQuery()` — format + claim path matching helper | `CredentialMatchingServiceImpl.java` | 🆕 NEW |
-| 7 | `DcqlQueryGroup` DTO per query in response | `DcqlQueryGroup.java` | 🆕 NEW |
-| 8 | `descriptorId` field added to carry descriptor/queryId | `DecryptedCredentialDTO.java` | 🆕 NEW |
-| 9 | `queryGroups` + `isDcql` fields added to response | `MatchingCredentialsResponseDTO.java` | 🆕 NEW |
+| 1 | `resolvePresentationDefinition()` fixes `authenticateVerifier` to 2 args | `OpenID4VPService.java` | Fix |
+| 2 | `descriptorId` recorded on each matched DTO during Draft-23 matching | `CredentialMatchingServiceImpl.java` | Fix |
+| 3 | Top-level routing by `specVersion` added | `CredentialMatchingServiceImpl.java` | New |
+| 4 | `resolveDcqlQuery()` new method to extract `DCQLQuery` | `OpenID4VPService.java` | New |
+| 5 | `matchDcql()` — full DCQL matching loop | `CredentialMatchingServiceImpl.java` | New |
+| 6 | `matchesDcqlQuery()` — format + claim path matching helper | `CredentialMatchingServiceImpl.java` | New |
+| 7 | `DcqlQueryGroup` DTO per query in response | `DcqlQueryGroup.java` | New |
+| 8 | `descriptorId` field added to carry descriptor/queryId | `DecryptedCredentialDTO.java` | New |
+| 9 | `queryGroups` + `isDcql` fields added to response | `MatchingCredentialsResponseDTO.java` | New |
 
 > **Summary**
 > This flow finds which credentials in the wallet satisfy the verifier's request and presents them to the user for selection.
@@ -345,10 +345,10 @@ PATCH /wallets/{id}/presentations/{pid}
   ├─① fetchSelectedCredentials(sessionData, selectedIds)
   │
   ├─② create(presentationId) + authenticateVerifier(url, verifiers, isPreReg)
-  │                                                        ↑ ⚠️ 3 args — broken
+  │                                                        ↑ 3 args — broken in 0.8.0
   │
   ├─③ convertCredentialsToJarFormat()
-  │       ⚠️ groups by dto.getId()  ← BUG: VC's own UUID, not the descriptor id
+  │       groups by dto.getId()  ← BUG: VC's own UUID, not the descriptor id
   │       output: Map<vc-uuid, List<Credential>>   ← WRONG KEY
   │
   ├─④ openID4VP.constructUnsignedVPToken(wrongMap)
@@ -375,11 +375,11 @@ PATCH /wallets/{id}/presentations/{pid}
   │       └─ each DecryptedCredentialDTO has .descriptorId set from matching step
   │
   ├─② create(presentationId, verifiers)
-  │   openID4VP.authenticateVerifier(authRequest, isPreReg)   ← ⚠️ FIXED: 2 args
+  │   openID4VP.authenticateVerifier(authRequest, isPreReg)   ← 2 args (fixed)
   │
-  ├─③ 🆕 buildDescriptorCredentialMap(selectedCredentials)
+  ├─③ buildDescriptorCredentialMap(selectedCredentials)
   │       input:  List<DecryptedCredentialDTO>
-  │       output: Map<descriptorId, List<Credential>>   ← ⚠️ FIXED key
+  │       output: Map<descriptorId, List<Credential>>   ← correct key
   │           e.g. { "id_card_descriptor": [Credential(LDP_VC, vcData, "vc-id-1")] }
   │
   ├─④ openID4VP.constructUnsignedVPToken(descriptorCredentialMap)
@@ -413,11 +413,11 @@ PATCH /wallets/{id}/presentations/{pid}
          ▼
 📄 WalletPresentationServiceImpl.submitPresentation()
   │
-  ├─① 🆕 validateDcqlSelections(request, sessionData)
+  ├─① validateDcqlSelections(request, sessionData)
   │       enforce mandatory credential_sets must be satisfied
   │       enforce multiple=false → max 1 credential per query
   │
-  ├─② 🆕 buildQueryCredentialMap(request.dcqlSelections, sessionData)
+  ├─② buildQueryCredentialMap(request.dcqlSelections, sessionData)
   │       for each DcqlCredentialSelection:
   │           resolve credentials by selectedCredentialIds from session cache
   │           key = selection.queryId
@@ -445,13 +445,13 @@ PATCH /wallets/{id}/presentations/{pid}
 
 | # | What changes | Mimoto file | Type |
 |---|-------------|-------------|------|
-| 1 | `authenticateVerifier` fixed to 2 args | `WalletPresentationServiceImpl.java` | ⚠️ FIXED |
-| 2 | `convertCredentialsToJarFormat()` replaced by `buildDescriptorCredentialMap()` — map key changed from `dto.getId()` to `dto.getDescriptorId()` | `WalletPresentationServiceImpl.java` | ⚠️ FIXED |
-| 3 | Submission branches by `request.isDcqlSubmission()` | `WalletPresentationServiceImpl.java` | 🆕 NEW |
-| 4 | `validateDcqlSelections()` enforces DCQL constraints | `WalletPresentationServiceImpl.java` | 🆕 NEW |
-| 5 | `buildQueryCredentialMap()` builds `Map<queryId, Credential>` for DCQL | `WalletPresentationServiceImpl.java` | 🆕 NEW |
-| 6 | `dcqlSelections` field added to request body | `SubmitPresentationRequestDTO.java` | 🆕 NEW |
-| 7 | `DcqlCredentialSelection` DTO (queryId + selectedCredentialIds) | `DcqlCredentialSelection.java` | 🆕 NEW |
+| 1 | `authenticateVerifier` fixed to 2 args | `WalletPresentationServiceImpl.java` | Fix |
+| 2 | `convertCredentialsToJarFormat()` replaced by `buildDescriptorCredentialMap()` — map key changed from `dto.getId()` to `dto.getDescriptorId()` | `WalletPresentationServiceImpl.java` | Fix |
+| 3 | Submission branches by `request.isDcqlSubmission()` | `WalletPresentationServiceImpl.java` | New |
+| 4 | `validateDcqlSelections()` enforces DCQL constraints | `WalletPresentationServiceImpl.java` | New |
+| 5 | `buildQueryCredentialMap()` builds `Map<queryId, Credential>` for DCQL | `WalletPresentationServiceImpl.java` | New |
+| 6 | `dcqlSelections` field added to request body | `SubmitPresentationRequestDTO.java` | New |
+| 7 | `DcqlCredentialSelection` DTO (queryId + selectedCredentialIds) | `DcqlCredentialSelection.java` | New |
 
 > **Summary**
 > This is the final step — the user has chosen which credentials to share and Mimoto packs them into a signed VP and sends it to the verifier.
@@ -561,7 +561,7 @@ Wallet App           Mimoto                  Verifier
   │
   └─ openID4VP.authenticateVerifier(
          authRequest,
-         preRegisteredVerifiers,   ← ⚠️ 3 args — broken in 0.8.0
+         preRegisteredVerifiers,   ← 3 args — broken in 0.8.0
          isVerifierClientPreregistered
      )
 ```
@@ -580,7 +580,7 @@ PATCH /wallets/{id}/presentations/{pid}
   └─ openID4VPService.sendErrorToVerifier(sessionData, errorPayload)
           │
           ├─ create(presentationId, preRegisteredVerifiers)
-          ├─ openID4VP.authenticateVerifier(authRequest, isPreReg)  ← ⚠️ FIXED: 2 args
+          ├─ openID4VP.authenticateVerifier(authRequest, isPreReg)  ← 2 args (fixed)
           ├─ map errorCode → OpenID4VPException
           │       access_denied           → AccessDenied
           │       invalid_transaction_data → InvalidTransactionData
@@ -594,7 +594,7 @@ PATCH /wallets/{id}/presentations/{pid}
 
 | # | What changes | Mimoto file | Type |
 |---|-------------|-------------|------|
-| 1 | `authenticateVerifier` fixed to 2 args | `OpenID4VPService.java` | ⚠️ FIXED |
+| 1 | `authenticateVerifier` fixed to 2 args | `OpenID4VPService.java` | Fix |
 
 > **Summary**
 > This flow handles the case where the user declines to share credentials and the wallet must notify the verifier.
