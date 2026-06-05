@@ -1,0 +1,634 @@
+# OVP 0.8.0 — Mimoto Changes Reference
+
+> This document covers **only what changes inside Mimoto** for the 0.7.0 → 0.8.0 migration.
+> Each flow diagram shows: the old behaviour, the new behaviour, and the exact Mimoto file/method being changed.
+
+## Flow 1 — Authorization Request Phase
+
+**Triggered by:** `POST /wallets/{id}/presentations`
+
+---
+
+### 🔴 BEFORE (0.7.0)
+
+```
+POST /wallets/{id}/presentations
+  Body: { authorizationRequestUrl: "openid4vp://..." }
+         │
+         ▼
+📄 WalletPresentationServiceImpl.handleVPAuthorizationRequest()
+  │
+  ├─① verifierService.getTrustedVerifiers()  → List<Verifier>
+  │
+  ├─② OpenID4VPService.create(presentationId)
+  │       └─ new OpenID4VP(id, new WalletMetadata())
+  │               ↑ verifiers NOT passed here — lost after this point
+  │
+  └─③ openID4VP.authenticateVerifier(
+            urlString,
+            preRegisteredVerifiers,   ← ⚠️ passed as method arg (removed in 0.8.0)
+            shouldValidate
+        )
+```
+
+---
+
+### 🟢 AFTER (0.8.0)
+
+```
+POST /wallets/{id}/presentations
+  Body: { authorizationRequestUrl: "openid4vp://..." }
+         │
+         ▼
+📄 WalletPresentationServiceImpl.handleVPAuthorizationRequest()
+  │
+  ├─① getPreRegisteredVerifiers()  → List<Verifier>
+  │
+  ├─② OpenID4VPService.create(presentationId, trustedVerifiers)    ← ⚠️ FIXED
+  │       └─ new WalletConfig(..., trustedVerifiers)
+  │               ↑ verifiers now INSIDE WalletConfig at creation time
+  │       └─ new OpenID4VP(id, walletConfig)
+  │
+  ├─③ openID4VP.authenticateVerifier(
+  │         urlString,
+  │         shouldValidate            ← ⚠️ FIXED: only 2 args, no trustedVerifiers
+  │     )
+  │       └─ returns AuthorizationRequest subtype
+  │
+  ├─④ 🆕 detect spec version
+  │         if (authReq instanceof AuthorizationDcqlRequest)
+  │               → specVersion = V1_0
+  │         else
+  │               → specVersion = DRAFT_23
+  │
+  └─⑤ 🆕 store in session:
+            presentationId, authorizationRequest, specVersion, isPreRegistered
+```
+
+---
+
+### Changes in this flow
+
+| # | What changes | Mimoto file | Type |
+|---|-------------|-------------|------|
+| 1 | `create()` now takes `trustedVerifiers` as second arg | `OpenID4VPService.java` | ⚠️ FIXED |
+| 2 | `WalletConfig` replaces `WalletMetadata`; verifiers go inside it | `OpenID4VPService.java` | ⚠️ FIXED |
+| 3 | `authenticateVerifier` drops the middle `trustedVerifiers` arg | `WalletPresentationServiceImpl.java` | ⚠️ FIXED |
+| 4 | Spec version is detected from the `AuthorizationRequest` subtype | `WalletPresentationServiceImpl.java` | 🆕 NEW |
+| 5 | `specVersion` field stored in session | `VerifiablePresentationSessionData.java` | 🆕 NEW |
+
+> **Summary**
+> This is the entry point of the entire VP flow. The wallet receives the verifier's authorization request URL, validates who the verifier is, and sets up the session for all subsequent calls.
+> The two key problems fixed here are:
+> - In 0.7.0, trusted verifiers were passed directly as a method argument to `authenticateVerifier()` — the 0.8.0 library removed that argument, so they must now live inside `WalletConfig` at creation time.
+> - 0.8.0 introduces two spec versions (Draft-23 and OVP 1.0 / DCQL). Mimoto must detect which one the verifier is using by inspecting the returned `AuthorizationRequest` subtype and storing it as `specVersion` in the session — every downstream call depends on this value to pick the right code path.
+
+---
+
+## Flow 2 — Credential Matching Phase
+
+**Triggered by:** `GET /wallets/{id}/presentations/{pid}/credentials`
+
+---
+
+### 🔴 BEFORE (0.7.0) — only one path existed
+
+```
+GET /wallets/{id}/presentations/{pid}/credentials
+         │
+         ▼
+📄 CredentialMatchingServiceImpl.getMatchingCredentials()
+  │
+  ├─ openID4VPService.resolvePresentationDefinition(presentationId, authRequest, preReg)
+  │       └─ ⚠️ called authenticateVerifier with 3 args (broken in 0.8.0)
+  │       └─ cast to AuthorizationPresentationExchangeRequest
+  │       └─ return presentationDefinition
+  │
+  ├─ walletCredentialService.getDecryptedCredentials(walletId, key)
+  │
+  ├─ for each InputDescriptor:
+  │       match credentials by format + constraints/fields
+  │       ⚠️ descriptorId NOT recorded — map key will be wrong at submission
+  │
+  └─ store matchingCredentials in session (WITHOUT descriptorId)
+```
+
+---
+
+### 🟢 AFTER (0.8.0) — Draft-23 path
+
+```
+GET /wallets/{id}/presentations/{pid}/credentials
+         │
+         ▼
+📄 CredentialMatchingServiceImpl.getMatchingCredentials()
+  │
+  ├─ session.specVersion == DRAFT_23  (or null → defaults to DRAFT_23)
+  │
+  ├─ openID4VPService.resolvePresentationDefinition(presentationId, authRequest, preReg)
+  │       └─ ⚠️ FIXED: authenticateVerifier now called with 2 args
+  │       └─ cast to AuthorizationPresentationExchangeRequest
+  │       └─ return presentationDefinition
+  │
+  ├─ walletCredentialService.getDecryptedCredentials(walletId, key)
+  │
+  ├─ for each InputDescriptor:
+  │       match credentials by format + constraints/fields
+  │       🆕 record: credentialId → InputDescriptor.id  (stored as descriptorId)
+  │
+  ├─ build MatchingCredentialsResponseDTO:
+  │       availableCredentials: List<CredentialDTO>  (flat, deduped)
+  │       missingClaims: Set<String>
+  │
+  └─ 🆕 store matchingCredentials WITH descriptorId per DTO in session
+```
+
+---
+
+### 🟢 AFTER (0.8.0) — OVP 1.0 / DCQL path (entirely new)
+
+```
+GET /wallets/{id}/presentations/{pid}/credentials
+         │
+         ▼
+📄 CredentialMatchingServiceImpl.getMatchingCredentials()
+  │
+  ├─ session.specVersion == V1_0
+  │
+  ├─ 🆕 openID4VPService.resolveDcqlQuery(presentationId, authRequest, preReg)
+  │       └─ create(id, verifiers) → authenticateVerifier(url, shouldValidate)
+  │       └─ cast to AuthorizationDcqlRequest
+  │       └─ return dcqlQuery
+  │
+  ├─ walletCredentialService.getDecryptedCredentials(walletId, key)
+  │
+  ├─ 🆕 for each CredentialQuery in dcqlQuery.credentials:
+  │       queryId = credentialQuery.id
+  │       format  = credentialQuery.format
+  │       match wallet VCs by format
+  │       if credentialQuery.claims != null → filter by claim paths/values
+  │       if credentialQuery.multiple == false → allow only 1 match
+  │       store dto.descriptorId = credentialQuery.id  (queryId as bridge key)
+  │
+  ├─ 🆕 evaluate credentialSets (if present):
+  │       for each CredentialSetQuery:
+  │           if required=true and no option satisfied → mark missing
+  │
+  ├─ 🆕 build DcqlMatchingCredentialsResponseDTO:
+  │       queryGroups: List<DcqlQueryGroup>
+  │           each: { queryId, required, multiple, availableCredentials, missingClaims }
+  │
+  └─ 🆕 store dcqlMatchingCredentials (with queryId as descriptorId) in session
+```
+
+---
+
+### Changes in this flow
+
+| # | What changes | Mimoto file | Type |
+|---|-------------|-------------|------|
+| 1 | `resolvePresentationDefinition()` fixes `authenticateVerifier` to 2 args | `OpenID4VPService.java` | ⚠️ FIXED |
+| 2 | `descriptorId` recorded on each matched DTO during Draft-23 matching | `CredentialMatchingServiceImpl.java` | ⚠️ FIXED |
+| 3 | Top-level routing by `specVersion` added | `CredentialMatchingServiceImpl.java` | 🆕 NEW |
+| 4 | `resolveDcqlQuery()` new method to extract `DCQLQuery` | `OpenID4VPService.java` | 🆕 NEW |
+| 5 | `matchDcql()` — full DCQL matching loop | `CredentialMatchingServiceImpl.java` | 🆕 NEW |
+| 6 | `matchesDcqlQuery()` — format + claim path matching helper | `CredentialMatchingServiceImpl.java` | 🆕 NEW |
+| 7 | `DcqlQueryGroup` DTO per query in response | `DcqlQueryGroup.java` | 🆕 NEW |
+| 8 | `descriptorId` field added to carry descriptor/queryId | `DecryptedCredentialDTO.java` | 🆕 NEW |
+| 9 | `queryGroups` + `isDcql` fields added to response | `MatchingCredentialsResponseDTO.java` | 🆕 NEW |
+
+> **Summary**
+> This flow finds which credentials in the wallet satisfy the verifier's request and presents them to the user for selection.
+> Three things change here:
+> - The `authenticateVerifier` 3-arg bug is fixed inside `resolvePresentationDefinition()`.
+> - A critical missing piece is added for Draft-23: the `descriptorId` (i.e. which `InputDescriptor` each matched VC satisfies) is now recorded on each `DecryptedCredentialDTO` and stored in the session. Without this, the submission phase cannot build the correct map key that the library requires.
+> - A completely new DCQL path is added. When `specVersion = V1_0`, Mimoto resolves a `DCQLQuery` instead of a `PresentationDefinition`, iterates over `CredentialQuery` entries, applies format and claim-path filters, evaluates `credentialSets` required/optional rules, and returns a `queryGroups` structure per query — which is richer than the flat list returned for Draft-23.
+
+---
+
+### 📦 API Response Body
+
+> The response shape is **different** for Draft-23 and OVP 1.0. The `isDcql` flag tells the UI which shape to render.
+
+#### Draft-23 Response — flat credential list
+
+```json
+{
+  "isDcql": false,
+  "availableCredentials": [
+    {
+      "credentialId": "vc-uuid-111",
+      "credentialTypeDisplayName": "National ID Card",
+      "credentialTypeLogo": "https://issuer.example.com/logo.png",
+      "format": "ldp_vc",
+      "claims":   ["$.name", "$.dateOfBirth", "$.address"],
+      "sdClaims": ["$.email", "$.phoneNumber"]
+    },
+    {
+      "credentialId": "vc-uuid-222",
+      "credentialTypeDisplayName": "Driving License",
+      "credentialTypeLogo": "https://issuer.example.com/dl-logo.png",
+      "format": "ldp_vc",
+      "claims":   ["$.licenseNumber", "$.validUntil"],
+      "sdClaims": []
+    }
+  ],
+  "missingClaims": ["age_over_18"]
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `availableCredentials` | VCs in the wallet that satisfy the verifier's `PresentationDefinition` — flat, de-duplicated |
+| `credentialId` | VC UUID — what the user sends back in the submit request |
+| `credentialTypeDisplayName` | Human-readable name shown in the UI |
+| `credentialTypeLogo` | Logo URL for the credential card |
+| `format` | Credential format (`ldp_vc`, `vc+sd-jwt`, etc.) |
+| `claims` | Claims that are **always disclosed** — shown pre-selected in UI |
+| `sdClaims` | **Selective Disclosure** claims — user must consent to share |
+| `missingClaims` | Claims the verifier needs but **no wallet credential has** — shown as "missing" in UI |
+
+---
+
+#### OVP 1.0 / DCQL Response — per-query grouped structure
+
+```json
+{
+  "isDcql": true,
+  "availableCredentials": null,
+  "missingClaims": null,
+  "queryGroups": [
+    {
+      "queryId": "pid_query",
+      "required": true,
+      "multiple": false,
+      "availableCredentials": [
+        {
+          "credentialId": "vc-uuid-111",
+          "credentialTypeDisplayName": "National ID Card",
+          "format": "ldp_vc",
+          "claims":   ["$.name", "$.dateOfBirth"],
+          "sdClaims": ["$.email"]
+        }
+      ],
+      "missingClaims": []
+    },
+    {
+      "queryId": "mdl_query",
+      "required": true,
+      "multiple": false,
+      "availableCredentials": [
+        {
+          "credentialId": "vc-uuid-222",
+          "credentialTypeDisplayName": "Driving License",
+          "format": "ldp_vc",
+          "claims":   ["$.licenseNumber"],
+          "sdClaims": []
+        }
+      ],
+      "missingClaims": []
+    },
+    {
+      "queryId": "mobile_hint",
+      "required": false,
+      "multiple": true,
+      "availableCredentials": [
+        { "credentialId": "vc-uuid-333", "credentialTypeDisplayName": "Mobile SIM 1", "format": "ldp_vc", "claims": [], "sdClaims": [] },
+        { "credentialId": "vc-uuid-444", "credentialTypeDisplayName": "Mobile SIM 2", "format": "ldp_vc", "claims": [], "sdClaims": [] }
+      ],
+      "missingClaims": []
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `queryGroups` | One entry per `CredentialQuery` in the verifier's DCQL query |
+| `queryId` | The `CredentialQuery.id` from the DCQL query — must be sent back in the submit request |
+| `required` | `true` → user **must** select a credential for this slot · `false` → optional / nice-to-have |
+| `multiple` | `true` → user may pick more than one credential · `false` → exactly one |
+| `availableCredentials` | VCs that match this specific query slot |
+| `missingClaims` | Claims this query needs but no wallet VC provides |
+
+#### How the UI decides what to render
+
+```
+isDcql == false  →  show flat list from availableCredentials
+                    user picks any credential(s)
+                    submit as: { "selectedCredentials": ["vc-uuid-111"] }
+
+isDcql == true   →  show per-query groups from queryGroups
+                    required=true  → mandatory section
+                    required=false → optional section
+                    multiple=true  → allow multi-select within that group
+                    submit as: { "dcqlSelections": [{ "queryId": "pid_query", "selectedCredentialIds": ["vc-uuid-111"] }] }
+```
+
+---
+
+## Flow 3 — Presentation Submission Phase
+
+**Triggered by:** `PATCH /wallets/{id}/presentations/{pid}`
+
+---
+
+### 🔴 BEFORE (0.7.0) — only Draft-23, wrong map key
+
+```
+PATCH /wallets/{id}/presentations/{pid}
+  Body: { selectedCredentials: ["vc-id-1", "vc-id-2"] }
+         │
+         ▼
+📄 WalletPresentationServiceImpl.submitPresentation()
+  │
+  ├─① fetchSelectedCredentials(sessionData, selectedIds)
+  │
+  ├─② create(presentationId) + authenticateVerifier(url, verifiers, isPreReg)
+  │                                                        ↑ ⚠️ 3 args — broken
+  │
+  ├─③ convertCredentialsToJarFormat()
+  │       ⚠️ groups by dto.getId()  ← BUG: VC's own UUID, not the descriptor id
+  │       output: Map<vc-uuid, List<Credential>>   ← WRONG KEY
+  │
+  ├─④ openID4VP.constructUnsignedVPToken(wrongMap)
+  │       library looks up "id_card_descriptor" → finds nothing → VP broken
+  │
+  ├─⑤ signVPToken(unsignedVPTokens, jwsSigner)
+  │
+  └─⑥ openID4VP.sendVPResponseToVerifier(signingResults)
+```
+
+---
+
+### 🟢 AFTER (0.8.0) — Draft-23 path
+
+```
+PATCH /wallets/{id}/presentations/{pid}
+  Body: { selectedCredentials: ["vc-id-1", "vc-id-2"] }
+         │
+         ▼
+📄 WalletPresentationServiceImpl.submitPresentation()
+  │
+  ├─① fetchSelectedCredentials(sessionData, selectedIds)
+  │       └─ filters session.matchingCredentials by selectedIds
+  │       └─ each DecryptedCredentialDTO has .descriptorId set from matching step
+  │
+  ├─② create(presentationId, verifiers)
+  │   openID4VP.authenticateVerifier(authRequest, isPreReg)   ← ⚠️ FIXED: 2 args
+  │
+  ├─③ 🆕 buildDescriptorCredentialMap(selectedCredentials)
+  │       input:  List<DecryptedCredentialDTO>
+  │       output: Map<descriptorId, List<Credential>>   ← ⚠️ FIXED key
+  │           e.g. { "id_card_descriptor": [Credential(LDP_VC, vcData, "vc-id-1")] }
+  │
+  ├─④ openID4VP.constructUnsignedVPToken(descriptorCredentialMap)
+  │       returns List<UnsignedVPToken>
+  │           each: { format=LDP_VC, signatureAlgorithm="EdDSA", dataToSign=<bytes> }
+  │
+  ├─⑤ signVPToken(unsignedVPTokens, keyPair, signingAlgorithm)
+  │       for each UnsignedVPToken:
+  │           signer = SigningKeyUtil.createSigner(algo, jwk)
+  │           signature = signer.sign(JWSHeader(algo), dataToSign).decode()
+  │           → VPTokenSigningResult(signedData = rawBytes)
+  │       returns List<VPTokenSigningResult>
+  │
+  └─⑥ openID4VP.sendVPResponseToVerifier(List<VPTokenSigningResult>)
+           returns VerifierResponse
+```
+
+---
+
+### 🟢 AFTER (0.8.0) — OVP 1.0 / DCQL path (entirely new)
+
+```
+PATCH /wallets/{id}/presentations/{pid}
+  Body: {
+    dcqlSelections: [
+      { queryId: "pid_query",  selectedCredentialIds: ["vc-id-1"] },
+      { queryId: "mdl_query",  selectedCredentialIds: ["vc-id-2"] }
+    ]
+  }
+         │
+         ▼
+📄 WalletPresentationServiceImpl.submitPresentation()
+  │
+  ├─① 🆕 validateDcqlSelections(request, sessionData)
+  │       enforce mandatory credential_sets must be satisfied
+  │       enforce multiple=false → max 1 credential per query
+  │
+  ├─② 🆕 buildQueryCredentialMap(request.dcqlSelections, sessionData)
+  │       for each DcqlCredentialSelection:
+  │           resolve credentials by selectedCredentialIds from session cache
+  │           key = selection.queryId
+  │       output: Map<queryId, List<Credential>>
+  │           e.g. { "pid_query": [Credential(...)], "mdl_query": [Credential(...)] }
+  │
+  ├─③ create(presentationId, verifiers)
+  │   openID4VP.authenticateVerifier(authRequest, isPreReg)
+  │
+  ├─④ openID4VP.constructUnsignedVPToken(queryCredentialMap)
+  │       same library call as Draft-23
+  │       library handles both spec versions internally
+  │       returns List<UnsignedVPToken>
+  │
+  ├─⑤ signVPToken(unsignedVPTokens, keyPair, signingAlgorithm)
+  │       identical signing loop to Draft-23
+  │
+  └─⑥ openID4VP.sendVPResponseToVerifier(List<VPTokenSigningResult>)
+           returns VerifierResponse
+```
+
+---
+
+### Changes in this flow
+
+| # | What changes | Mimoto file | Type |
+|---|-------------|-------------|------|
+| 1 | `authenticateVerifier` fixed to 2 args | `WalletPresentationServiceImpl.java` | ⚠️ FIXED |
+| 2 | `convertCredentialsToJarFormat()` replaced by `buildDescriptorCredentialMap()` — map key changed from `dto.getId()` to `dto.getDescriptorId()` | `WalletPresentationServiceImpl.java` | ⚠️ FIXED |
+| 3 | Submission branches by `request.isDcqlSubmission()` | `WalletPresentationServiceImpl.java` | 🆕 NEW |
+| 4 | `validateDcqlSelections()` enforces DCQL constraints | `WalletPresentationServiceImpl.java` | 🆕 NEW |
+| 5 | `buildQueryCredentialMap()` builds `Map<queryId, Credential>` for DCQL | `WalletPresentationServiceImpl.java` | 🆕 NEW |
+| 6 | `dcqlSelections` field added to request body | `SubmitPresentationRequestDTO.java` | 🆕 NEW |
+| 7 | `DcqlCredentialSelection` DTO (queryId + selectedCredentialIds) | `DcqlCredentialSelection.java` | 🆕 NEW |
+
+> **Summary**
+> This is the final step — the user has chosen which credentials to share and Mimoto packs them into a signed VP and sends it to the verifier.
+> Three things change here:
+> - The `authenticateVerifier` 3-arg bug is fixed (same issue as in Flows 1 and 4).
+> - The most important bug fix: `convertCredentialsToJarFormat()` was building the map with the VC's own UUID as the key (`dto.getId()`). The library expects the `InputDescriptor.id` (or DCQL `queryId`) as the key. The replacement method `buildDescriptorCredentialMap()` reads `dto.getDescriptorId()` — the value that was stored during the matching phase — and uses it as the correct map key. Without this fix the library cannot match credentials to descriptor slots and the VP is invalid.
+> - A new DCQL submission path is added. The request body now carries `dcqlSelections` (a list of `{queryId, selectedCredentialIds}` pairs). Before building the map, `validateDcqlSelections()` enforces DCQL constraints (`multiple=false` and mandatory `credentialSets`). The map is then built with `queryId` as the key. From step ④ onwards (construct → sign → send) the code is identical to the Draft-23 path — the library handles both spec versions internally.
+
+---
+
+### 📦 API Request & Response Body
+
+> The **request body** differs between Draft-23 and DCQL. The **response body** is the same shape for both.
+
+#### Request — Draft-23 (submit selected credentials)
+
+```json
+{
+  "selectedCredentials": ["vc-uuid-111", "vc-uuid-222"]
+}
+```
+
+#### Request — OVP 1.0 / DCQL (submit with query mapping)
+
+```json
+{
+  "dcqlSelections": [
+    { "queryId": "pid_query", "selectedCredentialIds": ["vc-uuid-111"] },
+    { "queryId": "mdl_query", "selectedCredentialIds": ["vc-uuid-222"] }
+  ]
+}
+```
+
+#### Request — Rejection (user declines)
+
+```json
+{
+  "errorCode": "access_denied",
+  "errorMessage": "User denied authorization to share credentials"
+}
+```
+
+---
+
+#### Response — Submission success (HTTP 200)
+
+```json
+{
+  "status": "SUCCESS",
+  "message": "Presentation successfully submitted and shared with verifier",
+  "redirectUri": "https://verifier.example.com/callback?state=af0ifjsldkj"
+}
+```
+
+#### Response — Submission failed (HTTP 200)
+
+```json
+{
+  "status": "ERROR",
+  "message": "Failed to share verifiable presentation with verifier",
+  "redirectUri": null
+}
+```
+
+#### Response — Rejection sent (HTTP 200)
+
+```json
+{
+  "status": "REJECTED_VERIFIER",
+  "message": "Verifier has been notified of the rejection",
+  "redirectUri": "https://verifier.example.com/error?error=access_denied"
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `status` | `SUCCESS` — VP accepted by verifier · `ERROR` — VP send failed · `REJECTED_VERIFIER` — user declined |
+| `message` | Human-readable result for the UI |
+| `redirectUri` | URL to redirect the user back to the verifier's app. `null` if verifier did not respond |
+
+#### Important — Mimoto is NOT the final destination
+
+The signed VP token travels **Mimoto → Verifier** directly inside `sendVPResponseToVerifier()`. The wallet app never sees the VP token itself. The `redirectUri` in the response tells the wallet app where to send the user next.
+
+```
+Wallet App           Mimoto                  Verifier
+    │                   │                       │
+    ├── PATCH /submit ──►│                       │
+    │  {selectedCreds}   ├──── signed VP ────────►│
+    │                    │◄─── HTTP 200 ──────────┤
+    │◄── {status,        │                       │
+    │     redirectUri} ──┤                       │
+```
+
+---
+
+## Flow 4 — Error / Rejection Path
+
+**Triggered by:** `PATCH /wallets/{id}/presentations/{pid}` with `errorCode` + `errorMessage`
+
+---
+
+### 🔴 BEFORE (0.7.0)
+
+```
+📄 OpenID4VPService.sendErrorToVerifier()
+  │
+  └─ openID4VP.authenticateVerifier(
+         authRequest,
+         preRegisteredVerifiers,   ← ⚠️ 3 args — broken in 0.8.0
+         isVerifierClientPreregistered
+     )
+```
+
+---
+
+### 🟢 AFTER (0.8.0)
+
+```
+PATCH /wallets/{id}/presentations/{pid}
+  Body: { errorCode: "access_denied", errorMessage: "User denied" }
+         │
+         ▼
+📄 WalletPresentationServiceImpl.rejectVerifier()
+  │
+  └─ openID4VPService.sendErrorToVerifier(sessionData, errorPayload)
+          │
+          ├─ create(presentationId, preRegisteredVerifiers)
+          ├─ openID4VP.authenticateVerifier(authRequest, isPreReg)  ← ⚠️ FIXED: 2 args
+          ├─ map errorCode → OpenID4VPException
+          │       access_denied           → AccessDenied
+          │       invalid_transaction_data → InvalidTransactionData
+          │       anything else           → AccessDenied (default)
+          └─ openID4VP.sendErrorInfoToVerifier(OpenID4VPException)
+```
+
+---
+
+### Changes in this flow
+
+| # | What changes | Mimoto file | Type |
+|---|-------------|-------------|------|
+| 1 | `authenticateVerifier` fixed to 2 args | `OpenID4VPService.java` | ⚠️ FIXED |
+
+> **Summary**
+> This flow handles the case where the user declines to share credentials and the wallet must notify the verifier.
+> The only change here is the same `authenticateVerifier` 3-arg → 2-arg fix applied inside `OpenID4VPService.sendErrorToVerifier()`. The reason `authenticateVerifier` must be called at all on the rejection path is that the `OpenID4VP` library object is stateless between HTTP calls — it must re-authenticate the verifier to populate its internal state before it can send anything, including an error. Without this re-authentication call the library does not know where to send the error response.
+
+---
+
+## All Mimoto Files Changed — Summary
+
+### Modified files
+
+| File | What changes |
+|------|-------------|
+| `pom.xml` | Library version `0.7.0-SNAPSHOT-myLocal` → `0.8.0-myLocal` |
+| `OpenID4VPService.java` | `WalletConfig` replaces `WalletMetadata` · `authenticateVerifier` 2-arg fix in all call sites · new `resolveDcqlQuery()` method |
+| `WalletPresentationServiceImpl.java` | `authenticateVerifier` 2-arg fix · `buildDescriptorCredentialMap()` replaces `convertCredentialsToJarFormat()` · DCQL submission branch · `validateDcqlSelections()` · `buildQueryCredentialMap()` |
+| `CredentialMatchingServiceImpl.java` | `specVersion` routing · `descriptorId` recording in Draft-23 matching · new `matchDcql()` branch · `matchesDcqlQuery()` helper |
+| `VerifiablePresentationSessionData.java` | Add `specVersion` field (`DRAFT_23` or `V1_0`) |
+| `DecryptedCredentialDTO.java` | Add `descriptorId` field (bridge key from matching → submission) |
+| `SubmitPresentationRequestDTO.java` | Add `dcqlSelections` field · update `isSubmissionRequest()` and `isRejectionRequest()` helpers |
+| `MatchingCredentialsResponseDTO.java` | Add `queryGroups` field · add `isDcql` flag |
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `SpecVersion.java` | Enum: `DRAFT_23` \| `V1_0` |
+| `DcqlQueryGroup.java` | DTO: one query's matching result (queryId, required, multiple, availableCredentials, missingClaims) |
+| `DcqlCredentialSelection.java` | DTO: one user selection for a DCQL query (queryId + selectedCredentialIds) |
+
+### Test files updated
+
+| File | What changes |
+|------|-------------|
+| `OpenID4VPServiceTest.java` | Remove middle `anyList()` arg from all `authenticateVerifier` mocks |
+| `WalletPresentationServiceTest.java` | Update mocks · add DCQL submission test · add constraint validation test |
+| `CredentialMatchingServiceTest.java` | Add `specVersion = DRAFT_23` to existing setups · add DCQL matching tests |
