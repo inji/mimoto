@@ -81,7 +81,7 @@ POST /wallets/{id}/presentations
 > This is the entry point of the entire VP flow. The wallet receives the verifier's authorization request URL, validates who the verifier is, and sets up the session for all subsequent calls.
 > The two key problems fixed here are:
 > - In 0.7.0, trusted verifiers were passed directly as a method argument to `authenticateVerifier()` — the 0.8.0 library removed that argument, so they must now live inside `WalletConfig` at creation time.
-> - 0.8.0 introduces two spec versions (Draft-23 and OVP 1.0 / DCQL). Mimoto must detect which one the verifier is using by inspecting the returned `AuthorizationRequest` subtype and storing it as `specVersion` in the session — every downstream call depends on this value to pick the right code path.
+> - 0.8.0 introduces two spec versions (Draft-23 and OVP 1.0 / DCQL). Mimoto detects which one the verifier is using by inspecting the returned `AuthorizationRequest` subtype (`AuthorizationDcqlRequest` → `V1_0`, anything else → `DRAFT_23`) and stores it as `specVersion` in the session. Every downstream call uses this value to pick the right code path. If `specVersion` is somehow absent (e.g. older session data), the fallback is `V1_0`.
 
 ---
 
@@ -123,7 +123,7 @@ GET /wallets/{id}/presentations/{pid}/credentials
          ▼
 📄 CredentialMatchingServiceImpl.getMatchingCredentials()
   │
-  ├─ session.specVersion == DRAFT_23  (or null → defaults to DRAFT_23)
+  ├─ session.specVersion == DRAFT_23  (explicit only — null defaults to V1_0)
   │
   ├─ openID4VPService.resolvePresentationDefinition(presentationId, authRequest, preReg)
   │       └─ authenticateVerifier now called with 2 args
@@ -177,6 +177,9 @@ GET /wallets/{id}/presentations/{pid}/credentials
   ├─ build DcqlMatchingCredentialsResponseDTO:
   │       queryGroups: List<DcqlQueryGroup>
   │           each: { queryId, required, multiple, availableCredentials, missingClaims }
+  │       credentialSets: List<CredentialSetInfo>   ← option structure for the UI
+  │           each: { required, options: List<List<queryId>> }
+  │           e.g. { required:true, options:[["pan"],["aadhaar"],["voter_id","dl"]] }
   │
   └─ store dcqlMatchingCredentials (with queryId as descriptorId) in session
 ```
@@ -195,14 +198,15 @@ GET /wallets/{id}/presentations/{pid}/credentials
 | 6 | `matchesDcqlQuery()` — format + claim path matching helper | `CredentialMatchingServiceImpl.java` | New |
 | 7 | `DcqlQueryGroup` DTO per query in response | `DcqlQueryGroup.java` | New |
 | 8 | `descriptorId` field added to carry descriptor/queryId | `DecryptedCredentialDTO.java` | New |
-| 9 | `queryGroups` + `isDcql` fields added to response | `MatchingCredentialsResponseDTO.java` | New |
+| 9 | `queryGroups` + `isDcql` + `credentialSets` fields added to response | `MatchingCredentialsResponseDTO.java` | New |
+| 10 | `CredentialSetInfo` DTO to carry option structure to the UI | `CredentialSetInfo.java` | New |
 
 > **Summary**
 > This flow finds which credentials in the wallet satisfy the verifier's request and presents them to the user for selection.
 > Three things change here:
 > - The `authenticateVerifier` 3-arg bug is fixed inside `resolvePresentationDefinition()`.
 > - A critical missing piece is added for Draft-23: the `descriptorId` (i.e. which `InputDescriptor` each matched VC satisfies) is now recorded on each `DecryptedCredentialDTO` and stored in the session. Without this, the submission phase cannot build the correct map key that the library requires.
-> - A completely new DCQL path is added. When `specVersion = V1_0`, Mimoto resolves a `DCQLQuery` instead of a `PresentationDefinition`, iterates over `CredentialQuery` entries, applies format and claim-path filters, evaluates `credentialSets` required/optional rules, and returns a `queryGroups` structure per query — which is richer than the flat list returned for Draft-23.
+> - A completely new DCQL path is added. When `specVersion = V1_0`, Mimoto resolves a `DCQLQuery` instead of a `PresentationDefinition`, delegates all matching to `DCQLHelper.getMatchingCredentials()`, and builds a response with two layers: `queryGroups` (one per `CredentialQuery`) for individual slot details, and `credentialSets` (the option-grouping layer from the verifier's DCQL query) so the UI knows which queries are grouped into a section and what options the user can choose between. Both layers are needed — `queryGroups` alone is insufficient when `credential_sets` is present in the verifier request.
 
 ---
 
@@ -250,13 +254,37 @@ GET /wallets/{id}/presentations/{pid}/credentials
 
 ---
 
-#### OVP 1.0 / DCQL Response — per-query grouped structure
+#### DCQL two-layer structure — understand this first
+
+DCQL responses have **two layers**. Understanding this distinction is essential for correct UI rendering.
+
+```
+DCQLQuery
+├── credentials: List<CredentialQuery>     ← Layer 1: individual credential slots
+│       each: { id, format, multiple, claims }
+│       id is what the UI sends back in selectedCredentials (as object element)
+│
+└── credential_sets: List<CredentialSetQuery>?   ← Layer 2: section / option grouping
+        each: {
+          required: Boolean        ← is this section mandatory?
+          options: [               ← OR between options — user picks exactly ONE
+            ["query_a"],           ←   Option 1: only query_a needed
+            ["query_b"],           ←   Option 2: only query_b needed
+            ["query_c","query_d"]  ←   Option 3: query_c AND query_d needed together
+          ]
+        }
+```
+
+- When `credential_sets` is **absent** → every `CredentialQuery` is an independent slot; `required` on each `queryGroup` tells the UI whether it is mandatory.
+- When `credential_sets` is **present** → the queries grouped inside a set are **not** independently required; the set as a whole is required/optional, and the user must satisfy exactly one of its options.
+
+#### OVP 1.0 / DCQL Response — example without credential_sets
+
+The simplest case: two independent required slots (e.g. national ID + driving license, both always needed).
 
 ```json
 {
   "isDcql": true,
-  "availableCredentials": null,
-  "missingClaims": null,
   "queryGroups": [
     {
       "queryId": "pid_query",
@@ -287,42 +315,117 @@ GET /wallets/{id}/presentations/{pid}/credentials
         }
       ],
       "missingClaims": []
-    },
+    }
+  ],
+  "credentialSets": []
+}
+```
+
+#### OVP 1.0 / DCQL Response — example with credential_sets (options)
+
+A more complex case: the verifier accepts **PAN card OR Aadhaar OR (Voter ID + Driving License)** as proof of identity. The user must satisfy exactly one option from this section.
+
+```json
+{
+  "isDcql": true,
+  "queryGroups": [
     {
-      "queryId": "mobile_hint",
+      "queryId": "pan",
       "required": false,
-      "multiple": true,
+      "multiple": false,
       "availableCredentials": [
-        { "credentialId": "vc-uuid-333", "credentialTypeDisplayName": "Mobile SIM 1", "format": "ldp_vc", "claims": [], "sdClaims": [] },
-        { "credentialId": "vc-uuid-444", "credentialTypeDisplayName": "Mobile SIM 2", "format": "ldp_vc", "claims": [], "sdClaims": [] }
+        { "credentialId": "vc-pan-111", "credentialTypeDisplayName": "PAN Card", "format": "ldp_vc", "claims": ["$.name","$.pan"], "sdClaims": [] }
       ],
       "missingClaims": []
+    },
+    {
+      "queryId": "aadhaar",
+      "required": false,
+      "multiple": false,
+      "availableCredentials": [
+        { "credentialId": "vc-aadh-222", "credentialTypeDisplayName": "Aadhaar Card", "format": "ldp_vc", "claims": ["$.name","$.dob"], "sdClaims": ["$.address"] }
+      ],
+      "missingClaims": []
+    },
+    {
+      "queryId": "voter_id",
+      "required": false,
+      "multiple": false,
+      "availableCredentials": [
+        { "credentialId": "vc-vid-333", "credentialTypeDisplayName": "Voter ID", "format": "ldp_vc", "claims": ["$.name"], "sdClaims": [] }
+      ],
+      "missingClaims": []
+    },
+    {
+      "queryId": "dl",
+      "required": false,
+      "multiple": false,
+      "availableCredentials": [
+        { "credentialId": "vc-dl-444", "credentialTypeDisplayName": "Driving License", "format": "ldp_vc", "claims": ["$.licenseNumber"], "sdClaims": [] }
+      ],
+      "missingClaims": []
+    }
+  ],
+  "credentialSets": [
+    {
+      "required": true,
+      "options": [
+        ["pan"],
+        ["aadhaar"],
+        ["voter_id", "dl"]
+      ]
     }
   ]
 }
 ```
 
+> **Why all four queryGroups have `required: false`:** the individual queries are not independently mandatory. The *section* (`credentialSets[0].required = true`) is what's mandatory. Each query is only required if the user picks the option that contains it. The UI must NOT use `queryGroup.required` as the sole driver for mandatory/optional when `credentialSets` is non-empty.
+
 | Field | Meaning |
 |-------|---------|
-| `queryGroups` | One entry per `CredentialQuery` in the verifier's DCQL query |
-| `queryId` | The `CredentialQuery.id` from the DCQL query — must be sent back in the submit request |
-| `required` | `true` → user **must** select a credential for this slot · `false` → optional / nice-to-have |
-| `multiple` | `true` → user may pick more than one credential · `false` → exactly one |
-| `availableCredentials` | VCs that match this specific query slot |
-| `missingClaims` | Claims this query needs but no wallet VC provides |
+| `queryGroups` | One entry per `CredentialQuery` — describes the credential type, available VCs, and missing claims for each slot |
+| `queryId` | The `CredentialQuery.id` — must be sent back in the submit request |
+| `required` (on queryGroup) | `true` when the query is **not** part of any `credentialSet` and is independently mandatory. `false` when it belongs to a `credentialSet` (mandatory or not is determined by the set) |
+| `multiple` | `true` → user may pick more than one credential for this slot · `false` → exactly one |
+| `availableCredentials` | VCs in the wallet that match this query slot |
+| `missingClaims` | Claims this query needs but no wallet VC satisfies |
+| `credentialSets` | The option-grouping layer. Each entry is one **section** in the UI |
+| `credentialSets[].required` | `true` → user must satisfy one option in this section · `false` → section is optional |
+| `credentialSets[].options` | List of options. User picks **exactly one**. Each option is a list of queryIds that must **all** be presented together (AND within option, OR between options) |
 
 #### How the UI decides what to render
 
 ```
-isDcql == false  →  show flat list from availableCredentials
-                    user picks any credential(s)
-                    submit as: { "selectedCredentials": ["vc-uuid-111"] }
+isDcql == false
+  → render flat credential list from availableCredentials
+  → user picks any credential(s)
+  → submit: { "selectedCredentials": ["vc-uuid-111"] }
 
-isDcql == true   →  show per-query groups from queryGroups
-                    required=true  → mandatory section
-                    required=false → optional section
-                    multiple=true  → allow multi-select within that group
-                    submit as: { "dcqlSelections": [{ "queryId": "pid_query", "selectedCredentialIds": ["vc-uuid-111"] }] }
+
+isDcql == true  AND  credentialSets is empty
+  → render one card/slot per queryGroup
+  → queryGroup.required == true  → mandatory slot (user must pick)
+  → queryGroup.required == false → optional slot
+  → queryGroup.multiple == true  → allow multi-select within the slot
+  → submit: { "selectedCredentials": [{ "queryId": "pid_query", "selectedCredentialIds": ["vc-uuid-111"] }] }
+
+
+isDcql == true  AND  credentialSets is non-empty
+  → render one SECTION per credentialSet entry
+  → credentialSet.required == true  → section header shows "Required"
+  → credentialSet.required == false → section header shows "Optional"
+  → within each section, render one TAB / RADIO OPTION per option entry:
+        option = ["pan"]             → tab shows the PAN card slot
+        option = ["aadhaar"]         → tab shows the Aadhaar slot
+        option = ["voter_id", "dl"]  → tab shows BOTH Voter ID + Driving License slots (user must fill both)
+  → user selects one tab per required section
+  → queryGroups NOT in any credentialSet render as independent mandatory slots outside sections
+  → submit: {
+        "selectedCredentials": [
+          { "queryId": "voter_id", "selectedCredentialIds": ["vc-vid-333"] },
+          { "queryId": "dl",       "selectedCredentialIds": ["vc-dl-444"] }
+        ]
+      }
 ```
 
 ---
@@ -375,7 +478,7 @@ PATCH /wallets/{id}/presentations/{pid}
   │       └─ each DecryptedCredentialDTO has .descriptorId set from matching step
   │
   ├─② create(presentationId, verifiers)
-  │   openID4VP.authenticateVerifier(authRequest, isPreReg)   ← 2 args (fixed)
+  │   openID4VP.authenticateVerifier(authRequest, shouldValidateClient)   ← 2 args (fixed)
   │
   ├─③ buildDescriptorCredentialMap(selectedCredentials)
   │       input:  List<DecryptedCredentialDTO>
@@ -404,7 +507,7 @@ PATCH /wallets/{id}/presentations/{pid}
 ```
 PATCH /wallets/{id}/presentations/{pid}
   Body: {
-    dcqlSelections: [
+    selectedCredentials: [
       { queryId: "pid_query",  selectedCredentialIds: ["vc-id-1"] },
       { queryId: "mdl_query",  selectedCredentialIds: ["vc-id-2"] }
     ]
@@ -417,7 +520,7 @@ PATCH /wallets/{id}/presentations/{pid}
   │       enforce mandatory credential_sets must be satisfied
   │       enforce multiple=false → max 1 credential per query
   │
-  ├─② buildQueryCredentialMap(request.dcqlSelections, sessionData)
+  ├─② buildQueryCredentialMap(request.getDcqlSelections(), sessionData)
   │       for each DcqlCredentialSelection:
   │           resolve credentials by selectedCredentialIds from session cache
   │           key = selection.queryId
@@ -425,7 +528,7 @@ PATCH /wallets/{id}/presentations/{pid}
   │           e.g. { "pid_query": [Credential(...)], "mdl_query": [Credential(...)] }
   │
   ├─③ create(presentationId, verifiers)
-  │   openID4VP.authenticateVerifier(authRequest, isPreReg)
+  │   openID4VP.authenticateVerifier(authRequest, shouldValidateClient)
   │
   ├─④ openID4VP.constructUnsignedVPToken(queryCredentialMap)
   │       same library call as Draft-23
@@ -450,7 +553,7 @@ PATCH /wallets/{id}/presentations/{pid}
 | 3 | Submission branches by `request.isDcqlSubmission()` | `WalletPresentationServiceImpl.java` | New |
 | 4 | `validateDcqlSelections()` enforces DCQL constraints | `WalletPresentationServiceImpl.java` | New |
 | 5 | `buildQueryCredentialMap()` builds `Map<queryId, Credential>` for DCQL | `WalletPresentationServiceImpl.java` | New |
-| 6 | `dcqlSelections` field added to request body | `SubmitPresentationRequestDTO.java` | New |
+| 6 | `selectedCredentials` now accepts array-of-strings (Draft-23) or array-of-objects (DCQL) | `SubmitPresentationRequestDTO.java` | Fix |
 | 7 | `DcqlCredentialSelection` DTO (queryId + selectedCredentialIds) | `DcqlCredentialSelection.java` | New |
 
 > **Summary**
@@ -458,7 +561,7 @@ PATCH /wallets/{id}/presentations/{pid}
 > Three things change here:
 > - The `authenticateVerifier` 3-arg bug is fixed (same issue as in Flows 1 and 4).
 > - The most important bug fix: `convertCredentialsToJarFormat()` was building the map with the VC's own UUID as the key (`dto.getId()`). The library expects the `InputDescriptor.id` (or DCQL `queryId`) as the key. The replacement method `buildDescriptorCredentialMap()` reads `dto.getDescriptorId()` — the value that was stored during the matching phase — and uses it as the correct map key. Without this fix the library cannot match credentials to descriptor slots and the VP is invalid.
-> - A new DCQL submission path is added. The request body now carries `dcqlSelections` (a list of `{queryId, selectedCredentialIds}` pairs). Before building the map, `validateDcqlSelections()` enforces DCQL constraints (`multiple=false` and mandatory `credentialSets`). The map is then built with `queryId` as the key. From step ④ onwards (construct → sign → send) the code is identical to the Draft-23 path — the library handles both spec versions internally.
+> - A new DCQL submission path is added. The `selectedCredentials` field is polymorphic: when elements are plain strings Mimoto treats it as Draft-23; when elements are objects with `queryId` + `selectedCredentialIds` Mimoto treats it as DCQL. Before building the map, `validateDcqlSelections()` enforces DCQL constraints (`multiple=false` and mandatory `credentialSets`). The map is then built with `queryId` as the key. From step ④ onwards (construct → sign → send) the code is identical to the Draft-23 path — the library handles both spec versions internally.
 
 ---
 
@@ -468,6 +571,8 @@ PATCH /wallets/{id}/presentations/{pid}
 
 #### Request — Draft-23 (submit selected credentials)
 
+`selectedCredentials` is an **array of strings** — the credential IDs the user chose.
+
 ```json
 {
   "selectedCredentials": ["vc-uuid-111", "vc-uuid-222"]
@@ -476,13 +581,18 @@ PATCH /wallets/{id}/presentations/{pid}
 
 #### Request — OVP 1.0 / DCQL (submit with query mapping)
 
+`selectedCredentials` is an **array of objects** — each object maps a DCQL query slot to the credential(s) the user chose for it.
+
 ```json
 {
-  "dcqlSelections": [
+  "selectedCredentials": [
     { "queryId": "pid_query", "selectedCredentialIds": ["vc-uuid-111"] },
     { "queryId": "mdl_query", "selectedCredentialIds": ["vc-uuid-222"] }
   ]
 }
+```
+
+> **How Mimoto detects which path to take:** if the first element of `selectedCredentials` is a plain string → Draft-23 path. If it is an object with `queryId` → DCQL path. Both cases use the same field name.
 ```
 
 #### Request — Rejection (user declines)
@@ -580,7 +690,7 @@ PATCH /wallets/{id}/presentations/{pid}
   └─ openID4VPService.sendErrorToVerifier(sessionData, errorPayload)
           │
           ├─ create(presentationId, preRegisteredVerifiers)
-          ├─ openID4VP.authenticateVerifier(authRequest, isPreReg)  ← 2 args (fixed)
+          ├─ openID4VP.authenticateVerifier(authRequest, shouldValidateClient)  ← 2 args (fixed)
           ├─ map errorCode → OpenID4VPException
           │       access_denied           → AccessDenied
           │       invalid_transaction_data → InvalidTransactionData
@@ -612,9 +722,9 @@ PATCH /wallets/{id}/presentations/{pid}
 | `OpenID4VPService.java` | `WalletConfig` replaces `WalletMetadata` · `authenticateVerifier` 2-arg fix in all call sites · new `resolveDcqlQuery()` method |
 | `WalletPresentationServiceImpl.java` | `authenticateVerifier` 2-arg fix · `buildDescriptorCredentialMap()` replaces `convertCredentialsToJarFormat()` · DCQL submission branch · `validateDcqlSelections()` · `buildQueryCredentialMap()` |
 | `CredentialMatchingServiceImpl.java` | `specVersion` routing · `descriptorId` recording in Draft-23 matching · new `matchDcql()` branch · `matchesDcqlQuery()` helper |
-| `VerifiablePresentationSessionData.java` | Add `specVersion` field (`DRAFT_23` or `V1_0`) |
+| `VerifiablePresentationSessionData.java` | Add `specVersion` field (`DRAFT_23` or `V1_0`); default when null is `V1_0` |
 | `DecryptedCredentialDTO.java` | Add `descriptorId` field (bridge key from matching → submission) |
-| `SubmitPresentationRequestDTO.java` | Add `dcqlSelections` field · update `isSubmissionRequest()` and `isRejectionRequest()` helpers |
+| `SubmitPresentationRequestDTO.java` | `selectedCredentials` becomes polymorphic: `List<String>` (Draft-23) or `List<DcqlCredentialSelection>` (DCQL) · update `isSubmissionRequest()`, `isRejectionRequest()`, and add `isDcqlSubmission()` helper |
 | `MatchingCredentialsResponseDTO.java` | Add `queryGroups` field · add `isDcql` flag |
 
 ### New files
@@ -631,4 +741,4 @@ PATCH /wallets/{id}/presentations/{pid}
 |------|-------------|
 | `OpenID4VPServiceTest.java` | Remove middle `anyList()` arg from all `authenticateVerifier` mocks |
 | `WalletPresentationServiceTest.java` | Update mocks · add DCQL submission test · add constraint validation test |
-| `CredentialMatchingServiceTest.java` | Add `specVersion = DRAFT_23` to existing setups · add DCQL matching tests |
+| `CredentialMatchingServiceTest.java` | Add explicit `specVersion = DRAFT_23` to Draft-23 test setups (null now defaults to V1_0) · add DCQL matching tests |
