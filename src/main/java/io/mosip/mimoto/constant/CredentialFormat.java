@@ -23,4 +23,12 @@ public enum CredentialFormat {
         }
         throw new IllegalArgumentException("Unknown credential format: " + format);
     }
+
+    /**
+     * Returns true if the given format string is an SD-JWT family format (vc+sd-jwt or dc+sd-jwt).
+     * Both share the same SD-JWT structure, parser, and KB-JWT signing.
+     */
+    public static boolean isSdJwt(String format) {
+        return VC_SD_JWT.format.equalsIgnoreCase(format) || DC_SD_JWT.format.equalsIgnoreCase(format);
+    }
 }

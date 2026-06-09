@@ -183,6 +183,7 @@ public class WalletPresentationsController {
                             schema = @Schema(implementation = SubmitPresentationRequestDTO.class),
                             examples = {
                                     @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_EXAMPLE_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_EXAMPLE_VALUE),
+                                    @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_SDJWT_EXAMPLE_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_SDJWT_EXAMPLE_VALUE),
                                     @ExampleObject(name = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_REJECT_EXAMPLE_NAME, value = SwaggerLiteralConstants.WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_REJECT_EXAMPLE_VALUE)
                             }
                     )

@@ -78,7 +78,7 @@ public class CredentialMatchingServiceTest {
                     VCCredentialResponse vc = invocation.getArgument(0);
                     String format = vc.getFormat();
 
-                    if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+                    if (CredentialFormat.isSdJwt(format)) {
                         Map<String, Object> publicClaims = new LinkedHashMap<>();
                         publicClaims.put("type", Arrays.asList("VerifiableCredential", "TestCredential"));
                         Map<String, Map<String, Object>> result = new LinkedHashMap<>();
@@ -474,18 +474,26 @@ public class CredentialMatchingServiceTest {
                 result.getMatchingCredentialsResponse().getAvailableCredentials().get(0).getFormat());
     }
 
-    @Test(expected = InvalidRequestException.class)
+    @Test
     public void testGetMatchingCredentialsWithDcSdJwtFormat() throws Exception {
         // Arrange
         PresentationDefinition pd = createMockPresentationDefinition();
         when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
                 .thenReturn(pd);
-        List<DecryptedCredentialDTO> dcSdJwtCredentials = createMockWalletCredentialsWithDcSdJwtFormat();
+        when(credentialFormatHandlerFactory.getHandler(eq(CredentialFormat.DC_SD_JWT.getFormat())))
+                .thenReturn(credentialFormatHandler);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(dcSdJwtCredentials);
+                .thenReturn(createMockWalletCredentialsWithDcSdJwtFormat());
 
         // Act
-        credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+        MatchingCredentialsDTO result = credentialMatchingService
+                .getMatchingCredentials(sessionData, walletId, base64Key);
+
+        // Assert - dc+sd-jwt is handled like vc+sd-jwt and surfaces as an available credential
+        assertNotNull(result);
+        assertFalse(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
+        assertEquals(CredentialFormat.DC_SD_JWT.getFormat(),
+                result.getMatchingCredentialsResponse().getAvailableCredentials().get(0).getFormat());
     }
 
     @Test

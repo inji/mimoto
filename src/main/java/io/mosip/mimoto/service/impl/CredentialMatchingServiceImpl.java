@@ -219,8 +219,8 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         String vcFormat = vc.getFormat();
 
-        if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(CredentialFormat.VC_SD_JWT.getFormat())) {
-            return matchesSdJwtAlgorithm(vc, descriptorFormat);
+        if (CredentialFormat.isSdJwt(vcFormat) && descriptorFormat.containsKey(vcFormat.toLowerCase())) {
+            return matchesSdJwtAlgorithm(vc, descriptorFormat, vcFormat.toLowerCase());
         }
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
             return matchesLdpVcFormat(vc, descriptorFormat);
@@ -250,12 +250,12 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         return vcProofType != null && requiredProofTypes.contains(vcProofType);
     }
 
-    private boolean matchesSdJwtAlgorithm(VCCredentialResponse vc, Map<String, Map<String, List<String>>> requestFormat) {
+    private boolean matchesSdJwtAlgorithm(VCCredentialResponse vc, Map<String, Map<String, List<String>>> requestFormat, String formatKey) {
         if (vc.getCredential() == null || !(vc.getCredential() instanceof String sdJwtString)) {
             return false;
         }
 
-        Map<String, List<String>> sdJwtFormat = requestFormat.get(CredentialFormat.VC_SD_JWT.getFormat());
+        Map<String, List<String>> sdJwtFormat = requestFormat.get(formatKey);
         List<?> requestAlgorithms = sdJwtFormat.get(SD_JWT_ALG_VALUES_KEY);
         if (requestAlgorithms != null) {
             return requestAlgorithms.contains(extractSdJwtAlgorithm(sdJwtString));
@@ -307,7 +307,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format)) {
             return credentialFormatHandler.extractAllCredentialProperties(vc);
-        } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+        } else if (CredentialFormat.isSdJwt(format)) {
             Map<String, ?> extractedMap = credentialFormatHandler.extractAllCredentialProperties(vc);
             if (extractedMap == null) {
                 return Collections.emptyMap();
@@ -420,8 +420,8 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
         }
 
-        if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(decryptedCredentialDTO.getCredential().getFormat())) {
-            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(CredentialFormat.VC_SD_JWT.getFormat());
+        if (CredentialFormat.isSdJwt(decryptedCredentialDTO.getCredential().getFormat())) {
+            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(decryptedCredentialDTO.getCredential().getFormat());
             Map<String, Map<String, Object>> allClaims = (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(decryptedCredentialDTO.getCredential());
 
             publicClaimsMap = allClaims.get("publicClaims");
@@ -512,7 +512,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         }
 
         Set<String> result = new HashSet<>();
-        if (format.containsKey(CredentialFormat.VC_SD_JWT.getFormat())) {
+        if (format.containsKey(CredentialFormat.VC_SD_JWT.getFormat()) || format.containsKey(CredentialFormat.DC_SD_JWT.getFormat())) {
             result.add(SD_JWT_ALG_VALUES_KEY);
         }
         if (format.containsKey(LDP_VC_FORMAT)) {

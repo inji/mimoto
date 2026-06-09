@@ -36,7 +36,8 @@ public class OpenID4VPService {
         WalletMetadata walletMetadata = new WalletMetadata();
         walletMetadata.setVpFormatsSupported(Map.of(
                 VPFormatType.LDP_VC, new VPFormatSupported(List.of("Ed25519Signature2020")),
-                VPFormatType.VC_SD_JWT, new VPFormatSupported(List.of("ES256", "ES256K", "EdDSA"))
+                VPFormatType.VC_SD_JWT, new VPFormatSupported(List.of("ES256", "ES256K", "EdDSA", "RS256")),
+                VPFormatType.DC_SD_JWT, new VPFormatSupported(List.of("ES256", "ES256K", "EdDSA", "RS256"))
         ));
 
         return new OpenID4VP(presentationId, walletMetadata);

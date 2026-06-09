@@ -143,9 +143,11 @@ public class SwaggerLiteralConstants {
     public static final String WALLET_PRESENTATIONS_GET_MATCHING_CREDENTIALS_500_SERVER_ERROR_VALUE = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}";
 
     public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_SUMMARY = "Submit presentation or reject verifier";
-    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_DESCRIPTION = "This API handles both presentation submission and verifier rejection based on the request content. For submission: include selectedCredentials array. For rejection: include errorCode and errorMessage fields.";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_DESCRIPTION = "This API handles both presentation submission and verifier rejection based on the request content. For submission: include selectedCredentials array, and optionally selectedSdClaims to selectively disclose the chosen claims for SD-JWT credentials (vc+sd-jwt and dc+sd-jwt). Only the explicitly selected SD-JWT disclosures are shared; when selectedSdClaims is omitted (or empty) for an SD-JWT credential, none of its selectively-disclosable claims are shared. For rejection: include errorCode and errorMessage fields.";
     public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_EXAMPLE_NAME = "Submit Presentation";
     public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_EXAMPLE_VALUE = "{ \"selectedCredentials\": [\"cred-123\", \"cred-456\"] }";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_SDJWT_EXAMPLE_NAME = "Submit Presentation (SD-JWT with selective disclosure)";
+    public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_SUBMIT_SDJWT_EXAMPLE_VALUE = "{ \"selectedCredentials\": [\"cred-123\"], \"selectedSdClaims\": { \"cred-123\": [\"name\", \"dob\"] } }";
     public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_REJECT_EXAMPLE_NAME = "Reject Verifier";
     public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_REQ_REJECT_EXAMPLE_VALUE = "{ \"errorCode\": \"access_denied\", \"errorMessage\": \"User denied authorization to share credentials\" }";
     public static final String WALLET_PRESENTATIONS_HANDLE_ACTION_200_SUBMITTED_NAME = "Presentation submitted";
