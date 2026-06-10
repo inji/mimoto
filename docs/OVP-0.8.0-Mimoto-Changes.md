@@ -176,10 +176,11 @@ GET /wallets/{id}/presentations/{pid}/credentials
   │
   ├─ build DcqlMatchingCredentialsResponseDTO:
   │       queryGroups: List<DcqlQueryGroup>
-  │           each: { queryId, required, multiple, availableCredentials, missingClaims }
+  │           each: { queryId, multiple, availableCredentials, missingClaims }
   │       credentialSets: List<CredentialSetInfo>   ← option structure for the UI
   │           each: { required, options: List<List<queryId>> }
   │           e.g. { required:true, options:[["pan"],["aadhaar"],["voter_id","dl"]] }
+  │       mandatory/optional logic lives only in credentialSets (not on queryGroup)
   │
   └─ store dcqlMatchingCredentials (with queryId as descriptorId) in session
 ```
@@ -213,6 +214,173 @@ GET /wallets/{id}/presentations/{pid}/credentials
 ### 📦 API Response Body
 
 > The response shape is **different** for Draft-23 and OVP 1.0. The `isDcql` flag tells the UI which shape to render.
+
+---
+
+#### When the VP request is NOT satisfiable
+
+> **Rule:** Mimoto **never returns an HTTP error for an unsatisfiable request.**
+> The `GET /credentials` endpoint always returns HTTP 200.
+> Mimoto puts the mismatch information into the response body and lets the UI inform the user.
+> The only action available to the user at that point is to reject via `PATCH` with `errorCode: access_denied`.
+
+**Why Mimoto does not error here:**
+The verifier has already sent a valid, well-formed authorization request. The wallet just happens to not have credentials that satisfy it. This is a business-level condition, not a protocol error. The protocol requires the wallet to either submit a VP or send `access_denied` back to the verifier — both happen through the existing `PATCH` endpoint.
+
+---
+
+##### Draft-23 — Unsatisfiable response shapes
+
+**Case A — Wallet has no credentials at all**
+
+```json
+{
+  "isDcql": false,
+  "availableCredentials": [],
+  "missingClaims": ["name", "dateOfBirth", "licenseNumber"]
+}
+```
+
+**Case B — Wallet has credentials but none match any InputDescriptor**
+
+```json
+{
+  "isDcql": false,
+  "availableCredentials": [],
+  "missingClaims": ["licenseNumber", "validUntil", "name", "dateOfBirth"]
+}
+```
+
+**Case C — Wallet partially matches (some descriptors satisfied, some not)**
+
+```json
+{
+  "isDcql": false,
+  "availableCredentials": [
+    { "credentialId": "vc-uuid-111", "credentialTypeDisplayName": "National ID Card", ... }
+  ],
+  "missingClaims": ["licenseNumber", "validUntil"]
+}
+```
+
+> `missingClaims` comes from the `InputDescriptor`s that had zero matching credentials.
+> If **any** descriptor is unsatisfied, `missingClaims` will be non-empty.
+> If **all** descriptors are unsatisfied, `availableCredentials` will be empty.
+
+**UI decision rule for Draft-23:**
+
+| `availableCredentials` | `missingClaims` | What UI should do |
+|------------------------|-----------------|-------------------|
+| non-empty | empty | All requirements met — show credential picker, allow submit |
+| non-empty | non-empty | Partial match — show available credentials + warn about missing ones |
+| empty | non-empty | Fully unsatisfiable — show "missing credentials" screen, only allow reject |
+
+---
+
+##### OVP 1.0 / DCQL — Unsatisfiable response shapes
+
+**Case A — Required query has no matching credential**
+
+```json
+{
+  "isDcql": true,
+  "queryGroups": [
+    {
+      "queryId": "pid_query",
+      "multiple": false,
+      "availableCredentials": [],
+      "missingClaims": ["name", "dateOfBirth"]
+    },
+    {
+      "queryId": "mdl_query",
+      "multiple": false,
+      "availableCredentials": [
+        { "credentialId": "vc-uuid-222", "credentialTypeDisplayName": "Driving License", ... }
+      ],
+      "missingClaims": []
+    }
+  ],
+  "credentialSets": []
+}
+```
+
+> `pid_query` slot is unsatisfiable → UI shows that slot as "Not available".
+> Since `credentialSets` is empty, all queryGroups are mandatory (DCQL default). `pid_query` has no match → user cannot submit — only reject.
+
+**Case B — credentialSets present, at least one option is satisfiable**
+
+Verifier accepts PAN OR Aadhaar OR (Voter ID + Driving License). Wallet only has Aadhaar:
+
+```json
+{
+  "isDcql": true,
+  "queryGroups": [
+    { "queryId": "pan",      "availableCredentials": [], "missingClaims": ["pan","name"] },
+    { "queryId": "aadhaar",  "availableCredentials": [{ "credentialId": "vc-aadh-222", ... }], "missingClaims": [] },
+    { "queryId": "voter_id", "availableCredentials": [], "missingClaims": ["name"] },
+    { "queryId": "dl",       "availableCredentials": [], "missingClaims": ["licenseNumber"] }
+  ],
+  "credentialSets": [
+    {
+      "required": true,
+      "options": [["pan"], ["aadhaar"], ["voter_id", "dl"]]
+    }
+  ]
+}
+```
+
+> Option `["aadhaar"]` is satisfiable → user can proceed by selecting Aadhaar.
+> Options `["pan"]` and `["voter_id","dl"]` are not satisfiable → UI shows those tabs as unavailable.
+> The section is still satisfiable overall.
+
+**Case C — credentialSets present, NO option is satisfiable**
+
+```json
+{
+  "isDcql": true,
+  "queryGroups": [
+    { "queryId": "pan",      "availableCredentials": [], "missingClaims": ["pan","name"] },
+    { "queryId": "aadhaar",  "availableCredentials": [], "missingClaims": ["name","dob"] },
+    { "queryId": "voter_id", "availableCredentials": [], "missingClaims": ["name"] },
+    { "queryId": "dl",       "availableCredentials": [], "missingClaims": ["licenseNumber"] }
+  ],
+  "credentialSets": [
+    {
+      "required": true,
+      "options": [["pan"], ["aadhaar"], ["voter_id", "dl"]]
+    }
+  ]
+}
+```
+
+> Every option is unsatisfiable. The required section cannot be fulfilled → only reject.
+
+**UI decision rule for DCQL:**
+
+| Condition | What UI should do |
+|-----------|-------------------|
+| `credentialSets` empty — every queryGroup has `availableCredentials` non-empty | All requirements met — allow submit |
+| `credentialSets` empty — any queryGroup has empty `availableCredentials` | Show those slots as "Not available" — disable submit, only allow reject |
+| `credentialSets` present — at least one option has all its queries satisfied | Highlight satisfiable options — allow submit after user picks one option per required set |
+| `credentialSets` present — no option has all its queries satisfied | Show section as "Cannot be satisfied" — only allow reject |
+
+---
+
+##### The reject flow when unsatisfiable
+
+Regardless of whether the request is Draft-23 or DCQL, when the wallet cannot satisfy the request, the user rejects via the same endpoint:
+
+```
+PATCH /wallets/{id}/presentations/{pid}
+Body:
+{
+  "errorCode": "access_denied",
+  "errorMessage": "User does not have the required credentials"
+}
+```
+
+Mimoto forwards this to the verifier via `openID4VP.sendErrorInfoToVerifier()`.
+The verifier receives the `access_denied` error as required by the OpenID4VP spec.
 
 #### Draft-23 Response — flat credential list
 
@@ -275,8 +443,8 @@ DCQLQuery
         }
 ```
 
-- When `credential_sets` is **absent** → every `CredentialQuery` is an independent slot; `required` on each `queryGroup` tells the UI whether it is mandatory.
-- When `credential_sets` is **present** → the queries grouped inside a set are **not** independently required; the set as a whole is required/optional, and the user must satisfy exactly one of its options.
+- When `credential_sets` is **absent** → every `CredentialQuery` is an independent mandatory slot (DCQL default). UI infers this from `credentialSets: []` — no per-query `required` field is sent.
+- When `credential_sets` is **present** → mandatory/optional logic lives in `credentialSets[].required` and `credentialSets[].options`. Queries inside a set are only required when the user picks the option that contains them.
 
 #### OVP 1.0 / DCQL Response — example without credential_sets
 
@@ -288,7 +456,6 @@ The simplest case: two independent required slots (e.g. national ID + driving li
   "queryGroups": [
     {
       "queryId": "pid_query",
-      "required": true,
       "multiple": false,
       "availableCredentials": [
         {
@@ -303,7 +470,6 @@ The simplest case: two independent required slots (e.g. national ID + driving li
     },
     {
       "queryId": "mdl_query",
-      "required": true,
       "multiple": false,
       "availableCredentials": [
         {
@@ -321,6 +487,8 @@ The simplest case: two independent required slots (e.g. national ID + driving li
 }
 ```
 
+> `credentialSets` is empty → both slots are mandatory. UI does not need a `required` flag on each `queryGroup`.
+
 #### OVP 1.0 / DCQL Response — example with credential_sets (options)
 
 A more complex case: the verifier accepts **PAN card OR Aadhaar OR (Voter ID + Driving License)** as proof of identity. The user must satisfy exactly one option from this section.
@@ -331,7 +499,6 @@ A more complex case: the verifier accepts **PAN card OR Aadhaar OR (Voter ID + D
   "queryGroups": [
     {
       "queryId": "pan",
-      "required": false,
       "multiple": false,
       "availableCredentials": [
         { "credentialId": "vc-pan-111", "credentialTypeDisplayName": "PAN Card", "format": "ldp_vc", "claims": ["$.name","$.pan"], "sdClaims": [] }
@@ -340,7 +507,6 @@ A more complex case: the verifier accepts **PAN card OR Aadhaar OR (Voter ID + D
     },
     {
       "queryId": "aadhaar",
-      "required": false,
       "multiple": false,
       "availableCredentials": [
         { "credentialId": "vc-aadh-222", "credentialTypeDisplayName": "Aadhaar Card", "format": "ldp_vc", "claims": ["$.name","$.dob"], "sdClaims": ["$.address"] }
@@ -349,7 +515,6 @@ A more complex case: the verifier accepts **PAN card OR Aadhaar OR (Voter ID + D
     },
     {
       "queryId": "voter_id",
-      "required": false,
       "multiple": false,
       "availableCredentials": [
         { "credentialId": "vc-vid-333", "credentialTypeDisplayName": "Voter ID", "format": "ldp_vc", "claims": ["$.name"], "sdClaims": [] }
@@ -358,7 +523,6 @@ A more complex case: the verifier accepts **PAN card OR Aadhaar OR (Voter ID + D
     },
     {
       "queryId": "dl",
-      "required": false,
       "multiple": false,
       "availableCredentials": [
         { "credentialId": "vc-dl-444", "credentialTypeDisplayName": "Driving License", "format": "ldp_vc", "claims": ["$.licenseNumber"], "sdClaims": [] }
@@ -379,13 +543,12 @@ A more complex case: the verifier accepts **PAN card OR Aadhaar OR (Voter ID + D
 }
 ```
 
-> **Why all four queryGroups have `required: false`:** the individual queries are not independently mandatory. The *section* (`credentialSets[0].required = true`) is what's mandatory. Each query is only required if the user picks the option that contains it. The UI must NOT use `queryGroup.required` as the sole driver for mandatory/optional when `credentialSets` is non-empty.
+> **Mandatory logic is on `credentialSets`, not on `queryGroup`:** the section (`credentialSets[0].required = true`) is what's mandatory. Each query is only required if the user picks the option that contains it. `queryGroups` carry slot details only — no `required` field.
 
 | Field | Meaning |
 |-------|---------|
 | `queryGroups` | One entry per `CredentialQuery` — describes the credential type, available VCs, and missing claims for each slot |
 | `queryId` | The `CredentialQuery.id` — must be sent back in the submit request |
-| `required` (on queryGroup) | `true` when the query is **not** part of any `credentialSet` and is independently mandatory. `false` when it belongs to a `credentialSet` (mandatory or not is determined by the set) |
 | `multiple` | `true` → user may pick more than one credential for this slot · `false` → exactly one |
 | `availableCredentials` | VCs in the wallet that match this query slot |
 | `missingClaims` | Claims this query needs but no wallet VC satisfies |
@@ -404,9 +567,9 @@ isDcql == false
 
 isDcql == true  AND  credentialSets is empty
   → render one card/slot per queryGroup
-  → queryGroup.required == true  → mandatory slot (user must pick)
-  → queryGroup.required == false → optional slot
+  → all slots are mandatory (DCQL default when credential_sets is absent)
   → queryGroup.multiple == true  → allow multi-select within the slot
+  → submit only when every queryGroup has a selected credential
   → submit: { "selectedCredentials": [{ "queryId": "pid_query", "selectedCredentialIds": ["vc-uuid-111"] }] }
 
 
@@ -732,7 +895,7 @@ PATCH /wallets/{id}/presentations/{pid}
 | File | Purpose |
 |------|---------|
 | `SpecVersion.java` | Enum: `DRAFT_23` \| `V1_0` |
-| `DcqlQueryGroup.java` | DTO: one query's matching result (queryId, required, multiple, availableCredentials, missingClaims) |
+| `DcqlQueryGroup.java` | DTO: one query's matching result (queryId, multiple, availableCredentials, missingClaims) |
 | `DcqlCredentialSelection.java` | DTO: one user selection for a DCQL query (queryId + selectedCredentialIds) |
 
 ### Test files updated
