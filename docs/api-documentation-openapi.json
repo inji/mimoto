@@ -4405,7 +4405,7 @@
                   "schema": {
                     "oneOf": [
                       { "$ref": "#/components/schemas/PresentationSubmissionRequestDTO" },
-                      { "$ref": "#/components/schemas/Error" }
+                      { "$ref": "#/components/schemas/PresentationRejectionRequestDTO" }
                     ]
                   },
                   "examples": {
@@ -5172,7 +5172,28 @@
               },
               "required": [
                 "selectedCredentials"
-              ]
+              ],
+              "additionalProperties": false
+            },
+            "PresentationRejectionRequestDTO": {
+              "type": "object",
+              "properties": {
+                "errorCode": {
+                  "type": "string",
+                  "description": "Error code for rejecting the verifier",
+                  "example": "access_denied"
+                },
+                "errorMessage": {
+                  "type": "string",
+                  "description": "Error message for rejecting the verifier",
+                  "example": "User denied authorization to share credentials"
+                }
+              },
+              "required": [
+                "errorCode",
+                "errorMessage"
+              ],
+              "additionalProperties": false
             },
             "IssuerConfigurationSuccessResponse": {
                 "type": "object",
