@@ -263,13 +263,13 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
         // Holder key for LDP_VC is always ED25519 (Ed25519Signature2020). SD-JWT KB-JWT signing
         // derives its own per-credential key from the KB-JWT header alg inside signVPToken.
-        KeyPair keyPair = keyPairService.getKeyPairFromDB(walletId, base64Key, SigningAlgorithm.ED25519);
-        JWK jwk = SigningKeyUtil.generateJwk(SigningAlgorithm.ED25519, keyPair);
+        SigningAlgorithm signingAlgorithm = SigningAlgorithm.ED25519;
+        KeyPair keyPair = keyPairService.getKeyPairFromDB(walletId, base64Key, signingAlgorithm);
+        JWK jwk = SigningKeyUtil.generateJwk(signingAlgorithm, keyPair);
         Map<FormatType, UnsignedVPToken> unsignedVPToken = constructUnsignedVPToken(openID4VP, selectedCredentials, jwk, request.getSelectedSdClaims());
 
-        // Step 3: Sign tokens - LDP_VC uses the ED25519 holder signer; SD-JWT uses per-credential signers
-        Map<FormatType, JWSSigner> signers = buildFormatSigners(unsignedVPToken.keySet(), jwk);
-        Map<FormatType, VPTokenSigningResult> vpTokenSigningResults = signVPToken(unsignedVPToken, signers, walletId, base64Key);
+        // Step 3: Sign each unsigned VP token using format-specific signing logic
+        Map<FormatType, VPTokenSigningResult> vpTokenSigningResults = signVPToken(unsignedVPToken, jwk, walletId, base64Key);
 
         // Step 4: Share verifiable presentation with verifier using OpenID4VP JAR
         log.debug("Calling OpenID4VP JAR's shareVerifiablePresentation method");
@@ -289,9 +289,11 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     }
 
     /**
-     * Signs VP token using per-format signers - dispatches to format-specific signing logic
+     * Signs each unsigned VP token by dispatching to the signing logic for its credential format.
+     * LDP_VC is signed with the ED25519 holder key; SD-JWT (vc+sd-jwt / dc+sd-jwt) signers are derived
+     * per credential from the KB-JWT header alg inside signSdJwtFormat.
      */
-    private Map<FormatType, VPTokenSigningResult> signVPToken(Map<FormatType, UnsignedVPToken> unsignedVPTokensMap, Map<FormatType, JWSSigner> signers, String walletId, String base64Key) throws JOSEException, KeyGenerationException, DecryptionException {
+    private Map<FormatType, VPTokenSigningResult> signVPToken(Map<FormatType, UnsignedVPToken> unsignedVPTokensMap, JWK ldpVcJwk, String walletId, String base64Key) throws JOSEException, KeyGenerationException, DecryptionException {
         log.debug("Signing VP token for {} format types", unsignedVPTokensMap.size());
 
         Map<FormatType, VPTokenSigningResult> results = new HashMap<>();
@@ -301,9 +303,8 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
             VPTokenSigningResult signingResult;
             if (formatType == FormatType.LDP_VC) {
-                signingResult = signLdpVcFormat(unsignedVPToken, signers.get(formatType));
+                signingResult = signLdpVcFormat(unsignedVPToken, ldpVcJwk);
             } else if (formatType == FormatType.VC_SD_JWT || formatType == FormatType.DC_SD_JWT) {
-                // SD-JWT signers are derived per credential from the KB-JWT header alg, not from the pre-built signers map
                 signingResult = signSdJwtFormat(unsignedVPToken, walletId, base64Key);
             } else {
                 log.error("Unsupported format type: {}", formatType);
@@ -365,8 +366,11 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     /**
      * Signs LDP_VC format verifiable presentation using detached JWT
      */
-    private LdpVPTokenSigningResult signLdpVcFormat(UnsignedVPToken unsignedVPToken, JWSSigner jwsSigner) throws JOSEException {
+    private LdpVPTokenSigningResult signLdpVcFormat(UnsignedVPToken unsignedVPToken, JWK ed25519Jwk) throws JOSEException {
         log.debug("Signing LDP_VC format VP token");
+
+        // LDP_VC is always signed with the ED25519 holder key (Ed25519Signature2020)
+        JWSSigner jwsSigner = SigningKeyUtil.createSigner(SigningAlgorithm.ED25519, ed25519Jwk);
 
         String dataToSign = ((UnsignedLdpVPToken) unsignedVPToken).getDataToSign();
 
@@ -549,18 +553,6 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             log.error("Failed to filter SD-JWT disclosures for credential: {}, selectedPaths: {}. Sharing no disclosures. Error: {}", credential.getId(), selectedPaths, e.getMessage(), e);
             return credentialJwt + "~";
         }
-    }
-
-    /**
-     * Builds the LDP_VC signer from the ED25519 holder key.
-     * SD-JWT signers are derived per credential from the KB-JWT header alg in signVPToken, so they are not built here.
-     */
-    private Map<FormatType, JWSSigner> buildFormatSigners(Set<FormatType> formats, JWK ed25519Jwk) throws JOSEException {
-        Map<FormatType, JWSSigner> signers = new EnumMap<>(FormatType.class);
-        if (formats.contains(FormatType.LDP_VC)) {
-            signers.put(FormatType.LDP_VC, SigningKeyUtil.createSigner(SigningAlgorithm.ED25519, ed25519Jwk));
-        }
-        return signers;
     }
 
     /**
