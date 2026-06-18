@@ -14,6 +14,7 @@ import io.mosip.mimoto.model.PasscodeControl;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.model.Wallet;
 import io.mosip.mimoto.model.WalletMetadata;
+import io.mosip.mimoto.constant.SpecVersion;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
@@ -23,7 +24,7 @@ import io.mosip.mimoto.dto.openid.datashare.DataShareResponseWrapperDTO;
 import io.mosip.mimoto.dto.openid.presentation.*;
 import io.mosip.mimoto.model.WalletLockStatus;
 import io.mosip.openID4VP.OpenID4VP;
-import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
+import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import org.springframework.util.ResourceUtils;
 
@@ -510,9 +511,10 @@ public class TestUtilities {
                 isPreRegisteredWithWallet,
                 redirectUri
         );
-        VerifiablePresentationSessionData presentationSessionData = new VerifiablePresentationSessionData("123e4567-e89b-12d3-a456-426614174000", "authorizationRequest", time, true,  null);
+        VerifiablePresentationSessionData presentationSessionData = new VerifiablePresentationSessionData("123e4567-e89b-12d3-a456-426614174000", "authorizationRequest", time, true, null, null);
 
-        VPResponseDTO presentationResponseDTO = new VPResponseDTO(presentationSessionData.getPresentationId(), presentationVerifierDTO);
+        VPResponseDTO presentationResponseDTO = new VPResponseDTO(
+                presentationSessionData.getPresentationId(), presentationVerifierDTO, SpecVersion.DRAFT_23);
 
         return presentationResponseDTO;
     }
@@ -552,19 +554,18 @@ public class TestUtilities {
     }
 
 
-    public static AuthorizationRequest getPresentationAuthorizationRequest(String clientId, String responseUri) {
-        return new AuthorizationRequest(
+    public static AuthorizationPresentationExchangeRequest getPresentationAuthorizationRequest(String clientId, String responseUri) {
+        return new AuthorizationPresentationExchangeRequest(
                 clientId,
                 "vp_token",
                 "direct_post",
-                getPresentationDefinition(),
                 "https://test-responseUri",
                 responseUri,
                 "mock-nonce",
                 null,
                 "mock-state",
-                null,
-                "pre-registered"
+                getPresentationDefinition(),
+                null
         );
     }
 }

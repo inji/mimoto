@@ -60,7 +60,7 @@ public class SessionManagerTest {
         MockHttpSession session = new MockHttpSession();
         String walletId = "wallet123";
         String presentationId = "123e4567-e89b-12d3-a456-426614174000";
-        VerifiablePresentationSessionData presentationSessionData = new VerifiablePresentationSessionData(presentationId, "authorizationRequest", fixedInstant, false,  null);
+        VerifiablePresentationSessionData presentationSessionData = new VerifiablePresentationSessionData(presentationId, "authorizationRequest", fixedInstant, false, null, null);
 
         sessionManager.storePresentationSessionData(session, presentationSessionData, walletId);
 
@@ -87,8 +87,8 @@ public class SessionManagerTest {
         String presentationId1 = "123e4567-e89b-12d3-a456-426614174000";
         String presentationId2 = "123e4567-e89b-12d3-a456-426614174001";
 
-        VerifiablePresentationSessionData sessionData1 = new VerifiablePresentationSessionData(presentationId1, "authorizationRequest", fixedInstant, true, null);
-        VerifiablePresentationSessionData sessionData2 = new VerifiablePresentationSessionData(presentationId2, "authorizationRequest", fixedInstant, false, null);
+        VerifiablePresentationSessionData sessionData1 = new VerifiablePresentationSessionData(presentationId1, "authorizationRequest", fixedInstant, true, null, null);
+        VerifiablePresentationSessionData sessionData2 = new VerifiablePresentationSessionData(presentationId2, "authorizationRequest", fixedInstant, false, null, null);
 
         sessionManager.storePresentationSessionData(session, sessionData1, walletId1);
         sessionManager.storePresentationSessionData(session, sessionData2, walletId2);
@@ -125,7 +125,7 @@ public class SessionManagerTest {
         String walletId = "wallet123";
         MockHttpSession session = new MockHttpSession();
 
-        VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(presentationId,"mockOpenID4VP", fixedInstant,  true, null);
+        VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(presentationId,"mockOpenID4VP", fixedInstant,  true, null, null);
 
         Map<String, VerifiablePresentationSessionData> presentations = new HashMap<>();
         presentations.put(presentationId, sessionData);
@@ -183,7 +183,7 @@ public class SessionManagerTest {
         
         // Create existing session data
         VerifiablePresentationSessionData existingSessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequest", fixedInstant, true, null);
+                presentationId, "authorizationRequest", fixedInstant, true, null, null);
         
         // Create credentials to store
         List<DecryptedCredentialDTO> credentials = createMockCredentials();
@@ -223,7 +223,7 @@ public class SessionManagerTest {
         
         // Create existing session data
         VerifiablePresentationSessionData existingSessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequest", fixedInstant, true, null);
+                presentationId, "authorizationRequest", fixedInstant, true, null, null);
         
         // Create credentials to store
         List<DecryptedCredentialDTO> credentials = createMockCredentials();
@@ -247,7 +247,7 @@ public class SessionManagerTest {
         String presentationId = "test-presentation-id";
         Instant fixedInstant = Instant.parse("2025-09-08T12:34:56Z");
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequest", fixedInstant, true, null);
+                presentationId, "authorizationRequest", fixedInstant, true, null, null);
 
         // Act
         sessionManager.storePresentationSessionData(session, sessionData, walletId);
@@ -272,11 +272,11 @@ public class SessionManagerTest {
         
         // Create original session data
         VerifiablePresentationSessionData originalSessionData = new VerifiablePresentationSessionData(
-                presentationId, "originalRequest", fixedInstant, true, null);
+                presentationId, "originalRequest", fixedInstant, true, null, null);
         
         // Create new session data with same presentation ID
         VerifiablePresentationSessionData newSessionData = new VerifiablePresentationSessionData(
-                presentationId, "newRequest", fixedInstant.plusSeconds(100), false, null);
+                presentationId, "newRequest", fixedInstant.plusSeconds(100), false, null, null);
 
         // Store original data
         sessionManager.storePresentationSessionData(session, originalSessionData, walletId);
@@ -306,7 +306,7 @@ public class SessionManagerTest {
         Instant fixedInstant = Instant.parse("2025-09-08T12:34:56Z");
         
         VerifiablePresentationSessionData existingSessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequest", fixedInstant, true, null);
+                presentationId, "authorizationRequest", fixedInstant, true, null, null);
         
         // Set up existing presentations map
         Map<String, VerifiablePresentationSessionData> presentations = new HashMap<>();
@@ -335,7 +335,7 @@ public class SessionManagerTest {
         Instant fixedInstant = Instant.parse("2025-09-08T12:34:56Z");
         
         VerifiablePresentationSessionData existingSessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequest", fixedInstant, true, null);
+                presentationId, "authorizationRequest", fixedInstant, true, null, null);
         
         // Set up existing presentations map
         Map<String, VerifiablePresentationSessionData> presentations = new HashMap<>();

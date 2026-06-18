@@ -8,6 +8,7 @@ import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.openID4VP.OpenID4VP;
+import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.PresentationDefinition;
 import io.mosip.openID4VP.common.OpenID4VPErrorCodes;
@@ -46,7 +47,7 @@ public class OpenID4VPServiceTest {
 
     private VerifiersDTO mockVerifiersDTO;
     private VerifierDTO mockVerifierDTO;
-    private AuthorizationRequest mockAuthorizationRequest;
+    private AuthorizationPresentationExchangeRequest mockAuthorizationRequest;
     private PresentationDefinition mockPresentationDefinition;
 
     @Before
@@ -66,7 +67,7 @@ public class OpenID4VPServiceTest {
 
 
         // Setup mock AuthorizationRequest
-        mockAuthorizationRequest = mock(AuthorizationRequest.class);
+        mockAuthorizationRequest = mock(AuthorizationPresentationExchangeRequest.class);
 
         // Setup mock PresentationDefinition
         mockPresentationDefinition = mock(PresentationDefinition.class);
@@ -103,14 +104,14 @@ public class OpenID4VPServiceTest {
         
         // Create a mock OpenID4VP to control the authenticateVerifier method
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean()))
+        when(mockOpenID4VP.authenticateVerifier(anyString()))
                 .thenReturn(mockAuthorizationRequest);
         when(mockAuthorizationRequest.getPresentationDefinition())
                 .thenReturn(mockPresentationDefinition);
 
         // Use reflection to replace the create method behavior
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         // Execute
         PresentationDefinition result = spyService.resolvePresentationDefinition(
@@ -123,7 +124,7 @@ public class OpenID4VPServiceTest {
         assertNotNull(result);
         assertEquals(mockPresentationDefinition, result);
         verify(verifierService).getTrustedVerifiers();
-        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"), anyList(), eq(true));
+        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"));
         verify(mockAuthorizationRequest).getPresentationDefinition();
     }
 
@@ -176,14 +177,14 @@ public class OpenID4VPServiceTest {
         
         // Create a mock OpenID4VP to control the authenticateVerifier method
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean()))
+        when(mockOpenID4VP.authenticateVerifier(anyString()))
                 .thenReturn(mockAuthorizationRequest);
         when(mockAuthorizationRequest.getPresentationDefinition())
                 .thenReturn(mockPresentationDefinition);
 
         // Use reflection to replace the create method behavior
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         // Execute
         PresentationDefinition result = spyService.resolvePresentationDefinition(
@@ -195,7 +196,7 @@ public class OpenID4VPServiceTest {
         // Verify - Empty string is not null, so it will proceed to call verifierService
         assertNotNull(result);
         verify(verifierService).getTrustedVerifiers();
-        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"), anyList(), eq(true));
+        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"));
         verify(mockAuthorizationRequest).getPresentationDefinition();
     }
 
@@ -206,14 +207,14 @@ public class OpenID4VPServiceTest {
         
         // Create a mock OpenID4VP to control the authenticateVerifier method
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean()))
+        when(mockOpenID4VP.authenticateVerifier(anyString()))
                 .thenReturn(mockAuthorizationRequest);
         when(mockAuthorizationRequest.getPresentationDefinition())
                 .thenReturn(mockPresentationDefinition);
 
         // Use reflection to replace the create method behavior
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         // Execute
         PresentationDefinition result = spyService.resolvePresentationDefinition(
@@ -225,7 +226,7 @@ public class OpenID4VPServiceTest {
         // Verify - Empty string is not null, so it will proceed to call verifierService
         assertNotNull(result);
         verify(verifierService).getTrustedVerifiers();
-        verify(mockOpenID4VP).authenticateVerifier(eq(""), anyList(), eq(true));
+        verify(mockOpenID4VP).authenticateVerifier(eq(""));
         verify(mockAuthorizationRequest).getPresentationDefinition();
     }
 
@@ -275,14 +276,14 @@ public class OpenID4VPServiceTest {
         
         // Create a mock OpenID4VP to control the authenticateVerifier method
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean()))
+        when(mockOpenID4VP.authenticateVerifier(anyString()))
                 .thenReturn(mockAuthorizationRequest);
         when(mockAuthorizationRequest.getPresentationDefinition())
                 .thenReturn(mockPresentationDefinition);
 
         // Use reflection to replace the create method behavior
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         // Execute
         PresentationDefinition result = spyService.resolvePresentationDefinition(
@@ -295,7 +296,7 @@ public class OpenID4VPServiceTest {
         assertNotNull(result);
         assertEquals(mockPresentationDefinition, result);
         verify(verifierService).getTrustedVerifiers();
-        verify(mockOpenID4VP).authenticateVerifier("authorization-request", List.of(), false);
+        verify(mockOpenID4VP).authenticateVerifier("authorization-request");
         verify(mockAuthorizationRequest).getPresentationDefinition();
     }
 
@@ -306,14 +307,14 @@ public class OpenID4VPServiceTest {
         
         // Create a mock OpenID4VP to control the authenticateVerifier method
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean()))
+        when(mockOpenID4VP.authenticateVerifier(anyString()))
                 .thenReturn(mockAuthorizationRequest);
         when(mockAuthorizationRequest.getPresentationDefinition())
                 .thenReturn(null);
 
         // Use reflection to replace the create method behavior
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         // Execute
         PresentationDefinition result = spyService.resolvePresentationDefinition(
@@ -325,7 +326,7 @@ public class OpenID4VPServiceTest {
         // Verify
         assertNull(result);
         verify(verifierService).getTrustedVerifiers();
-        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"), anyList(), eq(true));
+        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"));
         verify(mockAuthorizationRequest).getPresentationDefinition();
     }
 
@@ -337,11 +338,11 @@ public class OpenID4VPServiceTest {
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
         VerifierResponse mockResponse = mock(VerifierResponse.class);
 
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
         when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
 
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
         when(sessionData.getPresentationId()).thenReturn("presentation-123");
@@ -358,7 +359,7 @@ public class OpenID4VPServiceTest {
         assertNotNull(response);
         assertEquals(mockResponse, response);
         verify(verifierService).getTrustedVerifiers();
-        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"), anyList(), eq(true));
+        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"));
         ArgumentCaptor<Exception> errorCaptor = ArgumentCaptor.forClass(Exception.class);
         verify(mockOpenID4VP).sendErrorInfoToVerifier(errorCaptor.capture());
         assertTrue(errorCaptor.getValue() instanceof OpenID4VPExceptions.AccessDenied);
@@ -373,11 +374,11 @@ public class OpenID4VPServiceTest {
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
         VerifierResponse mockResponse = mock(VerifierResponse.class);
 
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
         when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
 
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
         when(sessionData.getPresentationId()).thenReturn("presentation-123");
@@ -405,10 +406,10 @@ public class OpenID4VPServiceTest {
         when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
 
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
 
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
         when(sessionData.getPresentationId()).thenReturn("presentation-123");
@@ -425,11 +426,11 @@ public class OpenID4VPServiceTest {
 
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
         VerifierResponse mockResponse = mock(VerifierResponse.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
         when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
 
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
         when(sessionData.getPresentationId()).thenReturn("presentation-123");
@@ -455,11 +456,11 @@ public class OpenID4VPServiceTest {
 
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
         VerifierResponse mockResponse = mock(VerifierResponse.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
         when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
 
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
         when(sessionData.getPresentationId()).thenReturn("presentation-123");
@@ -485,11 +486,11 @@ public class OpenID4VPServiceTest {
 
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
         VerifierResponse mockResponse = mock(VerifierResponse.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
         when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
 
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
         when(sessionData.getPresentationId()).thenReturn("presentation-123");
@@ -515,11 +516,11 @@ public class OpenID4VPServiceTest {
 
         OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
         VerifierResponse mockResponse = mock(VerifierResponse.class);
-        when(mockOpenID4VP.authenticateVerifier(anyString(), anyList(), anyBoolean())).thenReturn(mockAuthorizationRequest);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
         when(mockOpenID4VP.sendErrorInfoToVerifier(any())).thenReturn(mockResponse);
 
         OpenID4VPService spyService = spy(openID4VPService);
-        doReturn(mockOpenID4VP).when(spyService).create(anyString());
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
 
         VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
         when(sessionData.getPresentationId()).thenReturn("presentation-123");

@@ -95,9 +95,13 @@ public class WalletPresentationsController {
 
             VPResponseDTO verifiablePresentationResponseDTO = walletPresentationService.handleVPAuthorizationRequest(vpAuthorizationRequest.getAuthorizationRequestUrl(), walletId);
 
-            VerifiablePresentationSessionData verifiablePresentationSessionData = new VerifiablePresentationSessionData(verifiablePresentationResponseDTO.getPresentationId(),
-                    vpAuthorizationRequest.getAuthorizationRequestUrl(), Instant.now(),
-                    verifiablePresentationResponseDTO.getVerifiablePresentationVerifierDTO().isPreregisteredWithWallet(), null);
+            VerifiablePresentationSessionData verifiablePresentationSessionData = new VerifiablePresentationSessionData(
+                    verifiablePresentationResponseDTO.getPresentationId(),
+                    vpAuthorizationRequest.getAuthorizationRequestUrl(),
+                    Instant.now(),
+                    verifiablePresentationResponseDTO.getVerifiablePresentationVerifierDTO().isPreregisteredWithWallet(),
+                    null,
+                    verifiablePresentationResponseDTO.getSpecVersion());
 
             sessionManager.storePresentationSessionData(httpSession, verifiablePresentationSessionData, walletId);
 
