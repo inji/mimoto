@@ -15,10 +15,7 @@ import io.mosip.openID4VP.authorizationRequest.Verifier;
 import io.mosip.openID4VP.authorizationRequest.WalletConfig;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.PresentationDefinition;
 import io.mosip.openID4VP.common.OpenID4VPErrorCodes;
-import io.mosip.openID4VP.constants.ClientIdPrefix;
 import io.mosip.openID4VP.constants.ProofType;
-import io.mosip.openID4VP.constants.RequestUriMethod;
-import io.mosip.openID4VP.constants.ResponseType;
 import io.mosip.openID4VP.constants.VPFormatType;
 import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
@@ -30,6 +27,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+
+import static io.mosip.openID4VP.authorizationRequest.WalletConfigDefaultsKt.getDefaultClientIdPrefixesSupported;
+import static io.mosip.openID4VP.authorizationRequest.WalletConfigDefaultsKt.getDefaultEncryptionAlgorithmSupported;
+import static io.mosip.openID4VP.authorizationRequest.WalletConfigDefaultsKt.getDefaultEncryptionMethodSupported;
+import static io.mosip.openID4VP.authorizationRequest.WalletConfigDefaultsKt.getDefaultResponseTypeSupported;
+import static io.mosip.openID4VP.authorizationRequest.WalletConfigDefaultsKt.getDefaultSignatureAlgorithmSupported;
 
 @Component
 @Slf4j
@@ -56,7 +59,19 @@ public class OpenID4VPService {
                 VPFormatType.DC_SD_JWT, new SdJwtVpFormatSupported(List.of("ES256", "EdDSA"), List.of("ES256", "EdDSA"))
         );
 
-        WalletConfig walletConfig = new WalletConfig(vpFormatsSupported);
+        WalletConfig libraryDefaults = new WalletConfig();
+        WalletConfig walletConfig = new WalletConfig(
+                vpFormatsSupported,
+                getDefaultClientIdPrefixesSupported(),
+                getDefaultSignatureAlgorithmSupported(),
+                getDefaultEncryptionAlgorithmSupported(),
+                getDefaultEncryptionMethodSupported(),
+                getDefaultResponseTypeSupported(),
+                libraryDefaults.isPresentationDefinitionUriSupported(),
+                libraryDefaults.getSupportedRequestUriMethods(),
+                trustedVerifiers != null ? trustedVerifiers : List.of(),
+                validatePreRegisteredVerifier
+        );
 
         return new OpenID4VP(presentationId, walletConfig);
     }
