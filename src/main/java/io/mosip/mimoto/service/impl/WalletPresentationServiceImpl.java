@@ -207,23 +207,20 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                     success,
                     response.getRedirectUri(),
                     success ? OpenID4VPConstants.MESSAGE_PRESENTATION_SUCCESS
-                            : OpenID4VPConstants.MESSAGE_PRESENTATION_SHARE_FAILED,
-                    effectiveSelectedSdClaims);
+                            : OpenID4VPConstants.MESSAGE_PRESENTATION_SHARE_FAILED);
         } catch (Exception ex) {
             log.error("Failed to send VP to verifier for presentationId={}", presentationId, ex);
             storePresentationRecord(walletId, presentationId, request, sessionData, false, requestedAt);
             return buildSubmitResponse(
-                    false, null, OpenID4VPConstants.MESSAGE_PRESENTATION_SHARE_FAILED, effectiveSelectedSdClaims);
+                    false, null, OpenID4VPConstants.MESSAGE_PRESENTATION_SHARE_FAILED);
         }
     }
 
-    private SubmitPresentationResponseDTO buildSubmitResponse(
-            boolean success, String redirectUri, String message, Map<String, List<String>> selectedSdClaims) {
+    private SubmitPresentationResponseDTO buildSubmitResponse(boolean success, String redirectUri, String message) {
         return SubmitPresentationResponseDTO.builder()
                 .redirectUri(redirectUri)
                 .status(success ? OpenID4VPConstants.STATUS_SUCCESS : OpenID4VPConstants.STATUS_ERROR)
                 .message(message)
-                .selectedSdClaims(selectedSdClaims)
                 .build();
     }
 
@@ -277,11 +274,14 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     }
 
     /**
-     * Uses the DCQL query id recorded during matching ({@code descriptorId}) as the map key
-     * required by inji-openid4vp. The client-supplied {@code queryId} may differ from the
-     * verifier's actual DCQL credential query id.
+     * Resolves the DCQL query id used as the inji-openid4vp map key. The client-supplied
+     * {@code queryId} is authoritative when present, since one wallet credential may match
+     * multiple DCQL queries and the session stores only the first match's descriptor id.
      */
     private String resolveDcqlMapKey(DcqlCredentialSelection selection, Map<String, DecryptedCredentialDTO> cache) {
+        if (selection.getQueryId() != null && !selection.getQueryId().isBlank()) {
+            return selection.getQueryId();
+        }
         List<String> selectedIds = selection.getSelectedCredentialIds();
         if (selectedIds == null || selectedIds.isEmpty()) {
             return selection.getQueryId();
@@ -300,14 +300,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                                 + sessionQueryId + " vs " + dto.getDescriptorId());
             }
         }
-        if (sessionQueryId != null) {
-            if (selection.getQueryId() != null && !selection.getQueryId().equals(sessionQueryId)) {
-                log.warn("DCQL submit: request queryId '{}' does not match session descriptorId '{}'; using session value",
-                        selection.getQueryId(), sessionQueryId);
-            }
-            return sessionQueryId;
-        }
-        return selection.getQueryId();
+        return sessionQueryId;
     }
 
     private DecryptedCredentialDTO resolveCredentialForSubmission(

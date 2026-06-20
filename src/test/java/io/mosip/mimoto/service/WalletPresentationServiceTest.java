@@ -506,7 +506,7 @@ public class WalletPresentationServiceTest {
     }
 
     @Test
-    public void testSubmitPresentationDcqlNestedSelectedSdClaimsEchoedInResponse() throws Exception {
+    public void testSubmitPresentationDcqlNestedSelectedSdClaimsSucceeds() throws Exception {
         String credentialId = "a3e92fcf-b107-46c9-8d68-f10cdbe8214b";
         Map<String, List<String>> nestedSdClaims = Map.of(credentialId, List.of("dateOfBirth"));
         DcqlCredentialSelection dcqlSelection = DcqlCredentialSelection.builder()
@@ -558,17 +558,17 @@ public class WalletPresentationServiceTest {
             SubmitPresentationResponseDTO result = walletPresentationService.submitPresentation(
                     sessionData, walletId, presentationId, dcqlRequest, base64Key);
 
-            assertNotNull(result.getSelectedSdClaims());
-            assertEquals(List.of("dateOfBirth"), result.getSelectedSdClaims().get(credentialId));
+            assertEquals(OpenID4VPConstants.STATUS_SUCCESS, result.getStatus());
+            verify(verifiablePresentationsRepository).save(any(VerifiablePresentation.class));
         }
     }
 
     @Test
-    public void testSubmitPresentationDcqlUsesSessionDescriptorIdAsMapKey() throws Exception {
+    public void testSubmitPresentationDcqlUsesClientQueryIdAsMapKey() throws Exception {
         String credentialId = "a3e92fcf-b107-46c9-8d68-f10cdbe8214b";
-        String sessionQueryId = "pid_query";
+        String clientQueryId = "government-identity";
         DcqlCredentialSelection dcqlSelection = DcqlCredentialSelection.builder()
-                .queryId("government-identity")
+                .queryId(clientQueryId)
                 .selectedCredentialIds(List.of(credentialId))
                 .build();
         SubmitPresentationRequestDTO dcqlRequest = SubmitPresentationRequestDTO.builder()
@@ -576,12 +576,12 @@ public class WalletPresentationServiceTest {
                 .build();
 
         credentialDTO.setId(credentialId);
-        credentialDTO.setDescriptorId(sessionQueryId);
+        credentialDTO.setDescriptorId("pid_query");
         sessionData.setMatchingCredentials(List.of(credentialDTO));
 
         io.mosip.openID4VP.dcql.query.CredentialQuery credentialQuery =
                 mock(io.mosip.openID4VP.dcql.query.CredentialQuery.class);
-        when(credentialQuery.getId()).thenReturn(sessionQueryId);
+        when(credentialQuery.getId()).thenReturn(clientQueryId);
         when(credentialQuery.getMultiple()).thenReturn(false);
         io.mosip.openID4VP.dcql.query.DCQLQuery dcqlQuery =
                 mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class);
@@ -618,8 +618,8 @@ public class WalletPresentationServiceTest {
             @SuppressWarnings("unchecked")
             ArgumentCaptor<Map> mapCaptor = ArgumentCaptor.forClass(Map.class);
             verify(mockOpenID4VP).constructUnsignedVPToken(mapCaptor.capture());
-            assertTrue(mapCaptor.getValue().containsKey(sessionQueryId));
-            assertFalse(mapCaptor.getValue().containsKey("government-identity"));
+            assertTrue(mapCaptor.getValue().containsKey(clientQueryId));
+            assertFalse(mapCaptor.getValue().containsKey("pid_query"));
         }
     }
 

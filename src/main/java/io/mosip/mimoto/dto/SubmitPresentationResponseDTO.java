@@ -7,9 +7,6 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.Data;
 
-import java.util.List;
-import java.util.Map;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -26,7 +23,4 @@ public class SubmitPresentationResponseDTO {
     @Schema(description = "Message indicating the result of the submission",
             example = "Presentation successfully submitted and shared with verifier")
     private String message;
-
-    @Schema(description = "SD-JWT claim paths selectively disclosed per credential ID (echo of effective request)")
-    private Map<String, List<String>> selectedSdClaims;
 }

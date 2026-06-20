@@ -56,16 +56,7 @@ public class OpenID4VPService {
                 VPFormatType.DC_SD_JWT, new SdJwtVpFormatSupported(List.of("ES256", "EdDSA"), List.of("ES256", "EdDSA"))
         );
 
-        WalletConfig walletConfig = new WalletConfig(
-                vpFormatsSupported,
-                List.of(ClientIdPrefix.PRE_REGISTERED, ClientIdPrefix.REDIRECT_URI),
-                null, null, null,
-                List.of(ResponseType.VP_TOKEN),
-                true,
-                List.of(RequestUriMethod.GET, RequestUriMethod.POST),
-                trustedVerifiers,
-                validatePreRegisteredVerifier
-        );
+        WalletConfig walletConfig = new WalletConfig(vpFormatsSupported);
 
         return new OpenID4VP(presentationId, walletConfig);
     }
