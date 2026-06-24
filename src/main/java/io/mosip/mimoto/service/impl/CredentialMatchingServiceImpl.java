@@ -94,6 +94,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             String base64Key,
             List<DecryptedCredentialDTO> decryptedCredentials) throws ApiNotAccessibleException, IOException {
 
+        // Extract presentation definition from the session data
         PresentationDefinition presentationDefinition = openID4VPService.resolvePresentationDefinition(
                 sessionData.getPresentationId(), sessionData.getAuthorizationRequest(), sessionData.isVerifierClientPreregistered());
 
@@ -137,6 +138,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                     }
                 });
 
+        // Flatten all matching credentials into a single list, removing duplicates by credential ID
         Set<String> addedCredentialIds = new HashSet<>();
         List<CredentialDTO> availableCredentials = matchingCredentialsByDescriptor.values().stream()
                 .flatMap(List::stream)

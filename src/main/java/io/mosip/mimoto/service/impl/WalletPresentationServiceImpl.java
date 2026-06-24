@@ -56,6 +56,9 @@ import java.util.stream.Collectors;
 
 import static io.mosip.mimoto.exception.ErrorConstants.*;
 
+/**
+ * Service implementation for handling wallet presentation operations.
+ */
 @Slf4j
 @Service
 public class WalletPresentationServiceImpl implements WalletPresentationService {
@@ -97,6 +100,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             throws ApiNotAccessibleException, IOException, URISyntaxException {
 
         String presentationId = UUID.randomUUID().toString();
+        // Initialize OpenID4VP instance with presentationId as traceability id for each new Verifiable Presentation request
         List<Verifier> preRegisteredVerifiers = openID4VPService.getPreRegisteredVerifiers();
         boolean shouldValidateClient = verifierService.isVerifierClientPreregistered(
                 preRegisteredVerifiers, urlEncodedVPAuthorizationRequest);
@@ -126,6 +130,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             VerifiablePresentationSessionData vpSessionData, String base64Key) {
 
         try {
+            // Determine the action based on request content
             if (request.isSubmissionRequest()) {
                 if (base64Key == null || base64Key.isBlank()) {
                     return Utilities.getErrorResponseEntityWithoutWrapper(
@@ -167,6 +172,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         }
     }
 
+    /**
+     * Submits a presentation with selected credentials (Draft-23 or DCQL).
+     */
     public SubmitPresentationResponseDTO submitPresentation(
             VerifiablePresentationSessionData sessionData, String walletId, String presentationId,
             SubmitPresentationRequestDTO request, String base64Key)
@@ -176,11 +184,13 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         validateSubmissionRequest(request);
         LocalDateTime requestedAt = LocalDateTime.now();
 
+        // Step 1: Create OpenID4VP instance and authenticate the verifier from session data
         List<Verifier> preRegisteredVerifiers = openID4VPService.getPreRegisteredVerifiers();
         OpenID4VP openID4VP = openID4VPService.create(
                 presentationId, preRegisteredVerifiers, sessionData.isVerifierClientPreregistered());
         openID4VP.authenticateVerifier(sessionData.getAuthorizationRequest());
 
+        // Step 2: Load wallet credentials and resolve effective SD-JWT claim paths for submission
         Map<String, DecryptedCredentialDTO> walletCredentialsById = walletCredentialService
                 .getDecryptedCredentials(walletId, base64Key).stream()
                 .collect(Collectors.toMap(DecryptedCredentialDTO::getId, dto -> dto, (a, b) -> a));
@@ -192,6 +202,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         Map<String, List<String>> effectiveSelectedSdClaims =
                 resolveSubmissionSdClaims(request, sessionData, walletCredentialsById);
 
+        // Step 3: Build credential map for inji-openid4vp (descriptor-based for Draft-23, query-based for DCQL)
         Map<String, List<Credential>> credentialMap;
         if (request.isDcqlSubmission()) {
             credentialMap = buildQueryCredentialMap(
@@ -202,12 +213,15 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             credentialMap = buildDescriptorCredentialMap(selected, effectiveSelectedSdClaims, walletCredentialsById);
         }
 
+        // Step 4: Construct unsigned VP tokens and sign them
         List<UnsignedVPToken> unsignedVPTokens = openID4VP.constructUnsignedVPToken(credentialMap);
         List<VPTokenSigningResult> signingResults = signVPTokens(unsignedVPTokens, walletId, base64Key);
 
+        // Step 5: Share verifiable presentation with verifier using OpenID4VP JAR
         try {
             VerifierResponse response = openID4VP.sendVPResponseToVerifier(signingResults);
             boolean success = response.getStatusCode() >= 200 && response.getStatusCode() < 300;
+            // Step 6: Store presentation record in database
             storePresentationRecord(walletId, presentationId, request, sessionData, success, requestedAt);
             return buildSubmitResponse(
                     success,
@@ -230,6 +244,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                 .build();
     }
 
+    /**
+     * Builds Draft-23 credential map keyed by input descriptor id.
+     */
     private Map<String, List<Credential>> buildDescriptorCredentialMap(
             List<DecryptedCredentialDTO> selected,
             Map<String, List<String>> selectedSdClaims,
@@ -246,6 +263,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         return result;
     }
 
+    /**
+     * Builds DCQL credential map keyed by query id.
+     */
     private Map<String, List<Credential>> buildQueryCredentialMap(
             List<DcqlCredentialSelection> selections,
             VerifiablePresentationSessionData sessionData,
@@ -309,6 +329,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         return sessionQueryId;
     }
 
+    /**
+     * Merges session credential metadata with the latest decrypted credential payload from the wallet.
+     */
     private DecryptedCredentialDTO resolveCredentialForSubmission(
             DecryptedCredentialDTO sessionDto, Map<String, DecryptedCredentialDTO> walletCredentialsById) {
         DecryptedCredentialDTO walletDto = walletCredentialsById.get(sessionDto.getId());
@@ -326,6 +349,10 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                 .build();
     }
 
+    /**
+     * Converts a wallet credential to the inji-openid4vp {@link Credential} type.
+     * For SD-JWT credentials, disclosures are pre-filtered to the user's selectedSdClaims.
+     */
     private Credential toLibraryCredential(DecryptedCredentialDTO dto, Map<String, List<String>> selectedSdClaims) {
         VCCredentialResponse vc = dto.getCredential();
         FormatType format = mapToFormatType(vc.getFormat());
@@ -508,11 +535,16 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         return disc instanceof String s && !s.isBlank();
     }
 
+    /**
+     * Signs each unsigned VP token. LDP_VC uses detached JWT signing; SD-JWT signs the KB-JWT
+     * payload bytes provided by the library. Signers are cached per algorithm.
+     */
     private List<VPTokenSigningResult> signVPTokens(
             List<UnsignedVPToken> tokens, String walletId, String base64Key)
             throws JOSEException, KeyGenerationException, DecryptionException {
 
         List<VPTokenSigningResult> results = new ArrayList<>();
+        // Cache one signer per algorithm so multiple credentials sharing an alg reuse the same key fetch
         Map<SigningAlgorithm, JWSSigner> signerCache = new EnumMap<>(SigningAlgorithm.class);
 
         for (UnsignedVPToken token : tokens) {
@@ -532,12 +564,14 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             Base64URL signature;
             try {
                 if (token.getFormat() == FormatType.LDP_VC) {
+                    // LDP_VC: sign payload bytes after the first '.' separator
                     int dotIndex = indexOfDot(dataToSign);
                     String headerB64 = new String(dataToSign, 0, dotIndex, StandardCharsets.US_ASCII);
                     byte[] payload = Arrays.copyOfRange(dataToSign, dotIndex + 1, dataToSign.length);
                     JWSHeader header = JWSHeader.parse(new Base64URL(headerB64));
                     signature = signer.sign(header, payload);
                 } else {
+                    // SD-JWT: standard JWT signing input is ASCII bytes of "headerB64.payloadB64"
                     String unsignedJwt = new String(dataToSign, StandardCharsets.US_ASCII);
                     String headerB64 = unsignedJwt.substring(0, unsignedJwt.indexOf('.'));
                     JWSHeader header = JWSHeader.parse(new Base64URL(headerB64));
@@ -560,11 +594,17 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Invalid LDP dataToSign: missing '.' separator");
     }
 
+    /**
+     * Builds an SD-JWT string containing only the user-selected disclosures.
+     * If selectedPaths is null/empty, no disclosures are shared for that credential.
+     */
     private String buildFilteredSdJwt(DecryptedCredentialDTO credential, List<String> selectedPaths) {
         if (!(credential.getCredential().getCredential() instanceof String sdJwtString)) {
             return String.valueOf(credential.getCredential().getCredential());
         }
+        // The issuer-signed credential JWT is everything before the first '~'
         String credentialJwt = sdJwtString.split("~", -1)[0];
+        // No selection for this credential -> share zero disclosures
         if (selectedPaths == null || selectedPaths.isEmpty()) {
             return credentialJwt + "~";
         }
@@ -580,6 +620,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             Set<String> normalizedPaths = selectedPaths.stream()
                     .map(this::normalizeSdClaimPath)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
+            // Collect disclosure blobs for the selected paths (preserving order, deduplicating)
             Set<String> disclosures = new LinkedHashSet<>();
             for (String path : normalizedPaths) {
                 Object disc = resolveSdClaimDisclosures(sdClaimsMap, path);
@@ -592,6 +633,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             }
             log.info("SD-JWT filtering for credential {}: selectedPaths={}, disclosuresIncluded={}",
                     credential.getId(), normalizedPaths, disclosures.size());
+            // Reconstruct: credentialJwt ~ disc1 ~ disc2 ~ (trailing ~ required by SD-JWT)
             StringBuilder sb = new StringBuilder(credentialJwt);
             for (String disc : disclosures) {
                 sb.append("~").append(disc);
@@ -652,6 +694,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         }
     }
 
+    /**
+     * Maps format string to FormatType enum.
+     */
     private FormatType mapToFormatType(String format) {
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format)) {
             return FormatType.LDP_VC;
@@ -666,6 +711,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                 "Unsupported credential format: " + format);
     }
 
+    /**
+     * Fetches selected credentials from the session cache.
+     */
     private List<DecryptedCredentialDTO> fetchSelectedCredentials(
             VerifiablePresentationSessionData sessionData, List<String> selectedCredentialIds) {
         if (sessionData == null || sessionData.getMatchingCredentials() == null) {
@@ -676,6 +724,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Validates all input parameters for presentation submission.
+     */
     private void validateSubmissionRequest(SubmitPresentationRequestDTO request) {
         if (request == null) {
             throw new java.lang.IllegalArgumentException("Request cannot be null");
@@ -685,6 +736,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         }
     }
 
+    /**
+     * Creates a VerifiablePresentationVerifierDTO from the authorization request.
+     */
     private VerifiablePresentationVerifierDTO createVPResponseVerifierDTO(
             List<Verifier> preRegisteredVerifiers, AuthorizationRequest authorizationRequest, String walletId) {
         boolean preRegistered = preRegisteredVerifiers.stream()
@@ -723,15 +777,22 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         return null;
     }
 
+    /**
+     * Handles verifier rejection with error details.
+     */
     private ResponseEntity<SubmitPresentationResponseDTO> handleVerifierRejection(
             String walletId, VerifiablePresentationSessionData vpSessionData, SubmitPresentationRequestDTO request)
             throws VPErrorNotSentException {
+        // Create ErrorDTO from the request
         ErrorDTO payload = new ErrorDTO();
         payload.setErrorCode(request.getErrorCode());
         payload.setErrorMessage(request.getErrorMessage());
         return ResponseEntity.ok(rejectVerifier(walletId, vpSessionData, payload));
     }
 
+    /**
+     * Rejects the verifier by sending error information.
+     */
     private SubmitPresentationResponseDTO rejectVerifier(
             String walletId, VerifiablePresentationSessionData vpSessionData, ErrorDTO payload)
             throws VPErrorNotSentException {
@@ -747,6 +808,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         }
     }
 
+    /**
+     * Stores presentation record in the database.
+     */
     private void storePresentationRecord(
             String walletId, String presentationId, SubmitPresentationRequestDTO request,
             VerifiablePresentationSessionData sessionData, boolean success, LocalDateTime requestedAt) {
@@ -754,6 +818,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             if (sessionData == null) {
                 return;
             }
+            // Extract verifier information from session data
             VerifiablePresentation presentation = VerifiablePresentation.builder()
                     .id(presentationId)
                     .walletId(walletId)
@@ -764,12 +829,16 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                     .requestedAt(requestedAt)
                     .consent(true)
                     .build();
+            // Save to database
             verifiablePresentationsRepository.save(presentation);
         } catch (Exception e) {
             log.error("Failed to store presentation record for presentationId={}", presentationId, e);
         }
     }
 
+    /**
+     * Creates presentation data JSON with selected credentials and SD claim selections.
+     */
     private String buildPresentationDataJson(SubmitPresentationRequestDTO request) throws JsonProcessingException {
         Map<String, Object> presentationData = new LinkedHashMap<>();
         presentationData.put(OpenID4VPConstants.SELECTED_CREDENTIALS, request.getSelectedCredentials());
@@ -780,8 +849,12 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         return objectMapper.writeValueAsString(presentationData);
     }
 
+    /**
+     * Extracts verifier ID from session data.
+     */
     private String extractVerifierId(VerifiablePresentationSessionData sessionData) {
         try {
+            // Since authorizationRequest is a URL, extract client_id from URL parameters
             if (sessionData.getAuthorizationRequest() != null) {
                 return UrlParameterUtils.extractQueryParameter(
                         sessionData.getAuthorizationRequest(), OpenID4VPConstants.CLIENT_ID_PARAM);
@@ -792,9 +865,13 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         return UNKNOWN_VERIFIER;
     }
 
+    /**
+     * Extracts verifier authorization request as JSON.
+     */
     private String extractVerifierAuthRequest(VerifiablePresentationSessionData sessionData) {
         try {
             if (sessionData.getAuthorizationRequest() != null) {
+                // Convert the URL string to a JSON object
                 return objectMapper.writeValueAsString(Map.of(
                         OpenID4VPConstants.AUTHORIZATION_REQUEST_URL, sessionData.getAuthorizationRequest()));
             }
