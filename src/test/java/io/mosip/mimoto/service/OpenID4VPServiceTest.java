@@ -9,8 +9,10 @@ import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.openID4VP.OpenID4VP;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
+import io.mosip.openID4VP.authorizationRequest.AuthorizationDcqlRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.PresentationDefinition;
+import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import io.mosip.openID4VP.common.OpenID4VPErrorCodes;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
 import io.mosip.openID4VP.verifier.VerifierResponse;
@@ -328,6 +330,113 @@ public class OpenID4VPServiceTest {
         verify(verifierService).getTrustedVerifiers();
         verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"));
         verify(mockAuthorizationRequest).getPresentationDefinition();
+    }
+
+    @Test
+    public void testResolveDcqlQuerySuccess() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        DCQLQuery mockDcqlQuery = mock(DCQLQuery.class);
+        AuthorizationDcqlRequest mockDcqlRequest = mock(AuthorizationDcqlRequest.class);
+        when(mockDcqlRequest.getDcqlQuery()).thenReturn(mockDcqlQuery);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockDcqlRequest);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
+
+        DCQLQuery result = spyService.resolveDcqlQuery(
+                "presentation-123", "authorization-request", true);
+
+        assertNotNull(result);
+        assertEquals(mockDcqlQuery, result);
+        verify(verifierService).getTrustedVerifiers();
+        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"));
+        verify(mockDcqlRequest).getDcqlQuery();
+    }
+
+    @Test
+    public void testResolveDcqlQueryWithNullPresentationIdReturnsNull() throws Exception {
+        DCQLQuery result = openID4VPService.resolveDcqlQuery(null, "authorization-request", true);
+
+        assertNull(result);
+        verifyNoInteractions(verifierService);
+    }
+
+    @Test
+    public void testResolveDcqlQueryWithNullAuthorizationRequestReturnsNull() throws Exception {
+        DCQLQuery result = openID4VPService.resolveDcqlQuery("presentation-123", null, true);
+
+        assertNull(result);
+        verifyNoInteractions(verifierService);
+    }
+
+    @Test
+    public void testResolveDcqlQueryWithBothNullParametersReturnsNull() throws Exception {
+        DCQLQuery result = openID4VPService.resolveDcqlQuery(null, null, true);
+
+        assertNull(result);
+        verifyNoInteractions(verifierService);
+    }
+
+    @Test
+    public void testResolveDcqlQueryReturnsNullForPresentationExchangeRequest() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
+
+        DCQLQuery result = spyService.resolveDcqlQuery(
+                "presentation-123", "authorization-request", true);
+
+        assertNull(result);
+        verify(verifierService).getTrustedVerifiers();
+        verify(mockOpenID4VP).authenticateVerifier(eq("authorization-request"));
+        verify(mockAuthorizationRequest, never()).getPresentationDefinition();
+    }
+
+    @Test
+    public void testResolveDcqlQueryWithNullDcqlQuery() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenReturn(mockVerifiersDTO);
+
+        AuthorizationDcqlRequest mockDcqlRequest = mock(AuthorizationDcqlRequest.class);
+        when(mockDcqlRequest.getDcqlQuery()).thenReturn(null);
+
+        OpenID4VP mockOpenID4VP = mock(OpenID4VP.class);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockDcqlRequest);
+
+        OpenID4VPService spyService = spy(openID4VPService);
+        doReturn(mockOpenID4VP).when(spyService).create(anyString(), anyList(), anyBoolean());
+
+        DCQLQuery result = spyService.resolveDcqlQuery(
+                "presentation-123", "authorization-request", false);
+
+        assertNull(result);
+        verify(mockDcqlRequest).getDcqlQuery();
+    }
+
+    @Test
+    public void testResolveDcqlQueryWithVerifierServiceExceptionThrowsException() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenThrow(new ApiNotAccessibleException());
+
+        assertThrows(ApiNotAccessibleException.class, () ->
+                openID4VPService.resolveDcqlQuery("presentation-123", "authorization-request", true));
+
+        verify(verifierService).getTrustedVerifiers();
+    }
+
+    @Test
+    public void testResolveDcqlQueryWithIOExceptionThrowsException() throws Exception {
+        when(verifierService.getTrustedVerifiers()).thenThrow(new IOException("Network error"));
+
+        assertThrows(IOException.class, () ->
+                openID4VPService.resolveDcqlQuery("presentation-123", "authorization-request", true));
+
+        verify(verifierService).getTrustedVerifiers();
     }
 
     @Test

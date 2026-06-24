@@ -3,6 +3,7 @@ package io.mosip.mimoto.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
+import io.mosip.mimoto.constant.SpecVersion;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
@@ -13,6 +14,11 @@ import io.mosip.mimoto.model.CredentialMetadata;
 import io.mosip.mimoto.service.impl.CredentialMatchingServiceImpl;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
+import io.mosip.openID4VP.dcql.query.ClaimValue;
+import io.mosip.openID4VP.dcql.query.ClaimsQuery;
+import io.mosip.openID4VP.dcql.query.CredentialQuery;
+import io.mosip.openID4VP.dcql.query.CredentialSetQuery;
+import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -2379,5 +2385,233 @@ public class CredentialMatchingServiceTest {
                 result.getMatchingCredentialsResponse().getMissingClaims().contains("sd-jwt_alg_values"));
         assertFalse("field name must NOT appear when no format match",
                 result.getMatchingCredentialsResponse().getMissingClaims().contains("vct"));
+    }
+
+    // --- DCQL matching (matchWithDcqlQuery) ---
+
+    @Test
+    public void testGetMatchingCredentialsDcqlSuccessWithLdpVcMatch() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        CredentialQuery credentialQuery = mock(CredentialQuery.class);
+        when(credentialQuery.getId()).thenReturn("identity-query");
+        when(credentialQuery.getFormat()).thenReturn(CredentialFormat.LDP_VC.getFormat());
+        when(credentialQuery.getMultiple()).thenReturn(false);
+        when(credentialQuery.getClaims()).thenReturn(null);
+
+        DCQLQuery dcqlQuery = mock(DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(credentialQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+        stubDcqlQuery(dcqlQuery);
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+        when(issuersService.getIssuerConfig(anyString(), anyString())).thenReturn(createMockIssuerConfig());
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
+                dcqlSession, walletId, base64Key);
+
+        assertTrue(result.getMatchingCredentialsResponse().isDcql());
+        assertEquals(1, result.getMatchingCredentialsResponse().getQueryGroups().size());
+        DcqlQueryGroup group = result.getMatchingCredentialsResponse().getQueryGroups().get(0);
+        assertEquals("identity-query", group.getQueryId());
+        assertFalse(group.getAvailableCredentials().isEmpty());
+        assertTrue(group.getMissingClaims().isEmpty());
+        assertNull(group.getAvailableCredentials().get(0).getClaims());
+        assertEquals(1, result.getMatchingCredentials().size());
+        assertEquals("identity-query", result.getMatchingCredentials().get(0).getDescriptorId());
+        verify(openID4VPService).resolveDcqlQuery(anyString(), anyString(), anyBoolean());
+        verify(openID4VPService, never()).resolvePresentationDefinition(any(), any(), anyBoolean());
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlNullWalletId() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        stubDcqlQuery(mock(DCQLQuery.class));
+
+        try {
+            credentialMatchingService.getMatchingCredentials(dcqlSession, null, base64Key);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Wallet ID cannot be null or empty", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlEmptyWalletId() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        stubDcqlQuery(mock(DCQLQuery.class));
+
+        try {
+            credentialMatchingService.getMatchingCredentials(dcqlSession, "   ", base64Key);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Wallet ID cannot be null or empty", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlWhenResolveReturnsNull() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean())).thenReturn(null);
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        try {
+            credentialMatchingService.getMatchingCredentials(dcqlSession, walletId, base64Key);
+            fail("Expected InvalidRequestException");
+        } catch (InvalidRequestException e) {
+            assertTrue(e.getMessage().contains("Authorization request does not contain a DCQL query"));
+        }
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlNoFormatMatchReturnsMissingClaims() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        CredentialQuery credentialQuery = mock(CredentialQuery.class);
+        when(credentialQuery.getId()).thenReturn("sdjwt-query");
+        when(credentialQuery.getFormat()).thenReturn(CredentialFormat.DC_SD_JWT.getFormat());
+        when(credentialQuery.getMultiple()).thenReturn(false);
+        when(credentialQuery.getClaims()).thenReturn(null);
+
+        DCQLQuery dcqlQuery = mock(DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(credentialQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+        stubDcqlQuery(dcqlQuery);
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
+                dcqlSession, walletId, base64Key);
+
+        DcqlQueryGroup group = result.getMatchingCredentialsResponse().getQueryGroups().get(0);
+        assertTrue(group.getAvailableCredentials().isEmpty());
+        assertTrue(result.getMatchingCredentials().isEmpty());
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlIncludesCredentialSets() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        CredentialQuery credentialQuery = mock(CredentialQuery.class);
+        when(credentialQuery.getId()).thenReturn("pan");
+        when(credentialQuery.getFormat()).thenReturn(CredentialFormat.LDP_VC.getFormat());
+        when(credentialQuery.getMultiple()).thenReturn(false);
+        when(credentialQuery.getClaims()).thenReturn(null);
+
+        CredentialSetQuery setQuery = mock(CredentialSetQuery.class);
+        when(setQuery.getRequired()).thenReturn(true);
+        when(setQuery.getOptions()).thenReturn(List.of(List.of("pan"), List.of("aadhaar")));
+
+        DCQLQuery dcqlQuery = mock(DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(credentialQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(List.of(setQuery));
+        stubDcqlQuery(dcqlQuery);
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+        when(issuersService.getIssuerConfig(anyString(), anyString())).thenReturn(createMockIssuerConfig());
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
+                dcqlSession, walletId, base64Key);
+
+        assertEquals(1, result.getMatchingCredentialsResponse().getCredentialSets().size());
+        CredentialSetInfo credentialSet = result.getMatchingCredentialsResponse().getCredentialSets().get(0);
+        assertTrue(credentialSet.isRequired());
+        assertEquals(List.of(List.of("pan"), List.of("aadhaar")), credentialSet.getOptions());
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlMatchesWithClaimPath() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        ClaimsQuery nameClaim = new ClaimsQuery(
+                "name-claim", List.of("credentialSubject", "name"), null);
+        CredentialQuery credentialQuery = new CredentialQuery(
+                "identity-query", CredentialFormat.LDP_VC.getFormat(), false,
+                Map.of(), false, List.of(nameClaim), null);
+
+        DCQLQuery dcqlQuery = mock(DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(credentialQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+        stubDcqlQuery(dcqlQuery);
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+        when(issuersService.getIssuerConfig(anyString(), anyString())).thenReturn(createMockIssuerConfig());
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
+                dcqlSession, walletId, base64Key);
+
+        assertFalse(result.getMatchingCredentialsResponse().getQueryGroups().get(0).getAvailableCredentials().isEmpty());
+        assertTrue(result.getMatchingCredentials().size() == 1);
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlNoMatchWithClaimSetsReturnsMissingClaimPaths() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        ClaimsQuery ageClaim = new ClaimsQuery(
+                "age-above-18", List.of("age_above_18"),
+                List.of(new ClaimValue.BoolValue(true)));
+        ClaimsQuery dobClaim = new ClaimsQuery(
+                "date-of-birth", List.of("dateOfBirth"), null);
+        CredentialQuery credentialQuery = new CredentialQuery(
+                "age-proof", CredentialFormat.DC_SD_JWT.getFormat(), false,
+                Map.of(), false, List.of(ageClaim, dobClaim),
+                List.of(List.of("age-above-18"), List.of("date-of-birth")));
+
+        DCQLQuery dcqlQuery = mock(DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(credentialQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+        stubDcqlQuery(dcqlQuery);
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithMapData());
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
+                dcqlSession, walletId, base64Key);
+
+        DcqlQueryGroup group = result.getMatchingCredentialsResponse().getQueryGroups().get(0);
+        assertTrue(group.getAvailableCredentials().isEmpty());
+        assertTrue(group.getMissingClaims().contains("$.age_above_18"));
+        assertTrue(group.getMissingClaims().contains("$.dateOfBirth"));
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlSdJwtFormatAliasMatch() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        CredentialQuery credentialQuery = mock(CredentialQuery.class);
+        when(credentialQuery.getId()).thenReturn("sdjwt-query");
+        when(credentialQuery.getFormat()).thenReturn(CredentialFormat.DC_SD_JWT.getFormat());
+        when(credentialQuery.getMultiple()).thenReturn(false);
+        when(credentialQuery.getClaims()).thenReturn(null);
+
+        DCQLQuery dcqlQuery = mock(DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(credentialQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+        stubDcqlQuery(dcqlQuery);
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithSdJwtFormat());
+        when(issuersService.getIssuerConfig(anyString(), anyString())).thenReturn(createMockIssuerConfig());
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
+                dcqlSession, walletId, base64Key);
+
+        assertFalse(result.getMatchingCredentialsResponse().getQueryGroups().get(0).getAvailableCredentials().isEmpty());
+        assertEquals(1, result.getMatchingCredentials().size());
+    }
+
+    private VerifiablePresentationSessionData createDcqlSessionData() {
+        VerifiablePresentationSessionData data = new VerifiablePresentationSessionData();
+        data.setPresentationId("presentation-123");
+        data.setAuthorizationRequest("client_id=test-client&response_type=vp_token");
+        data.setCreatedAt(Instant.parse("2025-09-08T12:34:56Z"));
+        data.setVerifierClientPreregistered(true);
+        data.setSpecVersion(SpecVersion.V1_0);
+        return data;
+    }
+
+    private void stubDcqlQuery(DCQLQuery dcqlQuery) throws Exception {
+        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
+                .thenReturn(dcqlQuery);
     }
 }

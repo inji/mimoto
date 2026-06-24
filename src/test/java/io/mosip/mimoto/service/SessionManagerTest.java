@@ -159,6 +159,60 @@ public class SessionManagerTest {
         sessionManager.getPresentationSessionData(session, walletId, presentationId);
     }
 
+    @Test
+    public void shouldRejectNullHttpSession() {
+        try {
+            sessionManager.getPresentationSessionData(null, "wallet123", "test-presentation-id");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("HTTP session is invalid", e.getMessage());
+        }
+    }
+
+    @Test
+    public void shouldRejectNullWalletId() {
+        MockHttpSession session = new MockHttpSession();
+        try {
+            sessionManager.getPresentationSessionData(session, null, "test-presentation-id");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Wallet ID is invalid", e.getMessage());
+        }
+    }
+
+    @Test
+    public void shouldRejectBlankWalletId() {
+        MockHttpSession session = new MockHttpSession();
+        try {
+            sessionManager.getPresentationSessionData(session, "   ", "test-presentation-id");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Wallet ID is invalid", e.getMessage());
+        }
+    }
+
+    @Test
+    public void shouldRejectNullPresentationId() {
+        MockHttpSession session = new MockHttpSession();
+        try {
+            sessionManager.getPresentationSessionData(session, "wallet123", null);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("presentationId not found in session", e.getMessage());
+        }
+    }
+
+    @Test
+    public void shouldRejectBlankPresentationId() {
+        MockHttpSession session = new MockHttpSession();
+        try {
+            sessionManager.getPresentationSessionData(session, "wallet123", "   ");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertEquals("presentationId not found in session", e.getMessage());
+        }
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void shouldHandleExceptionWhenRetrievingPresentationSessionData() {
         // Arrange

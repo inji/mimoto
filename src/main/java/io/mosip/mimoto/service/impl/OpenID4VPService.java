@@ -157,7 +157,7 @@ public class OpenID4VPService {
         // authenticateVerifier to populate internal state in OpenID4VP before sending error
         openID4VP.authenticateVerifier(sessionData.getAuthorizationRequest());
 
-        Exception errorForVerifier = toOpenID4VPException(payload);
+        Exception errorForVerifier = openId4VPErrorException(payload);
         VerifierResponse verifierResponse = openID4VP.sendErrorInfoToVerifier(errorForVerifier);
         log.info("Sent error to verifier for presentationId={}. Response: {}",
                 sessionData.getPresentationId(), verifierResponse);
@@ -174,7 +174,7 @@ public class OpenID4VPService {
      * Maps wallet {@link ErrorDTO#errorCode} to inji-openid4vp exceptions {@code error}
      * matches (e.g. {@link OpenID4VPErrorCodes#INVALID_TRANSACTION_DATA} vs {@link OpenID4VPErrorCodes#ACCESS_DENIED}).
      */
-    private Exception toOpenID4VPException(ErrorDTO payload) {
+    private Exception openId4VPErrorException(ErrorDTO payload) {
         if (payload == null) {
             throw new IllegalArgumentException("Error payload must not be null");
         }
