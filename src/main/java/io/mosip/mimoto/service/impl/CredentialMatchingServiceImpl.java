@@ -25,8 +25,8 @@ import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.mimoto.util.JwtUtils;
+import io.mosip.mimoto.util.DcqlClaimSetHelper;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
-import io.mosip.openID4VP.dcql.query.ClaimValue;
 import io.mosip.openID4VP.dcql.query.ClaimsQuery;
 import io.mosip.openID4VP.dcql.query.CredentialQuery;
 import io.mosip.openID4VP.dcql.query.CredentialSetQuery;
@@ -247,8 +247,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         }
 
         if (credentialQuery.getClaims() != null) {
-            return credentialQuery.getClaims().stream()
-                    .allMatch(claimQuery -> matchesDcqlClaimPath(vc, claimQuery));
+            return DcqlClaimSetHelper.matchesClaims(credentialQuery, vc, this::matchesDcqlClaimPath);
         }
         return true;
     }
@@ -270,33 +269,19 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         if (claimQuery.getValues() != null && !claimQuery.getValues().isEmpty()) {
             return claimQuery.getValues().stream()
-                    .anyMatch(expected -> found.stream().anyMatch(actual -> dcqlValueMatches(actual, expected)));
+                    .anyMatch(expected -> found.stream().anyMatch(actual -> DcqlClaimSetHelper.dcqlValueMatches(actual, expected)));
         }
         return true;
-    }
-
-    private boolean dcqlValueMatches(Object actual, ClaimValue expected) {
-        if (expected instanceof ClaimValue.StringValue sv) {
-            return sv.getValue().equals(actual.toString());
-        }
-        if (expected instanceof ClaimValue.LongValue lv) {
-            if (actual instanceof Number number) {
-                return lv.getValue() == number.longValue();
-            }
-            return false;
-        }
-        if (expected instanceof ClaimValue.BoolValue bv) {
-            if (actual instanceof Boolean bool) {
-                return bv.getValue() == bool;
-            }
-            return false;
-        }
-        return false;
     }
 
     private Set<String> extractMissingClaimsFromQuery(CredentialQuery credentialQuery) {
         if (credentialQuery.getClaims() == null) {
             return Collections.emptySet();
+        }
+        if (DcqlClaimSetHelper.hasClaimSets(credentialQuery)) {
+            return credentialQuery.getClaimSets().stream()
+                    .flatMap(claimIds -> DcqlClaimSetHelper.pathsForClaimIds(credentialQuery, claimIds).stream())
+                    .collect(Collectors.toSet());
         }
         return credentialQuery.getClaims().stream()
                 .filter(cq -> cq.getPath() != null && !cq.getPath().isEmpty())
@@ -576,12 +561,6 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         String credentialTypeDisplayName = "Unknown Credential";
         String credentialTypeLogo = null;
-        Map<String, Object> publicClaimsMap;
-        Map<String, Object> sdClaimsMap;
-
-        List<String> publicClaims = new ArrayList<>();
-        List<String> sdClaims = new ArrayList<>();
-
         try {
             IssuerConfig issuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
             if (issuerConfig != null) {
@@ -593,29 +572,26 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
         }
 
-        if (CredentialFormat.isSdJwt(decryptedCredentialDTO.getCredential().getFormat())) {
-            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(decryptedCredentialDTO.getCredential().getFormat());
+        String format = decryptedCredentialDTO.getCredential().getFormat();
+        List<String> publicClaims = null;
+        List<String> sdClaims = null;
+
+        if (CredentialFormat.isSdJwt(format)) {
+            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(format);
             Map<String, Map<String, Object>> allClaims = (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(decryptedCredentialDTO.getCredential());
 
-            publicClaimsMap = allClaims.get("publicClaims");
-            sdClaimsMap = allClaims.get("sdClaims");
+            Map<String, Object> publicClaimsMap = allClaims.get("publicClaims");
+            Map<String, Object> sdClaimsMap = allClaims.get("sdClaims");
 
-            if (publicClaimsMap != null) {
-                publicClaims = extractPublicClaimPaths(publicClaimsMap);
-            }
-
-            if (sdClaimsMap != null) {
-                sdClaims = extractSdClaimPaths(sdClaimsMap);
-            }
-
+            publicClaims = publicClaimsMap != null ? extractPublicClaimPaths(publicClaimsMap) : new ArrayList<>();
+            sdClaims = sdClaimsMap != null ? extractSdClaimPaths(sdClaimsMap) : new ArrayList<>();
         }
-
 
         return CredentialDTO.builder()
                 .credentialId(decryptedCredentialDTO.getId())
                 .credentialTypeDisplayName(credentialTypeDisplayName)
                 .credentialTypeLogo(credentialTypeLogo)
-                .format(decryptedCredentialDTO.getCredential().getFormat())
+                .format(format)
                 .claims(publicClaims)
                 .sdClaims(sdClaims)
                 .build();

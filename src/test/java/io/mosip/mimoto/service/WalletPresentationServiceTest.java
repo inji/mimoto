@@ -624,6 +624,108 @@ public class WalletPresentationServiceTest {
     }
 
     @Test
+    public void testSubmitPresentationDcqlClaimSetsAutoResolvesSdClaimPaths() throws Exception {
+        String credentialId = "d0b504e8-adaf-4df1-9ba0-2d2a5c52e519";
+        String queryId = "age-proof";
+        DcqlCredentialSelection dcqlSelection = DcqlCredentialSelection.builder()
+                .queryId(queryId)
+                .selectedCredentialIds(List.of(credentialId))
+                .build();
+        SubmitPresentationRequestDTO dcqlRequest = SubmitPresentationRequestDTO.builder()
+                .selectedCredentials(SelectedCredentials.ofDcql(List.of(dcqlSelection)))
+                .build();
+
+        String sdJwt = "header.payload.sig~ageDiscB64~dobDiscB64~";
+        vcCredentialResponse = VCCredentialResponse.builder()
+                .format(CredentialFormat.DC_SD_JWT.getFormat())
+                .credential(sdJwt)
+                .build();
+        credentialDTO = DecryptedCredentialDTO.builder()
+                .id(credentialId)
+                .descriptorId(queryId)
+                .credential(vcCredentialResponse)
+                .build();
+        sessionData.setMatchingCredentials(List.of(credentialDTO));
+        when(walletCredentialService.getDecryptedCredentials(anyString(), anyString()))
+                .thenReturn(List.of(credentialDTO));
+
+        io.mosip.openID4VP.dcql.query.ClaimsQuery ageClaim =
+                new io.mosip.openID4VP.dcql.query.ClaimsQuery(
+                        "age-above-18", List.of("age_above_18"),
+                        List.of(new io.mosip.openID4VP.dcql.query.ClaimValue.BoolValue(true)));
+        io.mosip.openID4VP.dcql.query.ClaimsQuery dobClaim =
+                new io.mosip.openID4VP.dcql.query.ClaimsQuery(
+                        "date-of-birth", List.of("dateOfBirth"), null);
+        io.mosip.openID4VP.dcql.query.CredentialQuery credentialQuery =
+                new io.mosip.openID4VP.dcql.query.CredentialQuery(
+                        queryId, CredentialFormat.DC_SD_JWT.getFormat(), false,
+                        Map.of(), false, List.of(ageClaim, dobClaim),
+                        List.of(List.of("age-above-18"), List.of("date-of-birth")));
+        io.mosip.openID4VP.dcql.query.DCQLQuery dcqlQuery =
+                mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(credentialQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        sdClaims.put("age_above_18", List.of("ageDiscB64"));
+        sdClaims.put("dateOfBirth", List.of("dobDiscB64"));
+        Map<String, Object> allProps = new HashMap<>();
+        allProps.put("sdClaims", sdClaims);
+        allProps.put("publicClaims", Map.of("vct", "AgeProofCredential"));
+        when(credentialFormatHandlerFactory.getHandler(CredentialFormat.DC_SD_JWT.getFormat()))
+                .thenReturn(credentialFormatHandler);
+        doReturn(allProps).when(credentialFormatHandler).extractAllCredentialProperties(any());
+
+        stubOpenId4VpCreate(mockOpenID4VP);
+        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
+                .thenReturn(dcqlQuery);
+        when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
+
+        List<UnsignedVPToken> unsignedTokens = List.of(mockSdJwtUnsignedToken());
+        when(mockOpenID4VP.constructUnsignedVPToken(anyMap())).thenReturn(unsignedTokens);
+
+        VerifierResponse verifierResponse = mock(VerifierResponse.class);
+        when(verifierResponse.getStatusCode()).thenReturn(200);
+        when(verifierResponse.getRedirectUri()).thenReturn("https://verifier.com/success");
+        when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenReturn(verifierResponse);
+
+        try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
+             MockedStatic<UrlParameterUtils> urlUtilMock = mockStatic(UrlParameterUtils.class)) {
+
+            jwtUtilMock.when(() -> SigningKeyUtil.generateJwk(any(), any())).thenReturn(jwk);
+            jwtUtilMock.when(() -> SigningKeyUtil.createSigner(any(), any())).thenReturn(jwsSigner);
+            urlUtilMock.when(() -> UrlParameterUtils.extractQueryParameter(anyString(), anyString()))
+                    .thenReturn("test-client");
+            when(jwsSigner.sign(any(JWSHeader.class), any(byte[].class))).thenReturn(Base64URL.encode("signature"));
+            when(objectMapper.writeValueAsString(any())).thenReturn("{\"selectedCredentials\":[]}");
+
+            walletPresentationService.submitPresentation(
+                    sessionData, walletId, presentationId, dcqlRequest, base64Key);
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, List<io.mosip.openID4VP.wallet.Credential>>> mapCaptor =
+                    ArgumentCaptor.forClass(Map.class);
+            verify(mockOpenID4VP).constructUnsignedVPToken(mapCaptor.capture());
+            io.mosip.openID4VP.wallet.Credential submitted =
+                    mapCaptor.getValue().get(queryId).get(0);
+            String filteredSdJwt = (String) submitted.getData();
+            assertEquals("header.payload.sig~ageDiscB64~", filteredSdJwt);
+        }
+    }
+
+    private UnsignedVPToken mockSdJwtUnsignedToken() {
+        UnsignedVPToken token = mock(UnsignedVPToken.class);
+        when(token.getFormat()).thenReturn(FormatType.DC_SD_JWT);
+        when(token.getSignatureAlgorithm()).thenReturn("EdDSA");
+        String header = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"EdDSA\"}".getBytes(StandardCharsets.UTF_8));
+        String payload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"sub\":\"test\"}".getBytes(StandardCharsets.UTF_8));
+        when(token.getDataToSign()).thenReturn((header + "." + payload).getBytes(StandardCharsets.US_ASCII));
+        return token;
+    }
+
+    @Test
     public void testSubmitPresentationShareFailed() throws Exception {
         stubOpenId4VpCreate(mockOpenID4VP);
         when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);

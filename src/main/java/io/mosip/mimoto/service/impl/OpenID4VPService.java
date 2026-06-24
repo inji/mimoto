@@ -76,6 +76,16 @@ public class OpenID4VPService {
         return new OpenID4VP(presentationId, walletConfig);
     }
 
+    /**
+     * Authenticates the verifier authorization request and returns the presentation definition
+     * for Draft-23 (Presentation Exchange) requests. Returns {@code null} for DCQL requests
+     * or when {@code presentationId} or {@code authRequest} are missing.
+     *
+     * @param presentationId                 presentation session identifier from session data
+     * @param authRequest                    raw authorization request from session data
+     * @param isVerifierClientPreregistered  whether the verifier client is pre-registered
+     * @return the presentation definition for Presentation Exchange requests, otherwise {@code null}
+     */
     public PresentationDefinition resolvePresentationDefinition(
             String presentationId, String authRequest, boolean isVerifierClientPreregistered)
             throws ApiNotAccessibleException, IOException {
@@ -93,6 +103,16 @@ public class OpenID4VPService {
         return null;
     }
 
+    /**
+     * Authenticates the verifier authorization request and returns the DCQL query
+     * for OVP 1.0 (DCQL) requests. Returns {@code null} for Presentation Exchange requests
+     * or when {@code presentationId} or {@code authRequest} are missing.
+     *
+     * @param presentationId                 presentation session identifier from session data
+     * @param authRequest                    raw authorization request from session data
+     * @param isVerifierClientPreregistered  whether the verifier client is pre-registered
+     * @return the DCQL query for DCQL authorization requests, otherwise {@code null}
+     */
     public DCQLQuery resolveDcqlQuery(
             String presentationId, String authRequest, boolean isVerifierClientPreregistered)
             throws ApiNotAccessibleException, IOException {
@@ -110,6 +130,16 @@ public class OpenID4VPService {
         return null;
     }
 
+    /**
+     * Reconstructs OpenID4VP from session data, authenticates the verifier, and sends the OpenID4VP error to the verifier.
+     *
+     * @param sessionData session containing presentation id and original authorization request
+     * @param payload     the error payload to forward
+     * @return network response from verifier
+     * @throws ApiNotAccessibleException when verifier list can't be fetched
+     * @throws IOException               for underlying IO failures
+     * @throws URISyntaxException        when the verifier response URI is invalid
+     */
     public VerifierResponse sendErrorToVerifier(
             VerifiablePresentationSessionData sessionData, ErrorDTO payload)
             throws ApiNotAccessibleException, IOException, URISyntaxException {
@@ -124,6 +154,7 @@ public class OpenID4VPService {
                 getPreRegisteredVerifiers(),
                 sessionData.isVerifierClientPreregistered());
 
+        // authenticateVerifier to populate internal state in OpenID4VP before sending error
         openID4VP.authenticateVerifier(sessionData.getAuthorizationRequest());
 
         Exception errorForVerifier = toOpenID4VPException(payload);
@@ -139,6 +170,10 @@ public class OpenID4VPService {
                 .toList();
     }
 
+    /**
+     * Maps wallet {@link ErrorDTO#errorCode} to inji-openid4vp exceptions {@code error}
+     * matches (e.g. {@link OpenID4VPErrorCodes#INVALID_TRANSACTION_DATA} vs {@link OpenID4VPErrorCodes#ACCESS_DENIED}).
+     */
     private Exception toOpenID4VPException(ErrorDTO payload) {
         if (payload == null) {
             throw new IllegalArgumentException("Error payload must not be null");
@@ -149,6 +184,7 @@ public class OpenID4VPService {
         if (OpenID4VPErrorCodes.INVALID_TRANSACTION_DATA.equals(code)) {
             return new OpenID4VPExceptions.InvalidTransactionData(message, "OpenID4VPService");
         }
+        // Default to AccessDenied for any unrecognized error codes
         return new OpenID4VPExceptions.AccessDenied(message, "OpenID4VPService");
     }
 }
