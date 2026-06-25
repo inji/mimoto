@@ -219,6 +219,7 @@ public class CredentialMatchingServiceTest {
         assertTrue(result.getMatchingCredentialsResponse().getAvailableCredentials().isEmpty());
         assertTrue(result.getMatchingCredentials().isEmpty());
         assertFalse(result.getMatchingCredentialsResponse().getMissingClaims().isEmpty());
+        assertFalse(result.getMatchingCredentialsResponse().isDcql());
     }
 
     @Test
@@ -2211,15 +2212,24 @@ public class CredentialMatchingServiceTest {
     }
 
     private void setupSdJwtHandlerMock(Map<String, Object> publicClaims, Map<String, Object> sdClaims) {
+        setupSdJwtHandlerMock(publicClaims, sdClaims, null);
+    }
+
+    private void setupSdJwtHandlerMock(Map<String, Object> publicClaims, Map<String, Object> sdClaims,
+                                       Map<String, Object> sdClaimValues) {
         when(credentialFormatHandler.extractAllCredentialProperties(any(VCCredentialResponse.class)))
                 .thenAnswer(invocation -> {
                     VCCredentialResponse vc = invocation.getArgument(0);
                     String format = vc.getFormat();
 
-                    if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+                    if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)
+                            || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
                         Map<String, Map<String, Object>> result = new LinkedHashMap<>();
                         result.put("publicClaims", new LinkedHashMap<>(publicClaims));
                         result.put("sdClaims", new LinkedHashMap<>(sdClaims));
+                        if (sdClaimValues != null) {
+                            result.put("sdClaimValues", new LinkedHashMap<>(sdClaimValues));
+                        }
                         return result;
                     }
                     Object cred = vc.getCredential();
@@ -2248,11 +2258,19 @@ public class CredentialMatchingServiceTest {
 
     private Map<String, Map<String, Object>> createSdJwtAllClaimsMap(
             Map<String, Object> publicClaims, Map<String, Object> sdClaims) {
+        return createSdJwtAllClaimsMap(publicClaims, sdClaims, null);
+    }
+
+    private Map<String, Map<String, Object>> createSdJwtAllClaimsMap(
+            Map<String, Object> publicClaims, Map<String, Object> sdClaims, Map<String, Object> sdClaimValues) {
         Map<String, Map<String, Object>> allClaims = new LinkedHashMap<>();
         allClaims.put("publicClaims",
                 publicClaims != null ? new LinkedHashMap<>(publicClaims) : null);
         allClaims.put("sdClaims",
                 sdClaims != null ? new LinkedHashMap<>(sdClaims) : null);
+        if (sdClaimValues != null) {
+            allClaims.put("sdClaimValues", new LinkedHashMap<>(sdClaimValues));
+        }
         return allClaims;
     }
 
@@ -2573,6 +2591,39 @@ public class CredentialMatchingServiceTest {
         assertTrue(group.getAvailableCredentials().isEmpty());
         assertTrue(group.getMissingClaims().contains("$.age_above_18"));
         assertTrue(group.getMissingClaims().contains("$.dateOfBirth"));
+    }
+
+    @Test
+    public void testGetMatchingCredentialsDcqlMatchesSdJwtClaimValueWithDecodedDisclosures() throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+        ClaimsQuery ageClaim = new ClaimsQuery(
+                "age-above-18", List.of("age_above_18"),
+                List.of(new ClaimValue.BoolValue(true)));
+        CredentialQuery credentialQuery = new CredentialQuery(
+                "age-proof", CredentialFormat.DC_SD_JWT.getFormat(), false,
+                Map.of(), false, List.of(ageClaim), null);
+
+        DCQLQuery dcqlQuery = mock(DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(credentialQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+        stubDcqlQuery(dcqlQuery);
+
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(createMockWalletCredentialsWithDcSdJwtFormat());
+        when(credentialFormatHandlerFactory.getHandler(CredentialFormat.DC_SD_JWT.getFormat()))
+                .thenReturn(credentialFormatHandler);
+        setupSdJwtHandlerMock(
+                Collections.emptyMap(),
+                Map.of("age_above_18", List.of("encoded-disclosure")),
+                Map.of("age_above_18", true));
+        when(issuersService.getIssuerConfig(anyString(), anyString())).thenReturn(createMockIssuerConfig());
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
+                dcqlSession, walletId, base64Key);
+
+        DcqlQueryGroup group = result.getMatchingCredentialsResponse().getQueryGroups().get(0);
+        assertFalse(group.getAvailableCredentials().isEmpty());
+        assertTrue(group.getMissingClaims().isEmpty());
     }
 
     @Test

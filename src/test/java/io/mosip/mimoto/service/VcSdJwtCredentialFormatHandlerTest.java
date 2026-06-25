@@ -652,6 +652,7 @@ class VcSdJwtCredentialFormatHandlerTest {
             assertNotNull(result);
             Map<String, Object> sdClaims = result.get("sdClaims");
             assertTrue(sdClaims.containsKey("given_name"));
+            assertEquals("John", result.get("sdClaimValues").get("given_name"));
         }
     }
 

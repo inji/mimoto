@@ -259,9 +259,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             return true;
         }
 
-        String jsonPath = JSON_PATH_PREFIX + claimQuery.getPath().stream()
-                .map(Object::toString)
-                .collect(Collectors.joining("."));
+        String jsonPath = DcqlClaimSetHelper.buildJsonPath(claimQuery.getPath());
 
         Object credentialData = getCredentialData(vc);
         List<Object> found = evaluateJsonPath(jsonPath, credentialData);
@@ -287,7 +285,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         }
         return credentialQuery.getClaims().stream()
                 .filter(cq -> cq.getPath() != null && !cq.getPath().isEmpty())
-                .map(cq -> cq.getPath().stream().map(Object::toString).collect(Collectors.joining(".")))
+                .map(cq -> DcqlClaimSetHelper.buildClaimPath(cq.getPath()))
                 .collect(Collectors.toSet());
     }
 
@@ -325,6 +323,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         return MatchingCredentialsResponseDTO.builder()
                 .availableCredentials(Collections.emptyList())
                 .missingClaims(missingClaims)
+                .isDcql(false)
                 .build();
     }
 
@@ -473,24 +472,39 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 return Collections.emptyMap();
             }
             Map<String, Object> credentialClaimsMap = new HashMap<>();
-            // publicClaims and sdClaims are mutually exclusive by SD-JWT spec — no key collision.
-            // sdClaims values are disclosure blobs (List<String>), not decoded claim values.
-            // This supports existence-based field matching (e.g. $.given_name present).
-            // Value-filter matching on SD claims (e.g. $.age >= 18) is not supported here
-            // and requires decoding disclosures — tracked as a follow-up improvement.
-            for (Map.Entry<String, ?> outer : extractedMap.entrySet()) {
-                if (outer.getValue() instanceof Map<?, ?> innerMap) {
-                    for (Map.Entry<?, ?> inner : innerMap.entrySet()) {
-                        if (inner.getKey() instanceof String key) {
-                            credentialClaimsMap.put(key, inner.getValue());
-                        }
-                    }
-                }
+            mergeClaimProperties(credentialClaimsMap, extractedMap.get("publicClaims"));
+            Map<?, ?> sdClaimValues = asStringObjectMap(extractedMap.get("sdClaimValues"));
+            if (sdClaimValues != null && !sdClaimValues.isEmpty()) {
+                mergeClaimProperties(credentialClaimsMap, sdClaimValues);
+            } else {
+                // Fallback for legacy handler responses: existence checks only.
+                mergeClaimProperties(credentialClaimsMap, extractedMap.get("sdClaims"));
             }
             return credentialClaimsMap;
         } else {
             throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), "Unsupported credential format: " + format);
         }
+    }
+
+    private void mergeClaimProperties(Map<String, Object> target, Object section) {
+        Map<String, Object> properties = asStringObjectMap(section);
+        if (properties != null) {
+            target.putAll(properties);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asStringObjectMap(Object section) {
+        if (!(section instanceof Map<?, ?> rawMap)) {
+            return null;
+        }
+        Map<String, Object> properties = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+            if (entry.getKey() instanceof String key) {
+                properties.put(key, entry.getValue());
+            }
+        }
+        return properties;
     }
 
     private boolean matchesFilter(Object match, Filter filter) {

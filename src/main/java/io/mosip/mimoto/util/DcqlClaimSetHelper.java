@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -24,9 +25,51 @@ import java.util.stream.Collectors;
  */
 public final class DcqlClaimSetHelper {
 
-    private static final String JSON_PATH_PREFIX = "$.";
+    /** Simple JSON keys use dot notation; keys with dots/hyphens need bracket notation (e.g. {@code org.iso.18013.5.1}). */
+    private static final Pattern SIMPLE_PATH_SEGMENT = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
     private DcqlClaimSetHelper() {
+    }
+
+    /**
+     * Builds a Jayway JSONPath from DCQL path segments, quoting segments that are not simple identifiers.
+     */
+    public static String buildJsonPath(List<?> pathSegments) {
+        if (pathSegments == null || pathSegments.isEmpty()) {
+            return "$";
+        }
+        StringBuilder jsonPath = new StringBuilder("$");
+        appendPathSegments(jsonPath, pathSegments);
+        return jsonPath.toString();
+    }
+
+    /**
+     * Builds a credential claim path (without {@code $.}) for SD-JWT lookup and missing-claim reporting.
+     */
+    public static String buildClaimPath(List<?> pathSegments) {
+        if (pathSegments == null || pathSegments.isEmpty()) {
+            return "";
+        }
+        StringBuilder claimPath = new StringBuilder(pathSegments.get(0).toString());
+        if (pathSegments.size() > 1) {
+            appendPathSegments(claimPath, pathSegments.subList(1, pathSegments.size()));
+        }
+        return claimPath.toString();
+    }
+
+    private static void appendPathSegments(StringBuilder path, List<?> pathSegments) {
+        for (Object segment : pathSegments) {
+            String value = segment.toString();
+            if (SIMPLE_PATH_SEGMENT.matcher(value).matches()) {
+                path.append('.').append(value);
+            } else {
+                path.append("['").append(escapePathSegment(value)).append("']");
+            }
+        }
+    }
+
+    private static String escapePathSegment(String segment) {
+        return segment.replace("\\", "\\\\").replace("'", "\\'");
     }
 
     public static boolean hasClaimSets(CredentialQuery credentialQuery) {
@@ -35,14 +78,18 @@ public final class DcqlClaimSetHelper {
 
     public static boolean matchesClaims(CredentialQuery credentialQuery, VCCredentialResponse vc,
                                         BiPredicate<VCCredentialResponse, ClaimsQuery> claimMatcher) {
-        if (credentialQuery.getClaims() == null || credentialQuery.getClaims().isEmpty()) {
-            return true;
+        boolean hasClaimSets = hasClaimSets(credentialQuery);
+        List<ClaimsQuery> claims = credentialQuery.getClaims();
+        boolean hasClaims = claims != null && !claims.isEmpty();
+
+        if (!hasClaims) {
+            return !hasClaimSets;
         }
-        if (hasClaimSets(credentialQuery)) {
+        if (hasClaimSets) {
             return credentialQuery.getClaimSets().stream()
                     .anyMatch(claimIds -> satisfiesClaimSet(credentialQuery, vc, claimIds, claimMatcher));
         }
-        return credentialQuery.getClaims().stream()
+        return claims.stream()
                 .allMatch(claimQuery -> claimMatcher.test(vc, claimQuery));
     }
 
@@ -53,20 +100,27 @@ public final class DcqlClaimSetHelper {
             return false;
         }
         Map<String, ClaimsQuery> claimsById = indexClaimsById(credentialQuery);
-        return claimIds.stream()
-                .map(claimsById::get)
-                .filter(Objects::nonNull)
-                .allMatch(claimQuery -> claimMatcher.test(vc, claimQuery));
+        for (String claimId : claimIds) {
+            ClaimsQuery claimQuery = claimsById.get(claimId);
+            if (claimQuery == null || !claimMatcher.test(vc, claimQuery)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static boolean isValidClaimSetSelection(List<List<String>> claimSets, List<String> selectedClaimIds) {
         if (selectedClaimIds == null || selectedClaimIds.isEmpty() || claimSets == null) {
             return false;
         }
-        List<String> normalized = normalizeClaimIds(selectedClaimIds);
+        Set<String> selected = toUniqueClaimIdSet(selectedClaimIds);
+        if (selected == null) {
+            return false;
+        }
         return claimSets.stream()
-                .map(DcqlClaimSetHelper::normalizeClaimIds)
-                .anyMatch(option -> option.equals(normalized));
+                .map(DcqlClaimSetHelper::toUniqueClaimIdSet)
+                .filter(Objects::nonNull)
+                .anyMatch(selected::equals);
     }
 
     /**
@@ -90,6 +144,9 @@ public final class DcqlClaimSetHelper {
         for (List<String> claimSet : credentialQuery.getClaimSets()) {
             List<String> normalized = normalizeClaimIds(claimSet);
             List<String> paths = resolveClaimPaths(credentialQuery, normalized);
+            if (paths.size() != normalized.size()) {
+                continue;
+            }
             if (!paths.isEmpty() && paths.stream().allMatch(hasDisclosure)) {
                 return normalized;
             }
@@ -110,19 +167,27 @@ public final class DcqlClaimSetHelper {
         for (String claimId : claimIds) {
             ClaimsQuery claimQuery = claimsById.get(claimId);
             if (claimQuery == null || claimQuery.getPath() == null || claimQuery.getPath().isEmpty()) {
-                continue;
+                return Collections.emptyList();
             }
-            paths.add(claimQuery.getPath().stream()
-                    .map(Object::toString)
-                    .collect(Collectors.joining(".")));
+            paths.add(buildClaimPath(claimQuery.getPath()));
         }
         return paths;
     }
 
     public static List<String> resolveJsonPaths(CredentialQuery credentialQuery, List<String> claimIds) {
-        return resolveClaimPaths(credentialQuery, claimIds).stream()
-                .map(path -> JSON_PATH_PREFIX + path)
-                .collect(Collectors.toList());
+        if (claimIds == null || claimIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, ClaimsQuery> claimsById = indexClaimsById(credentialQuery);
+        List<String> paths = new ArrayList<>();
+        for (String claimId : claimIds) {
+            ClaimsQuery claimQuery = claimsById.get(claimId);
+            if (claimQuery == null || claimQuery.getPath() == null || claimQuery.getPath().isEmpty()) {
+                return Collections.emptyList();
+            }
+            paths.add(buildJsonPath(claimQuery.getPath()));
+        }
+        return paths;
     }
 
     private static Map<String, ClaimsQuery> indexClaimsById(CredentialQuery credentialQuery) {
@@ -146,9 +211,18 @@ public final class DcqlClaimSetHelper {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Normalizes claim ids and returns a set when the input has no duplicates; otherwise {@code null}.
+     */
+    private static Set<String> toUniqueClaimIdSet(List<String> claimIds) {
+        List<String> normalized = normalizeClaimIds(claimIds);
+        Set<String> unique = new LinkedHashSet<>(normalized);
+        return unique.size() == normalized.size() ? unique : null;
+    }
+
     public static boolean dcqlValueMatches(Object actual, ClaimValue expected) {
         if (expected instanceof ClaimValue.StringValue sv) {
-            return sv.getValue().equals(actual.toString());
+            return actual != null && sv.getValue().equals(actual.toString());
         }
         if (expected instanceof ClaimValue.LongValue lv) {
             if (actual instanceof Number number) {

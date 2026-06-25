@@ -23,6 +23,7 @@ import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.mimoto.util.DcqlClaimSetHelper;
+import io.mosip.mimoto.util.SelectedSdClaimsMergeUtil;
 import io.mosip.openID4VP.OpenID4VP;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationDcqlRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
@@ -65,7 +66,6 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
     private static final String UNKNOWN_VERIFIER = "unknown";
     private static final String EMPTY_JSON = "{}";
-    private static final String CREDENTIAL_SUBJECT_PREFIX = "credentialSubject.";
 
     private final VerifierService verifierService;
     private final OpenID4VPService openID4VPService;
@@ -294,7 +294,11 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                 credentials.add(toLibraryCredential(credentialForSubmission, effectiveSdClaims));
             }
             String mapKey = resolveDcqlMapKey(selection, cache);
-            result.put(mapKey, credentials);
+            result.merge(mapKey, credentials, (existing, incoming) -> {
+                List<Credential> merged = new ArrayList<>(existing);
+                merged.addAll(incoming);
+                return merged;
+            });
         }
         return result;
     }
@@ -441,9 +445,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
         Map<String, List<String>> merged = new LinkedHashMap<>();
         Map<String, List<String>> explicit = request.resolveEffectiveSelectedSdClaims();
-        if (explicit != null) {
-            merged.putAll(explicit);
-        }
+        SelectedSdClaimsMergeUtil.mergeInto(merged, explicit);
         if (!request.isDcqlSubmission()) {
             return merged.isEmpty() ? null : merged;
         }
@@ -488,7 +490,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                         path -> sdClaimsMap != null && hasDisclosureForPath(sdClaimsMap, path));
                 List<String> claimPaths = DcqlClaimSetHelper.resolveClaimPaths(credentialQuery, claimIds);
                 if (!claimPaths.isEmpty()) {
-                    merged.put(credentialId, claimPaths);
+                    SelectedSdClaimsMergeUtil.mergePaths(merged, credentialId, claimPaths);
                     log.info("DCQL claim_sets resolved for credential {} query '{}': claimIds={}, paths={}",
                             credentialId, queryId, claimIds, claimPaths);
                 }
@@ -647,11 +649,11 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     }
 
     private String normalizeSdClaimPath(String path) {
-        String normalized = path.startsWith("$.") ? path.substring(2) : path;
-        if (normalized.startsWith(CREDENTIAL_SUBJECT_PREFIX)) {
-            normalized = normalized.substring(CREDENTIAL_SUBJECT_PREFIX.length());
+        if (path == null) {
+            return "";
         }
-        return normalized;
+        String normalized = path.startsWith("$.") ? path.substring(2) : path;
+        return normalized.replaceFirst("^credentialSubject(\\[\\d+\\])?\\.", "");
     }
 
     /**
@@ -660,8 +662,9 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
      * {@code credentialSubject[0].dateOfBirth}.
      */
     private Object resolveSdClaimDisclosures(Map<String, Object> sdClaimsMap, String normalizedPath) {
+        String targetPath = normalizeSdClaimPath(normalizedPath);
         for (Map.Entry<String, Object> entry : sdClaimsMap.entrySet()) {
-            if (sdClaimPathMatches(entry.getKey(), normalizedPath)) {
+            if (sdClaimPathMatches(entry.getKey(), targetPath)) {
                 return entry.getValue();
             }
         }
@@ -672,14 +675,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         if (mapKey == null || normalizedPath == null) {
             return false;
         }
-        if (mapKey.equals(normalizedPath)) {
-            return true;
-        }
-        if (mapKey.equals(CREDENTIAL_SUBJECT_PREFIX + normalizedPath)) {
-            return true;
-        }
-        String dotSuffix = "." + normalizedPath;
-        return mapKey.endsWith(dotSuffix) || mapKey.endsWith("]." + normalizedPath);
+        return normalizeSdClaimPath(mapKey).equals(normalizedPath);
     }
 
     private void addDisclosureStrings(Set<String> disclosures, Object disc) {
@@ -713,15 +709,26 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
     /**
      * Fetches selected credentials from the session cache.
+     * Every requested credential ID must exist in the session (fail-fast, same as DCQL submit).
      */
     private List<DecryptedCredentialDTO> fetchSelectedCredentials(
             VerifiablePresentationSessionData sessionData, List<String> selectedCredentialIds) {
         if (sessionData == null || sessionData.getMatchingCredentials() == null) {
             throw new IllegalStateException("No matching credentials in session — call GET /credentials first");
         }
-        return sessionData.getMatchingCredentials().stream()
-                .filter(dto -> selectedCredentialIds.contains(dto.getId()))
-                .collect(Collectors.toList());
+        Map<String, DecryptedCredentialDTO> cache = sessionData.getMatchingCredentials().stream()
+                .collect(Collectors.toMap(DecryptedCredentialDTO::getId, dto -> dto, (a, b) -> a));
+
+        List<DecryptedCredentialDTO> result = new ArrayList<>();
+        for (String id : selectedCredentialIds) {
+            DecryptedCredentialDTO dto = cache.get(id);
+            if (dto == null) {
+                throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
+                        "Selected credential not found in session: " + id);
+            }
+            result.add(dto);
+        }
+        return result;
     }
 
     /**

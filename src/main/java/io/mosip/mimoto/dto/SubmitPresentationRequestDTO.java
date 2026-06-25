@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import io.mosip.mimoto.util.SelectedSdClaimsMergeUtil;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,18 +73,15 @@ public class SubmitPresentationRequestDTO {
     }
 
     /**
-     * Merges top-level {@code selectedSdClaims} with any nested inside DCQL selection objects.
+     * Unions top-level {@code selectedSdClaims} with any nested inside DCQL selection objects,
+     * combining disclosure paths per credential ID.
      */
     public Map<String, List<String>> resolveEffectiveSelectedSdClaims() {
         Map<String, List<String>> merged = new LinkedHashMap<>();
-        if (selectedSdClaims != null) {
-            merged.putAll(selectedSdClaims);
-        }
+        SelectedSdClaimsMergeUtil.mergeInto(merged, selectedSdClaims);
         if (isDcqlSubmission()) {
             for (DcqlCredentialSelection selection : getDcqlSelections()) {
-                if (selection.getSelectedSdClaims() != null) {
-                    merged.putAll(selection.getSelectedSdClaims());
-                }
+                SelectedSdClaimsMergeUtil.mergeInto(merged, selection.getSelectedSdClaims());
             }
         }
         return merged.isEmpty() ? null : merged;

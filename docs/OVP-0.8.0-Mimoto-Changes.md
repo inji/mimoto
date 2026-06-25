@@ -11,7 +11,7 @@
 
 ### 🔴 BEFORE (0.7.0)
 
-```
+```http
 POST /wallets/{id}/presentations
   Body: { authorizationRequestUrl: "openid4vp://..." }
          │
@@ -37,7 +37,7 @@ POST /wallets/{id}/presentations
 
 > **Library update:** `validatePreRegisteredVerifier` is now on `WalletConfig` (was `shouldValidateClient` on `authenticateVerifier`).
 
-```
+```http
 POST /wallets/{id}/presentations
   Body: { authorizationRequestUrl: "openid4vp://..." }
          │
@@ -95,7 +95,7 @@ POST /wallets/{id}/presentations
 
 ### 🔴 BEFORE (0.7.0) — only one path existed
 
-```
+```http
 GET /wallets/{id}/presentations/{pid}/credentials
          │
          ▼
@@ -119,7 +119,7 @@ GET /wallets/{id}/presentations/{pid}/credentials
 
 ### 🟢 AFTER (0.8.0) — Draft-23 path
 
-```
+```http
 GET /wallets/{id}/presentations/{pid}/credentials
          │
          ▼
@@ -149,7 +149,7 @@ GET /wallets/{id}/presentations/{pid}/credentials
 
 ### 🟢 AFTER (0.8.0) — OVP 1.0 / DCQL path (entirely new)
 
-```
+```http
 GET /wallets/{id}/presentations/{pid}/credentials
          │
          ▼
@@ -197,7 +197,7 @@ GET /wallets/{id}/presentations/{pid}/credentials
 | 2 | `descriptorId` recorded on each matched DTO during Draft-23 matching | `CredentialMatchingServiceImpl.java` | Fix |
 | 3 | Top-level routing by `specVersion` added | `CredentialMatchingServiceImpl.java` | New |
 | 4 | `resolveDcqlQuery()` new method to extract `DCQLQuery` | `OpenID4VPService.java` | New |
-| 5 | `matchDcql()` — full DCQL matching loop | `CredentialMatchingServiceImpl.java` | New |
+| 5 | `matchWithDcqlQuery()` — full DCQL matching loop | `CredentialMatchingServiceImpl.java` | New |
 | 6 | `matchesDcqlQuery()` — format + claim path matching helper | `CredentialMatchingServiceImpl.java` | New |
 | 7 | `DcqlQueryGroup` DTO per query in response | `DcqlQueryGroup.java` | New |
 | 8 | `descriptorId` field added to carry descriptor/queryId | `DecryptedCredentialDTO.java` | New |
@@ -209,7 +209,7 @@ GET /wallets/{id}/presentations/{pid}/credentials
 > Three things change here:
 > - The `authenticateVerifier` 3-arg bug is fixed inside `resolvePresentationDefinition()`.
 > - A critical missing piece is added for Draft-23: the `descriptorId` (i.e. which `InputDescriptor` each matched VC satisfies) is now recorded on each `DecryptedCredentialDTO` and stored in the session. Without this, the submission phase cannot build the correct map key that the library requires.
-> - A completely new DCQL path is added. When `specVersion = V1_0`, Mimoto resolves a `DCQLQuery` instead of a `PresentationDefinition`, delegates all matching to `DCQLHelper.getMatchingCredentials()`, and builds a response with two layers: `queryGroups` (one per `CredentialQuery`) for individual slot details, and `credentialSets` (the option-grouping layer from the verifier's DCQL query) so the UI knows which queries are grouped into a section and what options the user can choose between. Both layers are needed — `queryGroups` alone is insufficient when `credential_sets` is present in the verifier request.
+> - A completely new DCQL path is added. When `specVersion = V1_0`, Mimoto resolves a `DCQLQuery` instead of a `PresentationDefinition`, then runs `CredentialMatchingServiceImpl.matchWithDcqlQuery()` — matching each wallet VC per `CredentialQuery` via `matchesDcqlQuery()`, with `DcqlClaimSetHelper` handling `claim_sets` and claim-path/value checks — and builds a response with two layers: `queryGroups` (one per `CredentialQuery`) for individual slot details, and `credentialSets` (the option-grouping layer from the verifier's DCQL query) so the UI knows which queries are grouped into a section and what options the user can choose between. Both layers are needed — `queryGroups` alone is insufficient when `credential_sets` is present in the verifier request.
 
 ---
 
@@ -372,7 +372,7 @@ Verifier accepts PAN OR Aadhaar OR (Voter ID + Driving License). Wallet only has
 
 Regardless of whether the request is Draft-23 or DCQL, when the wallet cannot satisfy the request, the user rejects via the same endpoint:
 
-```
+```http
 PATCH /wallets/{id}/presentations/{pid}
 Body:
 {
@@ -428,7 +428,7 @@ The verifier receives the `access_denied` error as required by the OpenID4VP spe
 
 DCQL responses have **two layers**. Understanding this distinction is essential for correct UI rendering.
 
-```
+```text
 DCQLQuery
 ├── credentials: List<CredentialQuery>     ← Layer 1: individual credential slots
 │       each: { id, format, multiple, claims }
@@ -560,7 +560,7 @@ A more complex case: the verifier accepts **PAN card OR Aadhaar OR (Voter ID + D
 
 #### How the UI decides what to render
 
-```
+```text
 isDcql == false
   → render flat credential list from availableCredentials
   → user picks any credential(s)
@@ -603,7 +603,7 @@ isDcql == true  AND  credentialSets is non-empty
 
 ### 🔴 BEFORE (0.7.0) — only Draft-23, wrong map key
 
-```
+```http
 PATCH /wallets/{id}/presentations/{pid}
   Body: { selectedCredentials: ["vc-id-1", "vc-id-2"] }
          │
@@ -631,7 +631,7 @@ PATCH /wallets/{id}/presentations/{pid}
 
 ### 🟢 AFTER (0.8.0) — Draft-23 path
 
-```
+```http
 PATCH /wallets/{id}/presentations/{pid}
   Body: { selectedCredentials: ["vc-id-1", "vc-id-2"] }
          │
@@ -669,7 +669,7 @@ PATCH /wallets/{id}/presentations/{pid}
 
 ### 🟢 AFTER (0.8.0) — OVP 1.0 / DCQL path (entirely new)
 
-```
+```http
 PATCH /wallets/{id}/presentations/{pid}
   Body: {
     selectedCredentials: [
@@ -717,7 +717,7 @@ PATCH /wallets/{id}/presentations/{pid}
 | 2 | `convertCredentialsToJarFormat()` replaced by `buildDescriptorCredentialMap()` — map key changed from `dto.getId()` to `dto.getDescriptorId()` | `WalletPresentationServiceImpl.java` | Fix |
 | 3 | Submission branches by `request.isDcqlSubmission()` | `WalletPresentationServiceImpl.java` | New |
 | 4 | `validateDcqlSelections()` enforces DCQL constraints | `WalletPresentationServiceImpl.java` | New |
-| 5 | `buildQueryCredentialMap()` builds `Map<queryId, Credential>` for DCQL | `WalletPresentationServiceImpl.java` | New |
+| 5 | `buildQueryCredentialMap()` builds `Map<queryId, List<Credential>>` for DCQL | `WalletPresentationServiceImpl.java` | New |
 | 6 | `selectedCredentials` now accepts array-of-strings (Draft-23) or array-of-objects (DCQL) | `SubmitPresentationRequestDTO.java` | Fix |
 | 7 | `DcqlCredentialSelection` DTO (queryId + selectedCredentialIds) | `DcqlCredentialSelection.java` | New |
 
@@ -810,7 +810,7 @@ PATCH /wallets/{id}/presentations/{pid}
 
 The signed VP token travels **Mimoto → Verifier** directly inside `sendVPResponseToVerifier()`. The wallet app never sees the VP token itself. The `redirectUri` in the response tells the wallet app where to send the user next.
 
-```
+```text
 Wallet App           Mimoto                  Verifier
     │                   │                       │
     ├── PATCH /submit ──►│                       │
@@ -830,7 +830,7 @@ Wallet App           Mimoto                  Verifier
 
 ### 🔴 BEFORE (0.7.0)
 
-```
+```text
 📄 OpenID4VPService.sendErrorToVerifier()
   │
   └─ openID4VP.authenticateVerifier(
@@ -844,7 +844,7 @@ Wallet App           Mimoto                  Verifier
 
 ### 🟢 AFTER (0.8.0)
 
-```
+```http
 PATCH /wallets/{id}/presentations/{pid}
   Body: { errorCode: "access_denied", errorMessage: "User denied" }
          │
@@ -885,7 +885,7 @@ PATCH /wallets/{id}/presentations/{pid}
 | `pom.xml` | Library version `0.7.0-SNAPSHOT-myLocal` → `0.8.0-myLocal` |
 | `OpenID4VPService.java` | `WalletConfig` replaces `WalletMetadata` · `validatePreRegisteredVerifier` in config · `authenticateVerifier` 1-arg · new `resolveDcqlQuery()` method |
 | `WalletPresentationServiceImpl.java` | `create(..., isPreReg)` + `authenticateVerifier` 1-arg · `buildDescriptorCredentialMap()` replaces `convertCredentialsToJarFormat()` · DCQL submission branch · `validateDcqlSelections()` · `buildQueryCredentialMap()` |
-| `CredentialMatchingServiceImpl.java` | `specVersion` routing · `descriptorId` recording in Draft-23 matching · new `matchDcql()` branch · `matchesDcqlQuery()` helper |
+| `CredentialMatchingServiceImpl.java` | `specVersion` routing · `descriptorId` recording in Draft-23 matching · new `matchWithDcqlQuery()` branch · `matchesDcqlQuery()` helper · `DcqlClaimSetHelper` for `claim_sets` |
 | `VerifiablePresentationSessionData.java` | Add `specVersion` field (`DRAFT_23` or `V1_0`); default when null is `V1_0` |
 | `DecryptedCredentialDTO.java` | Add `descriptorId` field (bridge key from matching → submission) |
 | `SubmitPresentationRequestDTO.java` | `selectedCredentials` becomes polymorphic: `List<String>` (Draft-23) or `List<DcqlCredentialSelection>` (DCQL) · update `isSubmissionRequest()`, `isRejectionRequest()`, and add `isDcqlSubmission()` helper |
