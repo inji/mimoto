@@ -582,7 +582,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             } catch (ParseException e) {
                 throw new JOSEException("Failed to parse JWS header for VP token signing", e);
             }
-            results.add(new VPTokenSigningResult(signature.decode()));
+            results.add(new VPTokenSigningResult(token.getId(), signature.decode()));
         }
         return results;
     }

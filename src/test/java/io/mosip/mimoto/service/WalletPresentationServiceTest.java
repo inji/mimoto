@@ -178,6 +178,7 @@ public class WalletPresentationServiceTest {
         UnsignedVPToken token = mock(UnsignedVPToken.class);
         String headerB64 = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString("{\"alg\":\"EdDSA\"}".getBytes(StandardCharsets.UTF_8));
+        when(token.getId()).thenReturn("token-id-ldp");
         when(token.getDataToSign()).thenReturn((headerB64 + ".payload").getBytes(StandardCharsets.US_ASCII));
         when(token.getFormat()).thenReturn(FormatType.LDP_VC);
         when(token.getSignatureAlgorithm()).thenReturn("EdDSA");
@@ -1142,6 +1143,7 @@ public class WalletPresentationServiceTest {
 
     private UnsignedVPToken mockSdJwtUnsignedToken() {
         UnsignedVPToken token = mock(UnsignedVPToken.class);
+        when(token.getId()).thenReturn("token-id-sdjwt");
         when(token.getFormat()).thenReturn(FormatType.DC_SD_JWT);
         when(token.getSignatureAlgorithm()).thenReturn("EdDSA");
         String header = Base64.getUrlEncoder().withoutPadding()
@@ -1767,6 +1769,7 @@ public class WalletPresentationServiceTest {
         String unsignedKBT = kbHeader + "." + kbPayload;
 
         UnsignedVPToken mockToken = mock(UnsignedVPToken.class);
+        when(mockToken.getId()).thenReturn("token-id-kbt");
         when(mockToken.getFormat()).thenReturn(FormatType.VC_SD_JWT);
         when(mockToken.getDataToSign()).thenReturn(unsignedKBT.getBytes(StandardCharsets.US_ASCII));
         when(mockToken.getSignatureAlgorithm()).thenReturn("ES256");
@@ -1804,6 +1807,7 @@ public class WalletPresentationServiceTest {
         String unsignedKbt = badHeader + ".payload";
 
         UnsignedVPToken mockToken = mock(UnsignedVPToken.class);
+        when(mockToken.getId()).thenReturn("token-id-bad");
         when(mockToken.getFormat()).thenReturn(FormatType.VC_SD_JWT);
         when(mockToken.getDataToSign()).thenReturn(unsignedKbt.getBytes(StandardCharsets.US_ASCII));
         when(mockToken.getSignatureAlgorithm()).thenReturn("ES256");
@@ -2190,11 +2194,13 @@ public class WalletPresentationServiceTest {
                 .encodeToString("{\"alg\":\"EdDSA\"}".getBytes(StandardCharsets.UTF_8)) + "." + payload;
 
         UnsignedVPToken es256Token = mock(UnsignedVPToken.class);
+        when(es256Token.getId()).thenReturn("token-id-es256");
         when(es256Token.getFormat()).thenReturn(FormatType.VC_SD_JWT);
         when(es256Token.getDataToSign()).thenReturn(es256Kbt.getBytes(StandardCharsets.US_ASCII));
         when(es256Token.getSignatureAlgorithm()).thenReturn("ES256");
 
         UnsignedVPToken eddsaToken = mock(UnsignedVPToken.class);
+        when(eddsaToken.getId()).thenReturn("token-id-eddsa");
         when(eddsaToken.getFormat()).thenReturn(FormatType.VC_SD_JWT);
         when(eddsaToken.getDataToSign()).thenReturn(eddsaKbt.getBytes(StandardCharsets.US_ASCII));
         when(eddsaToken.getSignatureAlgorithm()).thenReturn("EdDSA");
@@ -2240,11 +2246,13 @@ public class WalletPresentationServiceTest {
         String kbt = header + "." + payload;
 
         UnsignedVPToken token1 = mock(UnsignedVPToken.class);
+        when(token1.getId()).thenReturn("token-id-1");
         when(token1.getFormat()).thenReturn(FormatType.VC_SD_JWT);
         when(token1.getDataToSign()).thenReturn(kbt.getBytes(StandardCharsets.US_ASCII));
         when(token1.getSignatureAlgorithm()).thenReturn("ES256");
 
         UnsignedVPToken token2 = mock(UnsignedVPToken.class);
+        when(token2.getId()).thenReturn("token-id-2");
         when(token2.getFormat()).thenReturn(FormatType.VC_SD_JWT);
         when(token2.getDataToSign()).thenReturn(kbt.getBytes(StandardCharsets.US_ASCII));
         when(token2.getSignatureAlgorithm()).thenReturn("ES256");

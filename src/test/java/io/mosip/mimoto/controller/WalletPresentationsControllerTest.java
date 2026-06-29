@@ -102,7 +102,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new OpenID4VPExceptions.MissingInput(List.of("client_id"), "client_id request param is Missing", "AuthorizationRequest"));
+        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new OpenID4VPExceptions.MissingInput(List.of("client_id"), "client_id request param is Missing", "AuthorizationRequest", true));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
                         .contentType(MediaType.APPLICATION_JSON)

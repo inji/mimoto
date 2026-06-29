@@ -52,7 +52,7 @@ public class OpenID4VPService {
         return create(presentationId, trustedVerifiers, true);
     }
 
-    public OpenID4VP create(String presentationId, List<Verifier> trustedVerifiers, boolean validatePreRegisteredVerifier) {
+    public OpenID4VP create(String presentationId, List<Verifier> trustedVerifiers, boolean validateTrustedVerifier) {
         Map<VPFormatType, VPFormatSupported> vpFormatsSupported = Map.of(
                 VPFormatType.LDP_VC, new LdpVpFormatSupported(List.of(ProofType.Ed25519Signature2020), null),
                 VPFormatType.VC_SD_JWT, new SdJwtVpFormatSupported(List.of("ES256", "EdDSA"), List.of("ES256", "EdDSA")),
@@ -68,9 +68,8 @@ public class OpenID4VPService {
                 getDefaultEncryptionMethodSupported(),
                 getDefaultResponseTypeSupported(),
                 libraryDefaults.isPresentationDefinitionUriSupported(),
-                libraryDefaults.getSupportedRequestUriMethods(),
                 trustedVerifiers != null ? trustedVerifiers : List.of(),
-                validatePreRegisteredVerifier
+                validateTrustedVerifier
         );
 
         return new OpenID4VP(presentationId, walletConfig);
