@@ -585,6 +585,8 @@
 									"",
 									"if (presentationResponse.specVersion) {",
 									"    pm.collectionVariables.set(\"ovpSpecVersion\", presentationResponse.specVersion);",
+									"} else {",
+									"    pm.collectionVariables.set(\"ovpSpecVersion\", \"\");",
 									"}",
 									""
 								],
@@ -637,8 +639,6 @@
 							"script": {
 								"exec": [
 									"const response = pm.response.json();",
-									"",
-									"pm.collectionVariables.set(\"matchingCredentialsResponse\", JSON.stringify(response));",
 									"",
 									"if (response.isDcql) {",
 									"    const queryGroupsById = {};",
@@ -1527,10 +1527,6 @@
 		},
 		{
 			"key": "credentialId2",
-			"value": ""
-		},
-		{
-			"key": "matchingCredentialsResponse",
 			"value": ""
 		}
 	]
