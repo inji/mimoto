@@ -35,6 +35,7 @@ import java.util.Map;
 @Tag(name = SwaggerLiteralConstants.IDP_NAME, description = SwaggerLiteralConstants.IDP_DESCRIPTION)
 public class IdpController {
     private static final boolean USE_BEARER_TOKEN = true;
+    private static final String DPOP_HEADER = "DPoP";
 
     private final RestClientService<Object> restClientService;
 
@@ -129,6 +130,24 @@ public class IdpController {
             List<ErrorDTO> errors = Utilities.getErrors(errorObj[0], errorObj[1]);
             responseWrapper.setErrors(errors);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
+        }
+    }
+
+    @Operation(summary = SwaggerLiteralConstants.IDP_GET_TOKEN_V2_SUMMARY, description = SwaggerLiteralConstants.IDP_GET_TOKEN_V2_DESCRIPTION)
+    @PostMapping(value = {"/v2/get-token/{issuer}"}, consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+    public ResponseEntity<String> getTokenV2(@RequestParam Map<String, String> params,
+                                             @PathVariable(name = "issuer") String issuer,
+                                             @RequestHeader(value = DPOP_HEADER, required = false) String dpopProof) {
+        log.info("Reached the getTokenV2 Controller for Issuer " + issuer);
+        try {
+            params.put("issuer", issuer);
+            return idpService.getTokenResponseV2(params, dpopProof);
+        } catch (Exception ex) {
+            log.error("Exception Occurred while Invoking the Token Endpoint : ", ex);
+            String[] errorObj = Utilities.handleExceptionWithErrorCode(ex, PlatformErrorMessages.MIMOTO_FETCHING_TOKEN_EXCEPTION.getCode());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(String.format("{\"error\":\"%s\",\"error_description\":\"%s\"}", errorObj[0], errorObj[1]));
         }
     }
 }

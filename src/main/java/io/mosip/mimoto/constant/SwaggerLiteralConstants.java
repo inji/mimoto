@@ -39,6 +39,8 @@ public class SwaggerLiteralConstants {
     public static final String IDP_WALLET_BINDING_DESCRIPTION = "This endpoint allow you to perform the wallet binding";
     public static final String IDP_GET_TOKEN_SUMMARY = "Retrieve accessToken for OIDC flow";
     public static final String IDP_GET_TOKEN_DESCRIPTION = "This endpoint allow you to retrieve the access token in exchange for authorization code";
+    public static final String IDP_GET_TOKEN_V2_SUMMARY = "Retrieve accessToken for OIDC flow with DPoP support";
+    public static final String IDP_GET_TOKEN_V2_DESCRIPTION = "This endpoint proxies the token request to the authorization server and returns the response as-is, preserving the DPoP-Nonce handshake required by RFC 9449";
 
     /* Issuers Controller */
     public static final String ISSUERS_NAME = "Issuers";

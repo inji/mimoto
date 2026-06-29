@@ -9,6 +9,7 @@ import io.mosip.mimoto.exception.AuthorizationServerWellknownResponseException;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
 import io.mosip.mimoto.exception.IssuerOnboardingException;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
@@ -22,4 +23,6 @@ public interface IdpService {
     TokenResponseDTO getTokenResponse(Map<String, String> params) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException;
 
     TokenResponseDTO getTokenResponse(VerifiableCredentialRequestDTO verifiableCredentialRequest) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException;
+
+    ResponseEntity<String> getTokenResponseV2(Map<String, String> params, String dpopProof) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException, IssuerOnboardingException;
 }

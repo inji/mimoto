@@ -12,11 +12,15 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpStatus;
 
@@ -28,6 +32,8 @@ import java.util.Map;
 
 @Service
 public class IdpServiceImpl implements IdpService {
+
+    private static final String DPOP_HEADER = "DPoP";
 
     @Value("${mosip.oidc.client.assertion.type}")
     String clientAssertionType;
@@ -110,6 +116,30 @@ public class IdpServiceImpl implements IdpService {
         }
     }
 
+
+    @Override
+    public ResponseEntity<String> getTokenResponseV2(Map<String, String> params, String dpopProof) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException, IssuerOnboardingException {
+        String issuerId = params.get("issuer");
+        IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
+        CredentialIssuerConfiguration credentialIssuerConfiguration = issuersService.getIssuerConfiguration(issuerId);
+        String tokenEndpoint = getTokenEndpoint(credentialIssuerConfiguration);
+
+        HttpEntity<MultiValueMap<String, String>> request = constructGetTokenRequest(params, issuerDTO, tokenEndpoint);
+        HttpHeaders headers = new HttpHeaders();
+        headers.addAll(request.getHeaders());
+        if (StringUtils.hasText(dpopProof)) {
+            headers.set(DPOP_HEADER, dpopProof);
+        }
+        HttpEntity<MultiValueMap<String, String>> requestWithDpop = new HttpEntity<>(request.getBody(), headers);
+
+        try {
+            return restTemplate.exchange(tokenEndpoint, HttpMethod.POST, requestWithDpop, String.class);
+        } catch (HttpStatusCodeException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .headers(e.getResponseHeaders())
+                    .body(e.getResponseBodyAsString());
+        }
+    }
 
     private Map<String, String> convertVerifiableCredentialRequestToMap(VerifiableCredentialRequestDTO verifiableCredentialRequest) {
         Map<String, String> params = new HashMap<>();
