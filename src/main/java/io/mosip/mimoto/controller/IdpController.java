@@ -33,6 +33,7 @@ import jakarta.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @Slf4j
@@ -197,9 +198,14 @@ public class IdpController {
 
             ResponseEntity<String> response = idpService.getTokenResponseV2(tokenParams, dpopProof);
 
+            // Hop-by-hop headers must not be forwarded (RFC 7230)
+            Set<String> hopByHopHeaders = Set.of(
+                    "transfer-encoding", "connection", "keep-alive",
+                    "proxy-authenticate", "proxy-authorization", "te", "trailer", "upgrade"
+            );
             HttpHeaders forwardHeaders = new HttpHeaders();
             response.getHeaders().forEach((name, values) -> {
-                if (!name.equalsIgnoreCase(HttpHeaders.TRANSFER_ENCODING)) {
+                if (!hopByHopHeaders.contains(name.toLowerCase())) {
                     forwardHeaders.put(name, values);
                 }
             });
