@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -196,9 +197,15 @@ public class IdpController {
 
             ResponseEntity<String> response = idpService.getTokenResponseV2(tokenParams, dpopProof);
 
+            HttpHeaders forwardHeaders = new HttpHeaders();
+            response.getHeaders().forEach((name, values) -> {
+                if (!name.equalsIgnoreCase(HttpHeaders.TRANSFER_ENCODING)) {
+                    forwardHeaders.put(name, values);
+                }
+            });
             return ResponseEntity
                     .status(response.getStatusCode())
-                    .headers(response.getHeaders())
+                    .headers(forwardHeaders)
                     .body(response.getBody());
 
         } catch (InvalidRequestException ex) {
