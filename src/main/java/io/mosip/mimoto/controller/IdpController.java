@@ -7,6 +7,7 @@ import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.IdpException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.exception.PlatformErrorMessages;
 import io.mosip.mimoto.service.IdpService;
 import io.mosip.mimoto.service.RestClientService;
@@ -27,6 +28,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -133,21 +136,100 @@ public class IdpController {
         }
     }
 
-    @Operation(summary = SwaggerLiteralConstants.IDP_GET_TOKEN_V2_SUMMARY, description = SwaggerLiteralConstants.IDP_GET_TOKEN_V2_DESCRIPTION)
-    @PostMapping(value = {"/v2/get-token/{issuer}"}, consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE})
-    public ResponseEntity<String> getTokenV2(@RequestParam Map<String, String> params,
+    @Operation(
+            summary = SwaggerLiteralConstants.IDP_GET_TOKEN_V2_SUMMARY,
+            description = SwaggerLiteralConstants.IDP_GET_TOKEN_V2_DESCRIPTION
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Token response from authorization server",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = TokenResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Authorization server error response returned as-is or invalid request detected by Mimoto",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(
+                                    example = "{\"error\":\"invalid_request\",\"error_description\":\"Invalid token request\"}"
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authorization server unauthorized response returned as-is",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(
+                                    example = "{\"error\":\"invalid_client\",\"error_description\":\"Client authentication failed\"}"
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal Mimoto error before receiving authorization server response",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(
+                                    example = "{\"error\":\"MIMOTO-XXX\",\"error_description\":\"Unable to fetch token\"}"
+                            )
+                    )
+            )
+    })
+    @PostMapping(
+            value = "/v2/get-token/{issuer}",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<Object> getTokenV2(@RequestParam Map<String, String> params,
                                              @PathVariable(name = "issuer") String issuer,
                                              @RequestHeader(value = DPOP_HEADER, required = false) String dpopProof) {
-        log.info("Reached the getTokenV2 Controller for Issuer " + issuer);
+        log.info("Reached the getTokenV2 Controller for Issuer {}", issuer);
+
         try {
-            params.put("issuer", issuer);
-            return idpService.getTokenResponseV2(params, dpopProof);
+            Map<String, String> tokenParams = new HashMap<>(params);
+            tokenParams.put("issuer", issuer);
+
+            ResponseEntity<String> response = idpService.getTokenResponseV2(tokenParams, dpopProof);
+
+            return ResponseEntity
+                    .status(response.getStatusCode())
+                    .headers(response.getHeaders())
+                    .body(response.getBody());
+
+        } catch (InvalidRequestException ex) {
+            log.error("Invalid token request: ", ex);
+
+            String[] errorObj = Utilities.handleExceptionWithErrorCode(
+                    ex,
+                    PlatformErrorMessages.MIMOTO_FETCHING_TOKEN_EXCEPTION.getCode()
+            );
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "error", errorObj[0],
+                            "error_description", errorObj[1]
+                    ));
+
         } catch (Exception ex) {
-            log.error("Exception Occurred while Invoking the Token Endpoint : ", ex);
-            String[] errorObj = Utilities.handleExceptionWithErrorCode(ex, PlatformErrorMessages.MIMOTO_FETCHING_TOKEN_EXCEPTION.getCode());
+            log.error("Exception occurred while invoking the token endpoint: ", ex);
+
+            String[] errorObj = Utilities.handleExceptionWithErrorCode(
+                    ex,
+                    PlatformErrorMessages.MIMOTO_FETCHING_TOKEN_EXCEPTION.getCode()
+            );
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(String.format("{\"error\":\"%s\",\"error_description\":\"%s\"}", errorObj[0], errorObj[1]));
+                    .body(Map.of(
+                            "error", errorObj[0],
+                            "error_description", errorObj[1]
+                    ));
         }
     }
 }

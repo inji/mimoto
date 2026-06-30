@@ -30,6 +30,11 @@ import static io.mosip.mimoto.util.TestUtilities.getTokenResponseDTO;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import io.mosip.mimoto.exception.InvalidRequestException;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = IdpController.class)
@@ -158,5 +163,95 @@ public class IdpControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].errorCode").value("RESIDENT-APP-034"))
                 .andExpect(jsonPath("$.errors[0].errorMessage").value("Exception occurred while performing the authorization"));
+    }
+
+    @Test
+    public void shouldReturnTokenResponseForV2ValidIssuerAndParams() throws Exception {
+        String issuer = "test-issuer";
+        String responseBody = "{\"access_token\":\"test-access-token\",\"token_type\":\"DPoP\",\"expires_in\":12345}";
+
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add("DPoP-Nonce", "test-nonce");
+
+        Mockito.when(idpService.getTokenResponseV2(Mockito.anyMap(), Mockito.eq("test-dpop-proof")))
+                .thenReturn(ResponseEntity.ok()
+                        .headers(responseHeaders)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(responseBody));
+
+        mockMvc.perform(post("/v2/get-token/{issuer}", issuer)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .header("DPoP", "test-dpop-proof")
+                        .param("grant_type", "authorization_code")
+                        .param("code", "test-code")
+                        .param("redirect_uri", "test-redirect_uri")
+                        .param("code_verifier", "test-code_verifier"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").value("test-access-token"))
+                .andExpect(jsonPath("$.token_type").value("DPoP"))
+                .andExpect(jsonPath("$.expires_in").value(12345))
+                .andExpect(header().string("DPoP-Nonce", "test-nonce"));
+    }
+
+    @Test
+    public void shouldReturnAuthorizationServerErrorAsIsForV2() throws Exception {
+        String issuer = "test-issuer";
+        String errorBody = "{\"error\":\"use_dpop_nonce\",\"error_description\":\"DPoP nonce required\"}";
+
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add("DPoP-Nonce", "server-nonce-123");
+
+        Mockito.when(idpService.getTokenResponseV2(Mockito.anyMap(), Mockito.eq("stale-dpop-proof")))
+                .thenReturn(ResponseEntity.status(401)
+                        .headers(responseHeaders)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(errorBody));
+
+        mockMvc.perform(post("/v2/get-token/{issuer}", issuer)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .header("DPoP", "stale-dpop-proof")
+                        .param("grant_type", "authorization_code")
+                        .param("code", "test-code")
+                        .param("redirect_uri", "test-redirect_uri")
+                        .param("code_verifier", "test-code_verifier"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("DPoP-Nonce", "server-nonce-123"))
+                .andExpect(jsonPath("$.error").value("use_dpop_nonce"))
+                .andExpect(jsonPath("$.error_description").value("DPoP nonce required"));
+    }
+
+    @Test
+    public void shouldReturnInternalServerErrorForV2InternalException() throws Exception {
+        String issuer = "test-issuer";
+
+        Mockito.when(idpService.getTokenResponseV2(Mockito.anyMap(), Mockito.any()))
+                .thenThrow(new RuntimeException("Unexpected error"));
+
+        mockMvc.perform(post("/v2/get-token/{issuer}", issuer)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "authorization_code")
+                        .param("code", "test-code")
+                        .param("redirect_uri", "test-redirect_uri")
+                        .param("code_verifier", "test-code_verifier"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").exists())
+                .andExpect(jsonPath("$.error_description").exists());
+    }
+    @Test
+    public void shouldReturnBadRequestForV2InvalidRequestException() throws Exception {
+        String issuer = "test-issuer";
+
+        Mockito.when(idpService.getTokenResponseV2(Mockito.anyMap(), Mockito.any()))
+                .thenThrow(new InvalidRequestException("invalid_request", "Invalid issuer"));
+
+        mockMvc.perform(post("/v2/get-token/{issuer}", issuer)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "authorization_code")
+                        .param("code", "test-code")
+                        .param("redirect_uri", "test-redirect_uri")
+                        .param("code_verifier", "test-code_verifier"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists())
+                .andExpect(jsonPath("$.error_description").exists());
     }
 }

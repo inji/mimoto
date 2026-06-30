@@ -88,57 +88,114 @@ public class IdpServiceImpl implements IdpService {
     }
 
     @Override
-    public TokenResponseDTO getTokenResponse(Map<String, String> params) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException {
-        try{
+    public TokenResponseDTO getTokenResponse(Map<String, String> params)
+            throws ApiNotAccessibleException, IOException,
+            AuthorizationServerWellknownResponseException,
+            InvalidWellknownResponseException {
+        try {
             String issuerId = params.get("issuer");
-            String codeVerifier = params.get("code_verifier");
-            if (codeVerifier == null || !codeVerifier.matches("^[A-Za-z0-9\\-._~]{43,128}$")) {
-                throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Invalid code verifier.");
-            }
+            String tokenEndpoint = getResolvedTokenEndpoint(issuerId);
 
-            IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
-            CredentialIssuerConfiguration credentialIssuerConfiguration = issuersService.getIssuerConfiguration(issuerId);
-            String tokenEndpoint = getTokenEndpoint(credentialIssuerConfiguration);
-            HttpEntity<MultiValueMap<String, String>> request = constructGetTokenRequest(params, issuerDTO, tokenEndpoint);
-            TokenResponseDTO response = restTemplate.postForObject(tokenEndpoint, request, TokenResponseDTO.class);
+            HttpEntity<MultiValueMap<String, String>> request =
+                    buildTokenRequest(params, issuerId, tokenEndpoint);
+
+            TokenResponseDTO response = restTemplate.postForObject(
+                    tokenEndpoint,
+                    request,
+                    TokenResponseDTO.class
+            );
+
             if (response == null) {
                 throw new IdpException("Exception occurred while performing the authorization");
             }
+
             return response;
+
         } catch (InvalidIssuerIdException e) {
             throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Invalid issuer");
+
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
-                throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Request failed due to invalid input detected by an external service.");
-            } else {
-                throw e;
+                throw new InvalidRequestException(
+                        INVALID_REQUEST.getErrorCode(),
+                        "Request failed due to invalid input detected by an external service."
+                );
             }
+            throw e;
         }
     }
 
 
-    @Override
-    public ResponseEntity<String> getTokenResponseV2(Map<String, String> params, String dpopProof) throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException, IssuerOnboardingException {
-        String issuerId = params.get("issuer");
-        IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
-        CredentialIssuerConfiguration credentialIssuerConfiguration = issuersService.getIssuerConfiguration(issuerId);
-        String tokenEndpoint = getTokenEndpoint(credentialIssuerConfiguration);
 
-        HttpEntity<MultiValueMap<String, String>> request = constructGetTokenRequest(params, issuerDTO, tokenEndpoint);
-        HttpHeaders headers = new HttpHeaders();
-        headers.addAll(request.getHeaders());
-        if (StringUtils.hasText(dpopProof)) {
-            headers.set(DPOP_HEADER, dpopProof);
-        }
-        HttpEntity<MultiValueMap<String, String>> requestWithDpop = new HttpEntity<>(request.getBody(), headers);
+    @Override
+    public ResponseEntity<String> getTokenResponseV2(Map<String, String> params, String dpopProof)
+            throws ApiNotAccessibleException, IOException,
+            AuthorizationServerWellknownResponseException,
+            InvalidWellknownResponseException,
+            IssuerOnboardingException {
 
         try {
-            return restTemplate.exchange(tokenEndpoint, HttpMethod.POST, requestWithDpop, String.class);
+            String issuerId = params.get("issuer");
+            String tokenEndpoint = getResolvedTokenEndpoint(issuerId);
+
+            HttpEntity<MultiValueMap<String, String>> request =
+                    buildTokenRequest(params, issuerId, tokenEndpoint);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.addAll(request.getHeaders());
+
+            if (StringUtils.hasText(dpopProof)) {
+                headers.set(DPOP_HEADER, dpopProof);
+            }
+
+            HttpEntity<MultiValueMap<String, String>> requestWithDpop =
+                    new HttpEntity<>(request.getBody(), headers);
+
+            return restTemplate.exchange(
+                    tokenEndpoint,
+                    HttpMethod.POST,
+                    requestWithDpop,
+                    String.class
+            );
+
+        } catch (InvalidIssuerIdException e) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Invalid issuer");
+
         } catch (HttpStatusCodeException e) {
             return ResponseEntity.status(e.getStatusCode())
                     .headers(e.getResponseHeaders())
                     .body(e.getResponseBodyAsString());
         }
+    }
+
+    private void validateCodeVerifier(String codeVerifier) {
+        if (codeVerifier == null || !codeVerifier.matches("^[A-Za-z0-9\\-._~]{43,128}$")) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Invalid code verifier.");
+        }
+    }
+
+    private String getResolvedTokenEndpoint(String issuerId)
+            throws ApiNotAccessibleException, IOException,
+            AuthorizationServerWellknownResponseException,
+            InvalidWellknownResponseException {
+
+        CredentialIssuerConfiguration credentialIssuerConfiguration =
+                issuersService.getIssuerConfiguration(issuerId);
+
+        return getTokenEndpoint(credentialIssuerConfiguration);
+    }
+
+    private HttpEntity<MultiValueMap<String, String>> buildTokenRequest(
+            Map<String, String> params,
+            String issuerId,
+            String tokenEndpoint
+    ) throws IOException, IssuerOnboardingException, InvalidIssuerIdException, ApiNotAccessibleException {
+
+        validateCodeVerifier(params.get("code_verifier"));
+
+        IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
+
+        return constructGetTokenRequest(params, issuerDTO, tokenEndpoint);
     }
 
     private Map<String, String> convertVerifiableCredentialRequestToMap(VerifiableCredentialRequestDTO verifiableCredentialRequest) {
