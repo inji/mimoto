@@ -41,6 +41,16 @@ import java.util.Set;
 public class IdpController {
     private static final boolean USE_BEARER_TOKEN = true;
     private static final String DPOP_HEADER = "DPoP";
+    private static final Set<String> HOP_BY_HOP_HEADERS = Set.of(
+            HttpHeaders.TRANSFER_ENCODING,
+            HttpHeaders.CONNECTION,
+            "Keep-Alive",
+            "Proxy-Authenticate",
+            "Proxy-Authorization",
+            "TE",
+            "Trailer",
+            HttpHeaders.UPGRADE
+    );
 
     private final RestClientService<Object> restClientService;
 
@@ -198,20 +208,9 @@ public class IdpController {
 
             ResponseEntity<String> response = idpService.getTokenResponseV2(tokenParams, dpopProof);
 
-            // Hop-by-hop headers must not be forwarded (RFC 7230)
-            Set<String> hopByHopHeaders = Set.of(
-                    "transfer-encoding", "connection", "keep-alive",
-                    "proxy-authenticate", "proxy-authorization", "te", "trailer", "upgrade"
-            );
-            HttpHeaders forwardHeaders = new HttpHeaders();
-            response.getHeaders().forEach((name, values) -> {
-                if (!hopByHopHeaders.contains(name.toLowerCase())) {
-                    forwardHeaders.put(name, values);
-                }
-            });
             return ResponseEntity
                     .status(response.getStatusCode())
-                    .headers(forwardHeaders)
+                    .headers(getForwardableHeaders(response.getHeaders()))
                     .body(response.getBody());
 
         } catch (InvalidRequestException ex) {
@@ -244,5 +243,15 @@ public class IdpController {
                             "error_description", errorObj[1]
                     ));
         }
+    }
+
+    private static HttpHeaders getForwardableHeaders(HttpHeaders sourceHeaders) {
+        HttpHeaders forwardHeaders = new HttpHeaders();
+        forwardHeaders.putAll(sourceHeaders);
+
+        HOP_BY_HOP_HEADERS.forEach(forwardHeaders::remove);
+        sourceHeaders.getConnection().forEach(forwardHeaders::remove);
+
+        return forwardHeaders;
     }
 }
