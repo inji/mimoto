@@ -54,5 +54,5 @@ public class DecryptedCredentialDTO implements Serializable {
      * InputDescriptor.id (Draft-23) or DCQL CredentialQuery.id (OVP 1.0).
      * Bridge key from credential matching to VP submission.
      */
-    private String descriptorId;
+    private String identifier;
 }

@@ -31,10 +31,6 @@ public class MatchingCredentialsResponseDTO {
     private List<DcqlQueryGroup> queryGroups;
 
     @JsonProperty("credentialSets")
-    @Schema(description = "Option-grouping layer from the verifier's DCQL credential_sets; empty when absent")
+    @Schema(description = "Option-grouping layer from the verifier's DCQL credential_sets; synthesised from individual queries when absent in the verifier request")
     private List<CredentialSetInfo> credentialSets;
-
-    @JsonProperty("isDcql")
-    @Schema(description = "True when response is for a DCQL authorization request")
-    private boolean isDcql;
 }

@@ -44,15 +44,11 @@ public class OpenID4VPService {
         this.verifierService = verifierService;
     }
 
-    public OpenID4VP create(String presentationId) {
-        return create(presentationId, List.of(), true);
-    }
-
-    public OpenID4VP create(String presentationId, List<Verifier> trustedVerifiers) {
-        return create(presentationId, trustedVerifiers, true);
-    }
-
     public OpenID4VP create(String presentationId, List<Verifier> trustedVerifiers, boolean validateTrustedVerifier) {
+        return new OpenID4VP(presentationId, buildWalletConfig(trustedVerifiers, validateTrustedVerifier));
+    }
+
+    private WalletConfig buildWalletConfig(List<Verifier> trustedVerifiers, boolean validateTrustedVerifier) {
         Map<VPFormatType, VPFormatSupported> vpFormatsSupported = Map.of(
                 VPFormatType.LDP_VC, new LdpVpFormatSupported(List.of(ProofType.Ed25519Signature2020), null),
                 VPFormatType.VC_SD_JWT, new SdJwtVpFormatSupported(List.of("ES256", "EdDSA"), List.of("ES256", "EdDSA")),
@@ -60,7 +56,7 @@ public class OpenID4VPService {
         );
 
         WalletConfig libraryDefaults = new WalletConfig();
-        WalletConfig walletConfig = new WalletConfig(
+        return new WalletConfig(
                 vpFormatsSupported,
                 getDefaultClientIdPrefixesSupported(),
                 getDefaultSignatureAlgorithmSupported(),
@@ -71,8 +67,6 @@ public class OpenID4VPService {
                 trustedVerifiers != null ? trustedVerifiers : List.of(),
                 validateTrustedVerifier
         );
-
-        return new OpenID4VP(presentationId, walletConfig);
     }
 
     /**
@@ -165,7 +159,7 @@ public class OpenID4VPService {
 
     public List<Verifier> getPreRegisteredVerifiers() throws ApiNotAccessibleException, IOException {
         return verifierService.getTrustedVerifiers().getVerifiers().stream()
-                .map(v -> new Verifier(v.getClientId(), v.getResponseUris(), v.getJwksUri(), v.getAllowUnsignedRequest()))
+                .map(v -> new Verifier(v.getClientId(), v.getResponseUris(), v.getJwksUri(), v.getAllowUnsignedRequest(), v.getSpecVersion()))
                 .toList();
     }
 

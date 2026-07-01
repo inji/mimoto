@@ -1,7 +1,8 @@
 package io.mosip.mimoto.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.mosip.mimoto.constant.SpecVersion;
+import io.mosip.openID4VP.constants.SpecVersion;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,6 +20,6 @@ public class VPResponseDTO {
     @Schema(description = "Information about the Verifier who sent the Verifiable Presentation request")
     private VerifiablePresentationVerifierDTO verifiablePresentationVerifierDTO;
 
-    @Schema(description = "Detected OpenID4VP spec version for this session")
+    @JsonIgnore
     private SpecVersion specVersion;
 }

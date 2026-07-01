@@ -1,7 +1,7 @@
 package io.mosip.mimoto.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.mosip.mimoto.constant.SpecVersion;
+import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;

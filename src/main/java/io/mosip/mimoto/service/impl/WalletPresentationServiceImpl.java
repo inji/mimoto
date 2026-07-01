@@ -11,7 +11,7 @@ import com.nimbusds.jose.util.Base64URL;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.constant.OpenID4VPConstants;
 import io.mosip.mimoto.constant.SigningAlgorithm;
-import io.mosip.mimoto.constant.SpecVersion;
+import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
@@ -23,7 +23,8 @@ import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.mimoto.util.DcqlClaimSetHelper;
-import io.mosip.mimoto.util.SelectedSdClaimsMergeUtil;
+import io.mosip.mimoto.util.DcqlCredentialSetHelper;
+import io.mosip.mimoto.util.SelectedSdClaimsUtil;
 import io.mosip.openID4VP.OpenID4VP;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationDcqlRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
@@ -109,7 +110,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         AuthorizationRequest authorizationRequest = openID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest);
 
         SpecVersion specVersion = (authorizationRequest instanceof AuthorizationDcqlRequest)
-                ? SpecVersion.V1_0 : SpecVersion.DRAFT_23;
+                ? SpecVersion.V1 : SpecVersion.DRAFT_23;
 
         VerifiablePresentationVerifierDTO verifierDTO =
                 createVPResponseVerifierDTO(preRegisteredVerifiers, authorizationRequest, walletId);
@@ -255,8 +256,8 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         Map<String, List<Credential>> result = new LinkedHashMap<>();
         for (DecryptedCredentialDTO dto : selected) {
             DecryptedCredentialDTO credentialForSubmission = resolveCredentialForSubmission(dto, walletCredentialsById);
-            String key = (credentialForSubmission.getDescriptorId() != null && !credentialForSubmission.getDescriptorId().isBlank())
-                    ? credentialForSubmission.getDescriptorId() : credentialForSubmission.getId();
+            String key = (credentialForSubmission.getIdentifier() != null && !credentialForSubmission.getIdentifier().isBlank())
+                    ? credentialForSubmission.getIdentifier() : credentialForSubmission.getId();
             result.computeIfAbsent(key, k -> new ArrayList<>())
                     .add(toLibraryCredential(credentialForSubmission, selectedSdClaims));
         }
@@ -285,7 +286,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                     throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
                             "Selected credential not found in session: " + id);
                 }
-                if (sessionDto.getDescriptorId() == null || sessionDto.getDescriptorId().isBlank()) {
+                if (sessionDto.getIdentifier() == null || sessionDto.getIdentifier().isBlank()) {
                     throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
                             "Credential " + id + " has no query mapping — call GET /credentials before submit");
                 }
@@ -306,7 +307,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
     /**
      * Resolves the DCQL query id used as the inji-openid4vp map key. The client-supplied
      * {@code queryId} is authoritative when present, since one wallet credential may match
-     * multiple DCQL queries and the session stores only the first match's descriptor id.
+     * multiple DCQL queries and the session stores only the first match's identifier.
      */
     private String resolveDcqlMapKey(DcqlCredentialSelection selection, Map<String, DecryptedCredentialDTO> cache) {
         if (selection.getQueryId() != null && !selection.getQueryId().isBlank()) {
@@ -319,15 +320,15 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         String sessionQueryId = null;
         for (String id : selectedIds) {
             DecryptedCredentialDTO dto = cache.get(id);
-            if (dto == null || dto.getDescriptorId() == null || dto.getDescriptorId().isBlank()) {
+            if (dto == null || dto.getIdentifier() == null || dto.getIdentifier().isBlank()) {
                 continue;
             }
             if (sessionQueryId == null) {
-                sessionQueryId = dto.getDescriptorId();
-            } else if (!sessionQueryId.equals(dto.getDescriptorId())) {
+                sessionQueryId = dto.getIdentifier();
+            } else if (!sessionQueryId.equals(dto.getIdentifier())) {
                 throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
                         "Selected credentials belong to different DCQL queries: "
-                                + sessionQueryId + " vs " + dto.getDescriptorId());
+                                + sessionQueryId + " vs " + dto.getIdentifier());
             }
         }
         return sessionQueryId;
@@ -349,7 +350,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                 .credentialMetadata(walletDto.getCredentialMetadata())
                 .createdAt(walletDto.getCreatedAt())
                 .updatedAt(walletDto.getUpdatedAt())
-                .descriptorId(sessionDto.getDescriptorId())
+                .identifier(sessionDto.getIdentifier())
                 .build();
     }
 
@@ -407,27 +408,25 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             }
         }
 
-        if (dcqlQuery.getCredentialSets() != null) {
-            for (CredentialSetQuery setQuery : dcqlQuery.getCredentialSets()) {
-                if (!setQuery.getRequired()) {
-                    continue;
-                }
-                Set<String> allQidsInSet = setQuery.getOptions().stream()
-                        .flatMap(List::stream)
-                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        for (CredentialSetQuery setQuery : DcqlCredentialSetHelper.resolveEffectiveCredentialSets(dcqlQuery)) {
+            if (!setQuery.getRequired()) {
+                continue;
+            }
+            Set<String> allQidsInSet = setQuery.getOptions().stream()
+                    .flatMap(List::stream)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
-                Set<String> selectedForSet = allQidsInSet.stream()
-                        .filter(qid -> selectionCount.getOrDefault(qid, 0) > 0)
-                        .collect(Collectors.toCollection(LinkedHashSet::new));
+            Set<String> selectedForSet = allQidsInSet.stream()
+                    .filter(qid -> selectionCount.getOrDefault(qid, 0) > 0)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
-                boolean exactlyOneOptionMatched = setQuery.getOptions().stream()
-                        .anyMatch(option -> new LinkedHashSet<>(option).equals(selectedForSet));
+            boolean exactlyOneOptionMatched = setQuery.getOptions().stream()
+                    .anyMatch(option -> new LinkedHashSet<>(option).equals(selectedForSet));
 
-                if (!exactlyOneOptionMatched) {
-                    throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
-                            "Credential selection must satisfy exactly one option in credential_set. " +
-                            "Selected query ids: " + selectedForSet + ", Options: " + setQuery.getOptions());
-                }
+            if (!exactlyOneOptionMatched) {
+                throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
+                        "Credential selection must satisfy exactly one option in credential_set. " +
+                        "Selected query ids: " + selectedForSet + ", Options: " + setQuery.getOptions());
             }
         }
     }
@@ -445,7 +444,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
         Map<String, List<String>> merged = new LinkedHashMap<>();
         Map<String, List<String>> explicit = request.resolveEffectiveSelectedSdClaims();
-        SelectedSdClaimsMergeUtil.mergeInto(merged, explicit);
+        SelectedSdClaimsUtil.mergeInto(merged, explicit);
         if (!request.isDcqlSubmission()) {
             return merged.isEmpty() ? null : merged;
         }
@@ -490,7 +489,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                         path -> sdClaimsMap != null && hasDisclosureForPath(sdClaimsMap, path));
                 List<String> claimPaths = DcqlClaimSetHelper.resolveClaimPaths(credentialQuery, claimIds);
                 if (!claimPaths.isEmpty()) {
-                    SelectedSdClaimsMergeUtil.mergePaths(merged, credentialId, claimPaths);
+                    SelectedSdClaimsUtil.mergePaths(merged, credentialId, claimPaths);
                     log.info("DCQL claim_sets resolved for credential {} query '{}': claimIds={}, paths={}",
                             credentialId, queryId, claimIds, claimPaths);
                 }

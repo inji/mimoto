@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import io.mosip.mimoto.util.SelectedSdClaimsMergeUtil;
+import io.mosip.mimoto.util.SelectedSdClaimsUtil;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,10 +78,10 @@ public class SubmitPresentationRequestDTO {
      */
     public Map<String, List<String>> resolveEffectiveSelectedSdClaims() {
         Map<String, List<String>> merged = new LinkedHashMap<>();
-        SelectedSdClaimsMergeUtil.mergeInto(merged, selectedSdClaims);
+        SelectedSdClaimsUtil.mergeInto(merged, selectedSdClaims);
         if (isDcqlSubmission()) {
             for (DcqlCredentialSelection selection : getDcqlSelections()) {
-                SelectedSdClaimsMergeUtil.mergeInto(merged, selection.getSelectedSdClaims());
+                SelectedSdClaimsUtil.mergeInto(merged, selection.getSelectedSdClaims());
             }
         }
         return merged.isEmpty() ? null : merged;

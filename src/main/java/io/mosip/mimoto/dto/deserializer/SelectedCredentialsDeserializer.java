@@ -15,7 +15,7 @@ import java.util.List;
 
 public class SelectedCredentialsDeserializer extends JsonDeserializer<SelectedCredentials> {
 
-    private static final String HOMOGENEOUS_ARRAY_MESSAGE =
+    private static final String INVALID_SELECTED_CREDENTIALS_FORMAT_ERROR_MESSAGE =
             "selectedCredentials must be either all credential ID strings or all DCQL selection objects";
 
     @Override
@@ -34,7 +34,7 @@ public class SelectedCredentialsDeserializer extends JsonDeserializer<SelectedCr
             List<String> ids = new ArrayList<>();
             for (JsonNode item : node) {
                 if (!item.isTextual()) {
-                    throw JsonMappingException.from(parser, HOMOGENEOUS_ARRAY_MESSAGE);
+                    throw JsonMappingException.from(parser, INVALID_SELECTED_CREDENTIALS_FORMAT_ERROR_MESSAGE);
                 }
                 ids.add(item.asText());
             }
@@ -46,13 +46,13 @@ public class SelectedCredentialsDeserializer extends JsonDeserializer<SelectedCr
             List<DcqlCredentialSelection> selections = new ArrayList<>();
             for (JsonNode item : node) {
                 if (!item.isObject()) {
-                    throw JsonMappingException.from(parser, HOMOGENEOUS_ARRAY_MESSAGE);
+                    throw JsonMappingException.from(parser, INVALID_SELECTED_CREDENTIALS_FORMAT_ERROR_MESSAGE);
                 }
                 selections.add(mapper.treeToValue(item, DcqlCredentialSelection.class));
             }
             return SelectedCredentials.ofDcql(selections);
         }
 
-        throw JsonMappingException.from(parser, HOMOGENEOUS_ARRAY_MESSAGE);
+        throw JsonMappingException.from(parser, INVALID_SELECTED_CREDENTIALS_FORMAT_ERROR_MESSAGE);
     }
 }

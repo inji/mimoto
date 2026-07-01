@@ -77,7 +77,7 @@ public class OpenID4VPServiceTest {
 
     @Test
     public void testCreateReturnsValidOpenID4VP() {
-        OpenID4VP openID4VP = openID4VPService.create("presentation-123");
+        OpenID4VP openID4VP = openID4VPService.create("presentation-123", List.of(), true);
 
         assertNotNull(openID4VP);
         assertEquals("io.mosip.openID4VP.OpenID4VP", openID4VP.getClass().getName());
@@ -85,7 +85,7 @@ public class OpenID4VPServiceTest {
 
     @Test
     public void testCreateWithValidPresentationIdReturnsValidOpenID4VP() {
-        OpenID4VP openID4VP = openID4VPService.create("valid-presentation-id");
+        OpenID4VP openID4VP = openID4VPService.create("valid-presentation-id", List.of(), true);
 
         assertNotNull(openID4VP);
         assertEquals("io.mosip.openID4VP.OpenID4VP", openID4VP.getClass().getName());
@@ -93,7 +93,7 @@ public class OpenID4VPServiceTest {
 
     @Test
     public void testCreateWithSpecialCharactersPresentationIdReturnsValidOpenID4VP() {
-        OpenID4VP openID4VP = openID4VPService.create("presentation-123_with.special@chars");
+        OpenID4VP openID4VP = openID4VPService.create("presentation-123_with.special@chars", List.of(), true);
 
         assertNotNull(openID4VP);
         assertEquals("io.mosip.openID4VP.OpenID4VP", openID4VP.getClass().getName());

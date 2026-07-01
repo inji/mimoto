@@ -11,9 +11,9 @@ import java.util.Map;
  * Used by {@link io.mosip.mimoto.dto.SubmitPresentationRequestDTO#resolveEffectiveSelectedSdClaims()}
  * and {@link io.mosip.mimoto.service.impl.WalletPresentationServiceImpl} during DCQL submit.
  */
-public final class SelectedSdClaimsMergeUtil {
+public final class SelectedSdClaimsUtil {
 
-    private SelectedSdClaimsMergeUtil() {
+    private SelectedSdClaimsUtil() {
     }
 
     public static void mergeInto(Map<String, List<String>> target, Map<String, List<String>> source) {
@@ -29,7 +29,7 @@ public final class SelectedSdClaimsMergeUtil {
         if (credentialId == null || paths == null || paths.isEmpty()) {
             return;
         }
-        target.merge(credentialId, new ArrayList<>(paths), SelectedSdClaimsMergeUtil::unionPaths);
+        target.merge(credentialId, new ArrayList<>(paths), SelectedSdClaimsUtil::unionPaths);
     }
 
     private static List<String> unionPaths(List<String> existing, List<String> incoming) {

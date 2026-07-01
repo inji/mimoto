@@ -12,7 +12,7 @@ import io.mosip.mimoto.constant.OpenID4VPConstants;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
-import io.mosip.mimoto.dto.openid.SpecVersion;
+import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.dto.openid.VerifiersDTO;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
@@ -122,7 +122,7 @@ public class WalletPresentationServiceTest {
                 List.of("https://verifier.com/jwks"),
                 null,
                 false,
-                SpecVersion.V1_0
+                SpecVersion.V1
         );
         verifiersDTO = new VerifiersDTO();
         verifiersDTO.setVerifiers(List.of(verifierDTO));
@@ -273,7 +273,7 @@ public class WalletPresentationServiceTest {
                 urlEncodedVPAuthorizationRequest, walletId);
 
         assertNotNull(result);
-        assertEquals(io.mosip.mimoto.constant.SpecVersion.V1_0, result.getSpecVersion());
+        assertEquals(io.mosip.openID4VP.constants.SpecVersion.V1, result.getSpecVersion());
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getId());
         assertEquals("DCQL Verifier", result.getVerifiablePresentationVerifierDTO().getName());
         assertEquals("https://verifier.com/dcql-logo.png", result.getVerifiablePresentationVerifierDTO().getLogo());
@@ -298,7 +298,7 @@ public class WalletPresentationServiceTest {
                 urlEncodedVPAuthorizationRequest, walletId);
 
         assertNotNull(result);
-        assertEquals(io.mosip.mimoto.constant.SpecVersion.V1_0, result.getSpecVersion());
+        assertEquals(io.mosip.openID4VP.constants.SpecVersion.V1, result.getSpecVersion());
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getName());
         assertNull(result.getVerifiablePresentationVerifierDTO().getLogo());
     }
@@ -320,7 +320,7 @@ public class WalletPresentationServiceTest {
                 urlEncodedVPAuthorizationRequest, walletId);
 
         assertNotNull(result);
-        assertEquals(io.mosip.mimoto.constant.SpecVersion.V1_0, result.getSpecVersion());
+        assertEquals(io.mosip.openID4VP.constants.SpecVersion.V1, result.getSpecVersion());
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getName());
         assertNull(result.getVerifiablePresentationVerifierDTO().getLogo());
     }
@@ -619,7 +619,7 @@ public class WalletPresentationServiceTest {
                 .build();
 
         credentialDTO.setId(credentialId);
-        credentialDTO.setDescriptorId("government-identity");
+        credentialDTO.setIdentifier("government-identity");
         sessionData.setMatchingCredentials(List.of(credentialDTO));
 
         io.mosip.openID4VP.dcql.query.CredentialQuery credentialQuery =
@@ -676,7 +676,7 @@ public class WalletPresentationServiceTest {
                 .build();
 
         credentialDTO.setId(credentialId);
-        credentialDTO.setDescriptorId("pid_query");
+        credentialDTO.setIdentifier("pid_query");
         sessionData.setMatchingCredentials(List.of(credentialDTO));
 
         io.mosip.openID4VP.dcql.query.CredentialQuery credentialQuery =
@@ -743,13 +743,13 @@ public class WalletPresentationServiceTest {
         DecryptedCredentialDTO firstCredential = DecryptedCredentialDTO.builder()
                 .id(credentialIdOne)
                 .walletId(walletId)
-                .descriptorId(queryId)
+                .identifier(queryId)
                 .credential(vcCredentialResponse)
                 .build();
         DecryptedCredentialDTO secondCredential = DecryptedCredentialDTO.builder()
                 .id(credentialIdTwo)
                 .walletId(walletId)
-                .descriptorId(queryId)
+                .identifier(queryId)
                 .credential(vcCredentialResponse)
                 .build();
         sessionData.setMatchingCredentials(List.of(firstCredential, secondCredential));
@@ -819,7 +819,7 @@ public class WalletPresentationServiceTest {
                 .build();
         credentialDTO = DecryptedCredentialDTO.builder()
                 .id(credentialId)
-                .descriptorId(queryId)
+                .identifier(queryId)
                 .credential(vcCredentialResponse)
                 .build();
         sessionData.setMatchingCredentials(List.of(credentialDTO));
@@ -914,7 +914,7 @@ public class WalletPresentationServiceTest {
                 .build();
         credentialDTO = DecryptedCredentialDTO.builder()
                 .id(credentialId)
-                .descriptorId(ageQueryId)
+                .identifier(ageQueryId)
                 .credential(vcCredentialResponse)
                 .build();
         sessionData.setMatchingCredentials(List.of(credentialDTO));
@@ -1071,6 +1071,46 @@ public class WalletPresentationServiceTest {
     }
 
     @Test
+    public void testValidateDcqlSelectionsRejectsPartialSelectionWhenCredentialSetsSynthesized() throws Exception {
+        DcqlCredentialSelection governmentSelection = DcqlCredentialSelection.builder()
+                .queryId("government-identity")
+                .selectedCredentialIds(List.of("cred-government"))
+                .build();
+        SubmitPresentationRequestDTO dcqlRequest = SubmitPresentationRequestDTO.builder()
+                .selectedCredentials(SelectedCredentials.ofDcql(List.of(governmentSelection)))
+                .build();
+
+        io.mosip.openID4VP.dcql.query.CredentialQuery governmentQuery =
+                mock(io.mosip.openID4VP.dcql.query.CredentialQuery.class);
+        when(governmentQuery.getId()).thenReturn("government-identity");
+        when(governmentQuery.getMultiple()).thenReturn(false);
+        io.mosip.openID4VP.dcql.query.CredentialQuery ageQuery =
+                mock(io.mosip.openID4VP.dcql.query.CredentialQuery.class);
+        when(ageQuery.getId()).thenReturn("age-proof");
+        when(ageQuery.getMultiple()).thenReturn(false);
+
+        io.mosip.openID4VP.dcql.query.DCQLQuery dcqlQuery =
+                mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(governmentQuery, ageQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+
+        stubOpenId4VpCreate(mockOpenID4VP);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
+        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
+                .thenReturn(dcqlQuery);
+
+        try {
+            walletPresentationService.submitPresentation(
+                    sessionData, walletId, presentationId, dcqlRequest, base64Key);
+            fail("Should throw InvalidRequestException");
+        } catch (InvalidRequestException e) {
+            assertTrue(e.getMessage().contains(
+                    "Credential selection must satisfy exactly one option in credential_set"));
+            assertTrue(e.getMessage().contains("age-proof"));
+        }
+    }
+
+    @Test
     public void testSubmitPresentationDcqlCredentialSetSingleOptionSucceeds() throws Exception {
         String panCredentialId = "cred-pan-001";
         DcqlCredentialSelection panSelection = DcqlCredentialSelection.builder()
@@ -1083,7 +1123,7 @@ public class WalletPresentationServiceTest {
 
         DecryptedCredentialDTO panCredential = DecryptedCredentialDTO.builder()
                 .id(panCredentialId)
-                .descriptorId("pan")
+                .identifier("pan")
                 .walletId(walletId)
                 .credential(vcCredentialResponse)
                 .build();

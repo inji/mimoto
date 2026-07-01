@@ -14,7 +14,7 @@ import io.mosip.mimoto.model.PasscodeControl;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.model.Wallet;
 import io.mosip.mimoto.model.WalletMetadata;
-import io.mosip.mimoto.constant.SpecVersion;
+import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
