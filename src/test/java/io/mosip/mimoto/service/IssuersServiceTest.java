@@ -68,6 +68,7 @@ public class IssuersServiceTest {
         credentialIssuerHostUrl = "https://issuer.env.net";
 
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer3"), getIssuerConfigDTO("Issuer4")));
+        issuers.getIssuers().forEach(i -> i.setToken_endpoint(null));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
         Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
@@ -86,6 +87,7 @@ public class IssuersServiceTest {
     @Test
     public void shouldReturnAllIssuersWhenSearchValueIsNull() throws ApiNotAccessibleException, IOException {
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
+        issuers.getIssuers().forEach(i -> i.setToken_endpoint(null));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
         Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
@@ -102,6 +104,7 @@ public class IssuersServiceTest {
     @Test
     public void shouldReturnMatchingIssuersWhenSearchValuePatternMatchesWithIssuerName() throws ApiNotAccessibleException, IOException {
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
+        issuers.getIssuers().forEach(i -> i.setToken_endpoint(null));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
         Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
@@ -161,6 +164,8 @@ public class IssuersServiceTest {
         IssuersDTO issuers = new IssuersDTO();
         IssuerDTO enabledIssuer = getIssuerConfigDTO("Issuer1");
         IssuerDTO disabledIssuer = getIssuerConfigDTO("Issuer2");
+        enabledIssuer.setToken_endpoint(null);
+        disabledIssuer.setToken_endpoint(null);
         disabledIssuer.setEnabled("false");
         issuersConfigJsonValue = new Gson().toJson(issuers);
         issuers.setIssuers(List.of(enabledIssuer, disabledIssuer));
@@ -442,10 +447,9 @@ public class IssuersServiceTest {
         IssuersDTO result = serviceWithConfig.getAllIssuers();
 
         String expectedGeneratedUrlIssuerA = publicUrl + context + getTokenPath + issuerIdMissing;
-        String expectedGeneratedUrlIssuerB = publicUrl + context + getTokenPath + issuerIdExisting;
 
         assertEquals(expectedGeneratedUrlIssuerA, result.getIssuers().get(0).getToken_endpoint());
-        assertEquals(expectedGeneratedUrlIssuerB, result.getIssuers().get(1).getToken_endpoint());
+        assertEquals(existingUrl, result.getIssuers().get(1).getToken_endpoint());
     }
 
     @Test
@@ -460,7 +464,7 @@ public class IssuersServiceTest {
 
         String issuerIdMissing = "IssuerV2-Missing";
         String issuerIdExisting = "Issuer-Existing";
-        String existingUrl = "https://external-idp.com/token";
+        String existingUrl = "https://external-idp.com/v2/get-token/Issuer-Existing";
 
         IssuerDTO issuerA = getIssuerConfigDTO(issuerIdMissing);
         issuerA.setIssuer_id(issuerIdMissing);
@@ -479,9 +483,8 @@ public class IssuersServiceTest {
         IssuersV2DTO result = serviceWithConfig.getIssuersV2DTO();
 
         String expectedGeneratedUrlIssuerA = publicUrl + context + getTokenPath + issuerIdMissing;
-        String expectedGeneratedUrlIssuerB = publicUrl + context + getTokenPath + issuerIdExisting;
 
         assertEquals(expectedGeneratedUrlIssuerA, result.getIssuers().get(0).getTokenEndpoint());
-        assertEquals(expectedGeneratedUrlIssuerB, result.getIssuers().get(1).getTokenEndpoint());
+        assertEquals(existingUrl, result.getIssuers().get(1).getTokenEndpoint());
     }
 }

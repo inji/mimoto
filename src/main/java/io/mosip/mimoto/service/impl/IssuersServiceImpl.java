@@ -105,7 +105,11 @@ public class IssuersServiceImpl implements IssuersService {
 
             issuersDTO.getIssuers().stream()
                     .filter(java.util.Objects::nonNull)
-                    .forEach(issuer -> issuer.setToken_endpoint(baseTokenEndpoint + issuer.getIssuer_id()));
+                    .forEach(issuer -> {
+                        if (StringUtils.isBlank(issuer.getToken_endpoint())) {
+                            issuer.setToken_endpoint(baseTokenEndpoint + issuer.getIssuer_id());
+                        }
+                    });
         }
 
         return issuersDTO;
