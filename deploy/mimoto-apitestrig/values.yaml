@@ -10,7 +10,7 @@ modules:
   mimoto:
     enabled: true
     image:
-      repository: injistack/apitest-mimoto
+      repository: injistackqa/apitest-mimoto
       tag: 1.0.x
       pullPolicy: Always
   masterdata:
