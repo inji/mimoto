@@ -25,12 +25,14 @@ import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.mimoto.util.JwtUtils;
+import io.mosip.mimoto.util.DcqlClaimSetHelper;
 import io.mosip.mimoto.util.DcqlCredentialSetHelper;
 import io.mosip.mimoto.util.DcqlMatchingHelper;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import io.mosip.openID4VP.dcql.evaluator.MatchingCredential;
 import io.mosip.openID4VP.dcql.evaluator.MatchingCredentialsResult;
 import io.mosip.openID4VP.dcql.evaluator.QueryMatchResult;
+import io.mosip.openID4VP.dcql.query.ClaimsQuery;
 import io.mosip.openID4VP.dcql.query.CredentialQuery;
 import io.mosip.openID4VP.dcql.query.CredentialSetQuery;
 import io.mosip.openID4VP.dcql.query.DCQLQuery;
@@ -219,8 +221,14 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                     ? DcqlMatchingHelper.resolveMissingClaims(credentialQuery, queryMatch)
                     : Collections.emptySet();
 
+            // Index the library's per-credential matched claims so sdClaims reflects only
+            // what the library evaluated as matched — not every claim in the query.
+            Map<String, List<ClaimsQuery>> matchedClaimsByCredId = buildMatchedClaimsIndex(queryMatch);
+
             List<CredentialDTO> credentialDTOs = matches.stream()
-                    .map(this::buildAvailableCredential)
+                    .map(match -> buildAvailableCredential(
+                            match,
+                            matchedClaimsByCredId.getOrDefault(match.getId(), Collections.emptyList())))
                     .collect(Collectors.toList());
 
             queryGroups.add(DcqlQueryGroup.builder()
@@ -603,6 +611,71 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 .build();
     }
 
+    /**
+     * Indexes the library's per-credential evaluation result into a map of credentialId → matched ClaimsQuery list.
+     * This is the source of truth for which claims were actually satisfied, accounting for {@code claim_sets}.
+     */
+    private Map<String, List<ClaimsQuery>> buildMatchedClaimsIndex(QueryMatchResult queryMatch) {
+        if (queryMatch == null || queryMatch.getMatchingCredentials() == null) {
+            return Collections.emptyMap();
+        }
+        Map<String, List<ClaimsQuery>> index = new LinkedHashMap<>();
+        for (MatchingCredential mc : queryMatch.getMatchingCredentials()) {
+            if (mc.getCredentialId() != null) {
+                index.putIfAbsent(mc.getCredentialId(),
+                        mc.getMatchingClaims() != null ? mc.getMatchingClaims() : Collections.emptyList());
+            }
+        }
+        return index;
+    }
+
+    /**
+     * DCQL-aware variant: builds a {@link CredentialDTO} whose {@code sdClaims} list is restricted
+     * to the claims the library evaluated as matched ({@code MatchingCredential.getMatchingClaims()}),
+     * not every claim in the query. This respects {@code claim_sets} resolution done by the library.
+     */
+    private CredentialDTO buildAvailableCredential(DecryptedCredentialDTO decryptedCredentialDTO, List<ClaimsQuery> matchedClaims) {
+        String issuerId = decryptedCredentialDTO.getCredentialMetadata().getIssuerId();
+        String credentialType = decryptedCredentialDTO.getCredentialMetadata().getCredentialType();
+
+        String credentialTypeDisplayName = "Unknown Credential";
+        String credentialTypeLogo = null;
+        try {
+            IssuerConfig issuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
+            if (issuerConfig != null) {
+                VerifiableCredentialResponseDTO credentialResponse = VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, "en", decryptedCredentialDTO.getId());
+                credentialTypeDisplayName = credentialResponse.getCredentialTypeDisplayName();
+                credentialTypeLogo = credentialResponse.getCredentialTypeLogo();
+            }
+        } catch (InvalidIssuerIdException | ApiNotAccessibleException e) {
+            log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
+        }
+
+        String format = decryptedCredentialDTO.getCredential().getFormat();
+        List<String> publicClaims = null;
+        List<String> sdClaims = null;
+
+        if (CredentialFormat.isSdJwt(format)) {
+            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(format);
+            Map<String, Map<String, Object>> allClaims = (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(decryptedCredentialDTO.getCredential());
+
+            Map<String, Object> publicClaimsMap = allClaims.get("publicClaims");
+            Map<String, Object> sdClaimsMap = allClaims.get("sdClaims");
+
+            publicClaims = publicClaimsMap != null ? extractPublicClaimPaths(publicClaimsMap) : new ArrayList<>();
+            sdClaims = sdClaimsMap != null ? extractDcqlFilteredSdClaimPaths(sdClaimsMap, matchedClaims) : new ArrayList<>();
+        }
+
+        return CredentialDTO.builder()
+                .credentialId(decryptedCredentialDTO.getId())
+                .credentialTypeDisplayName(credentialTypeDisplayName)
+                .credentialTypeLogo(credentialTypeLogo)
+                .format(format)
+                .claims(publicClaims)
+                .sdClaims(sdClaims)
+                .build();
+    }
+
     private List<String> extractPublicClaimPaths(Map<String, Object> publicClaimsMap) {
         List<String> paths = new ArrayList<>();
         Object credentialSubject = publicClaimsMap.get(CREDENTIAL_SUBJECT);
@@ -625,6 +698,35 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                     ? key.substring(CREDENTIAL_SUBJECT_PREFIX.length())
                     : key;
             paths.add(JSON_PATH_PREFIX + cleanKey);
+        }
+        return paths;
+    }
+
+    /**
+     * Filters SD-JWT claim paths to only those present in the library's evaluated
+     * {@code MatchingCredential.getMatchingClaims()} list. This ensures {@code sdClaims}
+     * reflects exactly what the library determined was matched — including correct
+     * {@code claim_sets} resolution — per the DCQL spec (OpenID4VP §6).
+     */
+    private List<String> extractDcqlFilteredSdClaimPaths(Map<String, Object> sdClaimsMap, List<ClaimsQuery> matchedClaims) {
+        if (matchedClaims == null || matchedClaims.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<String> matchedPaths = matchedClaims.stream()
+                .filter(cq -> cq.getPath() != null && !cq.getPath().isEmpty())
+                .map(cq -> DcqlClaimSetHelper.buildJsonPath(cq.getPath()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        List<String> paths = new ArrayList<>();
+        for (String key : sdClaimsMap.keySet()) {
+            String cleanKey = key.startsWith(CREDENTIAL_SUBJECT_PREFIX)
+                    ? key.substring(CREDENTIAL_SUBJECT_PREFIX.length())
+                    : key;
+            String jsonPath = JSON_PATH_PREFIX + cleanKey;
+            if (matchedPaths.contains(jsonPath)) {
+                paths.add(jsonPath);
+            }
         }
         return paths;
     }

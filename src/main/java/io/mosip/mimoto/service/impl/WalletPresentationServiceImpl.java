@@ -35,6 +35,7 @@ import io.mosip.openID4VP.authorizationRequest.clientMetadata.ClientMetadataDraf
 import io.mosip.openID4VP.authorizationResponse.unsignedVPToken.UnsignedVPToken;
 import io.mosip.openID4VP.authorizationResponse.vpTokenSigningResult.VPTokenSigningResult;
 import io.mosip.openID4VP.constants.FormatType;
+import io.mosip.openID4VP.dcql.query.ClaimsQuery;
 import io.mosip.openID4VP.dcql.query.CredentialQuery;
 import io.mosip.openID4VP.dcql.query.CredentialSetQuery;
 import io.mosip.openID4VP.dcql.query.DCQLQuery;
@@ -466,10 +467,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         for (DcqlCredentialSelection selection : request.getDcqlSelections()) {
             String queryId = resolveDcqlMapKey(selection, sessionById);
             CredentialQuery credentialQuery = queriesById.get(queryId);
-            if (credentialQuery == null || !DcqlClaimSetHelper.hasClaimSets(credentialQuery)) {
-                continue;
-            }
-            if (selection.getSelectedCredentialIds() == null) {
+            if (credentialQuery == null || selection.getSelectedCredentialIds() == null) {
                 continue;
             }
             for (String credentialId : selection.getSelectedCredentialIds()) {
@@ -483,15 +481,23 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                 DecryptedCredentialDTO credForSd =
                         resolveCredentialForSubmission(sessionDto, walletCredentialsById);
                 Map<String, Object> sdClaimsMap = extractSdClaimsMap(credForSd);
-                List<String> claimIds = DcqlClaimSetHelper.resolveClaimIdsForSubmission(
-                        credentialQuery,
-                        null,
-                        path -> sdClaimsMap != null && hasDisclosureForPath(sdClaimsMap, path));
-                List<String> claimPaths = DcqlClaimSetHelper.resolveClaimPaths(credentialQuery, claimIds);
-                if (!claimPaths.isEmpty()) {
-                    SelectedSdClaimsUtil.mergePaths(merged, credentialId, claimPaths);
-                    log.info("DCQL claim_sets resolved for credential {} query '{}': claimIds={}, paths={}",
-                            credentialId, queryId, claimIds, claimPaths);
+
+                if (DcqlClaimSetHelper.hasClaimSets(credentialQuery)) {
+                    // claim_sets present: resolve the first satisfiable set
+                    List<String> claimIds = DcqlClaimSetHelper.resolveClaimIdsForSubmission(
+                            credentialQuery,
+                            null,
+                            path -> sdClaimsMap != null && hasDisclosureForPath(sdClaimsMap, path));
+                    List<String> claimPaths = DcqlClaimSetHelper.resolveClaimPaths(credentialQuery, claimIds);
+                    if (!claimPaths.isEmpty()) {
+                        SelectedSdClaimsUtil.mergePaths(merged, credentialId, claimPaths);
+                        log.info("DCQL claim_sets resolved for credential {} query '{}': claimIds={}, paths={}",
+                                credentialId, queryId, claimIds, claimPaths);
+                    }
+                } else {
+                    // No claim_sets: per DCQL spec §6, all queried claims that have SD
+                    // disclosures in this credential must be included in the VP.
+                    resolveAllQueriedSdClaims(credentialQuery, credentialId, sdClaimsMap, merged, queryId);
                 }
             }
         }
@@ -506,6 +512,30 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             return true;
         }
         return selection.getSelectedSdClaims() != null && selection.getSelectedSdClaims().containsKey(credentialId);
+    }
+
+    /**
+     * When {@code claim_sets} is absent, all claims in {@code CredentialQuery.getClaims()} that have
+     * an SD disclosure in the credential must be included in the VP per DCQL spec §6.
+     * Public claims (those in the JWT payload, not in SD disclosures) are skipped — they are
+     * always present in the credential JWT and require no explicit selection.
+     */
+    private void resolveAllQueriedSdClaims(CredentialQuery credentialQuery, String credentialId,
+            Map<String, Object> sdClaimsMap, Map<String, List<String>> merged, String queryId) {
+        List<ClaimsQuery> claims = credentialQuery.getClaims();
+        if (claims == null || claims.isEmpty()) {
+            return;
+        }
+        List<String> sdPaths = claims.stream()
+                .filter(cq -> cq.getPath() != null && !cq.getPath().isEmpty())
+                .map(cq -> DcqlClaimSetHelper.buildClaimPath(cq.getPath()))
+                .filter(path -> sdClaimsMap != null && hasDisclosureForPath(sdClaimsMap, path))
+                .collect(Collectors.toList());
+        if (!sdPaths.isEmpty()) {
+            SelectedSdClaimsUtil.mergePaths(merged, credentialId, sdPaths);
+            log.info("DCQL all-claims resolved for credential {} query '{}': paths={}",
+                    credentialId, queryId, sdPaths);
+        }
     }
 
     @SuppressWarnings("unchecked")
