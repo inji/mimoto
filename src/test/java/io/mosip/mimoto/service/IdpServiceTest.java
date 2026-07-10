@@ -18,8 +18,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -56,7 +58,6 @@ public class IdpServiceTest {
     @Mock
     private TokenResponseDTO tokenResponseDTO;
 
-    private IssuerDTO issuerDTO;
     private Map<String, String> params;
     private final String authorizationAudience = "https://example.com/auth";
 
@@ -64,24 +65,26 @@ public class IdpServiceTest {
 
     @Before
     public void setUp() throws IOException {
-        issuerDTO = new IssuerDTO();
-        issuerDTO.setClient_id("client123");
-        issuerDTO.setClient_alias("clientAlias");
-
         params = new HashMap<>();
+        params.put("issuer", "issuer123");
         params.put("code", "sampleCode");
         params.put("grant_type", "authorization_code");
         params.put("redirect_uri", "https://myapp.com/callback");
-        params.put("code_verifier", "verifier123");
+        params.put("code_verifier", "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
     }
 
     @Test
     public void shouldConstructTokenRequestForTheValidIssuerAndParams() throws Exception {
+        IssuerDTO issuerDTO = new IssuerDTO();
+        issuerDTO.setClient_id("client123");
+        issuerDTO.setClient_alias("clientAlias");
+
+        when(issuersService.getIssuerDetails("issuer123")).thenReturn(issuerDTO);
         when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(authorizationAudience)))
                 .thenReturn("jwt-token");
 
         HttpEntity<MultiValueMap<String, String>> httpEntity =
-                idpService.constructGetTokenRequest(params, issuerDTO, authorizationAudience);
+                idpService.constructGetTokenRequest(params, "issuer123", authorizationAudience);
 
         HttpHeaders headers = httpEntity.getHeaders();
         MultiValueMap<String, String> body = httpEntity.getBody();
@@ -93,29 +96,36 @@ public class IdpServiceTest {
                 () -> assertEquals("authorization_code", body.getFirst("grant_type")),
                 () -> assertEquals("https://myapp.com/callback", body.getFirst("redirect_uri")),
                 () -> assertEquals("jwt-token", body.getFirst("client_assertion")),
-                () -> assertEquals("verifier123", body.getFirst("code_verifier"))
+                () -> assertEquals("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", body.getFirst("code_verifier"))
         );
     }
 
     @Test
-    public void shouldThrowExceptionIfThereIsAnyErrorOccurredWhileFetchingP12File() throws IOException {
+    public void shouldThrowExceptionIfThereIsAnyErrorOccurredWhileFetchingP12File() throws Exception {
+        IssuerDTO issuerDTO = new IssuerDTO();
+        issuerDTO.setClient_id("client123");
+        issuerDTO.setClient_alias("clientAlias");
+
         String expectedExceptionMsg = "RESIDENT-APP-037 --> Private Key Entry is Missing for the alias clientAlias";
+        when(issuersService.getIssuerDetails("issuer123")).thenReturn(issuerDTO);
         when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(authorizationAudience)))
                 .thenThrow(new IssuerOnboardingException("Private Key Entry is Missing for the alias clientAlias"));
 
         IssuerOnboardingException actualException = assertThrows(IssuerOnboardingException.class, () ->
-                idpService.constructGetTokenRequest(params, issuerDTO, authorizationAudience));
+                idpService.constructGetTokenRequest(params, "issuer123", authorizationAudience));
 
         assertEquals(expectedExceptionMsg, actualException.getMessage());
     }
 
     @Test
-    public void shouldReturnTokenEndpointFromCredentialIssuerConfigurationResponse() {
+    public void shouldReturnTokenEndpointFromCredentialIssuerConfigurationResponse() throws Exception {
         CredentialIssuerConfiguration credentialIssuerConfiguration =
                 getCredentialIssuerConfigurationResponseDto("issuer1", "CredentialType1", List.of());
         String expectedTokenEndpoint = "https://dev/token";
 
-        String actualTokenEndpoint = idpService.getTokenEndpoint(credentialIssuerConfiguration);
+        when(issuersService.getIssuerConfiguration("issuer1")).thenReturn(credentialIssuerConfiguration);
+
+        String actualTokenEndpoint = idpService.getTokenEndpoint("issuer1");
 
         assertEquals(expectedTokenEndpoint, actualTokenEndpoint);
     }
@@ -238,5 +248,80 @@ public class IdpServiceTest {
 
         assertNotNull(response);
         assertEquals(tokenResponseDTO, response);
+    }
+
+    @Test
+    public void shouldPassThroughSuccessResponseAsIsForV2TokenResponse() throws Exception {
+        String tokenEndpoint = "https://as.example.com/token";
+        String body = "{\"access_token\":\"abc\",\"token_type\":\"DPoP\"}";
+        ResponseEntity<String> asResponse = ResponseEntity.status(HttpStatus.OK).body(body);
+
+        setupV2TokenEndpoint(tokenEndpoint);
+        when(restTemplate.exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class)))
+                .thenReturn(asResponse);
+
+        ResponseEntity<String> result = idpService.getTokenResponseV2(params, "dpop-proof-jwt");
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(body, result.getBody());
+    }
+
+    @Test
+    public void shouldPassThroughUseDpopNonceErrorWithNonceHeaderAsIsForV2TokenResponse() throws Exception {
+        String tokenEndpoint = "https://as.example.com/token";
+        String errorBody = "{\"error\":\"use_dpop_nonce\",\"error_description\":\"nonce required\"}";
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add("DPoP-Nonce", "server-issued-nonce-123");
+        HttpClientErrorException exception = HttpClientErrorException.create(
+                HttpStatus.BAD_REQUEST, "Bad Request", responseHeaders,
+                errorBody.getBytes(), null);
+
+        setupV2TokenEndpoint(tokenEndpoint);
+        when(restTemplate.exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class)))
+                .thenThrow(exception);
+
+        ResponseEntity<String> result = idpService.getTokenResponseV2(params, "dpop-proof-jwt");
+
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertEquals(errorBody, result.getBody());
+        assertEquals("server-issued-nonce-123", result.getHeaders().getFirst("DPoP-Nonce"));
+    }
+
+    @Test
+    public void shouldPassThroughWwwAuthenticateHeaderOnUnauthorizedForV2TokenResponse() throws Exception {
+        String tokenEndpoint = "https://as.example.com/token";
+        String errorBody = "{\"error\":\"invalid_dpop_proof\"}";
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add("WWW-Authenticate", "DPoP error=\"invalid_dpop_proof\"");
+        responseHeaders.add("DPoP-Nonce", "nonce-on-401");
+        HttpClientErrorException exception = HttpClientErrorException.create(
+                HttpStatus.UNAUTHORIZED, "Unauthorized", responseHeaders,
+                errorBody.getBytes(), null);
+
+        setupV2TokenEndpoint(tokenEndpoint);
+        when(restTemplate.exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class)))
+                .thenThrow(exception);
+
+        ResponseEntity<String> result = idpService.getTokenResponseV2(params, "dpop-proof-jwt");
+
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        assertEquals(errorBody, result.getBody());
+        assertEquals("DPoP error=\"invalid_dpop_proof\"", result.getHeaders().getFirst("WWW-Authenticate"));
+        assertEquals("nonce-on-401", result.getHeaders().getFirst("DPoP-Nonce"));
+    }
+
+    private void setupV2TokenEndpoint(String tokenEndpoint) throws Exception {
+        IssuerDTO issuerDTO = new IssuerDTO();
+        issuerDTO.setClient_id("client123");
+        issuerDTO.setClient_alias("clientAlias");
+
+        when(issuersService.getIssuerDetails("issuer123")).thenReturn(issuerDTO);
+        when(issuersService.getIssuerConfiguration("issuer123")).thenReturn(credentialIssuerConfiguration);
+        when(credentialIssuerConfiguration.getAuthorizationServerWellKnownResponse())
+                .thenReturn(authorizationServerWellKnownResponse);
+        when(authorizationServerWellKnownResponse.getTokenEndpoint())
+                .thenReturn(tokenEndpoint);
+        when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(tokenEndpoint)))
+                .thenReturn("jwt-token");
     }
 }
