@@ -22,6 +22,6 @@ public class VerifiablePresentationSessionData implements Serializable {
     private SpecVersion specVersion;
 
     public boolean isDcql() {
-        return SpecVersion.V1.equals(specVersion);
+        return !SpecVersion.DRAFT_23.equals(specVersion);
     }
 }

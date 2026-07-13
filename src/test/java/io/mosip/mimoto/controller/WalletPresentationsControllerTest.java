@@ -169,7 +169,7 @@ public class WalletPresentationsControllerTest {
     public void shouldThrowBadRequestWhenApiNotAccessibleExceptionIsThrown() throws Exception {
         String presentationId = "presentation123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -188,7 +188,7 @@ public class WalletPresentationsControllerTest {
     public void shouldThrowInternalServerErrorWhenIOExceptionIsThrown() throws Exception {
         String presentationId = "presentation123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -207,7 +207,7 @@ public class WalletPresentationsControllerTest {
     public void shouldThrowInternalServerErrorWhenVPNotCreatedExceptionIsThrown() throws Exception {
         String presentationId = "presentation123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -226,7 +226,7 @@ public class WalletPresentationsControllerTest {
     public void shouldThrowInternalServerErrorWhenIllegalArgumentExceptionIsThrown() throws Exception {
         String presentationId = "presentation123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -401,7 +401,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsSuccess() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         MatchingCredentialsResponseDTO responseDTO = new MatchingCredentialsResponseDTO();
         MatchingCredentialsDTO matchingCredentials = new MatchingCredentialsDTO();
@@ -426,7 +426,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsWithIllegalArgumentException() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -444,7 +444,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsWithApiNotAccessibleException() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -462,7 +462,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsWithIOException() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -480,7 +480,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsWithVPNotCreatedException() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -498,7 +498,7 @@ public class WalletPresentationsControllerTest {
     public void testHandlePresentationSubmissionSuccess() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         SubmitPresentationRequestDTO submitRequest = SubmitPresentationRequestDTO.builder()
                 .selectedCredentials(SelectedCredentials.ofStrings(java.util.Arrays.asList("cred-1", "cred-2")))
@@ -527,7 +527,7 @@ public class WalletPresentationsControllerTest {
     public void testHandlePresentationSubmissionMissingWalletKey() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         SubmitPresentationRequestDTO submitRequest = SubmitPresentationRequestDTO.builder()
                 .selectedCredentials(SelectedCredentials.ofStrings(java.util.Arrays.asList("cred-1")))
@@ -550,7 +550,7 @@ public class WalletPresentationsControllerTest {
     public void testHandlePresentationActionInvalidRequestFormat() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, null);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, SpecVersion.DRAFT_23);
 
         SubmitPresentationRequestDTO invalidRequest = SubmitPresentationRequestDTO.builder()
                 .build();

@@ -263,6 +263,7 @@ public class WalletPresentationServiceTest {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getClientId()).thenReturn("test-client");
         when(dcqlRequest.getRedirectUri()).thenReturn("https://verifier.com/redirect");
+        when(dcqlRequest.getDcqlQuery()).thenReturn(mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class));
         ClientMetadata clientMetadata = mock(ClientMetadata.class);
         when(clientMetadata.getClientName()).thenReturn("DCQL Verifier");
         when(clientMetadata.getLogoUri()).thenReturn("https://verifier.com/dcql-logo.png");
@@ -289,6 +290,7 @@ public class WalletPresentationServiceTest {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getClientId()).thenReturn("test-client");
         when(dcqlRequest.getRedirectUri()).thenReturn("https://verifier.com/redirect");
+        when(dcqlRequest.getDcqlQuery()).thenReturn(mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class));
         ClientMetadata clientMetadata = mock(ClientMetadata.class);
         when(clientMetadata.getClientName()).thenReturn("   ");
         when(dcqlRequest.getClientMetadata()).thenReturn(clientMetadata);
@@ -313,6 +315,7 @@ public class WalletPresentationServiceTest {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getClientId()).thenReturn("test-client");
         when(dcqlRequest.getRedirectUri()).thenReturn("https://verifier.com/redirect");
+        when(dcqlRequest.getDcqlQuery()).thenReturn(mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class));
         when(dcqlRequest.getClientMetadata()).thenReturn(null);
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(dcqlRequest);
 
@@ -323,6 +326,27 @@ public class WalletPresentationServiceTest {
         assertEquals(io.mosip.openID4VP.constants.SpecVersion.V1, result.getSpecVersion());
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getName());
         assertNull(result.getVerifiablePresentationVerifierDTO().getLogo());
+    }
+
+    @Test
+    public void testHandleVPAuthorizationRequestDcqlWithoutDcqlQueryUsesDraft23() throws Exception {
+        stubOpenId4VpCreate(mockOpenID4VP);
+        when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);
+        when(verifierService.isVerifierClientPreregistered(anyList(), anyString())).thenReturn(false);
+        when(verifierService.isVerifierTrustedByWallet(anyString(), anyString())).thenReturn(false);
+
+        AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
+        when(dcqlRequest.getClientId()).thenReturn("test-client");
+        when(dcqlRequest.getRedirectUri()).thenReturn("https://verifier.com/redirect");
+        when(dcqlRequest.getDcqlQuery()).thenReturn(null);
+        when(dcqlRequest.getClientMetadata()).thenReturn(null);
+        when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(dcqlRequest);
+
+        VPResponseDTO result = walletPresentationService.handleVPAuthorizationRequest(
+                urlEncodedVPAuthorizationRequest, walletId);
+
+        assertNotNull(result);
+        assertEquals(io.mosip.openID4VP.constants.SpecVersion.DRAFT_23, result.getSpecVersion());
     }
 
     @Test

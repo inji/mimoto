@@ -19,10 +19,12 @@ import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.VerifiablePresentation;
 import io.mosip.mimoto.repository.VerifiablePresentationsRepository;
 import io.mosip.mimoto.service.*;
+import io.mosip.mimoto.util.AuthorizationRequestHelper;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.mimoto.util.DcqlClaimSetHelper;
+import io.mosip.mimoto.util.DcqlMatchingHelper;
 import io.mosip.mimoto.util.DcqlCredentialSetHelper;
 import io.mosip.mimoto.util.SelectedSdClaimsUtil;
 import io.mosip.openID4VP.OpenID4VP;
@@ -109,9 +111,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
         OpenID4VP openID4VP = openID4VPService.create(presentationId, preRegisteredVerifiers, shouldValidateClient);
         AuthorizationRequest authorizationRequest = openID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest);
-
-        SpecVersion specVersion = (authorizationRequest instanceof AuthorizationDcqlRequest)
-                ? SpecVersion.V1 : SpecVersion.DRAFT_23;
+        SpecVersion specVersion = AuthorizationRequestHelper.resolveSpecVersion(authorizationRequest);
 
         VerifiablePresentationVerifierDTO verifierDTO =
                 createVPResponseVerifierDTO(preRegisteredVerifiers, authorizationRequest, walletId);
@@ -169,6 +169,10 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
                     ex, INVALID_REQUEST.getErrorCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
         } catch (OpenID4VPExceptions ex) {
             log.error("OpenID4VP error during presentation submission for presentationId={}", presentationId, ex);
+            if (ex.getCause() != null) {
+                log.error("OpenID4VP root cause for presentationId={}: {}", presentationId,
+                        ex.getCause().getMessage(), ex.getCause());
+            }
             return Utilities.getErrorResponseEntityWithoutWrapper(
                     ex, ex.getErrorCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
         }
@@ -361,11 +365,24 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
      */
     private Credential toLibraryCredential(DecryptedCredentialDTO dto, Map<String, List<String>> selectedSdClaims) {
         VCCredentialResponse vc = dto.getCredential();
-        FormatType format = mapToFormatType(vc.getFormat());
-        Object data = CredentialFormat.isSdJwt(vc.getFormat())
-                ? buildFilteredSdJwt(dto, selectedSdClaims != null ? selectedSdClaims.get(dto.getId()) : null)
-                : vc.getCredential();
-        return new Credential(format, data, dto.getId());
+        if (CredentialFormat.isSdJwt(vc.getFormat())) {
+            FormatType format = mapToFormatType(vc.getFormat());
+            String sdJwt = buildFilteredSdJwt(
+                    dto, selectedSdClaims != null ? selectedSdClaims.get(dto.getId()) : null);
+            return new Credential(format, sdJwt, dto.getId());
+        }
+        if (!CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vc.getFormat())) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
+                    "Unsupported credential format: " + vc.getFormat());
+        }
+        // inji-openid4vp expects LDP credentials as a JSON object (Map), not a typed POJO.
+        Credential mapped = DcqlMatchingHelper.toLibraryCredential(dto, objectMapper);
+        if (mapped == null) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
+                    "Credential " + dto.getId() + " could not be mapped for OpenID4VP submission");
+        }
+        log.info("mapped>>>>>> {}", mapped);
+        return mapped;
     }
 
     private void validateDcqlSelections(SubmitPresentationRequestDTO request, VerifiablePresentationSessionData sessionData)

@@ -91,7 +91,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         List<DecryptedCredentialDTO> decryptedCredentials = walletCredentialService.getDecryptedCredentials(walletId, base64Key);
 
-        if (sessionData != null && SpecVersion.V1.equals(sessionData.getSpecVersion())) {
+        if (sessionData != null && sessionData.isDcql()) {
             return matchWithDcqlQuery(sessionData, walletId, decryptedCredentials);
         }
         return matchWithPresentationDefinition(sessionData, walletId, base64Key, decryptedCredentials);

@@ -5,7 +5,7 @@ import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.openID4VP.OpenID4VP;
-import io.mosip.openID4VP.authorizationRequest.AuthorizationDcqlRequest;
+import io.mosip.mimoto.util.AuthorizationRequestHelper;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
 import io.mosip.openID4VP.authorizationRequest.LdpVpFormatSupported;
@@ -116,11 +116,7 @@ public class OpenID4VPService {
 
         OpenID4VP openID4VP = create(presentationId, getPreRegisteredVerifiers(), isVerifierClientPreregistered);
         AuthorizationRequest authorizationRequest = openID4VP.authenticateVerifier(authRequest);
-
-        if (authorizationRequest instanceof AuthorizationDcqlRequest dcqlRequest) {
-            return dcqlRequest.getDcqlQuery();
-        }
-        return null;
+        return AuthorizationRequestHelper.extractDcqlQuery(authorizationRequest);
     }
 
     /**
