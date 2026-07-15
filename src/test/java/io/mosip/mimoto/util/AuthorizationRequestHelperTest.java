@@ -3,7 +3,6 @@ package io.mosip.mimoto.util;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationDcqlRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
-import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import org.junit.Test;
 
@@ -37,24 +36,6 @@ public class AuthorizationRequestHelperTest {
         AuthorizationRequest peRequest = mock(AuthorizationPresentationExchangeRequest.class);
 
         assertFalse(AuthorizationRequestHelper.hasDcqlQuery(peRequest));
-    }
-
-    @Test
-    public void resolveSpecVersionUsesDcqlQueryPresence() {
-        AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
-        when(dcqlRequest.getDcqlQuery()).thenReturn(mock(DCQLQuery.class));
-        AuthorizationRequest peRequest = mock(AuthorizationPresentationExchangeRequest.class);
-
-        assertEquals(SpecVersion.V1, AuthorizationRequestHelper.resolveSpecVersion(dcqlRequest));
-        assertEquals(SpecVersion.DRAFT_23, AuthorizationRequestHelper.resolveSpecVersion(peRequest));
-    }
-
-    @Test
-    public void resolveSpecVersionTreatsMissingDcqlQueryAsDraft23() {
-        AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
-        when(dcqlRequest.getDcqlQuery()).thenReturn(null);
-
-        assertEquals(SpecVersion.DRAFT_23, AuthorizationRequestHelper.resolveSpecVersion(dcqlRequest));
     }
 
     @Test

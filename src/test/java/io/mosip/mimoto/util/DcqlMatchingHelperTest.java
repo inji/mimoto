@@ -94,7 +94,7 @@ public class DcqlMatchingHelperTest {
         DCQLQuery dcqlQuery = new DCQLQuery(List.of(query), null);
 
         var result = dcqlHelper.getMatchingCredentials(
-                DcqlMatchingHelper.toLibraryCredentials(List.of(dto), objectMapper), dcqlQuery);
+                DcqlMatchingHelper.constructCredentialWithCredentialFormat(List.of(dto), objectMapper), dcqlQuery);
 
         assertTrue(result.getSuccess());
         assertEquals("cred-4", result.getQueryMatches().get("employee-card").getMatchingCredentials().get(0).getCredentialId());

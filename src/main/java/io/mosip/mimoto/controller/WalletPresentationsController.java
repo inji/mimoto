@@ -101,7 +101,7 @@ public class WalletPresentationsController {
                     Instant.now(),
                     verifiablePresentationResponseDTO.getVerifiablePresentationVerifierDTO().isPreregisteredWithWallet(),
                     null,
-                    verifiablePresentationResponseDTO.getSpecVersion());
+                    verifiablePresentationResponseDTO.isDcql());
 
             sessionManager.storePresentationSessionData(httpSession, verifiablePresentationSessionData, walletId);
 

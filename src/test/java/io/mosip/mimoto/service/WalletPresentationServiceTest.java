@@ -274,7 +274,7 @@ public class WalletPresentationServiceTest {
                 urlEncodedVPAuthorizationRequest, walletId);
 
         assertNotNull(result);
-        assertEquals(io.mosip.openID4VP.constants.SpecVersion.V1, result.getSpecVersion());
+        assertTrue(result.isDcql());
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getId());
         assertEquals("DCQL Verifier", result.getVerifiablePresentationVerifierDTO().getName());
         assertEquals("https://verifier.com/dcql-logo.png", result.getVerifiablePresentationVerifierDTO().getLogo());
@@ -300,7 +300,7 @@ public class WalletPresentationServiceTest {
                 urlEncodedVPAuthorizationRequest, walletId);
 
         assertNotNull(result);
-        assertEquals(io.mosip.openID4VP.constants.SpecVersion.V1, result.getSpecVersion());
+        assertTrue(result.isDcql());
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getName());
         assertNull(result.getVerifiablePresentationVerifierDTO().getLogo());
     }
@@ -323,13 +323,13 @@ public class WalletPresentationServiceTest {
                 urlEncodedVPAuthorizationRequest, walletId);
 
         assertNotNull(result);
-        assertEquals(io.mosip.openID4VP.constants.SpecVersion.V1, result.getSpecVersion());
+        assertTrue(result.isDcql());
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getName());
         assertNull(result.getVerifiablePresentationVerifierDTO().getLogo());
     }
 
     @Test
-    public void testHandleVPAuthorizationRequestDcqlWithoutDcqlQueryUsesDraft23() throws Exception {
+    public void testHandleVPAuthorizationRequestDcqlWithoutDcqlQueryIsNotDcql() throws Exception {
         stubOpenId4VpCreate(mockOpenID4VP);
         when(verifierService.getTrustedVerifiers()).thenReturn(verifiersDTO);
         when(verifierService.isVerifierClientPreregistered(anyList(), anyString())).thenReturn(false);
@@ -346,7 +346,7 @@ public class WalletPresentationServiceTest {
                 urlEncodedVPAuthorizationRequest, walletId);
 
         assertNotNull(result);
-        assertEquals(io.mosip.openID4VP.constants.SpecVersion.DRAFT_23, result.getSpecVersion());
+        assertFalse(result.isDcql());
     }
 
     @Test

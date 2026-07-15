@@ -11,7 +11,6 @@ import com.nimbusds.jose.util.Base64URL;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.constant.OpenID4VPConstants;
 import io.mosip.mimoto.constant.SigningAlgorithm;
-import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
@@ -111,12 +110,12 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
 
         OpenID4VP openID4VP = openID4VPService.create(presentationId, preRegisteredVerifiers, shouldValidateClient);
         AuthorizationRequest authorizationRequest = openID4VP.authenticateVerifier(urlEncodedVPAuthorizationRequest);
-        SpecVersion specVersion = AuthorizationRequestHelper.resolveSpecVersion(authorizationRequest);
+        boolean dcql = AuthorizationRequestHelper.hasDcqlQuery(authorizationRequest);
 
         VerifiablePresentationVerifierDTO verifierDTO =
                 createVPResponseVerifierDTO(preRegisteredVerifiers, authorizationRequest, walletId);
 
-        return new VPResponseDTO(presentationId, verifierDTO, specVersion);
+        return new VPResponseDTO(presentationId, verifierDTO, dcql);
     }
 
     @Override

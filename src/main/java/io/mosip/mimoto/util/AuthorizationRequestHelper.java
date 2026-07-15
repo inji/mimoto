@@ -2,12 +2,11 @@ package io.mosip.mimoto.util;
 
 import io.mosip.openID4VP.authorizationRequest.AuthorizationDcqlRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
-import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.openID4VP.dcql.query.DCQLQuery;
 
 /**
  * Shared helpers for classifying OpenID4VP authorization requests using the
- * library's parsed {@code dcql_query} rather than spec-version enum constants.
+ * library's parsed {@code dcql_query}.
  */
 public final class AuthorizationRequestHelper {
 
@@ -15,8 +14,8 @@ public final class AuthorizationRequestHelper {
     }
 
     /**
-     * Returns {@code true} when the library parsed an OVP 1.0 / DCQL request with a
-     * non-null {@code dcql_query}.
+     * Returns {@code true} when the library parsed a DCQL request with a non-null
+     * {@code dcql_query}.
      */
     public static boolean hasDcqlQuery(AuthorizationRequest authorizationRequest) {
         return authorizationRequest instanceof AuthorizationDcqlRequest dcqlRequest
@@ -31,12 +30,5 @@ public final class AuthorizationRequestHelper {
             return dcqlRequest.getDcqlQuery();
         }
         return null;
-    }
-
-    /**
-     * Maps a parsed authorization request to the session/API spec version label.
-     */
-    public static SpecVersion resolveSpecVersion(AuthorizationRequest authorizationRequest) {
-        return hasDcqlQuery(authorizationRequest) ? SpecVersion.V1 : SpecVersion.DRAFT_23;
     }
 }

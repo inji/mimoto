@@ -86,7 +86,7 @@ public class SessionManager {
                 existingSessionData.getCreatedAt(),
                 existingSessionData.isVerifierClientPreregistered(),
                 credentials,
-                existingSessionData.getSpecVersion());
+                existingSessionData.isDcql());
 
         // Update the presentations map with the updated session data
         Map<String, VerifiablePresentationSessionData> presentations = (Map<String, VerifiablePresentationSessionData>) httpSession.getAttribute(SessionKeys.PRESENTATIONS + "::" + walletId);

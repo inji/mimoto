@@ -139,7 +139,7 @@
         <dependency>
             <groupId>io.inji</groupId>
             <artifactId>vcverifier-jar</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.1</version>
         </dependency>
         <dependency>
             <groupId>io.inji</groupId>
@@ -430,9 +430,9 @@
             <version>1.8.20</version>
         </dependency>
         <dependency>
-            <groupId>io.mosip</groupId>
+            <groupId>io.inji</groupId>
             <artifactId>pixelpass-jar</artifactId>
-            <version>0.7.0</version>
+            <version>0.8.0</version>
         </dependency>
         <dependency>
             <groupId>io.inji</groupId>

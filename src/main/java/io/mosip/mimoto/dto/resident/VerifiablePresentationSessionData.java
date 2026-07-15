@@ -1,6 +1,5 @@
 package io.mosip.mimoto.dto.resident;
 
-import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,9 +18,6 @@ public class VerifiablePresentationSessionData implements Serializable {
     private Instant createdAt;
     private boolean isVerifierClientPreregistered;
     private List<DecryptedCredentialDTO> matchingCredentials;
-    private SpecVersion specVersion;
-
-    public boolean isDcql() {
-        return SpecVersion.V1.equals(specVersion);
-    }
+    /** True when the authorization request had a DCQL query; selects DCQL vs PE flow. */
+    private boolean dcql;
 }

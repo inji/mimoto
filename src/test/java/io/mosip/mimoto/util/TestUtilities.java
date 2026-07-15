@@ -14,7 +14,6 @@ import io.mosip.mimoto.model.PasscodeControl;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.model.Wallet;
 import io.mosip.mimoto.model.WalletMetadata;
-import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
@@ -511,10 +510,10 @@ public class TestUtilities {
                 isPreRegisteredWithWallet,
                 redirectUri
         );
-        VerifiablePresentationSessionData presentationSessionData = new VerifiablePresentationSessionData("123e4567-e89b-12d3-a456-426614174000", "authorizationRequest", time, true, null, null);
+        VerifiablePresentationSessionData presentationSessionData = new VerifiablePresentationSessionData("123e4567-e89b-12d3-a456-426614174000", "authorizationRequest", time, true, null, false);
 
         VPResponseDTO presentationResponseDTO = new VPResponseDTO(
-                presentationSessionData.getPresentationId(), presentationVerifierDTO, SpecVersion.DRAFT_23);
+                presentationSessionData.getPresentationId(), presentationVerifierDTO, false);
 
         return presentationResponseDTO;
     }

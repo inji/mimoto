@@ -41,16 +41,14 @@ public class SelectedCredentials {
     }
 
     /**
-     * {@code true} when the payload uses the DCQL selection shape (non-empty objects, no string IDs).
+     * {@code true} when the payload uses the DCQL selection shape (non-empty objects).
      */
     public boolean isDcql() {
-        return dcqlSelections != null
-                && !dcqlSelections.isEmpty()
-                && (credentialIds == null || credentialIds.isEmpty());
+        return dcqlSelections != null && !dcqlSelections.isEmpty();
     }
 
     public boolean isEmpty() {
-        if (isDcql()) {
+        if (dcqlSelections != null) {
             return dcqlSelections.isEmpty();
         }
         return credentialIds == null || credentialIds.isEmpty();

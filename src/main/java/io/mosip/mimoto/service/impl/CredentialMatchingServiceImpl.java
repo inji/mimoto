@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import io.mosip.mimoto.constant.CredentialFormat;
-import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.CredentialDTO;
 import io.mosip.mimoto.dto.CredentialSetInfo;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
@@ -86,15 +85,29 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     @Override
     public MatchingCredentialsDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {
-        log.info("Getting matching credentials with wallet data for walletId: {}, specVersion: {}",
-                walletId, sessionData != null ? sessionData.getSpecVersion() : null);
+        validateMatchingCredentialsRequest(sessionData, walletId);
 
         List<DecryptedCredentialDTO> decryptedCredentials = walletCredentialService.getDecryptedCredentials(walletId, base64Key);
 
-        if (sessionData != null && sessionData.isDcql()) {
+        if (sessionData.isDcql()) {
             return matchWithDcqlQuery(sessionData, walletId, decryptedCredentials);
         }
         return matchWithPresentationDefinition(sessionData, walletId, base64Key, decryptedCredentials);
+    }
+
+    private void validateMatchingCredentialsRequest(VerifiablePresentationSessionData sessionData, String walletId) {
+        if (sessionData == null
+                || isBlank(sessionData.getPresentationId())
+                || isBlank(sessionData.getAuthorizationRequest())) {
+            throw new IllegalArgumentException("Session data cannot be null or empty");
+        }
+        if (isBlank(walletId)) {
+            throw new IllegalArgumentException("Wallet ID cannot be null or empty");
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     private MatchingCredentialsDTO matchWithPresentationDefinition(
@@ -107,7 +120,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         PresentationDefinition presentationDefinition = openID4VPService.resolvePresentationDefinition(
                 sessionData.getPresentationId(), sessionData.getAuthorizationRequest(), sessionData.isVerifierClientPreregistered());
 
-        validateInputParameters(presentationDefinition, walletId, base64Key);
+        validateInputParameters(presentationDefinition, base64Key);
 
         if (decryptedCredentials.isEmpty()) {
             MatchingCredentialsResponseDTO emptyResponse = createEmptyResponseWithMissingClaims(presentationDefinition);
@@ -179,10 +192,6 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             String walletId,
             List<DecryptedCredentialDTO> decryptedCredentials) throws ApiNotAccessibleException, IOException {
 
-        if (walletId == null || walletId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Wallet ID cannot be null or empty");
-        }
-
         DCQLQuery dcqlQuery = openID4VPService.resolveDcqlQuery(
                 sessionData.getPresentationId(),
                 sessionData.getAuthorizationRequest(),
@@ -198,16 +207,16 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         DCQLQuery normalizedDcqlQuery = DcqlMatchingHelper.normalizeDcqlQuery(dcqlQuery);
 
-        List<Credential> libraryCredentials =
-                DcqlMatchingHelper.toLibraryCredentials(decryptedCredentials, objectMapper);
+        List<Credential> credentialWithCredentialFormat =
+                DcqlMatchingHelper.constructCredentialWithCredentialFormat(decryptedCredentials, objectMapper);
 
-        if (libraryCredentials.isEmpty() && !decryptedCredentials.isEmpty()) {
+        if (credentialWithCredentialFormat.isEmpty() && !decryptedCredentials.isEmpty()) {
             log.warn("matchWithDcqlQuery: no wallet credentials could be mapped for inji-openid4vp evaluation; "
                     + "SD-JWT credentials must be stored as the raw token string");
         }
 
         MatchingCredentialsResult evaluationResult =
-                dcqlHelper.getMatchingCredentials(libraryCredentials, normalizedDcqlQuery);
+                dcqlHelper.getMatchingCredentials(credentialWithCredentialFormat, normalizedDcqlQuery);
 
         List<DcqlQueryGroup> queryGroups = new ArrayList<>();
         Map<String, DecryptedCredentialDTO> matchedById = new LinkedHashMap<>();
@@ -288,11 +297,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 .build();
     }
 
-    private void validateInputParameters(PresentationDefinition presentationDefinition, String walletId, String base64Key) throws IllegalArgumentException {
-        if (walletId == null || walletId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Wallet ID cannot be null or empty");
-        }
-
+    private void validateInputParameters(PresentationDefinition presentationDefinition, String base64Key) throws IllegalArgumentException {
         if (base64Key == null || base64Key.trim().isEmpty()) {
             throw new IllegalArgumentException("Base64 key cannot be null or empty");
         }

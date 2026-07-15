@@ -3,7 +3,6 @@ package io.mosip.mimoto.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
-import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.*;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
@@ -73,6 +72,8 @@ public class CredentialMatchingServiceTest {
         walletId = "test-wallet-id";
         base64Key = "test-base64-key";
         sessionData = new VerifiablePresentationSessionData();
+        sessionData.setPresentationId("presentation-123");
+        sessionData.setAuthorizationRequest("client_id=test-client&response_type=vp_token");
         presentationDefinition = createMockPresentationDefinition();
         walletCredentials = createMockWalletCredentials();
 
@@ -128,22 +129,36 @@ public class CredentialMatchingServiceTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetMatchingCredentialsNullWalletId() throws Exception {
-        // Arrange
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(presentationDefinition);
-
         // Act
         credentialMatchingService.getMatchingCredentials(sessionData, null, base64Key);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetMatchingCredentialsEmptyWalletId() throws Exception {
-        // Arrange
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(presentationDefinition);
-
         // Act
         credentialMatchingService.getMatchingCredentials(sessionData, "", base64Key);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetMatchingCredentialsNullSessionData() throws Exception {
+        credentialMatchingService.getMatchingCredentials(null, walletId, base64Key);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetMatchingCredentialsEmptySessionData() throws Exception {
+        credentialMatchingService.getMatchingCredentials(new VerifiablePresentationSessionData(), walletId, base64Key);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetMatchingCredentialsBlankPresentationId() throws Exception {
+        sessionData.setPresentationId("   ");
+        credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetMatchingCredentialsBlankAuthorizationRequest() throws Exception {
+        sessionData.setAuthorizationRequest("");
+        credentialMatchingService.getMatchingCredentials(sessionData, walletId, base64Key);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -183,10 +198,6 @@ public class CredentialMatchingServiceTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetMatchingCredentialsWhitespaceWalletId() throws Exception {
-        // Arrange
-        when(openID4VPService.resolvePresentationDefinition(any(), any(), anyBoolean()))
-                .thenReturn(presentationDefinition);
-
         // Act
         credentialMatchingService.getMatchingCredentials(sessionData, "   ", base64Key);
     }
@@ -2718,7 +2729,7 @@ public class CredentialMatchingServiceTest {
         data.setAuthorizationRequest("client_id=test-client&response_type=vp_token");
         data.setCreatedAt(Instant.parse("2025-09-08T12:34:56Z"));
         data.setVerifierClientPreregistered(true);
-        data.setSpecVersion(SpecVersion.V1);
+        data.setDcql(true);
         return data;
     }
 

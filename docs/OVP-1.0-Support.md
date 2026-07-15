@@ -1,8 +1,8 @@
-# OpenID4VP 1.0 — Mimoto Wallet Presentation Support
+# OpenID4VP 1.0 support in Inji Web Wallet
 
-This document describes how **wallet clients and integrators** should use Mimoto’s presentation APIs when the verifier sends an **OpenID4VP 1.0 (DCQL)** authorization request.
+This document describes how **Inji Web Wallet clients and integrators** should use Mimoto’s presentation APIs when the verifier sends an **OpenID4VP 1.0 (DCQL)** authorization request.
 
-It focuses on **API contracts, response shapes, and UI behaviour** — not internal Mimoto implementation details.
+It focuses on **API contracts, response shapes, and UI behaviour** — not internal implementation details.
 
 For the older **Presentation Exchange (Draft-23)** flow, see [Appendix A](#appendix-a-draft-23-presentation-exchange).
 
@@ -428,7 +428,7 @@ Redirect user to redirectUri (if returned)
 
 ---
 
-## Appendix A — Draft-23 (Presentation Exchange)
+## Appendix A: Draft-23 (Presentation Exchange)
 
 When the verifier uses Presentation Exchange instead of DCQL:
 
@@ -458,6 +458,5 @@ When the verifier uses Presentation Exchange instead of DCQL:
 
 ## Related resources
 
-- OpenAPI / Swagger: Mimoto API docs (`WalletPresentationsController`)
-- Postman: `docs/postman-collections/MIMOTO.postman_collection.json`
-- Implementation design and `inji-openid4vp` migration notes: MOSIP Confluence (not maintained in this repository)
+- OpenAPI / Swagger: Mimoto API docs ([`WalletPresentationsController`](../src/main/java/io/mosip/mimoto/controller/WalletPresentationsController.java))
+- Postman: [`postman-collections/MIMOTO.postman_collection.json`](./postman-collections/MIMOTO.postman_collection.json)

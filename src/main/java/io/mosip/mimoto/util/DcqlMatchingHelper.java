@@ -37,22 +37,22 @@ public final class DcqlMatchingHelper {
         return new DCQLQuery(credentials, dcqlQuery.getCredentialSets());
     }
 
-    public static List<Credential> toLibraryCredentials(
+    public static List<Credential> constructCredentialWithCredentialFormat(
             List<DecryptedCredentialDTO> decryptedCredentials,
             ObjectMapper objectMapper) {
-        List<Credential> libraryCredentials = new ArrayList<>();
+        List<Credential> credentialWithCredentialFormat = new ArrayList<>();
         for (DecryptedCredentialDTO dto : decryptedCredentials) {
             Credential mapped = toLibraryCredential(dto, objectMapper);
             if (mapped == null) {
                 continue;
             }
-            libraryCredentials.add(mapped);
+            credentialWithCredentialFormat.add(mapped);
             FormatType alternateFormat = alternateSdJwtFormat(mapped.getFormat());
             if (alternateFormat != null) {
-                libraryCredentials.add(new Credential(alternateFormat, mapped.getData(), mapped.getCredentialId()));
+                credentialWithCredentialFormat.add(new Credential(alternateFormat, mapped.getData(), mapped.getCredentialId()));
             }
         }
-        return libraryCredentials;
+        return credentialWithCredentialFormat;
     }
 
     public static Credential toLibraryCredential(DecryptedCredentialDTO dto, ObjectMapper objectMapper) {
