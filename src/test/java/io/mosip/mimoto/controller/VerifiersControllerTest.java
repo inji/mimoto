@@ -1,6 +1,6 @@
 package io.mosip.mimoto.controller;
 
-import io.mosip.mimoto.dto.openid.SpecVersion;
+import io.mosip.openID4VP.constants.SpecVersion;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.dto.openid.VerifiersDTO;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;

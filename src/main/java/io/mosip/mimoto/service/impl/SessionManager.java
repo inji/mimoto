@@ -80,12 +80,13 @@ public class SessionManager {
      * @param credentials                 The decrypted credentials to cache.
      */
     public void storeMatchingWalletCredentialsInPresentationSessionData(HttpSession httpSession, String walletId, VerifiablePresentationSessionData existingSessionData, List<DecryptedCredentialDTO> credentials) {
-        VerifiablePresentationSessionData updatedSessionData = new VerifiablePresentationSessionData(existingSessionData.getPresentationId(),
+        VerifiablePresentationSessionData updatedSessionData = new VerifiablePresentationSessionData(
+                existingSessionData.getPresentationId(),
                 existingSessionData.getAuthorizationRequest(),
                 existingSessionData.getCreatedAt(),
                 existingSessionData.isVerifierClientPreregistered(),
-                credentials
-        );
+                credentials,
+                existingSessionData.isDcql());
 
         // Update the presentations map with the updated session data
         Map<String, VerifiablePresentationSessionData> presentations = (Map<String, VerifiablePresentationSessionData>) httpSession.getAttribute(SessionKeys.PRESENTATIONS + "::" + walletId);

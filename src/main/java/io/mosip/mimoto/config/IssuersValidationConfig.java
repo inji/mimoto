@@ -52,13 +52,13 @@ public class IssuersValidationConfig implements ApplicationRunner {
                     boolean issuerHasErrors = false;
 
                     StringBuilder issuerErrors = new StringBuilder();
-                    issuerErrors.append(String.format("Errors for issuer at index: %d with issuerId - %s%n", index, issuerId));
+                    issuerErrors.append(String.format("Errors for issuer at index: %d with issuerId - %s\n", index, issuerId));
 
                     if (errors.hasErrors()) {
                         issuerHasErrors = true;
                         errors.getFieldErrors().stream()
                                 .sorted(Comparator.comparing(FieldError::getField))
-                                .forEach(error -> issuerErrors.append(String.format("- %s %s%n", error.getField(), error.getDefaultMessage())));
+                                .forEach(error -> issuerErrors.append(String.format("- %s %s\n", error.getField(), error.getDefaultMessage())));
 
                     }
 

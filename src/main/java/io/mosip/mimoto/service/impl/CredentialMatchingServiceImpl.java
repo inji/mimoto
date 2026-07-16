@@ -4,10 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import io.mosip.mimoto.constant.CredentialFormat;
-import io.mosip.mimoto.dto.DecryptedCredentialDTO;
-import io.mosip.mimoto.dto.MatchingCredentialsResponseDTO;
-import io.mosip.mimoto.dto.MatchingCredentialsDTO;
 import io.mosip.mimoto.dto.CredentialDTO;
+import io.mosip.mimoto.dto.CredentialSetInfo;
+import io.mosip.mimoto.dto.DecryptedCredentialDTO;
+import io.mosip.mimoto.dto.DcqlQueryGroup;
+import io.mosip.mimoto.dto.MatchingCredentialsDTO;
+import io.mosip.mimoto.dto.MatchingCredentialsResponseDTO;
 import io.mosip.mimoto.dto.mimoto.IssuerConfig;
 import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
@@ -22,10 +24,24 @@ import io.mosip.mimoto.service.CredentialMatchingService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.mimoto.util.JwtUtils;
+import io.mosip.mimoto.util.DcqlClaimSetHelper;
+import io.mosip.mimoto.util.DcqlCredentialSetHelper;
+import io.mosip.mimoto.util.DcqlMatchingHelper;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
+import io.mosip.openID4VP.dcql.evaluator.MatchingCredential;
+import io.mosip.openID4VP.dcql.evaluator.MatchingCredentialsResult;
+import io.mosip.openID4VP.dcql.evaluator.QueryMatchResult;
+import io.mosip.openID4VP.dcql.query.ClaimsQuery;
+import io.mosip.openID4VP.dcql.query.CredentialQuery;
+import io.mosip.openID4VP.dcql.query.CredentialSetQuery;
+import io.mosip.openID4VP.dcql.query.DCQLQuery;
+import io.mosip.openID4VP.helper.DCQLHelper;
+import io.mosip.openID4VP.wallet.Credential;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 
+import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
 import static io.mosip.mimoto.exception.ErrorConstants.UNSUPPORTED_FORMAT;
 
 import java.io.IOException;
@@ -57,6 +73,8 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     private final CredentialFormatHandlerFactory credentialFormatHandlerFactory;
 
+    private final DCQLHelper dcqlHelper = new DCQLHelper();
+
     public CredentialMatchingServiceImpl(ObjectMapper objectMapper, IssuersService issuersService, OpenID4VPService openID4VPService, WalletCredentialService walletCredentialService, CredentialFormatHandlerFactory credentialFormatHandlerFactory) {
         this.objectMapper = objectMapper;
         this.issuersService = issuersService;
@@ -68,14 +86,39 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     @Override
     public MatchingCredentialsDTO getMatchingCredentials(VerifiablePresentationSessionData sessionData, String walletId, String base64Key) throws ApiNotAccessibleException, IOException {
-        log.info("Getting matching credentials with wallet data for walletId: {}", walletId);
-
-        // Extract presentation definition from the session data
-        PresentationDefinition presentationDefinition = openID4VPService.resolvePresentationDefinition(sessionData.getPresentationId(), sessionData.getAuthorizationRequest(), sessionData.isVerifierClientPreregistered());
-
-        validateInputParameters(presentationDefinition, walletId, base64Key);
+        validateMatchingCredentialsRequest(sessionData, walletId);
 
         List<DecryptedCredentialDTO> decryptedCredentials = walletCredentialService.getDecryptedCredentials(walletId, base64Key);
+
+        if (sessionData.isDcql()) {
+            return matchWithDcqlQuery(sessionData, walletId, decryptedCredentials);
+        }
+        return matchWithPresentationDefinition(sessionData, walletId, base64Key, decryptedCredentials);
+    }
+
+    private void validateMatchingCredentialsRequest(VerifiablePresentationSessionData sessionData, String walletId) {
+        if (sessionData == null
+                || StringUtils.isBlank(sessionData.getPresentationId())
+                || StringUtils.isBlank(sessionData.getAuthorizationRequest())) {
+            throw new IllegalArgumentException("Session data cannot be null or empty");
+        }
+        if (StringUtils.isBlank(walletId)) {
+            throw new IllegalArgumentException("Wallet ID cannot be null or empty");
+        }
+    }
+
+    private MatchingCredentialsDTO matchWithPresentationDefinition(
+            VerifiablePresentationSessionData sessionData,
+            String walletId,
+            String base64Key,
+            List<DecryptedCredentialDTO> decryptedCredentials) throws ApiNotAccessibleException, IOException {
+
+        // Extract presentation definition from the session data
+        PresentationDefinition presentationDefinition = openID4VPService.resolvePresentationDefinition(
+                sessionData.getPresentationId(), sessionData.getAuthorizationRequest(), sessionData.isVerifierClientPreregistered());
+
+        validateInputParameters(presentationDefinition, base64Key);
+
         if (decryptedCredentials.isEmpty()) {
             MatchingCredentialsResponseDTO emptyResponse = createEmptyResponseWithMissingClaims(presentationDefinition);
             return MatchingCredentialsDTO.builder()
@@ -86,17 +129,22 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         List<InputDescriptor> descriptors = presentationDefinition.getInputDescriptors();
         Map<Integer, List<CredentialDTO>> matchingCredentialsByDescriptor = new HashMap<>();
+        Map<String, String> credentialToInputDescriptor = new HashMap<>();
         Set<String> missingClaims = new HashSet<>();
 
         IntStream.range(0, descriptors.size())
                 .forEach(i -> {
                     InputDescriptor descriptor = descriptors.get(i);
-                    List<CredentialDTO> matches = decryptedCredentials.stream()
+                    List<DecryptedCredentialDTO> descriptorMatches = decryptedCredentials.stream()
                             .filter(decrypted -> matchesInputDescriptor(decrypted.getCredential(), descriptor))
+                            .collect(Collectors.toList());
+
+                    List<CredentialDTO> matches = descriptorMatches.stream()
                             .map(this::buildAvailableCredential)
                             .collect(Collectors.toList());
 
                     if (!matches.isEmpty()) {
+                        descriptorMatches.forEach(dto -> credentialToInputDescriptor.put(dto.getId(), descriptor.getId()));
                         matchingCredentialsByDescriptor.put(i, matches);
                     } else {
                         boolean hasFormatMatch = decryptedCredentials.stream()
@@ -107,7 +155,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                             missingClaims.addAll(extractFormatConstraintKeys(descriptor));
                         }
                     }
-        });
+                });
 
         // Flatten all matching credentials into a single list, removing duplicates by credential ID
         Set<String> addedCredentialIds = new HashSet<>();
@@ -116,14 +164,19 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 .filter(credential -> addedCredentialIds.add(credential.getCredentialId()))
                 .collect(Collectors.toList());
 
-        MatchingCredentialsResponseDTO matchingCredentialsResponse = MatchingCredentialsResponseDTO.builder().availableCredentials(availableCredentials).missingClaims(missingClaims).build();
+        MatchingCredentialsResponseDTO matchingCredentialsResponse = MatchingCredentialsResponseDTO.builder()
+                .availableCredentials(availableCredentials)
+                .missingClaims(missingClaims)
+                .build();
 
-        // Filter decrypted credentials to only include matched ones
         Set<String> matchedCredentialIds = availableCredentials.stream()
                 .map(CredentialDTO::getCredentialId)
                 .collect(Collectors.toSet());
 
-        List<DecryptedCredentialDTO> matchingCredentials = decryptedCredentials.stream().filter(credential -> matchedCredentialIds.contains(credential.getId())).collect(Collectors.toList());
+        List<DecryptedCredentialDTO> matchingCredentials = decryptedCredentials.stream()
+                .filter(credential -> matchedCredentialIds.contains(credential.getId()))
+                .peek(credential -> credential.setIdentifier(credentialToInputDescriptor.get(credential.getId())))
+                .collect(Collectors.toList());
 
         return MatchingCredentialsDTO.builder()
                 .matchingCredentialsResponse(matchingCredentialsResponse)
@@ -131,11 +184,117 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 .build();
     }
 
-    private void validateInputParameters(PresentationDefinition presentationDefinition, String walletId, String base64Key) throws IllegalArgumentException {
-        if (walletId == null || walletId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Wallet ID cannot be null or empty");
+    private MatchingCredentialsDTO matchWithDcqlQuery(
+            VerifiablePresentationSessionData sessionData,
+            String walletId,
+            List<DecryptedCredentialDTO> decryptedCredentials) throws ApiNotAccessibleException, IOException {
+
+        DCQLQuery dcqlQuery = openID4VPService.resolveDcqlQuery(
+                sessionData.getPresentationId(),
+                sessionData.getAuthorizationRequest(),
+                sessionData.isVerifierClientPreregistered());
+
+        if (dcqlQuery == null) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
+                    "Authorization request does not contain a DCQL query");
         }
 
+        Map<String, DecryptedCredentialDTO> credentialsById = decryptedCredentials.stream()
+                .collect(Collectors.toMap(DecryptedCredentialDTO::getId, dto -> dto, (a, b) -> a, LinkedHashMap::new));
+
+        DCQLQuery normalizedDcqlQuery = DcqlMatchingHelper.normalizeDcqlQuery(dcqlQuery);
+
+        List<Credential> credentialWithCredentialFormat =
+                DcqlMatchingHelper.constructCredentialWithCredentialFormat(decryptedCredentials, objectMapper);
+
+        if (credentialWithCredentialFormat.isEmpty() && !decryptedCredentials.isEmpty()) {
+            log.warn("matchWithDcqlQuery: no wallet credentials could be mapped for inji-openid4vp evaluation; "
+                    + "SD-JWT credentials must be stored as the raw token string");
+        }
+
+        MatchingCredentialsResult evaluationResult =
+                dcqlHelper.getMatchingCredentials(credentialWithCredentialFormat, normalizedDcqlQuery);
+
+        List<DcqlQueryGroup> queryGroups = new ArrayList<>();
+        Map<String, DecryptedCredentialDTO> matchedById = new LinkedHashMap<>();
+
+        for (CredentialQuery credentialQuery : normalizedDcqlQuery.getCredentials()) {
+            QueryMatchResult queryMatch = evaluationResult.getQueryMatches().get(credentialQuery.getId());
+            List<DecryptedCredentialDTO> matches = resolveMatchedCredentials(
+                    credentialsById, credentialQuery, queryMatch, matchedById);
+
+            Set<String> missingClaims = matches.isEmpty()
+                    ? DcqlMatchingHelper.resolveMissingClaims(credentialQuery, queryMatch)
+                    : Collections.emptySet();
+
+            // Index the library's per-credential matched claims so sdClaims reflects only
+            // what the library evaluated as matched — not every claim in the query.
+            Map<String, List<ClaimsQuery>> matchedClaimsByCredId = buildMatchedClaimsIndex(queryMatch);
+
+            List<CredentialDTO> credentialDTOs = matches.stream()
+                    .map(match -> buildAvailableCredential(
+                            match,
+                            matchedClaimsByCredId.getOrDefault(match.getId(), Collections.emptyList())))
+                    .collect(Collectors.toList());
+
+            queryGroups.add(DcqlQueryGroup.builder()
+                    .queryId(credentialQuery.getId())
+                    .required(true)
+                    .multiple(credentialQuery.getMultiple())
+                    .availableCredentials(credentialDTOs)
+                    .missingClaims(missingClaims)
+                    .build());
+        }
+
+        List<CredentialSetInfo> credentialSets = DcqlCredentialSetHelper.resolveEffectiveCredentialSets(dcqlQuery)
+                .stream()
+                .map(this::toCredentialSetInfo)
+                .collect(Collectors.toList());
+
+        log.info("matchWithDcqlQuery: walletId={}, queries={}, credentialSets={}, totalMatched={}, dcqlSuccess={}",
+                walletId, queryGroups.size(), credentialSets.size(), matchedById.size(), evaluationResult.getSuccess());
+
+        MatchingCredentialsResponseDTO matchingCredentialsResponse = MatchingCredentialsResponseDTO.builder()
+                .queryGroups(queryGroups)
+                .credentialSets(credentialSets)
+                .build();
+
+        return MatchingCredentialsDTO.builder()
+                .matchingCredentialsResponse(matchingCredentialsResponse)
+                .matchingCredentials(new ArrayList<>(matchedById.values()))
+                .build();
+    }
+
+    private List<DecryptedCredentialDTO> resolveMatchedCredentials(
+            Map<String, DecryptedCredentialDTO> credentialsById,
+            CredentialQuery credentialQuery,
+            QueryMatchResult queryMatch,
+            Map<String, DecryptedCredentialDTO> matchedById) {
+        if (queryMatch == null || queryMatch.getMatchingCredentials() == null) {
+            return List.of();
+        }
+
+        List<DecryptedCredentialDTO> matches = new ArrayList<>();
+        for (MatchingCredential matchingCredential : queryMatch.getMatchingCredentials()) {
+            DecryptedCredentialDTO dto = credentialsById.get(matchingCredential.getCredentialId());
+            if (dto == null) {
+                continue;
+            }
+            dto.setIdentifier(credentialQuery.getId());
+            matchedById.putIfAbsent(dto.getId(), dto);
+            matches.add(dto);
+        }
+        return matches;
+    }
+
+    private CredentialSetInfo toCredentialSetInfo(CredentialSetQuery credentialSetQuery) {
+        return CredentialSetInfo.builder()
+                .required(credentialSetQuery.getRequired())
+                .options(credentialSetQuery.getOptions())
+                .build();
+    }
+
+    private void validateInputParameters(PresentationDefinition presentationDefinition, String base64Key) throws IllegalArgumentException {
         if (base64Key == null || base64Key.trim().isEmpty()) {
             throw new IllegalArgumentException("Base64 key cannot be null or empty");
         }
@@ -313,24 +472,39 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 return Collections.emptyMap();
             }
             Map<String, Object> credentialClaimsMap = new HashMap<>();
-            // publicClaims and sdClaims are mutually exclusive by SD-JWT spec — no key collision.
-            // sdClaims values are disclosure blobs (List<String>), not decoded claim values.
-            // This supports existence-based field matching (e.g. $.given_name present).
-            // Value-filter matching on SD claims (e.g. $.age >= 18) is not supported here
-            // and requires decoding disclosures — tracked as a follow-up improvement.
-            for (Map.Entry<String, ?> outer : extractedMap.entrySet()) {
-                if (outer.getValue() instanceof Map<?, ?> innerMap) {
-                    for (Map.Entry<?, ?> inner : innerMap.entrySet()) {
-                        if (inner.getKey() instanceof String key) {
-                            credentialClaimsMap.put(key, inner.getValue());
-                        }
-                    }
-                }
+            mergeClaimProperties(credentialClaimsMap, extractedMap.get("publicClaims"));
+            Map<?, ?> sdClaimValues = asStringObjectMap(extractedMap.get("sdClaimValues"));
+            if (sdClaimValues != null && !sdClaimValues.isEmpty()) {
+                mergeClaimProperties(credentialClaimsMap, sdClaimValues);
+            } else {
+                // Fallback for legacy handler responses: existence checks only.
+                mergeClaimProperties(credentialClaimsMap, extractedMap.get("sdClaims"));
             }
             return credentialClaimsMap;
         } else {
             throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), "Unsupported credential format: " + format);
         }
+    }
+
+    private void mergeClaimProperties(Map<String, Object> target, Object section) {
+        Map<String, Object> properties = asStringObjectMap(section);
+        if (properties != null) {
+            target.putAll(properties);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asStringObjectMap(Object section) {
+        if (!(section instanceof Map<?, ?> rawMap)) {
+            return null;
+        }
+        Map<String, Object> properties = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+            if (entry.getKey() instanceof String key) {
+                properties.put(key, entry.getValue());
+            }
+        }
+        return properties;
     }
 
     private boolean matchesFilter(Object match, Filter filter) {
@@ -403,12 +577,6 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
         String credentialTypeDisplayName = "Unknown Credential";
         String credentialTypeLogo = null;
-        Map<String, Object> publicClaimsMap;
-        Map<String, Object> sdClaimsMap;
-
-        List<String> publicClaims = new ArrayList<>();
-        List<String> sdClaims = new ArrayList<>();
-
         try {
             IssuerConfig issuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
             if (issuerConfig != null) {
@@ -420,29 +588,91 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
         }
 
-        if (CredentialFormat.isSdJwt(decryptedCredentialDTO.getCredential().getFormat())) {
-            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(decryptedCredentialDTO.getCredential().getFormat());
+        String format = decryptedCredentialDTO.getCredential().getFormat();
+        List<String> publicClaims = null;
+        List<String> sdClaims = null;
+
+        if (CredentialFormat.isSdJwt(format)) {
+            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(format);
             Map<String, Map<String, Object>> allClaims = (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(decryptedCredentialDTO.getCredential());
 
-            publicClaimsMap = allClaims.get("publicClaims");
-            sdClaimsMap = allClaims.get("sdClaims");
+            Map<String, Object> publicClaimsMap = allClaims.get("publicClaims");
+            Map<String, Object> sdClaimsMap = allClaims.get("sdClaims");
 
-            if (publicClaimsMap != null) {
-                publicClaims = extractPublicClaimPaths(publicClaimsMap);
-            }
-
-            if (sdClaimsMap != null) {
-                sdClaims = extractSdClaimPaths(sdClaimsMap);
-            }
-
+            publicClaims = publicClaimsMap != null ? extractPublicClaimPaths(publicClaimsMap) : new ArrayList<>();
+            sdClaims = sdClaimsMap != null ? extractSdClaimPaths(sdClaimsMap) : new ArrayList<>();
         }
-
 
         return CredentialDTO.builder()
                 .credentialId(decryptedCredentialDTO.getId())
                 .credentialTypeDisplayName(credentialTypeDisplayName)
                 .credentialTypeLogo(credentialTypeLogo)
-                .format(decryptedCredentialDTO.getCredential().getFormat())
+                .format(format)
+                .claims(publicClaims)
+                .sdClaims(sdClaims)
+                .build();
+    }
+
+    /**
+     * Indexes the library's per-credential evaluation result into a map of credentialId → matched ClaimsQuery list.
+     * This is the source of truth for which claims were actually satisfied, accounting for {@code claim_sets}.
+     */
+    private Map<String, List<ClaimsQuery>> buildMatchedClaimsIndex(QueryMatchResult queryMatch) {
+        if (queryMatch == null || queryMatch.getMatchingCredentials() == null) {
+            return Collections.emptyMap();
+        }
+        Map<String, List<ClaimsQuery>> index = new LinkedHashMap<>();
+        for (MatchingCredential mc : queryMatch.getMatchingCredentials()) {
+            if (mc.getCredentialId() != null) {
+                index.putIfAbsent(mc.getCredentialId(),
+                        mc.getMatchingClaims() != null ? mc.getMatchingClaims() : Collections.emptyList());
+            }
+        }
+        return index;
+    }
+
+    /**
+     * DCQL-aware variant: builds a {@link CredentialDTO} whose {@code sdClaims} list is restricted
+     * to the claims the library evaluated as matched ({@code MatchingCredential.getMatchingClaims()}),
+     * not every claim in the query. This respects {@code claim_sets} resolution done by the library.
+     */
+    private CredentialDTO buildAvailableCredential(DecryptedCredentialDTO decryptedCredentialDTO, List<ClaimsQuery> matchedClaims) {
+        String issuerId = decryptedCredentialDTO.getCredentialMetadata().getIssuerId();
+        String credentialType = decryptedCredentialDTO.getCredentialMetadata().getCredentialType();
+
+        String credentialTypeDisplayName = "Unknown Credential";
+        String credentialTypeLogo = null;
+        try {
+            IssuerConfig issuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
+            if (issuerConfig != null) {
+                VerifiableCredentialResponseDTO credentialResponse = VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, "en", decryptedCredentialDTO.getId());
+                credentialTypeDisplayName = credentialResponse.getCredentialTypeDisplayName();
+                credentialTypeLogo = credentialResponse.getCredentialTypeLogo();
+            }
+        } catch (InvalidIssuerIdException | ApiNotAccessibleException e) {
+            log.warn("Failed to fetch issuer config for issuerId: {}, credentialType: {}", issuerId, credentialType, e);
+        }
+
+        String format = decryptedCredentialDTO.getCredential().getFormat();
+        List<String> publicClaims = null;
+        List<String> sdClaims = null;
+
+        if (CredentialFormat.isSdJwt(format)) {
+            CredentialFormatHandler credentialFormatHandler = credentialFormatHandlerFactory.getHandler(format);
+            Map<String, Map<String, Object>> allClaims = (Map<String, Map<String, Object>>) credentialFormatHandler.extractAllCredentialProperties(decryptedCredentialDTO.getCredential());
+
+            Map<String, Object> publicClaimsMap = allClaims.get("publicClaims");
+            Map<String, Object> sdClaimsMap = allClaims.get("sdClaims");
+
+            publicClaims = publicClaimsMap != null ? extractPublicClaimPaths(publicClaimsMap) : new ArrayList<>();
+            sdClaims = sdClaimsMap != null ? extractDcqlFilteredSdClaimPaths(sdClaimsMap, matchedClaims) : new ArrayList<>();
+        }
+
+        return CredentialDTO.builder()
+                .credentialId(decryptedCredentialDTO.getId())
+                .credentialTypeDisplayName(credentialTypeDisplayName)
+                .credentialTypeLogo(credentialTypeLogo)
+                .format(format)
                 .claims(publicClaims)
                 .sdClaims(sdClaims)
                 .build();
@@ -470,6 +700,35 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                     ? key.substring(CREDENTIAL_SUBJECT_PREFIX.length())
                     : key;
             paths.add(JSON_PATH_PREFIX + cleanKey);
+        }
+        return paths;
+    }
+
+    /**
+     * Filters SD-JWT claim paths to only those present in the library's evaluated
+     * {@code MatchingCredential.getMatchingClaims()} list. This ensures {@code sdClaims}
+     * reflects exactly what the library determined was matched — including correct
+     * {@code claim_sets} resolution — per the DCQL spec (OpenID4VP §6).
+     */
+    private List<String> extractDcqlFilteredSdClaimPaths(Map<String, Object> sdClaimsMap, List<ClaimsQuery> matchedClaims) {
+        if (matchedClaims == null || matchedClaims.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<String> matchedPaths = matchedClaims.stream()
+                .filter(cq -> cq.getPath() != null && !cq.getPath().isEmpty())
+                .map(cq -> DcqlClaimSetHelper.buildJsonPath(cq.getPath()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        List<String> paths = new ArrayList<>();
+        for (String key : sdClaimsMap.keySet()) {
+            String cleanKey = key.startsWith(CREDENTIAL_SUBJECT_PREFIX)
+                    ? key.substring(CREDENTIAL_SUBJECT_PREFIX.length())
+                    : key;
+            String jsonPath = JSON_PATH_PREFIX + cleanKey;
+            if (matchedPaths.contains(jsonPath)) {
+                paths.add(jsonPath);
+            }
         }
         return paths;
     }

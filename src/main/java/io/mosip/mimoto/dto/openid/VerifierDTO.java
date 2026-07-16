@@ -2,6 +2,9 @@ package io.mosip.mimoto.dto.openid;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import io.mosip.openID4VP.constants.SpecVersion;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,8 +44,9 @@ public class VerifierDTO {
     Boolean allowUnsignedRequest = false;
 
     @JsonProperty("spec_version")
+    @JsonDeserialize(using = SpecVersionDeserializer.class)
+    @JsonSerialize(using = SpecVersionSerializer.class)
     @Schema(description = "OpenID4VP specification version supported by the Verifier")
     @Default
-    SpecVersion specVersion = SpecVersion.V1_0;
+    SpecVersion specVersion = SpecVersion.V1;
 }
-

@@ -165,8 +165,9 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
             // Extract public claims from the credential JWT
             claims.put("publicClaims", extractPublicClaims(sdJwt));
 
-            // Extract disclosures and merge with claims
+            // Disclosure blobs for submit/UI; decoded values for DCQL/PE claim matching (see sdClaimValues).
             claims.put("sdClaims", extractSdClaimsForOVP(sdJwt));
+            claims.put("sdClaimValues", extractSdClaimValuesForMatching(sdJwt));
 
             return claims;
 
@@ -232,6 +233,82 @@ public class VcSdJwtCredentialFormatHandler implements CredentialFormatHandler {
         Map<String, Object> pathToDisclosures = new LinkedHashMap<>();
         resolveDisclosures(payload, "", Collections.emptyList(), digestToDisclosure, digestToDisclosureB64, pathToDisclosures);
         return pathToDisclosures;
+    }
+
+    /**
+     * Path → decoded disclosure values for DCQL/PE matching ({@code CredentialMatchingServiceImpl#getCredentialData()}).
+     * Unlike {@link #extractSdClaimsForOVP}, this returns claim values (e.g. {@code true}, {@code "John"}), not base64 blobs.
+     */
+    private Map<String, Object> extractSdClaimValuesForMatching(SDJWT sdJwt) {
+        Map<String, Disclosure> digestToDisclosure = new HashMap<>();
+        List<Disclosure> disclosures = sdJwt.getDisclosures();
+        if (disclosures != null) {
+            for (Disclosure disclosure : disclosures) {
+                digestToDisclosure.put(disclosure.digest(), disclosure);
+            }
+        }
+
+        String credentialJwt = sdJwt.getCredentialJwt();
+        Map<String, Object> payload = parseJwtPayload(credentialJwt);
+        if (payload == null || payload.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> pathToValues = new LinkedHashMap<>();
+        resolveDecodedClaimValues(payload, "", digestToDisclosure, pathToValues);
+        return pathToValues;
+    }
+
+    /** Walks the SD-JWT payload tree and records decoded claim values at each JSON path (mirrors {@link #resolveDisclosures}). */
+    private void resolveDecodedClaimValues(Object value, String path, Map<String, Disclosure> digestToDisclosure,
+                                           Map<String, Object> pathToValues) {
+        if (value instanceof List<?> list) {
+            for (int i = 0; i < list.size(); i++) {
+                Object item = list.get(i);
+                String currentPath = path + "[" + i + "]";
+                if (item instanceof Map<?, ?> mapItem) {
+                    if (mapItem.size() == 1 && mapItem.containsKey(KEY)) {
+                        Disclosure disclosure = digestToDisclosure.get(mapItem.get(KEY));
+                        if (disclosure != null) {
+                            pathToValues.put(currentPath, disclosure.getClaimValue());
+                            resolveDecodedClaimValues(disclosure.getClaimValue(), currentPath, digestToDisclosure, pathToValues);
+                        }
+                        continue;
+                    }
+                }
+                resolveDecodedClaimValues(item, currentPath, digestToDisclosure, pathToValues);
+            }
+            return;
+        }
+
+        if (value instanceof Map<?, ?> map) {
+            Object sdDigestsObj = map.get(SD);
+            if (sdDigestsObj instanceof List<?> sdDigests) {
+                for (Object digestObj : sdDigests) {
+                    String digest = (String) digestObj;
+                    Disclosure disclosure = digestToDisclosure.get(digest);
+                    if (disclosure == null || disclosure.getClaimName() == null) {
+                        continue;
+                    }
+                    String claimName = disclosure.getClaimName();
+                    if (SD.equals(claimName) || KEY.equals(claimName)) {
+                        continue;
+                    }
+
+                    String fullPath = path.isEmpty() ? claimName : path + "." + claimName;
+                    pathToValues.put(fullPath, disclosure.getClaimValue());
+                    resolveDecodedClaimValues(disclosure.getClaimValue(), fullPath, digestToDisclosure, pathToValues);
+                }
+            }
+
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (SD.equals(entry.getKey())) {
+                    continue;
+                }
+                String fullPath = path.isEmpty() ? entry.getKey().toString() : path + "." + entry.getKey();
+                resolveDecodedClaimValues(entry.getValue(), fullPath, digestToDisclosure, pathToValues);
+            }
+        }
     }
 
     private void resolveDisclosures(Object value, String path, List<String> parentDisclosures, Map<String, Disclosure> digestToDisclosure, Map<String, String> digestToDisclosureB64, Map<String, Object> pathToDisclosures) {

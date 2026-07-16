@@ -579,13 +579,9 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"// Store the response body in a variable",
-									"let presentationResponse = pm.response.json();",
+									"const presentationResponse = pm.response.json();",
 									"",
-									"// Parse the response body to extract the presentationId",
-									"let presentationId = presentationResponse.presentationId;",
-									"",
-									"pm.environment.set(\"presentationId\", presentationId);",
+								"pm.environment.set(\"presentationId\", presentationResponse.presentationId);",
 									""
 								],
 								"type": "text/javascript",
@@ -631,6 +627,90 @@
 				},
 				{
 					"name": "Get Matching Credentials",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"if (Array.isArray(response.queryGroups)) {",
+									"    const queryGroupsById = {};",
+									"    (response.queryGroups || []).forEach(group => {",
+									"        queryGroupsById[group.queryId] = group;",
+									"    });",
+									"",
+									"    const optionHasCredentials = option => option.every(qid => {",
+									"        const group = queryGroupsById[qid];",
+									"        return group && group.availableCredentials && group.availableCredentials.length > 0;",
+									"    });",
+									"",
+									"    const buildSelection = qid => ({",
+									"        queryId: qid,",
+									"        selectedCredentialIds: [queryGroupsById[qid].availableCredentials[0].credentialId]",
+									"    });",
+									"",
+									"    let selections = [];",
+									"    const credentialSets = response.credentialSets || [];",
+									"    const selectedQueryIds = new Set();",
+									"    const optionIndex = parseInt(pm.collectionVariables.get(\"dcqlCredentialSetOptionIndex\") || \"0\", 10);",
+									"",
+									"    credentialSets.forEach(set => {",
+									"        if (!set.required) { return; }",
+									"        const validOptions = (set.options || []).filter(optionHasCredentials);",
+									"        const chosenOption = validOptions[optionIndex] || validOptions[0];",
+									"        if (chosenOption) {",
+									"            chosenOption.forEach(qid => selectedQueryIds.add(qid));",
+									"            pm.collectionVariables.set(\"selectedDcqlCredentialSetOption\", JSON.stringify(chosenOption));",
+									"        }",
+									"    });",
+									"",
+									"    selections = [...selectedQueryIds].map(buildSelection);",
+									"",
+									"    if (selections.length === 0) {",
+									"        selections = (response.queryGroups || [])",
+									"            .filter(group => group.availableCredentials && group.availableCredentials.length > 0)",
+									"            .map(group => ({",
+									"                queryId: group.queryId,",
+									"                selectedCredentialIds: [group.availableCredentials[0].credentialId]",
+									"            }));",
+									"    }",
+									"",
+									"    pm.collectionVariables.set(\"submitPresentationDcqlBody\", JSON.stringify({",
+									"        selectedCredentials: selections",
+									"    }, null, 2));",
+									"    pm.collectionVariables.set(\"isDcqlPresentation\", \"true\");",
+									"",
+									"    if (selections.length > 0) {",
+									"        pm.collectionVariables.set(\"credentialId\", selections[0].selectedCredentialIds[0]);",
+									"    } else {",
+									"        console.warn(\"No DCQL selections built. Check queryGroups.availableCredentials and missingClaims in the matching response.\");",
+									"    }",
+									"} else {",
+									"    const available = response.availableCredentials || [];",
+									"    const credentialIds = available.map(c => c.credentialId).filter(Boolean);",
+									"",
+									"    if (credentialIds.length > 0) {",
+									"        pm.collectionVariables.set(\"credentialId\", credentialIds[0]);",
+									"        pm.collectionVariables.set(\"credentialId1\", credentialIds[0]);",
+									"        if (credentialIds.length > 1) {",
+									"            pm.collectionVariables.set(\"credentialId2\", credentialIds[1]);",
+									"        }",
+									"    }",
+									"",
+									"    const firstCredentialId = credentialIds.length > 0 ? credentialIds[0] : \"\";",
+									"    pm.collectionVariables.set(\"submitPresentationDraft23Body\", JSON.stringify({",
+									"        selectedCredentials: firstCredentialId ? [firstCredentialId] : []",
+									"    }, null, 2));",
+									"    pm.collectionVariables.set(\"isDcqlPresentation\", \"false\");",
+									"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"url": {
@@ -650,7 +730,23 @@
 					"response": []
 				},
 				{
-					"name": "Submit Presentation",
+					"name": "Submit Presentation (Draft-23)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+								"const isDcql = pm.collectionVariables.get(\"isDcqlPresentation\") === \"true\";",
+								"if (isDcql) {",
+								"    console.warn(\"This request is for Draft-23. Use Submit Presentation (OVP 1.0 / DCQL) for DCQL requests.\");",
+								"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
 					"request": {
 						"method": "PATCH",
 						"header": [
@@ -666,7 +762,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"selectedCredentials\": [\"{{credentialId1}}\", \"{{credentialId2}}\"]\n}",
+							"raw": "{{submitPresentationDraft23Body}}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -684,7 +780,64 @@
 								"presentations",
 								"{{presentationId}}"
 							]
+						},
+						"description": "Presentation Exchange (Draft-23). Run Get Matching Credentials first — the first available credential is stored in submitPresentationDraft23Body."
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Presentation (OVP 1.0 / DCQL)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+								"const isDcql = pm.collectionVariables.get(\"isDcqlPresentation\") === \"true\";",
+								"if (!isDcql) {",
+								"    console.warn(\"This request is for OVP 1.0 / DCQL. Use Submit Presentation (Draft-23) for Presentation Exchange requests.\");",
+								"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
 						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-XSRF-TOKEN",
+								"value": "{{XSRF_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{submitPresentationDcqlBody}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{HOST}}/wallets/{{walletId}}/presentations/{{presentationId}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"wallets",
+								"{{walletId}}",
+								"presentations",
+								"{{presentationId}}"
+							]
+						},
+						"description": "OVP 1.0 / DCQL. Run Get Matching Credentials first. When credentialSets is present, only one option is auto-selected (default: first valid option). Set collection variable dcqlCredentialSetOptionIndex to 0, 1, or 2 to pick a different option."
 					},
 					"response": []
 				},
@@ -1323,6 +1476,34 @@
 		},
 		{
 			"key": "XSRF_TOKEN",
+			"value": ""
+		},
+		{
+			"key": "isDcqlPresentation",
+			"value": ""
+		},
+		{
+			"key": "submitPresentationDraft23Body",
+			"value": "{\n  \"selectedCredentials\": []\n}"
+		},
+		{
+			"key": "submitPresentationDcqlBody",
+			"value": "{\n  \"selectedCredentials\": []\n}"
+		},
+		{
+			"key": "dcqlCredentialSetOptionIndex",
+			"value": "0"
+		},
+		{
+			"key": "selectedDcqlCredentialSetOption",
+			"value": ""
+		},
+		{
+			"key": "credentialId1",
+			"value": ""
+		},
+		{
+			"key": "credentialId2",
 			"value": ""
 		}
 	]

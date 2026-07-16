@@ -49,4 +49,10 @@ public class DecryptedCredentialDTO implements Serializable {
      * The update timestamp from the original VerifiableCredential.
      */
     private Instant updatedAt;
+
+    /**
+     * InputDescriptor.id (Draft-23) or DCQL CredentialQuery.id (OVP 1.0).
+     * Bridge key from credential matching to VP submission.
+     */
+    private String identifier;
 }

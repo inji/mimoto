@@ -18,4 +18,6 @@ public class VerifiablePresentationSessionData implements Serializable {
     private Instant createdAt;
     private boolean isVerifierClientPreregistered;
     private List<DecryptedCredentialDTO> matchingCredentials;
+    /** True when the authorization request had a DCQL query; selects DCQL vs PE flow. */
+    private boolean dcql;
 }
