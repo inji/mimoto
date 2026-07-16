@@ -38,6 +38,7 @@ import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import io.mosip.openID4VP.helper.DCQLHelper;
 import io.mosip.openID4VP.wallet.Credential;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 
 import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
@@ -97,17 +98,13 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
     private void validateMatchingCredentialsRequest(VerifiablePresentationSessionData sessionData, String walletId) {
         if (sessionData == null
-                || isBlank(sessionData.getPresentationId())
-                || isBlank(sessionData.getAuthorizationRequest())) {
+                || StringUtils.isBlank(sessionData.getPresentationId())
+                || StringUtils.isBlank(sessionData.getAuthorizationRequest())) {
             throw new IllegalArgumentException("Session data cannot be null or empty");
         }
-        if (isBlank(walletId)) {
+        if (StringUtils.isBlank(walletId)) {
             throw new IllegalArgumentException("Wallet ID cannot be null or empty");
         }
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
     }
 
     private MatchingCredentialsDTO matchWithPresentationDefinition(
