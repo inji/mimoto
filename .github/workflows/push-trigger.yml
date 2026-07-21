@@ -111,7 +111,7 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_INJI_TEAM }}
 
   build-maven-apitest-mimoto:
-    uses: mosip/kattu/.github/workflows/maven-build.yml@master-java21
+    uses: mosip/kattu/.github/workflows/maven-build.yml@gpgupdate-masterj21
     with:
       SERVICE_LOCATION: ./api-test
       BUILD_ARTIFACT: apitest-mimoto
