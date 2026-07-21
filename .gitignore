@@ -34,3 +34,6 @@ build/
 *.code-workspace
 .DS_Store
 data
+
+### GitHub Actions ###
+.github/keys/
