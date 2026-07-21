@@ -25,7 +25,7 @@ on:
 
 jobs:
   build-mimoto:
-    uses: mosip/kattu/.github/workflows/maven-build.yml@master-java21
+    uses: mosip/kattu/.github/workflows/maven-build.yml@gpgupdate-masterj21
     with:
       SERVICE_LOCATION: ./
       BUILD_ARTIFACT: mimoto
