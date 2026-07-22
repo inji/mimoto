@@ -25,7 +25,9 @@ public enum SigningAlgorithm {
     }
 
     public static SigningAlgorithm fromString(String value) {
-        return switch (value.toUpperCase()) {
+        // Keep IANA name "EdDSA" in the switch; other algs are matched case-insensitively.
+        String key = "EdDSA".equalsIgnoreCase(value) ? "EdDSA" : value.toUpperCase();
+        return switch (key) {
             case "RS256" -> RS256;
             case "ES256" -> ES256;
             case "ES256K" -> ES256K;
