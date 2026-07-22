@@ -610,20 +610,10 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             byte[] dataToSign = token.getDataToSign();
             Base64URL signature;
             try {
-                if (token.getFormat() == FormatType.LDP_VC) {
-                    // LDP_VC: sign payload bytes after the first '.' separator
-                    int dotIndex = indexOfDot(dataToSign);
-                    String headerB64 = new String(dataToSign, 0, dotIndex, StandardCharsets.US_ASCII);
-                    byte[] payload = Arrays.copyOfRange(dataToSign, dotIndex + 1, dataToSign.length);
-                    JWSHeader header = JWSHeader.parse(new Base64URL(headerB64));
-                    signature = signer.sign(header, payload);
-                } else {
-                    // SD-JWT: standard JWT signing input is ASCII bytes of "headerB64.payloadB64"
-                    String unsignedJwt = new String(dataToSign, StandardCharsets.US_ASCII);
-                    String headerB64 = unsignedJwt.substring(0, unsignedJwt.indexOf('.'));
-                    JWSHeader header = JWSHeader.parse(new Base64URL(headerB64));
-                    signature = signer.sign(header, dataToSign);
-                }
+                int dotIndex = indexOfDot(dataToSign);
+                String headerB64 = new String(dataToSign, 0, dotIndex, StandardCharsets.US_ASCII);
+                JWSHeader header = JWSHeader.parse(new Base64URL(headerB64));
+                signature = signer.sign(header, dataToSign);
             } catch (ParseException e) {
                 throw new JOSEException("Failed to parse JWS header for VP token signing", e);
             }
