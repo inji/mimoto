@@ -20,10 +20,6 @@ public class DcqlQueryGroup {
     @Schema(description = "DCQL credential query id (dcql_query.credentials[i].id)")
     private String queryId;
 
-    @JsonProperty("required")
-    @Schema(description = "Whether this query must be satisfied before submission")
-    private boolean required;
-
     @JsonProperty("multiple")
     @Schema(description = "Whether more than one credential may be selected for this query")
     private boolean multiple;

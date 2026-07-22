@@ -38,7 +38,7 @@ import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import io.mosip.openID4VP.helper.DCQLHelper;
 import io.mosip.openID4VP.wallet.Credential;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
@@ -239,7 +239,6 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
             queryGroups.add(DcqlQueryGroup.builder()
                     .queryId(credentialQuery.getId())
-                    .required(true)
                     .multiple(credentialQuery.getMultiple())
                     .availableCredentials(credentialDTOs)
                     .missingClaims(missingClaims)
@@ -280,11 +279,25 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             if (dto == null) {
                 continue;
             }
-            dto.setIdentifier(credentialQuery.getId());
-            matchedById.putIfAbsent(dto.getId(), dto);
-            matches.add(dto);
+            // Copy before binding query id — the same wallet credential may match multiple
+            // CredentialQuerys; mutating the shared instance would overwrite identifier.
+            DecryptedCredentialDTO matched = copyWithIdentifier(dto, credentialQuery.getId());
+            matchedById.putIfAbsent(matched.getId(), matched);
+            matches.add(matched);
         }
         return matches;
+    }
+
+    private DecryptedCredentialDTO copyWithIdentifier(DecryptedCredentialDTO source, String identifier) {
+        return DecryptedCredentialDTO.builder()
+                .id(source.getId())
+                .walletId(source.getWalletId())
+                .credential(source.getCredential())
+                .credentialMetadata(source.getCredentialMetadata())
+                .createdAt(source.getCreatedAt())
+                .updatedAt(source.getUpdatedAt())
+                .identifier(identifier)
+                .build();
     }
 
     private CredentialSetInfo toCredentialSetInfo(CredentialSetQuery credentialSetQuery) {

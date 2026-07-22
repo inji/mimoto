@@ -12,7 +12,7 @@ import static org.junit.Assert.assertNull;
 public class SelectedSdClaimsUtilTest {
 
     @Test
-    public void mergePathsUnionsDisclosurePathsForSameCredential() {
+    public void should_unionDisclosurePaths_when_sameCredentialIsMerged() {
         Map<String, List<String>> merged = new LinkedHashMap<>();
         SelectedSdClaimsUtil.mergePaths(merged, "cred-1", List.of("email"));
         SelectedSdClaimsUtil.mergePaths(merged, "cred-1", List.of("phone"));
@@ -21,7 +21,7 @@ public class SelectedSdClaimsUtilTest {
     }
 
     @Test
-    public void mergePathsDeduplicatesPathsPreservingOrder() {
+    public void should_deduplicatePaths_when_pathsOverlap() {
         Map<String, List<String>> merged = new LinkedHashMap<>();
         SelectedSdClaimsUtil.mergePaths(merged, "cred-1", List.of("email", "phone"));
         SelectedSdClaimsUtil.mergePaths(merged, "cred-1", List.of("phone", "address"));
@@ -30,7 +30,7 @@ public class SelectedSdClaimsUtilTest {
     }
 
     @Test
-    public void mergeIntoUnionsAcrossMaps() {
+    public void should_unionCredentialMaps_when_sourcesContainMultipleCredentials() {
         Map<String, List<String>> merged = new LinkedHashMap<>();
         SelectedSdClaimsUtil.mergeInto(merged, Map.of("cred-1", List.of("email")));
         SelectedSdClaimsUtil.mergeInto(merged, Map.of("cred-1", List.of("phone"), "cred-2", List.of("name")));
@@ -40,7 +40,7 @@ public class SelectedSdClaimsUtilTest {
     }
 
     @Test
-    public void mergeIntoIgnoresNullSource() {
+    public void should_ignoreNullSource_when_mergingIntoTarget() {
         Map<String, List<String>> merged = new LinkedHashMap<>();
         SelectedSdClaimsUtil.mergeInto(merged, null);
         assertNull(merged.get("cred-1"));

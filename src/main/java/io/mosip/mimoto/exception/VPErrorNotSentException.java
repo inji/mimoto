@@ -4,6 +4,7 @@ public class VPErrorNotSentException extends BaseUncheckedException {
 
     private static final long serialVersionUID = -5350213197226295789L;
 
+
     /**
      * Constructor with errorCode, and errorMessage
      *
@@ -16,5 +17,9 @@ public class VPErrorNotSentException extends BaseUncheckedException {
 
     public VPErrorNotSentException(String errorMessage) {
         super(ErrorConstants.REJECT_VERIFIER_EXCEPTION.getErrorCode(), errorMessage);
+    }
+
+    public VPErrorNotSentException(String errorMessage, Throwable cause) {
+        super(ErrorConstants.REJECT_VERIFIER_EXCEPTION.getErrorCode(), errorMessage, cause);
     }
 }

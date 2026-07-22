@@ -94,17 +94,16 @@ A DCQL response has **two layers**:
 ```text
 DCQL query (from verifier)
 ├── credentials[]          ← Layer 1: one slot per CredentialQuery (→ queryGroups)
-└── credential_sets[]?     ← Layer 2: optional OR-grouping (→ credentialSets)
+└── credential_sets[]?     ← Layer 2: optional OR-grouping
+                             → always returned as credentialSets (synthesised if omitted)
 ```
 
 - **`queryGroups`** — one entry per `CredentialQuery.id`. Describes available credentials, formats, claims, and missing claims for that slot.
-- **`credentialSets`** — optional grouping. When present, it defines which query slots are bundled into **options** the user must choose from.
-
-When `credentialSets` is **empty**, every query in `queryGroups` is an independent **mandatory** slot (DCQL default when the verifier omits `credential_sets`).
+- **`credentialSets`** — option-grouping layer for the UI. When the verifier sends `credential_sets`, those options are returned as-is. When the verifier **omits** `credential_sets`, Mimoto synthesises one **required** set per `queryGroups` entry (single option containing that `queryId`), so the client always renders from `credentialSets` the same way.
 
 ### Example — two independent required queries
 
-Verifier needs national ID **and** driving license (no `credential_sets`):
+Verifier needs national ID **and** driving license (no `credential_sets`). The response still includes synthesised `credentialSets` — one mandatory section per query:
 
 ```json
 {
@@ -139,7 +138,16 @@ Verifier needs national ID **and** driving license (no `credential_sets`):
       "missingClaims": []
     }
   ],
-  "credentialSets": []
+  "credentialSets": [
+    {
+      "required": true,
+      "options": [["pid_query"]]
+    },
+    {
+      "required": true,
+      "options": [["mdl_query"]]
+    }
+  ]
 }
 ```
 
@@ -237,17 +245,16 @@ Verifier accepts **PAN OR Aadhaar OR (Voter ID + Driving License)**:
 ### UI rendering guide
 
 ```text
-credentialSets is empty
-  → Render one slot per queryGroup; all slots are mandatory
-  → Enable submit only when every queryGroup has a selection
-  → Respect queryGroup.multiple for multi-select within a slot
-
-credentialSets is non-empty
-  → Render one section per credentialSet entry
+Always render from credentialSets (never treat an empty list as the omit-default)
+  → One section per credentialSet entry
   → required=true → section is mandatory
   → Within a section, render one option (tab/radio) per options[] entry
   → Option ["voter_id","dl"] → user must fill BOTH slots in that option
   → User picks exactly one option per required section
+  → Look up slot details (credentials, claims, multiple) in queryGroups by queryId
+  → Synthesised sets (verifier omitted credential_sets) look like
+    [{ required: true, options: [["pid_query"]] }, { required: true, options: [["mdl_query"]] }]
+    → same UI path: one mandatory section per query, one option each
 ```
 
 ### Unsatisfiable requests

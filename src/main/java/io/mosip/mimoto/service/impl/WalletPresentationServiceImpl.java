@@ -380,7 +380,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
                     "Credential " + dto.getId() + " could not be mapped for OpenID4VP submission");
         }
-        log.info("mapped>>>>>> {}", mapped);
+        
         return mapped;
     }
 
@@ -856,7 +856,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
             result.setRedirectUri(verifierResponse.getRedirectUri());
             return result;
         } catch (ApiNotAccessibleException | IOException | URISyntaxException | java.lang.IllegalArgumentException e) {
-            throw new VPErrorNotSentException("Failed to send rejection to verifier — " + e.getMessage());
+            throw new VPErrorNotSentException("Failed to send rejection to verifier — " + e.getMessage(), e);
         }
     }
 
