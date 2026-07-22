@@ -2454,7 +2454,7 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
-    public void testGetMatchingCredentialsDcqlPreservesFirstQueryIdentifierWhenCredentialMatchesMultipleQueries()
+    public void should_preserveFirstQueryIdentifier_when_credentialMatchesMultipleQueries()
             throws Exception {
         VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
 
