@@ -29,7 +29,7 @@ public enum SigningAlgorithm {
             case "RS256" -> RS256;
             case "ES256" -> ES256;
             case "ES256K" -> ES256K;
-            case "ED25519", "EDDSA" -> ED25519;
+            case "ED25519", "EDDSA", "EdDSA" -> ED25519;
             default -> throw new IllegalArgumentException("Unsupported signing algorithm: " + value);
         };
     }
