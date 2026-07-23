@@ -116,6 +116,7 @@ jobs:
     with:
       SERVICE_LOCATION: ./api-test
       BUILD_ARTIFACT: apitest-mimoto
+      LICENSE_NAME: 'Apache 2.0'
     secrets:
       OSSRH_USER: ${{ secrets.OSSRH_USER }}
       OSSRH_SECRET: ${{ secrets.OSSRH_SECRET }}
