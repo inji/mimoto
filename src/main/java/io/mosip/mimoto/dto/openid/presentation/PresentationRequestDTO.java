@@ -27,7 +27,9 @@ public class PresentationRequestDTO {
     String nonce;
     @JsonProperty("response_uri")
     String responseUri;
-    @JsonProperty("response_uri")
+    @JsonProperty("response_mode")
     String responseMode;
+    @JsonProperty("dcql_query")
+    String dcqlQuery;
 
 }

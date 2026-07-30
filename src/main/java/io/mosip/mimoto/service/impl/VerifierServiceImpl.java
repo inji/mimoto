@@ -115,6 +115,15 @@ public class VerifierServiceImpl implements VerifierService {
     }
 
     @Override
+    public VerifierDTO validateVerifierAndGetDetails(String clientId, String responseUri, String redirectUri) throws ApiNotAccessibleException, JsonProcessingException {
+        validateVerifier(clientId, responseUri, redirectUri);
+        return getVerifierByClientId(clientId)
+                .orElseThrow(() -> new InvalidVerifierException(
+                        ErrorConstants.INVALID_CLIENT.getErrorCode(),
+                        ErrorConstants.INVALID_CLIENT.getErrorMessage()));
+    }
+
+    @Override
     public boolean isVerifierTrustedByWallet(String verifierId, String walletId) {
         return verifierRepository.existsByWalletIdAndVerifierId(walletId, verifierId);
     }

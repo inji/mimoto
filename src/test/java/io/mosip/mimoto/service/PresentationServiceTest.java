@@ -64,7 +64,7 @@ public class PresentationServiceTest {
 
     @Before
     public void setup() throws JsonProcessingException {
-        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", 65536);
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", "%s#vp_token=%s", 65536);
         when(objectMapper.writeValueAsString(any())).thenReturn("test-data");
 
         // Setup for Wallet presentation tests
@@ -143,6 +143,7 @@ public class PresentationServiceTest {
                 objectMapper,
                 restApiClient,
                 "%s#vp_token=%s&presentation_submission=%s",
+                "%s#vp_token=%s",
                 200
         );
 
@@ -242,6 +243,45 @@ public class PresentationServiceTest {
             assertNotNull(result);
             assertEquals(1, result.getInputDescriptors().size());
             assertTrue(result.getInputDescriptors().get(0).getFormat().containsKey("vc+sd-jwt"));
+        }
+    }
+
+    @Test
+    public void constructDcqlQueryForLdpVcCredential() {
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn(credential);
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        assertNotNull(result);
+        assertTrue(result.containsKey("credentials"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        assertEquals(1, credentials.size());
+        assertEquals(CredentialFormat.LDP_VC.getFormat(), credentials.get(0).get("format"));
+        assertNotNull(credentials.get(0).get("id"));
+        assertTrue(((Map<?, ?>) credentials.get(0).get("meta")).containsKey("type_values"));
+    }
+
+    @Test
+    public void constructDcqlQueryForSdJwtCredentialUsesVct() {
+        VCCredentialResponse vcCredentialResponse = createSDJwtCredentialResponse("dc+sd-jwt");
+        Map<String, Object> jwtPayload = Map.of("vct", "https://example.com/TestCredential");
+
+        try (MockedStatic<JwtUtils> jwtUtilsMock = mockStatic(JwtUtils.class)) {
+            jwtUtilsMock.when(() -> JwtUtils.extractJwtPayloadFromSdJwt(anyString())).thenReturn(jwtPayload);
+
+            Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+            assertNotNull(result);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+            assertEquals("dc+sd-jwt", credentials.get(0).get("format"));
+            @SuppressWarnings("unchecked")
+            Map<String, Object> meta = (Map<String, Object>) credentials.get(0).get("meta");
+            assertEquals(List.of("https://example.com/TestCredential"), meta.get("vct_values"));
         }
     }
 

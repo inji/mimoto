@@ -2,6 +2,7 @@ package io.mosip.mimoto.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
+import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
 import io.mosip.mimoto.dto.openid.presentation.PresentationRequestDTO;
 import io.mosip.mimoto.exception.ErrorConstants;
@@ -10,6 +11,7 @@ import io.mosip.mimoto.exception.InvalidVerifierException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.PresentationService;
 import io.mosip.mimoto.service.VerifierService;
+import io.mosip.openID4VP.constants.SpecVersion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -57,7 +59,8 @@ public class PresentationController {
     public void performAuthorization(HttpServletResponse response,
                                      @RequestParam("response_type") @Schema(description = "Response Type of the Presentation" , defaultValue = "vp_token") String responseType,
                                      @RequestParam("resource") @Schema(description = "URL Encoded Resource url of the Credential ")  String resource,
-                                     @RequestParam("presentation_definition")  @Schema(description = "URL Encoded presentation definition") String presentationDefinition,
+                                     @RequestParam(name = "presentation_definition", required = false) @Schema(description = "URL Encoded presentation definition") String presentationDefinition,
+                                     @RequestParam(name = "dcql_query", required = false) @Schema(description = "URL Encoded DCQL query") String dcqlQuery,
                                      @RequestParam("client_id") @Schema(description = "URL Encoded Client Id") String clientId,
                                      @RequestParam(name = "redirect_uri", required = false) @Schema(description = "URL Encoded Redirect URI") String redirectUri,
                                      @RequestParam(name = "state", required = false) @Schema(description = "Unique session identifier to prevent CSRF") String state,
@@ -67,12 +70,22 @@ public class PresentationController {
 
         try {
             log.info("Started Presentation Authorization in the controller.");
-            verifierService.validateVerifier(clientId, responseUri, redirectUri);
-            PresentationDefinitionDTO presentationDefinitionDTO = objectMapper.readValue(presentationDefinition, PresentationDefinitionDTO.class);
+
+            // Validate verifier and get spec version
+            VerifierDTO verifierDTO = verifierService.validateVerifierAndGetDetails(clientId, responseUri, redirectUri);
+            SpecVersion specVersion = verifierDTO.getSpecVersion();
+
+            // Build request DTO with both PD and DCQL (one may be null)
+            PresentationDefinitionDTO presentationDefinitionDTO = null;
+            if (presentationDefinition != null && !presentationDefinition.isBlank()) {
+                presentationDefinitionDTO = objectMapper.readValue(presentationDefinition, PresentationDefinitionDTO.class);
+            }
+
             PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
                     .responseType(responseType)
                     .resource(resource)
                     .presentationDefinition(presentationDefinitionDTO)
+                    .dcqlQuery(dcqlQuery)
                     .clientId(clientId)
                     .redirectUri(redirectUri)
                     .state(state)
@@ -80,7 +93,10 @@ public class PresentationController {
                     .responseUri(responseUri)
                     .responseMode(responseMode)
                     .build();
-            String redirectString = presentationService.authorizePresentation(presentationRequestDTO);
+
+            // Branch by spec version: Draft-23 uses PD, V1 uses DCQL
+            String redirectString = presentationService.processVPRequest(presentationRequestDTO, specVersion);
+
             log.info("Completed Presentation Authorization in the controller.");
             response.sendRedirect(redirectString);
         } catch( InvalidVerifierException exception){
