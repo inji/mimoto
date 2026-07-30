@@ -200,11 +200,8 @@ public class PresentationServiceTest {
 
     @Test(expected = VPNotCreatedException.class)
     public void nullPresentationDefinitionWithVPRequest() throws IOException {
-        VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
         PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
         presentationRequestDTO.setPresentationDefinition(null);
-
-        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
 
         presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
     }
