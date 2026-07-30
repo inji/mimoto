@@ -105,7 +105,7 @@ public class PresentationServiceTest {
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
         when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockPostResponse);
 
-        String actualRedirectUrl = presentationService.authorizePresentation(presentationRequestDTO);
+        String actualRedirectUrl = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
 
         assertEquals("https://verifier.example.com/success", actualRedirectUrl);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
@@ -130,7 +130,7 @@ public class PresentationServiceTest {
                 Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)),
                 URLEncoder.encode(presentationSubmission, StandardCharsets.UTF_8));
 
-        String actual = presentationService.authorizePresentation(presentationRequestDTO);
+        String actual = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
 
         assertEquals(expected, actual);
         verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
@@ -157,7 +157,7 @@ public class PresentationServiceTest {
         doReturn("p".repeat(500)).when(objectMapper).writeValueAsString(any());
 
         VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
-                () -> serviceWithSmallHeaderLimit.authorizePresentation(presentationRequestDTO));
+                () -> serviceWithSmallHeaderLimit.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23));
 
         assertEquals(
                 ErrorConstants.URI_TOO_LONG.getErrorCode() + " --> " + ErrorConstants.URI_TOO_LONG.getErrorMessage(),
@@ -172,7 +172,7 @@ public class PresentationServiceTest {
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
         when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
-        presentationService.authorizePresentation(TestUtilities.getPresentationRequestDTO());
+        presentationService.processVPRequest(TestUtilities.getPresentationRequestDTO(), SpecVersion.DRAFT_23);
     }
 
     @Test
@@ -191,7 +191,7 @@ public class PresentationServiceTest {
         try (MockedStatic<JwtUtils> jwtUtilsMock = mockStatic(JwtUtils.class)) {
             jwtUtilsMock.when(() -> parseJwtHeader(anyString())).thenReturn(jwtHeaders);
 
-            String actualRedirectUrl = presentationService.authorizePresentation(presentationRequestDTO);
+            String actualRedirectUrl = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
 
             assertEquals("https://verifier.example.com/success", actualRedirectUrl);
             verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
@@ -206,7 +206,7 @@ public class PresentationServiceTest {
 
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
 
-        presentationService.authorizePresentation(presentationRequestDTO);
+        presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
     }
 
     @Test
@@ -343,7 +343,7 @@ public class PresentationServiceTest {
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
         when(objectMapper.convertValue(eq(null), eq(VCCredentialProperties.class))).thenReturn(null);
 
-        presentationService.authorizePresentation(presentationRequestDTO);
+        presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
     }
 
     @Test(expected = VPNotCreatedException.class)
@@ -355,7 +355,7 @@ public class PresentationServiceTest {
         PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
 
-        presentationService.authorizePresentation(presentationRequestDTO);
+        presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
     }
 
     @Test(expected = RuntimeException.class)
@@ -366,7 +366,7 @@ public class PresentationServiceTest {
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
         when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
                 .thenThrow(new RuntimeException("Mapping error"));
-        presentationService.authorizePresentation(presentationRequestDTO);
+        presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
     }
 
     @Test(expected = NullPointerException.class)
@@ -423,7 +423,7 @@ public class PresentationServiceTest {
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
         when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockResponse);
 
-        String result = presentationService.authorizePresentation(presentationRequestDTO);
+        String result = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
 
         assertEquals("https://verifier.example.com/success", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
@@ -446,7 +446,7 @@ public class PresentationServiceTest {
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
         when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockResponse);
 
-        String result = presentationService.authorizePresentation(presentationRequestDTO);
+        String result = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
 
         assertEquals("https://verifier.example.com/success", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
@@ -465,7 +465,7 @@ public class PresentationServiceTest {
         try (MockedStatic<JwtUtils> jwtUtilsMock = mockStatic(JwtUtils.class)) {
             jwtUtilsMock.when(() -> parseJwtHeader(anyString())).thenReturn(jwtHeaders);
 
-            presentationService.authorizePresentation(presentationRequestDTO);
+            presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
         }
     }
 
@@ -480,7 +480,7 @@ public class PresentationServiceTest {
 
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
 
-        presentationService.authorizePresentation(presentationRequestDTO);
+        presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
     }
 
     @Test
@@ -500,7 +500,7 @@ public class PresentationServiceTest {
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
         when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockResponse);
 
-        String result = presentationService.authorizePresentation(presentationRequestDTO);
+        String result = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
 
         assertEquals("test_redirect_uri", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
@@ -521,7 +521,7 @@ public class PresentationServiceTest {
         when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class)))
                 .thenThrow(new RuntimeException("Network error"));
 
-        presentationService.authorizePresentation(presentationRequestDTO);
+        presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
     }
 
     @Test
@@ -673,7 +673,7 @@ public class PresentationServiceTest {
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
         when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockResponse);
 
-        String result = presentationService.authorizePresentation(presentationRequestDTO);
+        String result = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
 
         assertEquals("https://verifier.example.com/response?status=vp_sent", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
@@ -693,7 +693,7 @@ public class PresentationServiceTest {
 
         // Act & Assert
         VPNotCreatedException exception = assertThrows(VPNotCreatedException.class, () -> {
-            presentationService.authorizePresentation(presentationRequestDTO);
+            presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
         });
 
         assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(), exception.getMessage());

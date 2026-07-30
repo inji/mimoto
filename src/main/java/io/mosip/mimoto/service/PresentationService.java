@@ -8,7 +8,5 @@ import java.io.IOException;
 
 public interface PresentationService {
 
-    String authorizePresentation(PresentationRequestDTO presentationRequestDTO) throws ApiNotAccessibleException, IOException;
-
     String processVPRequest(PresentationRequestDTO presentationRequestDTO, SpecVersion specVersion) throws ApiNotAccessibleException, IOException;
 }

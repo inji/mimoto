@@ -67,60 +67,39 @@ public class VerifierServiceImpl implements VerifierService {
     }
 
     @Override
-    public void validateVerifier(String clientId, String responseUri, String redirectUri) throws ApiNotAccessibleException, JsonProcessingException {
+    public VerifierDTO validateVerifier(String clientId, String responseUri, String redirectUri) throws ApiNotAccessibleException, JsonProcessingException {
         log.info("Started the presentation Validation");
-        if (responseUri != null && !responseUri.trim().isEmpty()) {
-            getVerifierByClientId(clientId).ifPresentOrElse(
-                    (verifierDTO) -> {
-                        List<String> registeredResponseUris = Optional.ofNullable(verifierDTO.getResponseUris())
-                                .orElseGet(Collections::emptyList);
-                        boolean isValidVerifier = registeredResponseUris.stream().anyMatch(registeredResponseUri ->
-                                urlValidator.isValid(registeredResponseUri) &&
-                                        urlValidator.isValid(responseUri) &&
-                                        pathMatcher.match(registeredResponseUri, responseUri));
-                        if (!isValidVerifier) {
-                            throw new InvalidVerifierException(
-                                    ErrorConstants.INVALID_RESPONSE_URI.getErrorCode(),
-                                    ErrorConstants.INVALID_RESPONSE_URI.getErrorMessage());
-                        }
-                    },
-                    () -> {
-                        throw new InvalidVerifierException(
-                                ErrorConstants.INVALID_CLIENT.getErrorCode(),
-                                ErrorConstants.INVALID_CLIENT.getErrorMessage());
-                    }
-            );
-        } else {
-            getVerifierByClientId(clientId).ifPresentOrElse(
-                    (verifierDTO) -> {
-                        List<String> registeredRedirectUris = Optional.ofNullable(verifierDTO.getRedirectUris())
-                                .orElseGet(Collections::emptyList);
-                        boolean isValidVerifier = registeredRedirectUris.stream().anyMatch(registeredRedirectUri ->
-                                urlValidator.isValid(registeredRedirectUri) &&
-                                        urlValidator.isValid(redirectUri) &&
-                                        pathMatcher.match(registeredRedirectUri, redirectUri));
-                        if (!isValidVerifier) {
-                            throw new InvalidVerifierException(
-                                    ErrorConstants.INVALID_REDIRECT_URI.getErrorCode(),
-                                    ErrorConstants.INVALID_REDIRECT_URI.getErrorMessage());
-                        }
-                    },
-                    () -> {
-                        throw new InvalidVerifierException(
-                                ErrorConstants.INVALID_CLIENT.getErrorCode(),
-                                ErrorConstants.INVALID_CLIENT.getErrorMessage());
-                    }
-            );
-        }
-    }
-
-    @Override
-    public VerifierDTO validateVerifierAndGetDetails(String clientId, String responseUri, String redirectUri) throws ApiNotAccessibleException, JsonProcessingException {
-        validateVerifier(clientId, responseUri, redirectUri);
-        return getVerifierByClientId(clientId)
+        VerifierDTO verifierDTO = getVerifierByClientId(clientId)
                 .orElseThrow(() -> new InvalidVerifierException(
                         ErrorConstants.INVALID_CLIENT.getErrorCode(),
                         ErrorConstants.INVALID_CLIENT.getErrorMessage()));
+
+        if (responseUri != null && !responseUri.trim().isEmpty()) {
+            List<String> registeredResponseUris = Optional.ofNullable(verifierDTO.getResponseUris())
+                    .orElseGet(Collections::emptyList);
+            boolean isValidVerifier = registeredResponseUris.stream().anyMatch(registeredResponseUri ->
+                    urlValidator.isValid(registeredResponseUri) &&
+                            urlValidator.isValid(responseUri) &&
+                            pathMatcher.match(registeredResponseUri, responseUri));
+            if (!isValidVerifier) {
+                throw new InvalidVerifierException(
+                        ErrorConstants.INVALID_RESPONSE_URI.getErrorCode(),
+                        ErrorConstants.INVALID_RESPONSE_URI.getErrorMessage());
+            }
+        } else {
+            List<String> registeredRedirectUris = Optional.ofNullable(verifierDTO.getRedirectUris())
+                    .orElseGet(Collections::emptyList);
+            boolean isValidVerifier = registeredRedirectUris.stream().anyMatch(registeredRedirectUri ->
+                    urlValidator.isValid(registeredRedirectUri) &&
+                            urlValidator.isValid(redirectUri) &&
+                            pathMatcher.match(registeredRedirectUri, redirectUri));
+            if (!isValidVerifier) {
+                throw new InvalidVerifierException(
+                        ErrorConstants.INVALID_REDIRECT_URI.getErrorCode(),
+                        ErrorConstants.INVALID_REDIRECT_URI.getErrorMessage());
+            }
+        }
+        return verifierDTO;
     }
 
     @Override

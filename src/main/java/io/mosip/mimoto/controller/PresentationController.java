@@ -72,7 +72,7 @@ public class PresentationController {
             log.info("Started Presentation Authorization in the controller.");
 
             // Validate verifier and get spec version
-            VerifierDTO verifierDTO = verifierService.validateVerifierAndGetDetails(clientId, responseUri, redirectUri);
+            VerifierDTO verifierDTO = verifierService.validateVerifier(clientId, responseUri, redirectUri);
             SpecVersion specVersion = verifierDTO.getSpecVersion();
 
             // Build request DTO with both PD and DCQL (one may be null)

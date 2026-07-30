@@ -82,8 +82,7 @@ public class PresentationServiceImpl implements PresentationService {
         }
     }
 
-    @Override
-    public String authorizePresentation(PresentationRequestDTO presentationRequestDTO) throws IOException {
+    private String authorizePresentation(PresentationRequestDTO presentationRequestDTO) throws IOException {
         VCCredentialResponse vcCredentialResponse = dataShareService.downloadCredentialFromDataShare(presentationRequestDTO);
         PresentationDefinitionDTO presentationDefinitionDTO = presentationRequestDTO.getPresentationDefinition();
         if (presentationDefinitionDTO == null) {
@@ -148,17 +147,17 @@ public class PresentationServiceImpl implements PresentationService {
 
         String vpToken = createVpToken(vpDTO);
 
-        // DCQL: deliver VP WITHOUT presentation_submission
         if (presentationRequestDTO.getResponseMode() != null
                 && "direct_post".equals(presentationRequestDTO.getResponseMode())) {
-            return postDcqlVpToResponseUri(
+            return postVpToResponseUri(
                     presentationRequestDTO.getResponseUri(),
                     presentationRequestDTO.getRedirectUri(),
                     vpToken,
-                    presentationRequestDTO.getState());
+                    null,
+                    presentationRequestDTO.getState(),
+                    presentationRequestDTO.getNonce());
         }
 
-        // Redirect with vp_token only (no presentation_submission)
         String redirectString = buildDcqlRedirectString(vpToken, presentationRequestDTO.getRedirectUri());
         if (redirectString.length() > maximumResponseHeaderSize) {
             throw new VPNotCreatedException(ErrorConstants.URI_TOO_LONG.getErrorCode(), ErrorConstants.URI_TOO_LONG.getErrorMessage());
@@ -170,44 +169,6 @@ public class PresentationServiceImpl implements PresentationService {
         return String.format(dcqlRedirectURLPattern,
                 redirectUri,
                 Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
-    }
-
-    private String postDcqlVpToResponseUri(String responseUri, String redirectUri, String vpToken, String state) {
-        MultiValueMap<String, String> postRequest = new LinkedMultiValueMap<>();
-        postRequest.add("vp_token", Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
-        // No presentation_submission for DCQL
-
-        if (state != null) {
-            postRequest.add("state", state);
-        }
-
-        log.info("DCQL: Posting VP to response_uri: {}", responseUri);
-        try {
-            Map<String, Object> postResponse = restApiClient.postApi(
-                    responseUri,
-                    MediaType.APPLICATION_FORM_URLENCODED,
-                    postRequest,
-                    Map.class);
-
-            log.info("DCQL: Response from verifier: {}", postResponse);
-
-            if (postResponse != null && postResponse.containsKey("redirect_uri")) {
-                String responseRedirectUri = (String) postResponse.get("redirect_uri");
-                if (responseRedirectUri != null && !responseRedirectUri.isEmpty()) {
-                    return responseRedirectUri;
-                }
-            }
-
-            if (redirectUri != null && !redirectUri.isBlank()) {
-                return redirectUri;
-            }
-
-            return responseUri + "?status=vp_sent";
-        } catch (Exception e) {
-            log.error("DCQL: Exception while submitting vp_token to response_uri", e);
-            throw new VPNotCreatedException(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(),
-                    ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage());
-        }
     }
 
     public PresentationDefinitionDTO constructPresentationDefinition(VCCredentialResponse vcRes) {
@@ -390,10 +351,12 @@ public class PresentationServiceImpl implements PresentationService {
         return objectMapper.writeValueAsString(vpDTO);
     }
 
-    private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken, String presentationSubmission, String state, String nonce) throws JsonProcessingException {
+    private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken, String presentationSubmission, String state, String nonce) {
         MultiValueMap<String, String> postRequest = new LinkedMultiValueMap<>();
         postRequest.add("vp_token", Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
-        postRequest.add("presentation_submission", presentationSubmission);
+        if (presentationSubmission != null) {
+            postRequest.add("presentation_submission", presentationSubmission);
+        }
 
         if (state != null) {
             postRequest.add("state", state);
