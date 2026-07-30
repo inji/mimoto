@@ -24,9 +24,12 @@ import io.mosip.openID4VP.authorizationRequest.Verifier;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.http.MediaType;
+import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -280,6 +283,52 @@ public class PresentationServiceTest {
             Map<String, Object> meta = (Map<String, Object>) credentials.get(0).get("meta");
             assertEquals(List.of("https://example.com/TestCredential"), meta.get("vct_values"));
         }
+    }
+
+    @Test
+    public void authorizeDcqlPresentation_directPost_sendsRawJsonVpTokenMapWithoutPresentationSubmission() throws Exception {
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
+
+        String queryId = "0b362b84-25ad-4e32-9234-dea6807d7451";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"ldp_vc\"}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", queryId, "format", "ldp_vc")));
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .clientId("test-client")
+                .responseMode("direct_post")
+                .responseUri("https://verifier.example.com/v2/vp-submission/direct-post")
+                .redirectUri("https://verifier.example.com/redirect")
+                .state("session-state")
+                .build();
+
+        Map<String, Object> mockPostResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), eq(Map.class))).thenReturn(dcqlQueryMap);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn(credential);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"0b362b84-25ad-4e32-9234-dea6807d7451\":[{}]}");
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockPostResponse);
+
+        String redirect = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1);
+
+        assertEquals("https://verifier.example.com/success", redirect);
+
+        ArgumentCaptor<MultiValueMap> bodyCaptor = ArgumentCaptor.forClass(MultiValueMap.class);
+        verify(restApiClient).postApi(
+                eq("https://verifier.example.com/v2/vp-submission/direct-post"),
+                eq(MediaType.APPLICATION_FORM_URLENCODED),
+                bodyCaptor.capture(),
+                eq(Map.class));
+
+        MultiValueMap<String, String> body = bodyCaptor.getValue();
+        assertEquals("{\"0b362b84-25ad-4e32-9234-dea6807d7451\":[{}]}", body.getFirst("vp_token"));
+        assertNull(body.getFirst("presentation_submission"));
+        assertEquals("session-state", body.getFirst("state"));
     }
 
     // Tests for handleVPAuthorizationRequest removed - method moved to WalletPresentationService
