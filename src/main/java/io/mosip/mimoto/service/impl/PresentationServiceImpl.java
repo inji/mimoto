@@ -108,7 +108,7 @@ public class PresentationServiceImpl implements PresentationService {
 
 
     /**
-     * DCQL authorize flow — matches VC against dcql_query, builds VP, returns vp_token WITHOUT presentation_submission.
+     * DCQL authorize flow — builds OVP 1.0 vp_token map { queryId: [presentation] }
      */
     private String authorizeDcqlPresentation(PresentationRequestDTO presentationRequestDTO) throws IOException {
         VCCredentialResponse vcCredentialResponse = dataShareService.downloadCredentialFromDataShare(presentationRequestDTO);
@@ -116,36 +116,44 @@ public class PresentationServiceImpl implements PresentationService {
 
         log.info("DCQL authorize: building VP for format={}", format);
 
-        // Match VC format against dcql_query (basic format check)
         Map<String, Object> dcqlQueryMap = objectMapper.readValue(presentationRequestDTO.getDcqlQuery(), Map.class);
         List<Map<String, Object>> credentials = (List<Map<String, Object>>) dcqlQueryMap.get("credentials");
         if (credentials == null || credentials.isEmpty()) {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
-        // Verify at least one credential query matches the VC format
-        boolean formatMatches = credentials.stream()
-                .anyMatch(cred -> format.equalsIgnoreCase((String) cred.get("format")));
-        if (!formatMatches) {
+        Map<String, Object> matchingQuery = credentials.stream()
+                .filter(cred -> format.equalsIgnoreCase((String) cred.get("format")))
+                .findFirst()
+                .orElse(null);
+        if (matchingQuery == null) {
             log.error("DCQL: no credential query matches VC format {}", format);
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
-        // Build VP (same as PD flow — reuse existing VP builders)
-        VerifiablePresentationDTO vpDTO;
+        String queryId = (String) matchingQuery.get("id");
+        if (queryId == null || queryId.isBlank()) {
+            throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+        }
+
+        // Reuse existing Data Share VP builders for the presentation value
+        Object presentation;
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format)) {
             VCCredentialProperties ldpCredential = objectMapper.convertValue(
                     vcCredentialResponse.getCredential(), VCCredentialProperties.class);
-            vpDTO = constructVerifiablePresentationString(ldpCredential);
+            presentation = constructVerifiablePresentationString(ldpCredential);
         } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)
                 || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
-            String credential = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
-            vpDTO = constructVerifiablePresentationStringForSDjwt(credential);
+            // Inji Verify v2 expects SD-JWT presentations as strings in the array
+            presentation = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
         } else {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
-        String vpToken = createVpToken(vpDTO);
+        // OVP 1.0 / DCQL vp_token: { "<query_id>": [ presentation ] }
+        Map<String, Object> vpTokenMap = new LinkedHashMap<>();
+        vpTokenMap.put(queryId, List.of(presentation));
+        String vpToken = objectMapper.writeValueAsString(vpTokenMap);
 
         if (presentationRequestDTO.getResponseMode() != null
                 && "direct_post".equals(presentationRequestDTO.getResponseMode())) {
@@ -168,7 +176,7 @@ public class PresentationServiceImpl implements PresentationService {
     private String buildDcqlRedirectString(String vpToken, String redirectUri) {
         return String.format(dcqlRedirectURLPattern,
                 redirectUri,
-                Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
+                URLEncoder.encode(vpToken, StandardCharsets.UTF_8));
     }
 
     public PresentationDefinitionDTO constructPresentationDefinition(VCCredentialResponse vcRes) {
@@ -353,9 +361,12 @@ public class PresentationServiceImpl implements PresentationService {
 
     private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken, String presentationSubmission, String state, String nonce) {
         MultiValueMap<String, String> postRequest = new LinkedMultiValueMap<>();
-        postRequest.add("vp_token", Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
+        // Draft-23: Base64-encoded classic VP. DCQL/OVP 1.0: raw JSON map { queryId: [presentation] }.
         if (presentationSubmission != null) {
+            postRequest.add("vp_token", Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
             postRequest.add("presentation_submission", presentationSubmission);
+        } else {
+            postRequest.add("vp_token", vpToken);
         }
 
         if (state != null) {
