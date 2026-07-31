@@ -189,7 +189,7 @@ public class PresentationServiceImpl implements PresentationService {
             }
             return dcqlQueryMap;
         } catch (JsonProcessingException e) {
-            log.error("DCQL: failed to parse dcql_query JSON: {}", e.getMessage());
+            log.error("DCQL: failed to parse dcql_query JSON: {}", e.getMessage(), e);
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
     }
