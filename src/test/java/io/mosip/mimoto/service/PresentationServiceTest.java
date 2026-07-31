@@ -262,6 +262,7 @@ public class PresentationServiceTest {
         assertEquals(1, credentials.size());
         assertEquals(CredentialFormat.LDP_VC.getFormat(), credentials.get(0).get("format"));
         assertNotNull(credentials.get(0).get("id"));
+        assertEquals(false, credentials.get(0).get("require_cryptographic_holder_binding"));
         assertTrue(((Map<?, ?>) credentials.get(0).get("meta")).containsKey("type_values"));
     }
 
@@ -279,6 +280,7 @@ public class PresentationServiceTest {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
             assertEquals("dc+sd-jwt", credentials.get(0).get("format"));
+            assertEquals(false, credentials.get(0).get("require_cryptographic_holder_binding"));
             @SuppressWarnings("unchecked")
             Map<String, Object> meta = (Map<String, Object>) credentials.get(0).get("meta");
             assertEquals(List.of("https://example.com/TestCredential"), meta.get("vct_values"));
@@ -291,9 +293,12 @@ public class PresentationServiceTest {
         VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
 
         String queryId = "0b362b84-25ad-4e32-9234-dea6807d7451";
-        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"ldp_vc\"}]}";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"ldp_vc\",\"require_cryptographic_holder_binding\":false}]}";
         Map<String, Object> dcqlQueryMap = Map.of(
-                "credentials", List.of(Map.of("id", queryId, "format", "ldp_vc")));
+                "credentials", List.of(Map.of(
+                        "id", queryId,
+                        "format", "ldp_vc",
+                        "require_cryptographic_holder_binding", false)));
 
         PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
                 .resource("http://datashare.example/resource")
@@ -317,6 +322,16 @@ public class PresentationServiceTest {
         String redirect = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1);
 
         assertEquals("https://verifier.example.com/success", redirect);
+
+        ArgumentCaptor<Object> vpTokenMapCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(objectMapper).writeValueAsString(vpTokenMapCaptor.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> capturedVpTokenMap = (Map<String, Object>) vpTokenMapCaptor.getValue();
+        @SuppressWarnings("unchecked")
+        List<Object> presentations = (List<Object>) capturedVpTokenMap.get(queryId);
+        assertEquals(1, presentations.size());
+        // Data Share DCQL always submits plain VC, not unbound VP
+        assertSame(credential, presentations.get(0));
 
         ArgumentCaptor<MultiValueMap> bodyCaptor = ArgumentCaptor.forClass(MultiValueMap.class);
         verify(restApiClient).postApi(
