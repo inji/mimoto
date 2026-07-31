@@ -136,15 +136,16 @@ public class PresentationServiceImpl implements PresentationService {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
-        // Reuse existing Data Share VP builders for the presentation value
+        // Data Share Online Sharing always uses require_cryptographic_holder_binding=false
+        // (no holder key). Inji Verify then expects:
+        //   LDP  -> plain VerifiableCredential (not unbound VP)
+        //   SD-JWT -> credential string without KB-JWT
         Object presentation;
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(format)) {
-            VCCredentialProperties ldpCredential = objectMapper.convertValue(
+            presentation = objectMapper.convertValue(
                     vcCredentialResponse.getCredential(), VCCredentialProperties.class);
-            presentation = constructVerifiablePresentationString(ldpCredential);
         } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)
                 || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
-            // Inji Verify v2 expects SD-JWT presentations as strings in the array
             presentation = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
         } else {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
@@ -250,6 +251,8 @@ public class PresentationServiceImpl implements PresentationService {
         Map<String, Object> credentialQuery = new LinkedHashMap<>();
         credentialQuery.put("id", UUID.randomUUID().toString());
         credentialQuery.put("format", vcFormat);
+        // Data Share Online Sharing cannot produce holder-bound presentations
+        credentialQuery.put("require_cryptographic_holder_binding", false);
 
         Map<String, Object> meta = new LinkedHashMap<>();
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat)) {
