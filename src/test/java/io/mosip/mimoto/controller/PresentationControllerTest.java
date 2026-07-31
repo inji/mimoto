@@ -449,7 +449,7 @@ public class PresentationControllerTest {
     }
 
     @Test
-    public void testPerformAuthorizationWithDcqlQuery() throws Exception {
+    public void should_routeToDcqlFlow_when_verifierSpecVersionIsV1() throws Exception {
         // Arrange - V1 verifier with dcql_query
         String dcqlQueryJson = "{\"credentials\":[{\"id\":\"cred1\",\"format\":\"dc+sd-jwt\"}]}";
         when(verifierService.validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI))
@@ -474,6 +474,30 @@ public class PresentationControllerTest {
         PresentationRequestDTO capturedRequest = captor.getValue();
         assertEquals(dcqlQueryJson, capturedRequest.getDcqlQuery());
         assertNull(capturedRequest.getPresentationDefinition());
+    }
+
+    @Test
+    public void should_rejectAuthorize_when_bothPresentationDefinitionAndDcqlQueryMissing() throws Exception {
+        when(verifierService.validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI))
+                .thenReturn(createVerifierDTO(SpecVersion.V1));
+
+        String expectedRedirectUrl = String.format(
+                "%s?error_code=%s&error_message=%s",
+                REDIRECT_URI,
+                ErrorConstants.INVALID_REQUEST.getErrorCode(),
+                URLEncoder.encode(ErrorConstants.INVALID_REQUEST.getErrorMessage(), StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/authorize")
+                        .param("response_type", RESPONSE_TYPE)
+                        .param("resource", RESOURCE)
+                        .param("client_id", CLIENT_ID)
+                        .param("redirect_uri", REDIRECT_URI)
+                        .param("response_uri", RESPONSE_URI))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedRedirectUrl));
+
+        verify(presentationService, never()).processVPRequest(any(), any());
     }
 
 }

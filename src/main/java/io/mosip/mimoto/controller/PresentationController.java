@@ -80,6 +80,11 @@ public class PresentationController {
             if (presentationDefinition != null && !presentationDefinition.isBlank()) {
                 presentationDefinitionDTO = objectMapper.readValue(presentationDefinition, PresentationDefinitionDTO.class);
             }
+            if (presentationDefinitionDTO == null && (dcqlQuery == null || dcqlQuery.isBlank())) {
+                throw new VPNotCreatedException(
+                        ErrorConstants.INVALID_REQUEST.getErrorCode(),
+                        ErrorConstants.INVALID_REQUEST.getErrorMessage());
+            }
 
             PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
                     .responseType(responseType)
