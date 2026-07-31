@@ -332,6 +332,10 @@ public class CredentialPDFGeneratorService {
     private String constructQRCodeWithAuthorizeRequest(VCCredentialResponse vcCredentialResponse, String dataShareUrl) throws WriterException, JsonProcessingException {
         String qrData = buildOnlineSharingQrData(vcCredentialResponse, dataShareUrl);
         log.info("OnlineSharing QR payload length: {}", qrData.length());
+        if (qrData.length() >= allowedQRDataSizeLimit) {
+            log.warn("OnlineSharing QR payload exceeds allowed size limit {}. Skipping QR generation.", allowedQRDataSizeLimit);
+            return "";
+        }
         return constructQRCode(qrData);
     }
 
@@ -406,6 +410,10 @@ public class CredentialPDFGeneratorService {
             if (QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type())) {
                 qrCodeData = buildOnlineSharingQrData(vcCredentialResponse, dataShareUrl);
                 log.info("OnlineSharing SVG QR payload length: {}", qrCodeData.length());
+                if (qrCodeData.length() >= allowedQRDataSizeLimit) {
+                    log.warn("OnlineSharing SVG QR payload exceeds allowed size limit {}. Skipping QR embedding.", allowedQRDataSizeLimit);
+                    qrCodeData = null;
+                }
             }
 
             // Generate list of rendered svg strings using InjiVcRenderer

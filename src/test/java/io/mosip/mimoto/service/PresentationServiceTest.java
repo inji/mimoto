@@ -1,6 +1,7 @@
 package io.mosip.mimoto.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
@@ -247,7 +248,7 @@ public class PresentationServiceTest {
     }
 
     @Test
-    public void constructDcqlQueryForLdpVcCredential() {
+    public void should_includeTypeValuesAndBindingFalse_when_constructingDcqlQueryForLdpVc() {
         VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
         VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
         when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
@@ -267,7 +268,22 @@ public class PresentationServiceTest {
     }
 
     @Test
-    public void constructDcqlQueryForSdJwtCredentialUsesVct() {
+    public void should_omitMetaTypeValues_when_ldpVcTypeIsMissing() {
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
+        credential.setType(null);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn(credential);
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        assertNull(credentials.get(0).get("meta"));
+    }
+
+    @Test
+    public void should_includeVctValuesAndBindingFalse_when_constructingDcqlQueryForSdJwt() {
         VCCredentialResponse vcCredentialResponse = createSDJwtCredentialResponse("dc+sd-jwt");
         Map<String, Object> jwtPayload = Map.of("vct", "https://example.com/TestCredential");
 
@@ -288,7 +304,7 @@ public class PresentationServiceTest {
     }
 
     @Test
-    public void authorizeDcqlPresentation_directPost_sendsRawJsonVpTokenMapWithoutPresentationSubmission() throws Exception {
+    public void should_postRawJsonVpTokenWithoutPresentationSubmission_when_dcqlDirectPost() throws Exception {
         VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
         VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
 
@@ -313,7 +329,7 @@ public class PresentationServiceTest {
         Map<String, Object> mockPostResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
 
         when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
-        when(objectMapper.readValue(eq(dcqlQuery), eq(Map.class))).thenReturn(dcqlQueryMap);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
         when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
                 .thenReturn(credential);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"0b362b84-25ad-4e32-9234-dea6807d7451\":[{}]}");
@@ -344,6 +360,186 @@ public class PresentationServiceTest {
         assertEquals("{\"0b362b84-25ad-4e32-9234-dea6807d7451\":[{}]}", body.getFirst("vp_token"));
         assertNull(body.getFirst("presentation_submission"));
         assertEquals("session-state", body.getFirst("state"));
+    }
+
+    @Test
+    public void should_returnFragmentRedirectWithUrlEncodedVpToken_when_dcqlResponseModeIsNotDirectPost() throws Exception {
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
+
+        String queryId = "0b362b84-25ad-4e32-9234-dea6807d7451";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"ldp_vc\"}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", queryId, "format", "ldp_vc")));
+        String vpTokenJson = "{\"" + queryId + "\":[{\"type\":[\"VerifiableCredential\"]}]}";
+        String redirectUri = "https://verifier.example.com/redirect";
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .clientId("test-client")
+                .redirectUri(redirectUri)
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn(credential);
+        when(objectMapper.writeValueAsString(any())).thenReturn(vpTokenJson);
+
+        String actual = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1);
+
+        String expected = String.format("%s#vp_token=%s",
+                redirectUri,
+                URLEncoder.encode(vpTokenJson, StandardCharsets.UTF_8));
+        assertEquals(expected, actual);
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void should_throwUriTooLong_when_dcqlRedirectExceedsHeaderLimit() throws Exception {
+        PresentationServiceImpl serviceWithSmallHeaderLimit = new PresentationServiceImpl(
+                dataShareService,
+                objectMapper,
+                restApiClient,
+                "%s#vp_token=%s&presentation_submission=%s",
+                "%s#vp_token=%s",
+                50
+        );
+
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
+        String queryId = "query-1";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"ldp_vc\"}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", queryId, "format", "ldp_vc")));
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .redirectUri("https://verifier.example.com/redirect")
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(VCCredentialProperties.class)))
+                .thenReturn(credential);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"query-1\":[" + "x".repeat(200) + "]}");
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> serviceWithSmallHeaderLimit.processVPRequest(presentationRequestDTO, SpecVersion.V1));
+
+        assertEquals(
+                ErrorConstants.URI_TOO_LONG.getErrorCode() + " --> " + ErrorConstants.URI_TOO_LONG.getErrorMessage(),
+                ex.getMessage());
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void should_rejectRequest_when_dcqlQueryIsBlankForV1() throws Exception {
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery("   ")
+                .redirectUri("https://verifier.example.com/redirect")
+                .build();
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1));
+        assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode(), ex.getErrorCode());
+        verify(dataShareService, never()).downloadCredentialFromDataShare(any());
+    }
+
+    @Test
+    public void should_rejectDcqlAuthorize_when_noCredentialQueryMatchesFormat() throws Exception {
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"q1\",\"format\":\"vc+sd-jwt\"}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", "q1", "format", "vc+sd-jwt")));
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .redirectUri("https://verifier.example.com/redirect")
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1));
+        assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void should_rejectRequest_when_specVersionIsNullOrUnsupported() {
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery("{\"credentials\":[]}")
+                .build();
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.processVPRequest(presentationRequestDTO, null));
+        assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void should_rejectDcqlAuthorize_when_credentialsIsNotAList() throws Exception {
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        String dcqlQuery = "{\"credentials\":{\"id\":\"x\"}}";
+        Map<String, Object> dcqlQueryMap = Map.of("credentials", Map.of("id", "x"));
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .redirectUri("https://verifier.example.com/redirect")
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1));
+        assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void should_rejectDcqlAuthorize_when_credentialFormatIsNotString() throws Exception {
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"q1\",\"format\":123}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", "q1", "format", 123)));
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .redirectUri("https://verifier.example.com/redirect")
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1));
+        assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    public void should_rejectDcqlAuthorize_when_downloadedCredentialFormatIsNull() throws Exception {
+        VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
+        vcCredentialResponse.setFormat(null);
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"q1\",\"format\":\"ldp_vc\"}]}";
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .redirectUri("https://verifier.example.com/redirect")
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1));
+        assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode(), ex.getErrorCode());
     }
 
     // Tests for handleVPAuthorizationRequest removed - method moved to WalletPresentationService

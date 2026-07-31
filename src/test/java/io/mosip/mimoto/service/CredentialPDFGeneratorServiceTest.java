@@ -213,6 +213,30 @@ class CredentialPDFGeneratorServiceTest {
     }
 
     @Test
+    void should_skipOnlineSharingQr_when_payloadExceedsSizeLimit() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        ReflectionTestUtils.setField(credentialPDFGeneratorService, "allowedQRDataSizeLimit", 10);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data-that-makes-payload-large\"}");
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>Test</body></html>");
+        when(presentationService.constructPresentationDefinition(any()))
+                .thenReturn(new PresentationDefinitionDTO());
+
+        try (MockedStatic<Utilities> mocked = mockStatic(Utilities.class)) {
+            mocked.when(() -> Utilities.encodeToString(any(), anyString()))
+                    .thenReturn("base64-encoded-qr");
+
+            ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                    "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                    "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test", "", "en");
+
+            assertNotNull(result);
+            mocked.verify(() -> Utilities.encodeToString(any(), anyString()), never());
+        }
+    }
+
+    @Test
     void testHandleMapWithListValue() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         Map<String, Object> skills = new HashMap<>();

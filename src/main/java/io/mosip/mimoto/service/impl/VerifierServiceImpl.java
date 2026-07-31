@@ -77,10 +77,8 @@ public class VerifierServiceImpl implements VerifierService {
         if (responseUri != null && !responseUri.trim().isEmpty()) {
             List<String> registeredResponseUris = Optional.ofNullable(verifierDTO.getResponseUris())
                     .orElseGet(Collections::emptyList);
-            boolean isValidVerifier = registeredResponseUris.stream().anyMatch(registeredResponseUri ->
-                    urlValidator.isValid(registeredResponseUri) &&
-                            urlValidator.isValid(responseUri) &&
-                            pathMatcher.match(registeredResponseUri, responseUri));
+            boolean isValidVerifier = registeredResponseUris.stream()
+                    .anyMatch(registeredResponseUri -> matchesRegisteredUri(registeredResponseUri, responseUri));
             if (!isValidVerifier) {
                 throw new InvalidVerifierException(
                         ErrorConstants.INVALID_RESPONSE_URI.getErrorCode(),
@@ -89,10 +87,8 @@ public class VerifierServiceImpl implements VerifierService {
         } else {
             List<String> registeredRedirectUris = Optional.ofNullable(verifierDTO.getRedirectUris())
                     .orElseGet(Collections::emptyList);
-            boolean isValidVerifier = registeredRedirectUris.stream().anyMatch(registeredRedirectUri ->
-                    urlValidator.isValid(registeredRedirectUri) &&
-                            urlValidator.isValid(redirectUri) &&
-                            pathMatcher.match(registeredRedirectUri, redirectUri));
+            boolean isValidVerifier = registeredRedirectUris.stream()
+                    .anyMatch(registeredRedirectUri -> matchesRegisteredUri(registeredRedirectUri, redirectUri));
             if (!isValidVerifier) {
                 throw new InvalidVerifierException(
                         ErrorConstants.INVALID_REDIRECT_URI.getErrorCode(),
@@ -100,6 +96,12 @@ public class VerifierServiceImpl implements VerifierService {
             }
         }
         return verifierDTO;
+    }
+
+    private boolean matchesRegisteredUri(String registeredUri, String requestUri) {
+        return urlValidator.isValid(registeredUri)
+                && urlValidator.isValid(requestUri)
+                && pathMatcher.match(registeredUri, requestUri);
     }
 
     @Override

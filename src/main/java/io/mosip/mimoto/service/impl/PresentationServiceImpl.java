@@ -1,6 +1,7 @@
 package io.mosip.mimoto.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.mosip.mimoto.constant.CredentialFormat;
@@ -68,18 +69,20 @@ public class PresentationServiceImpl implements PresentationService {
         log.info("Processing VP request with spec_version: {}", specVersion);
 
         if (SpecVersion.DRAFT_23 == specVersion) {
-            log.info("Draft-23 flow: using presentation_definition");
             if (presentationRequestDTO.getPresentationDefinition() == null) {
                 throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
             }
             return authorizePresentation(presentationRequestDTO);
-        } else {
-            log.info("V1 flow: using dcql_query");
+        }
+        if (SpecVersion.V1 == specVersion) {
             if (presentationRequestDTO.getDcqlQuery() == null || presentationRequestDTO.getDcqlQuery().isBlank()) {
                 throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
             }
             return authorizeDcqlPresentation(presentationRequestDTO);
         }
+
+        log.error("Unsupported OpenID4VP spec_version: {}", specVersion);
+        throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
     }
 
     private String authorizePresentation(PresentationRequestDTO presentationRequestDTO) throws IOException {
@@ -113,17 +116,21 @@ public class PresentationServiceImpl implements PresentationService {
     private String authorizeDcqlPresentation(PresentationRequestDTO presentationRequestDTO) throws IOException {
         VCCredentialResponse vcCredentialResponse = dataShareService.downloadCredentialFromDataShare(presentationRequestDTO);
         String format = vcCredentialResponse.getFormat();
-
-        log.info("DCQL authorize: building VP for format={}", format);
-
-        Map<String, Object> dcqlQueryMap = objectMapper.readValue(presentationRequestDTO.getDcqlQuery(), Map.class);
-        List<Map<String, Object>> credentials = (List<Map<String, Object>>) dcqlQueryMap.get("credentials");
-        if (credentials == null || credentials.isEmpty()) {
+        if (format == null || format.isBlank()) {
+            log.error("DCQL: downloaded credential has no format");
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
+        log.info("DCQL authorize: building presentation for format={}", format);
+
+        Map<String, Object> dcqlQueryMap = parseDcqlQueryMap(presentationRequestDTO.getDcqlQuery());
+        List<Map<String, Object>> credentials = extractDcqlCredentialQueries(dcqlQueryMap);
+
         Map<String, Object> matchingQuery = credentials.stream()
-                .filter(cred -> format.equalsIgnoreCase((String) cred.get("format")))
+                .filter(cred -> {
+                    Object queryFormat = cred.get("format");
+                    return queryFormat instanceof String s && format.equalsIgnoreCase(s);
+                })
                 .findFirst()
                 .orElse(null);
         if (matchingQuery == null) {
@@ -131,8 +138,8 @@ public class PresentationServiceImpl implements PresentationService {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
-        String queryId = (String) matchingQuery.get("id");
-        if (queryId == null || queryId.isBlank()) {
+        Object queryIdObj = matchingQuery.get("id");
+        if (!(queryIdObj instanceof String queryId) || queryId.isBlank()) {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
@@ -164,7 +171,7 @@ public class PresentationServiceImpl implements PresentationService {
                     vpToken,
                     null,
                     presentationRequestDTO.getState(),
-                    presentationRequestDTO.getNonce());
+                    SpecVersion.V1);
         }
 
         String redirectString = buildDcqlRedirectString(vpToken, presentationRequestDTO.getRedirectUri());
@@ -174,7 +181,44 @@ public class PresentationServiceImpl implements PresentationService {
         return redirectString;
     }
 
+    private Map<String, Object> parseDcqlQueryMap(String dcqlQuery) {
+        try {
+            Map<String, Object> dcqlQueryMap = objectMapper.readValue(dcqlQuery, new TypeReference<Map<String, Object>>() {});
+            if (dcqlQueryMap == null) {
+                throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+            }
+            return dcqlQueryMap;
+        } catch (JsonProcessingException e) {
+            log.error("DCQL: failed to parse dcql_query JSON: {}", e.getMessage());
+            throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> extractDcqlCredentialQueries(Map<String, Object> dcqlQueryMap) {
+        Object credentialsObj = dcqlQueryMap.get("credentials");
+        if (!(credentialsObj instanceof List<?> credentialsList) || credentialsList.isEmpty()) {
+            throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+        }
+
+        List<Map<String, Object>> credentials = new ArrayList<>(credentialsList.size());
+        for (Object item : credentialsList) {
+            if (!(item instanceof Map<?, ?> rawMap)) {
+                throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+            }
+            for (Object key : rawMap.keySet()) {
+                if (!(key instanceof String)) {
+                    throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+                }
+            }
+            credentials.add((Map<String, Object>) rawMap);
+        }
+        return credentials;
+    }
+
     private String buildDcqlRedirectString(String vpToken, String redirectUri) {
+        // Fallback when response_mode is not direct_post. Pattern is validated at startup to keep
+        // vp_token in the URL fragment (not query), limiting server/proxy log exposure.
         return String.format(dcqlRedirectURLPattern,
                 redirectUri,
                 URLEncoder.encode(vpToken, StandardCharsets.UTF_8));
@@ -257,8 +301,10 @@ public class PresentationServiceImpl implements PresentationService {
         Map<String, Object> meta = new LinkedHashMap<>();
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat)) {
             VCCredentialProperties ldp = objectMapper.convertValue(vcRes.getCredential(), VCCredentialProperties.class);
-            List<String> types = ldp.getType() != null ? ldp.getType() : List.of();
-            meta.put("type_values", List.of(types));
+            List<String> types = ldp.getType();
+            if (types != null && !types.isEmpty()) {
+                meta.put("type_values", List.of(types));
+            }
         } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat)
                 || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat)) {
             Map<String, Object> jwtPayload = extractJwtPayloadFromSdJwt((String) vcRes.getCredential());
@@ -333,7 +379,7 @@ public class PresentationServiceImpl implements PresentationService {
                     vpToken,
                     presentationSubmission,
                     presentationRequestDTO.getState(),
-                    presentationRequestDTO.getNonce()
+                    SpecVersion.DRAFT_23
             );
         }
 
@@ -362,14 +408,20 @@ public class PresentationServiceImpl implements PresentationService {
         return objectMapper.writeValueAsString(vpDTO);
     }
 
-    private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken, String presentationSubmission, String state, String nonce) {
+    private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken,
+                                       String presentationSubmission, String state, SpecVersion specVersion) {
         MultiValueMap<String, String> postRequest = new LinkedMultiValueMap<>();
-        // Draft-23: Base64-encoded classic VP. DCQL/OVP 1.0: raw JSON map { queryId: [presentation] }.
-        if (presentationSubmission != null) {
-            postRequest.add("vp_token", Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
-            postRequest.add("presentation_submission", presentationSubmission);
-        } else {
+        if (SpecVersion.V1 == specVersion) {
+            // OVP 1.0 / DCQL: raw JSON map { queryId: [presentation] } — not Base64-encoded
             postRequest.add("vp_token", vpToken);
+        } else if (SpecVersion.DRAFT_23 == specVersion) {
+            postRequest.add("vp_token", Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
+            if (presentationSubmission != null) {
+                postRequest.add("presentation_submission", presentationSubmission);
+            }
+        } else {
+            log.error("Unsupported OpenID4VP spec_version for direct_post: {}", specVersion);
+            throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
         if (state != null) {
@@ -405,6 +457,8 @@ public class PresentationServiceImpl implements PresentationService {
             log.warn("No redirect_uri received from verifier in POST response. Falling back to response_uri.");
             return responseUri + "?status=vp_sent";
 
+        } catch (VPNotCreatedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Exception while submitting the vp_token to the response_uri", e);
             throw new VPNotCreatedException(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(), ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage());
