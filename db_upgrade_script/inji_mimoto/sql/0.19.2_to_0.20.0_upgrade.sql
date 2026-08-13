@@ -1,21 +1,4 @@
--- This Source Code Form is subject to the terms of the Mozilla Public
--- License, v. 2.0. If a copy of the MPL was not distributed with this
--- file, You can obtain one at https://mozilla.org/MPL/2.0/.
--- -------------------------------------------------------------------------------------------------
--- Database Name: inji_mimoto
--- Table Name : trusted_verifiers
--- Purpose    : To store the verifiers details Which are trusted by the Wallet User
---
--- Create By   	: Bhargavi Puvvada
--- Created Date	: 09-Sep-2025
---
--- Modified Date        Modified By         Comments / Remarks
--- 07-Oct-2025          Durgesh Konga       Added verifiable_presentations table to make it backward compatibility
--- ------------------------------------------------------------------------------------------
--- ------------------------------------------------------------------------------------------
-
 --- Create table for trusted_verifiers
-
 CREATE TABLE IF NOT EXISTS trusted_verifiers (
     id character varying(36) PRIMARY KEY,  -- Primary key for the table
     wallet_id character varying(36) NOT NULL,  -- Foreign key referring to the wallet table (wallet.id)
