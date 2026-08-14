@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 public class DcqlClaimSetHelperTest {
 
     @Test
-    public void matchesClaimsReturnsFalseWhenClaimsEmptyButClaimSetsPresent() {
+    public void should_returnFalse_when_claimsEmptyButClaimSetsPresent() {
         CredentialQuery query = mock(CredentialQuery.class);
         when(query.getClaims()).thenReturn(List.of());
         when(query.getClaimSets()).thenReturn(List.of(List.of("age-above-18")));
@@ -30,7 +30,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void satisfiesClaimSetRejectsUnknownClaimIds() {
+    public void should_rejectClaimSet_when_containsUnknownClaimIds() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         when(ageClaim.getId()).thenReturn("age-above-18");
@@ -43,7 +43,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void satisfiesClaimSetRejectsClaimSetWithOnlyUnknownClaimIds() {
+    public void should_rejectClaimSet_when_containsOnlyUnknownClaimIds() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         when(ageClaim.getId()).thenReturn("age-above-18");
@@ -56,7 +56,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void resolveClaimPathsReturnsEmptyWhenAnyClaimIdUnknown() {
+    public void should_returnEmptyPaths_when_anyClaimIdUnknown() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         when(ageClaim.getId()).thenReturn("age-above-18");
@@ -69,7 +69,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void matchesClaimsWhenAnyClaimSetSatisfied() {
+    public void should_matchClaims_when_anyClaimSetSatisfied() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         ClaimsQuery dobClaim = mock(ClaimsQuery.class);
@@ -96,7 +96,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void matchesClaimsRequiresAllClaimsWhenClaimSetsAbsent() {
+    public void should_requireAllClaims_when_claimSetsAbsent() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         ClaimsQuery dobClaim = mock(ClaimsQuery.class);
@@ -112,7 +112,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void isValidClaimSetSelectionMatchesExactOption() {
+    public void should_acceptSelection_when_matchesExactOption() {
         List<List<String>> claimSets = List.of(
                 List.of("age-above-18"),
                 List.of("date-of-birth"));
@@ -121,7 +121,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void isValidClaimSetSelectionIgnoresClaimIdOrder() {
+    public void should_acceptSelection_when_claimIdOrderDiffers() {
         List<List<String>> claimSets = List.of(
                 List.of("given-name", "family-name", "age-above-18"),
                 List.of("date-of-birth"));
@@ -132,14 +132,14 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void isValidClaimSetSelectionRejectsDuplicateClaimIds() {
+    public void should_rejectSelection_when_claimIdsDuplicated() {
         List<List<String>> claimSets = List.of(List.of("given-name", "family-name"));
         assertFalse(DcqlClaimSetHelper.isValidClaimSetSelection(
                 claimSets, List.of("given-name", "given-name")));
     }
 
     @Test
-    public void buildJsonPathQuotesDottedSegments() {
+    public void should_quoteDottedSegments_when_buildingJsonPath() {
         Map<String, Object> payload = Map.of(
                 "org.iso.18013.5.1", Map.of("family_name", "Doe"));
 
@@ -156,13 +156,13 @@ public class DcqlClaimSetHelperTest {
         assertEquals("Doe", JsonPath.read(nestedPayload, nestedDottedPath));
     }
     @Test
-    public void buildJsonPathKeepsSimpleSegmentsDotSeparated() {
+    public void should_keepDotSeparatedSegments_when_buildingJsonPathForSimpleKeys() {
         assertEquals("$.credentialSubject.dateOfBirth",
                 DcqlClaimSetHelper.buildJsonPath(List.of("credentialSubject", "dateOfBirth")));
     }
 
     @Test
-    public void buildClaimPathQuotesDottedNestedSegments() {
+    public void should_quoteDottedNestedSegments_when_buildingClaimPath() {
         assertEquals("org.iso.18013.5.1",
                 DcqlClaimSetHelper.buildClaimPath(List.of("org.iso.18013.5.1")));
         assertEquals("credentialSubject['org.iso.18013.5.1'].family_name",
@@ -171,7 +171,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void resolveJsonPathsUsesBracketSafeSegments() {
+    public void should_useBracketSafeSegments_when_resolvingJsonPaths() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery mdlClaim = mock(ClaimsQuery.class);
         when(mdlClaim.getId()).thenReturn("family-name");
@@ -183,7 +183,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void resolveClaimPathsMapsClaimIdsToPaths() {
+    public void should_mapClaimIdsToPaths_when_resolvingClaimPaths() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         ClaimsQuery dobClaim = mock(ClaimsQuery.class);
@@ -198,7 +198,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void resolveClaimIdsForSubmissionPicksFirstClaimSetWithDisclosure() {
+    public void should_pickFirstClaimSet_when_disclosurePresent() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         ClaimsQuery dobClaim = mock(ClaimsQuery.class);
@@ -219,7 +219,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void resolveClaimIdsForSubmissionReturnsEmptyWhenAllClaimsArePublic() {
+    public void should_returnEmpty_when_allClaimsArePublic() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         ClaimsQuery dobClaim = mock(ClaimsQuery.class);
@@ -240,7 +240,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void resolveClaimIdsForSubmissionHonoursExplicitSelectedClaimIds() {
+    public void should_honourExplicitSelectedClaimIds_when_resolvingForSubmission() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery ageClaim = mock(ClaimsQuery.class);
         ClaimsQuery dobClaim = mock(ClaimsQuery.class);
@@ -260,7 +260,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void dcqlValueMatchesBooleanAndString() {
+    public void should_matchBooleanAndString_when_comparingDcqlValues() {
         assertTrue(DcqlClaimSetHelper.dcqlValueMatches(true, new ClaimValue.BoolValue(true)));
         assertTrue(DcqlClaimSetHelper.dcqlValueMatches("yes", new ClaimValue.StringValue("yes")));
         assertFalse(DcqlClaimSetHelper.dcqlValueMatches(null, new ClaimValue.StringValue("yes")));

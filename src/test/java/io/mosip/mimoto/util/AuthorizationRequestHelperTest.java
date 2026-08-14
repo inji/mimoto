@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 public class AuthorizationRequestHelperTest {
 
     @Test
-    public void hasDcqlQueryReturnsTrueWhenDcqlQueryPresent() {
+    public void should_returnTrue_when_dcqlQueryPresent() {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getDcqlQuery()).thenReturn(mock(DCQLQuery.class));
 
@@ -24,7 +24,7 @@ public class AuthorizationRequestHelperTest {
     }
 
     @Test
-    public void hasDcqlQueryReturnsFalseWhenDcqlQueryMissing() {
+    public void should_returnFalse_when_dcqlQueryMissing() {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getDcqlQuery()).thenReturn(null);
 
@@ -32,14 +32,14 @@ public class AuthorizationRequestHelperTest {
     }
 
     @Test
-    public void hasDcqlQueryReturnsFalseForPresentationExchangeRequest() {
+    public void should_returnFalse_when_presentationExchangeRequest() {
         AuthorizationRequest peRequest = mock(AuthorizationPresentationExchangeRequest.class);
 
         assertFalse(AuthorizationRequestHelper.hasDcqlQuery(peRequest));
     }
 
     @Test
-    public void extractDcqlQueryReturnsQueryForDcqlRequest() {
+    public void should_returnDcqlQuery_when_dcqlRequest() {
         DCQLQuery dcqlQuery = mock(DCQLQuery.class);
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getDcqlQuery()).thenReturn(dcqlQuery);
@@ -48,7 +48,7 @@ public class AuthorizationRequestHelperTest {
     }
 
     @Test
-    public void extractDcqlQueryReturnsNullForPresentationExchangeRequest() {
+    public void should_returnNull_when_presentationExchangeRequest() {
         AuthorizationRequest peRequest = mock(AuthorizationPresentationExchangeRequest.class);
 
         assertNull(AuthorizationRequestHelper.extractDcqlQuery(peRequest));

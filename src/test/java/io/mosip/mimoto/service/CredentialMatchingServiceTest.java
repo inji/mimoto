@@ -2454,6 +2454,50 @@ public class CredentialMatchingServiceTest {
     }
 
     @Test
+    public void should_preserveFirstQueryIdentifier_when_credentialMatchesMultipleQueries()
+            throws Exception {
+        VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
+
+        CredentialQuery firstQuery = mock(CredentialQuery.class);
+        when(firstQuery.getId()).thenReturn("first-query");
+        when(firstQuery.getFormat()).thenReturn(CredentialFormat.LDP_VC.getFormat());
+        when(firstQuery.getMultiple()).thenReturn(false);
+        when(firstQuery.getClaims()).thenReturn(null);
+        stubCredentialQueryBasics(firstQuery);
+
+        CredentialQuery secondQuery = mock(CredentialQuery.class);
+        when(secondQuery.getId()).thenReturn("second-query");
+        when(secondQuery.getFormat()).thenReturn(CredentialFormat.LDP_VC.getFormat());
+        when(secondQuery.getMultiple()).thenReturn(false);
+        when(secondQuery.getClaims()).thenReturn(null);
+        stubCredentialQueryBasics(secondQuery);
+
+        DCQLQuery dcqlQuery = mock(DCQLQuery.class);
+        when(dcqlQuery.getCredentials()).thenReturn(List.of(firstQuery, secondQuery));
+        when(dcqlQuery.getCredentialSets()).thenReturn(null);
+        stubDcqlQuery(dcqlQuery);
+
+        List<DecryptedCredentialDTO> walletCredentials = createMockWalletCredentialsWithMapData();
+        assertNull(walletCredentials.get(0).getIdentifier());
+        when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
+                .thenReturn(walletCredentials);
+        when(issuersService.getIssuerConfig(anyString(), anyString())).thenReturn(createMockIssuerConfig());
+
+        MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
+                dcqlSession, walletId, base64Key);
+
+        assertEquals(2, result.getMatchingCredentialsResponse().getQueryGroups().size());
+        assertFalse(result.getMatchingCredentialsResponse().getQueryGroups().get(0)
+                .getAvailableCredentials().isEmpty());
+        assertFalse(result.getMatchingCredentialsResponse().getQueryGroups().get(1)
+                .getAvailableCredentials().isEmpty());
+        assertEquals(1, result.getMatchingCredentials().size());
+        assertEquals("first-query", result.getMatchingCredentials().get(0).getIdentifier());
+        assertNull("shared wallet DTO must not be mutated with a query identifier",
+                walletCredentials.get(0).getIdentifier());
+    }
+
+    @Test
     public void testGetMatchingCredentialsDcqlNullWalletId() throws Exception {
         VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
         stubDcqlQuery(mock(DCQLQuery.class));

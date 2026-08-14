@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -159,22 +160,15 @@ public final class DcqlClaimSetHelper {
      * Maps DCQL claim ids to credential claim paths (without {@code $.} prefix).
      */
     public static List<String> resolveClaimPaths(CredentialQuery credentialQuery, List<String> claimIds) {
-        if (claimIds == null || claimIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-        Map<String, ClaimsQuery> claimsById = indexClaimsById(credentialQuery);
-        List<String> paths = new ArrayList<>();
-        for (String claimId : claimIds) {
-            ClaimsQuery claimQuery = claimsById.get(claimId);
-            if (claimQuery == null || claimQuery.getPath() == null || claimQuery.getPath().isEmpty()) {
-                return Collections.emptyList();
-            }
-            paths.add(buildClaimPath(claimQuery.getPath()));
-        }
-        return paths;
+        return resolvePaths(credentialQuery, claimIds, DcqlClaimSetHelper::buildClaimPath);
     }
 
     public static List<String> resolveJsonPaths(CredentialQuery credentialQuery, List<String> claimIds) {
+        return resolvePaths(credentialQuery, claimIds, DcqlClaimSetHelper::buildJsonPath);
+    }
+
+    private static List<String> resolvePaths(CredentialQuery credentialQuery, List<String> claimIds,
+                                             Function<List<?>, String> pathBuilder) {
         if (claimIds == null || claimIds.isEmpty()) {
             return Collections.emptyList();
         }
@@ -185,7 +179,7 @@ public final class DcqlClaimSetHelper {
             if (claimQuery == null || claimQuery.getPath() == null || claimQuery.getPath().isEmpty()) {
                 return Collections.emptyList();
             }
-            paths.add(buildJsonPath(claimQuery.getPath()));
+            paths.add(pathBuilder.apply(claimQuery.getPath()));
         }
         return paths;
     }

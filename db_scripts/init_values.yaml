@@ -17,4 +17,4 @@ databases:
         key: postgres-password
     dml: 1
     repoUrl: https://github.com/mosip/mimoto.git
-    branch: develop
+    branch: v1.0.0-alpha.1

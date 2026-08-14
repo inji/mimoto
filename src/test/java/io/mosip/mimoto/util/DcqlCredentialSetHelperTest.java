@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 public class DcqlCredentialSetHelperTest {
 
     @Test
-    public void resolveEffectiveCredentialSetsReturnsExplicitSets() {
+    public void should_returnExplicitSets_when_credentialSetsAreProvided() {
         CredentialSetQuery explicitSet = mock(CredentialSetQuery.class);
         DCQLQuery dcqlQuery = mock(DCQLQuery.class);
         when(dcqlQuery.getCredentialSets()).thenReturn(List.of(explicitSet));
@@ -25,7 +25,7 @@ public class DcqlCredentialSetHelperTest {
     }
 
     @Test
-    public void resolveEffectiveCredentialSetsSynthesisesOneRequiredSetPerQueryWhenAbsent() {
+    public void should_synthesizeRequiredSets_when_credentialSetsAreAbsent() {
         CredentialQuery governmentQuery = new CredentialQuery(
                 "government-identity", "dc+sd-jwt", false, Map.of(), false, null, null);
         CredentialQuery ageQuery = new CredentialQuery(

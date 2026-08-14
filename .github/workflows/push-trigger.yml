@@ -25,8 +25,10 @@ on:
 
 jobs:
   build-mimoto:
-    uses: mosip/kattu/.github/workflows/maven-build.yml@gpgupdate-masterj21
+    uses: mosip/kattu/.github/workflows/maven-build.yml@v0.0.1
     with:
+      JAVA_VERSION: '21'
+      DISTRIBUTION: 'temurin'
       SERVICE_LOCATION: ./
       BUILD_ARTIFACT: mimoto
       LICENSE_NAME: 'Apache 2.0'
@@ -76,7 +78,7 @@ jobs:
   sonar_analysis:
     needs: build-mimoto
     if: "${{ github.event_name != 'pull_request' }}"
-    uses: mosip/kattu/.github/workflows/maven-sonar-analysis-new.yml@develop
+    uses: mosip/kattu/.github/workflows/maven-sonar-analysis.yml@v0.0.1
     with:
       SERVICE_LOCATION: ./
     secrets:
@@ -98,7 +100,7 @@ jobs:
             BUILD_ARTIFACT: 'mimoto-recreated'
             SQUASH_LAYERS: '8'
       fail-fast: false
-    uses: mosip/kattu/.github/workflows/docker-build.yml@master-java21
+    uses: mosip/kattu/.github/workflows/docker-build.yml@v0.0.1
     name: ${{ matrix.SERVICE_NAME }}
     with:
       SERVICE_LOCATION: ${{ matrix.SERVICE_LOCATION }}
@@ -112,8 +114,10 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_INJI_TEAM }}
 
   build-maven-apitest-mimoto:
-    uses: mosip/kattu/.github/workflows/maven-build.yml@gpgupdate-masterj21
+    uses: mosip/kattu/.github/workflows/maven-build.yml@v0.0.1
     with:
+      JAVA_VERSION: '21'
+      DISTRIBUTION: 'temurin'
       SERVICE_LOCATION: ./api-test
       BUILD_ARTIFACT: apitest-mimoto
       LICENSE_NAME: 'Apache 2.0'
@@ -182,7 +186,7 @@ jobs:
             ONLY_DOCKER: true
       fail-fast: false
     name: ${{ matrix.SERVICE_NAME }}
-    uses: mosip/kattu/.github/workflows/docker-build.yml@master-java21
+    uses: mosip/kattu/.github/workflows/docker-build.yml@v0.0.1
     with:
       SERVICE_LOCATION: ${{ matrix.SERVICE_LOCATION }}
       SERVICE_NAME: ${{ matrix.SERVICE_NAME }}

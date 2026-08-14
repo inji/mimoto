@@ -33,7 +33,7 @@ public class DcqlMatchingHelperTest {
     private final DCQLHelper dcqlHelper = new DCQLHelper();
 
     @Test
-    public void toLibraryCredential_mapsLdpVcMapPayload() {
+    public void should_mapLdpVcMapPayload_when_convertingToLibraryCredential() {
         DecryptedCredentialDTO dto = walletCredential("cred-1", CredentialFormat.LDP_VC.getFormat(),
                 Map.of("credentialSubject", Map.of("id", "did:example:holder", "name", "Alice")));
 
@@ -45,7 +45,7 @@ public class DcqlMatchingHelperTest {
     }
 
     @Test
-    public void toLibraryCredential_mapsSdJwtStringPayload() throws Exception {
+    public void should_mapSdJwtStringPayload_when_convertingToLibraryCredential() throws Exception {
         String token = buildSdJwtToken(Map.of("vct", "https://example.com/employee", "cnf", Map.of("kid", "k1")));
         DecryptedCredentialDTO dto = walletCredential("cred-2", CredentialFormat.DC_SD_JWT.getFormat(), token);
 
@@ -56,7 +56,7 @@ public class DcqlMatchingHelperTest {
     }
 
     @Test
-    public void libraryEvaluation_rejectsSdJwtWithoutCnfWhenBindingRequired() throws Exception {
+    public void should_rejectSdJwt_when_cnfMissingAndBindingRequired() throws Exception {
         String token = buildSdJwtToken(Map.of("vct", "https://example.com/employee"));
         DecryptedCredentialDTO dto = walletCredential("cred-3", CredentialFormat.VC_SD_JWT.getFormat(), token);
 
@@ -79,7 +79,7 @@ public class DcqlMatchingHelperTest {
     }
 
     @Test
-    public void libraryEvaluation_matchesSdJwtWhenQueryUsesAlternateSdJwtFormat() throws Exception {
+    public void should_matchSdJwt_when_queryUsesAlternateSdJwtFormat() throws Exception {
         String token = buildSdJwtToken(Map.of("vct", "https://example.com/employee", "cnf", Map.of("kid", "k1")));
         DecryptedCredentialDTO dto = walletCredential("cred-4", CredentialFormat.VC_SD_JWT.getFormat(), token);
 
@@ -101,7 +101,7 @@ public class DcqlMatchingHelperTest {
     }
 
     @Test
-    public void resolveMissingClaims_usesFailedClaimPathsFromLibraryResult() {
+    public void should_useFailedClaimPaths_when_resolvingMissingClaimsFromLibraryResult() {
         CredentialQuery query = new CredentialQuery(
                 "age-proof",
                 CredentialFormat.DC_SD_JWT.getFormat(),
