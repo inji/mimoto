@@ -17,7 +17,7 @@
       "protocol": "OpenId4VCI",
       "client_id": "wallet-demo",
       "client_alias": "wallet-demo-client",
-      "qr_code_type": "OnlineSharing",
+      "qr_code_type": "EmbeddedVC",
       "credential_issuer_host": "https://injicertify-mock.collab.mosip.net",
       "wellknown_endpoint": "https://injicertify-mock.collab.mosip.net/v1/certify/issuance/.well-known/openid-credential-issuer",
       "redirect_uri": "io.mosip.residentapp.inji://oauthredirect",
