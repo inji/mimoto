@@ -226,6 +226,11 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         try {
             VerifierResponse response = openID4VP.sendVPResponseToVerifier(signingResults);
             boolean success = response.getStatusCode() >= 200 && response.getStatusCode() < 300;
+            if (!success) {
+                log.error("Verifier rejected VP for presentationId={} status={} redirectUri={} additionalParams={}",
+                        presentationId, response.getStatusCode(), response.getRedirectUri(),
+                        response.getAdditionalParams());
+            }
             // Step 6: Store presentation record in database
             storePresentationRecord(walletId, presentationId, request, sessionData, success, requestedAt);
             return buildSubmitResponse(
