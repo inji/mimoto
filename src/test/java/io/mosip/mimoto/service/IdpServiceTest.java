@@ -89,6 +89,7 @@ public class IdpServiceTest {
         HttpHeaders headers = httpEntity.getHeaders();
         MultiValueMap<String, String> body = httpEntity.getBody();
         assertEquals(MediaType.APPLICATION_FORM_URLENCODED, headers.getContentType());
+        assertEquals(List.of(MediaType.APPLICATION_JSON), headers.getAccept());
         assertNotNull(body);
         assertAll(
                 () -> assertEquals("sampleCode", body.getFirst("code")),
@@ -118,16 +119,50 @@ public class IdpServiceTest {
     }
 
     @Test
+    public void shouldUseAuthorizationAudienceForClientAssertionWhenConfigured() throws Exception {
+        String proxyTokenEndpoint = "http://localhost:8088/v1/esignet/oauth/v2/token";
+        String audience = "http://localhost:3000/v1/esignet/oauth/v2/token";
+        IssuerDTO issuerDTO = new IssuerDTO();
+        issuerDTO.setClient_id("client123");
+        issuerDTO.setClient_alias("clientAlias");
+        issuerDTO.setAuthorization_audience(audience);
+
+        when(issuersService.getIssuerDetails("issuer123")).thenReturn(issuerDTO);
+        when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(audience)))
+                .thenReturn("jwt-token");
+
+        idpService.constructGetTokenRequest(params, "issuer123", proxyTokenEndpoint);
+
+        verify(joseUtil).getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(audience));
+        verify(joseUtil, never()).getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(proxyTokenEndpoint));
+    }
+
+    @Test
     public void shouldReturnTokenEndpointFromCredentialIssuerConfigurationResponse() throws Exception {
         CredentialIssuerConfiguration credentialIssuerConfiguration =
                 getCredentialIssuerConfigurationResponseDto("issuer1", "CredentialType1", List.of());
         String expectedTokenEndpoint = "https://dev/token";
 
+        when(issuersService.getIssuerDetails("issuer1")).thenReturn(new IssuerDTO());
         when(issuersService.getIssuerConfiguration("issuer1")).thenReturn(credentialIssuerConfiguration);
 
         String actualTokenEndpoint = idpService.getTokenEndpoint("issuer1");
 
         assertEquals(expectedTokenEndpoint, actualTokenEndpoint);
+    }
+
+    @Test
+    public void shouldReturnProxyTokenEndpointWhenConfigured() throws Exception {
+        String proxyTokenEndpoint = "http://localhost:8088/v1/esignet/oauth/v2/token";
+        IssuerDTO issuerDTO = new IssuerDTO();
+        issuerDTO.setProxy_token_endpoint(proxyTokenEndpoint);
+
+        when(issuersService.getIssuerDetails("issuer1")).thenReturn(issuerDTO);
+
+        String actualTokenEndpoint = idpService.getTokenEndpoint("issuer1");
+
+        assertEquals(proxyTokenEndpoint, actualTokenEndpoint);
+        verify(issuersService, never()).getIssuerConfiguration("issuer1");
     }
 
     @Test

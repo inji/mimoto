@@ -8,6 +8,7 @@ import io.mosip.mimoto.dto.mimoto.V1VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.V1Credential;
 import io.mosip.mimoto.exception.CredentialProcessingException;
+import io.mosip.mimoto.exception.DpopChallengeException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
 import io.mosip.mimoto.service.V1CredentialRequestService;
@@ -40,22 +41,21 @@ public class V1VCDownloadHandler implements VCDownloadHandler {
     }
 
     @Override
-    public VCCredentialResponse downloadCredential(IssuerDTO issuerDTO, String credentialConfigurationId, CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse, TokenResponseDTO tokenResponse, String walletId, String base64Key, boolean isLoginFlow) throws CredentialProcessingException, InvalidCredentialResourceException, ExternalServiceUnavailableException {
+    public VCCredentialResponse downloadCredential(IssuerDTO issuerDTO, String credentialConfigurationId, CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse, TokenResponseDTO tokenResponse, String walletId, String base64Key, boolean isLoginFlow, String dpopProof) throws CredentialProcessingException, InvalidCredentialResourceException, ExternalServiceUnavailableException {
 
         V1VCCredentialRequest vcCredentialRequest = buildCredentialRequest(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, walletId, base64Key, isLoginFlow);
 
         String credentialEndpoint = credentialIssuerWellKnownResponse.getCredentialEndPoint();
-        String accessToken = tokenResponse.getAccess_token();
         String issuerId = issuerDTO.getIssuer_id();
 
-        V1VCCredentialResponse response = postCredentialRequest(credentialEndpoint, vcCredentialRequest, accessToken);
+        V1VCCredentialResponse response = postCredentialRequest(credentialEndpoint, vcCredentialRequest, tokenResponse, dpopProof);
 
         String nonceEndpoint = credentialIssuerWellKnownResponse.getNonceEndpoint();
         if (response != null && response.hasError() && INVALID_NONCE.equals(response.getError())
                 && nonceEndpoint != null && !nonceEndpoint.isBlank()) {
             log.info("Received invalid_nonce error for issuerId: {}. Retrying with fresh nonce.", issuerId);
             vcCredentialRequest = buildCredentialRequest(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, walletId, base64Key, isLoginFlow);
-            response = postCredentialRequest(credentialEndpoint, vcCredentialRequest, accessToken);
+            response = postCredentialRequest(credentialEndpoint, vcCredentialRequest, tokenResponse, dpopProof);
         }
 
         if (response == null || response.hasError()) {
@@ -87,7 +87,13 @@ public class V1VCDownloadHandler implements VCDownloadHandler {
         }
     }
 
-    private V1VCCredentialResponse postCredentialRequest(String credentialEndpoint, V1VCCredentialRequest request, String accessToken) {
-        return restApiClient.postApiWithErrorResponse(credentialEndpoint, MediaType.APPLICATION_JSON, request, V1VCCredentialResponse.class, accessToken);
+    private V1VCCredentialResponse postCredentialRequest(String credentialEndpoint, V1VCCredentialRequest request,
+                                                         TokenResponseDTO tokenResponse, String dpopProof) {
+        try {
+            return restApiClient.postCredentialApi(credentialEndpoint, MediaType.APPLICATION_JSON, request,
+                    V1VCCredentialResponse.class, tokenResponse.getAccess_token(), tokenResponse.getToken_type(), dpopProof);
+        } catch (DpopChallengeException e) {
+            throw e;
+        }
     }
 }

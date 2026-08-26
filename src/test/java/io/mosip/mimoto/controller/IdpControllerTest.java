@@ -7,7 +7,7 @@ import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.BaseUncheckedException;
 import io.mosip.mimoto.exception.IdpException;
 import io.mosip.mimoto.service.RestClientService;
-import io.mosip.mimoto.service.impl.IdpServiceImpl;
+import io.mosip.mimoto.service.IdpService;
 import io.mosip.mimoto.util.*;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.message.BasicNameValuePair;
@@ -34,7 +34,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = IdpController.class)
@@ -59,7 +58,7 @@ public class IdpControllerTest {
     public RestClientService<Object> restClientService;
 
     @MockBean
-    private IdpServiceImpl idpService;
+    private IdpService idpService;
 
     @Test
     public void otpRequestTest() throws Exception {
@@ -218,6 +217,34 @@ public class IdpControllerTest {
                 .andExpect(header().string("DPoP-Nonce", "server-nonce-123"))
                 .andExpect(jsonPath("$.error").value("use_dpop_nonce"))
                 .andExpect(jsonPath("$.error_description").value("DPoP nonce required"));
+    }
+
+    @Test
+    public void shouldNormalizeXmlOAuthErrorBodyToJsonForV2() throws Exception {
+        String issuer = "test-issuer";
+        String errorBody = "<OAuthError><error>use_dpop_nonce</error>"
+                + "<error_description>Authorization server requires nonce in DPoP proof</error_description></OAuthError>";
+
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add("DPoP-Nonce", "server-nonce-123");
+        responseHeaders.setContentType(MediaType.APPLICATION_XML);
+
+        Mockito.when(idpService.getTokenResponseV2(Mockito.anyMap(), Mockito.eq("stale-dpop-proof")))
+                .thenReturn(ResponseEntity.status(400)
+                        .headers(responseHeaders)
+                        .body(errorBody));
+
+        mockMvc.perform(post("/v2/get-token/{issuer}", issuer)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .header("DPoP", "stale-dpop-proof")
+                        .param("grant_type", "authorization_code")
+                        .param("code", "test-code")
+                        .param("redirect_uri", "test-redirect_uri")
+                        .param("code_verifier", "test-code_verifier"))
+                .andExpect(status().isBadRequest())
+                .andExpect(header().string("DPoP-Nonce", "server-nonce-123"))
+                .andExpect(jsonPath("$.error").value("use_dpop_nonce"))
+                .andExpect(jsonPath("$.error_description").value("Authorization server requires nonce in DPoP proof"));
     }
 
     @Test

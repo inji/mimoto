@@ -11,6 +11,8 @@ import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.mimoto.service.IdpService;
 import io.mosip.mimoto.util.LocaleUtils;
+import io.mosip.mimoto.constant.DpopConstants;
+import io.mosip.mimoto.util.DpopResponseHelper;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.mimoto.util.WalletUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -99,10 +101,7 @@ public class WalletCredentialsController {
             @ExampleObject(name = "Wallet key not found in session", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Wallet key not found in session\"}"),
             @ExampleObject(name = "Invalid issuer", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"issuerId cannot be blank\"}"),
             @ExampleObject(name = "Invalid credentialConfigurationId", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"credentialConfigurationId cannot be blank\"}"),
-            @ExampleObject(name = "Invalid code", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"code cannot be blank\"}"),
-            @ExampleObject(name = "Invalid grantType", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"grantType cannot be blank\"}"),
-            @ExampleObject(name = "Invalid redirectUri", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"redirectUri cannot be blank\"}"),
-            @ExampleObject(name = "Invalid codeVerifier", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"codeVerifier cannot be blank\"}")})
+            @ExampleObject(name = "Missing token and authorization grant", value = "{\"errorCode\": \"invalid_request\", \"errorMessage\": \"Either accessToken or authorization code grant (code, grantType, redirectUri, codeVerifier) must be provided\"}")})
     )
     @ApiResponse(responseCode = "500", description = "Internal server error - error occurred while serializing the VC response, encrypting the credential, or storing it", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = {@ExampleObject(name = "Credential already exists", value = "{\"errorCode\": \"credential_download_error\", \"errorMessage\": \"Duplicate credential for issuer and type\"}"), @ExampleObject(name = "Issuer config error", value = "{\"errorCode\": \"credential_download_error\", \"errorMessage\": \"Unable to fetch issuer configuration\"}"), @ExampleObject(name = "Failed to generate VC request", value = "{\"errorCode\": \"credential_download_error\", \"errorMessage\": \"Unable to generate credential request\"}"), @ExampleObject(name = "Signature verification failed", value = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}"), @ExampleObject(name = "Unexpected server error", value = "{\"errorCode\": \"internal_server_error\", \"errorMessage\": \"We are unable to process request now\"}")}))
     @ApiResponse(responseCode = "503", description = "Service unavailable - error while fetching issuer or auth server well-known, downloading credential, or DB connection failure", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class), examples = {@ExampleObject(name = "API is not accessible", value = "{\"errorCode\": \"credential_download_error\", \"errorMessage\": \"Failed to download and store the credential\"}"), @ExampleObject(name = "Failed to download credential", value = "{\"errorCode\": \"server_unavailable\", \"errorMessage\": \"Unable to download credential from issuer\"}"), @ExampleObject(name = "Database connection failure", value = "{\"errorCode\": \"database_unavailable\", \"errorMessage\": \"Failed to connect to the database\"}")}))
@@ -111,6 +110,7 @@ public class WalletCredentialsController {
             @RequestHeader(value = "Accept-Language", required = false, defaultValue = "en") @Pattern(regexp = "^[a-z]{2}$", message = "Locale must be a 2-letter code") String locale,
             @PathVariable("walletId") @NotBlank(message = "Wallet ID cannot be blank") String walletId,
             @RequestBody @Valid VerifiableCredentialRequestDTO verifiableCredentialRequest,
+            @RequestHeader(value = DpopConstants.DPOP_HEADER, required = false) String dpopProof,
             HttpSession httpSession) throws InvalidRequestException {
         if (!LocaleUtils.isValidLanguageCode(locale)) {
             throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Locale must be a valid 2-letter code");
@@ -121,10 +121,9 @@ public class WalletCredentialsController {
         String issuerId = verifiableCredentialRequest.getIssuer();
         String credentialConfigurationId = verifiableCredentialRequest.getCredentialConfigurationId();
 
-        log.info("Initiating token call for issuer: {}", issuerId);
         TokenResponseDTO tokenResponse;
         try {
-            tokenResponse = idpService.getTokenResponse(verifiableCredentialRequest);
+            tokenResponse = resolveTokenResponse(verifiableCredentialRequest, issuerId, dpopProof);
         } catch (ApiNotAccessibleException | IOException | AuthorizationServerWellknownResponseException |
                  InvalidWellknownResponseException e) {
             log.error("Error fetching token response for issuer: {}", issuerId, e);
@@ -136,8 +135,13 @@ public class WalletCredentialsController {
 
         try {
             VerifiableCredentialResponseDTO credentialResponseDTO = walletCredentialService.downloadVCAndStoreInDB(
-                    issuerId, credentialConfigurationId, tokenResponse, locale, walletId, base64EncodedWalletKey);
+                    issuerId, credentialConfigurationId, tokenResponse, locale, walletId, base64EncodedWalletKey, dpopProof);
             return ResponseEntity.status(HttpStatus.OK).body(credentialResponseDTO);
+        } catch (DpopChallengeException e) {
+            @SuppressWarnings("unchecked")
+            ResponseEntity<VerifiableCredentialResponseDTO> challengeResponse =
+                    (ResponseEntity<VerifiableCredentialResponseDTO>) (ResponseEntity<?>) DpopResponseHelper.challengeResponse(e);
+            return challengeResponse;
         } catch (ExternalServiceUnavailableException e) {
             return Utilities.getErrorResponseEntityWithoutWrapper(
                     e, e.getErrorCode(), HttpStatus.SERVICE_UNAVAILABLE, MediaType.APPLICATION_JSON);
@@ -293,5 +297,19 @@ public class WalletCredentialsController {
         validateWalletId(httpSession, walletId);
         walletCredentialService.deleteCredential(credentialId, walletId);
         return ResponseEntity.ok().build();
+    }
+
+    private TokenResponseDTO resolveTokenResponse(VerifiableCredentialRequestDTO request, String issuerId,
+                                                  String dpopProof)
+            throws ApiNotAccessibleException, IOException,
+            AuthorizationServerWellknownResponseException, InvalidWellknownResponseException {
+        DpopResponseHelper.TokenResponseFromParams preIssuedToken =
+                DpopResponseHelper.resolvePreIssuedToken(request, dpopProof);
+        if (preIssuedToken != null) {
+            log.info("Using client-provided access token for wallet credential download, issuer: {}", issuerId);
+            return preIssuedToken.tokenResponse();
+        }
+        log.info("Initiating token call for issuer: {}", issuerId);
+        return idpService.getTokenResponse(request);
     }
 }

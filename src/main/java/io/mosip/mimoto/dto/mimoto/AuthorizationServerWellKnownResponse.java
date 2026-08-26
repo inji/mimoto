@@ -35,4 +35,9 @@ public class AuthorizationServerWellKnownResponse {
     @JsonProperty(value = "token_endpoint")
     @Schema(description = "Endpoint for getting the token from the authorization server")
     private String tokenEndpoint;
+
+    @SerializedName("dpop_signing_alg_values_supported")
+    @JsonProperty("dpop_signing_alg_values_supported")
+    @Schema(description = "JWS algorithms the authorization server accepts for DPoP proofs")
+    private List<@NotBlank String> dpopSigningAlgValuesSupported;
 }

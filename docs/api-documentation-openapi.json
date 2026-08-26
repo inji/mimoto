@@ -1082,8 +1082,8 @@
                                 "$ref": "#/components/schemas/VerifiableCredentialRequestDTO"
                             },
                             "examples": {
-                                "VerifiableCredentialRequest Example": {
-                                    "description": "VerifiableCredentialRequest Example",
+                                "Authorization code grant": {
+                                    "description": "Download using authorization code grant fields",
                                     "value": {
                                         "issuer": "issuerId",
                                         "credentialConfigurationId": "MockVerifiableCredential",
@@ -1091,6 +1091,16 @@
                                         "grantType": "authorization_code",
                                         "redirectUri": "https://example.com/cb",
                                         "codeVerifier": "verifier"
+                                    }
+                                },
+                                "Pre-issued DPoP access token": {
+                                    "description": "Download using access token from /v2/get-token (authorization code fields optional)",
+                                    "value": {
+                                        "issuer": "issuerId",
+                                        "credentialConfigurationId": "MockVerifiableCredential",
+                                        "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                        "tokenType": "DPoP",
+                                        "cNonce": "optional-c-nonce"
                                     }
                                 }
                             }
@@ -1246,32 +1256,11 @@
                                             "errorMessage": "credentialConfigurationId cannot be blank"
                                         }
                                     },
-                                    "Invalid code": {
-                                        "description": "Invalid code",
+                                    "Missing token and authorization grant": {
+                                        "description": "Missing token and authorization grant",
                                         "value": {
                                             "errorCode": "invalid_request",
-                                            "errorMessage": "code cannot be blank"
-                                        }
-                                    },
-                                    "Invalid grantType": {
-                                        "description": "Invalid grantType",
-                                        "value": {
-                                            "errorCode": "invalid_request",
-                                            "errorMessage": "grantType cannot be blank"
-                                        }
-                                    },
-                                    "Invalid redirectUri": {
-                                        "description": "Invalid redirectUri",
-                                        "value": {
-                                            "errorCode": "invalid_request",
-                                            "errorMessage": "redirectUri cannot be blank"
-                                        }
-                                    },
-                                    "Invalid codeVerifier": {
-                                        "description": "Invalid codeVerifier",
-                                        "value": {
-                                            "errorCode": "invalid_request",
-                                            "errorMessage": "codeVerifier cannot be blank"
+                                            "errorMessage": "Either accessToken or authorization code grant (code, grantType, redirectUri, codeVerifier) must be provided"
                                         }
                                     }
                                 }
@@ -1705,6 +1694,175 @@
                 }
             }
         },
+        "/v2/get-token/{issuer}": {
+            "post": {
+                "tags": [
+                    "Wallet Binding"
+                ],
+                "summary": "Retrieve accessToken for OIDC flow with DPoP support",
+                "description": "This endpoint allows you to retrieve an access token in exchange for an authorization code and returns the authorization server response as-is. Optionally accepts a DPoP proof header and forwards DPoP-Nonce / WWW-Authenticate response headers to the client.",
+                "operationId": "getTokenV2",
+                "parameters": [
+                    {
+                        "name": "issuer",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "DPoP",
+                        "in": "header",
+                        "required": false,
+                        "description": "DPoP proof JWT bound to the real authorization server token_endpoint (htu)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "grant_type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "authorization_code"
+                        }
+                    },
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "redirect_uri",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "code_verifier",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "grant_type": {
+                                        "type": "string",
+                                        "example": "authorization_code"
+                                    },
+                                    "code": {
+                                        "type": "string"
+                                    },
+                                    "redirect_uri": {
+                                        "type": "string"
+                                    },
+                                    "code_verifier": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token response from authorization server",
+                        "headers": {
+                            "DPoP-Nonce": {
+                                "description": "DPoP nonce from the authorization server when present",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "WWW-Authenticate": {
+                                "description": "Challenge from the authorization server when present",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Authorization server error response returned as-is or invalid request detected by Mimoto",
+                        "headers": {
+                            "DPoP-Nonce": {
+                                "description": "DPoP nonce when the AS returns use_dpop_nonce",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "WWW-Authenticate": {
+                                "description": "AS challenge when present",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "error": "use_dpop_nonce",
+                                        "error_description": "DPoP proof requires nonce"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authorization server unauthorized response returned as-is",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "error": "invalid_client",
+                                        "error_description": "Client authentication failed"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Mimoto error before receiving authorization server response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "error": "MIMOTO-XXX",
+                                        "error_description": "Unable to fetch token"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/credentialshare/request": {
             "post": {
                 "tags": [
@@ -2122,6 +2280,15 @@
                 "description": "This endpoint allow you to download the credentials as PDF",
                 "operationId": "downloadCredentialAsPDF",
                 "parameters": [
+                    {
+                        "name": "DPoP",
+                        "in": "header",
+                        "required": false,
+                        "description": "DPoP proof JWT bound to the real credential_endpoint (htu) when using a DPoP access token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "name": "arg0",
                         "in": "query",
@@ -4016,6 +4183,38 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ResponseWrapperCredentialIssuerConfigurationResponseDTO"
+                                },
+                                "examples": {
+                                    "SuccessResponse": {
+                                        "summary": "Issuer Configuration Response",
+                                        "value": {
+                                            "response": {
+                                                "credentials_supported": [
+                                                    {
+                                                        "name": "InsuranceCredential",
+                                                        "scope": "sunbird_rc_insurance_vc_ldp",
+                                                        "display": [
+                                                            {
+                                                                "name": "Health Insurance",
+                                                                "locale": "en",
+                                                                "logo": "https://raw.githubusercontent.com/tw-mosip/file-server/master/StayProtectedInsurance.png"
+                                                            }
+                                                        ]
+                                                    }
+                                                ],
+                                                "authorization_endpoint": "https://esignet-insurance.collab.mosip.net/authorize",
+                                                "grant_types_supported": [
+                                                    "authorization_code"
+                                                ],
+                                                "token_endpoint": "https://esignet-insurance.collab.mosip.net/v1/esignet/oauth/v2/token",
+                                                "credential_endpoint": "https://injicertify-insurance.collab.mosip.net/v1/certify/issuance/credential",
+                                                "dpop_signing_alg_values_supported": [
+                                                    "ES256"
+                                                ]
+                                            },
+                                            "errors": []
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -4743,12 +4942,8 @@
             },
             "VerifiableCredentialRequestDTO": {
                 "required": [
-                    "code",
-                    "codeVerifier",
                     "credentialConfigurationId",
-                    "grantType",
-                    "issuer",
-                    "redirectUri"
+                    "issuer"
                 ],
                 "type": "object",
                 "properties": {
@@ -4764,26 +4959,39 @@
                     },
                     "code": {
                         "type": "string",
-                        "description": "The authorization code received from the authorization server",
+                        "description": "The authorization code received from the authorization server. Required when accessToken is not provided.",
                         "example": "authCode"
                     },
                     "grantType": {
                         "type": "string",
-                        "description": "The grant type for the authorization request",
+                        "description": "The grant type for the authorization request. Required when accessToken is not provided.",
                         "example": "authorization_code"
                     },
                     "redirectUri": {
                         "type": "string",
-                        "description": "The redirect URI for the authorization request",
+                        "description": "The redirect URI for the authorization request. Required when accessToken is not provided.",
                         "example": "https://example.com/cb"
                     },
                     "codeVerifier": {
                         "type": "string",
-                        "description": "The code verifier used for PKCE (Proof Key for Code Exchange)",
+                        "description": "The code verifier used for PKCE (Proof Key for Code Exchange). Required when accessToken is not provided.",
                         "example": "verifier"
+                    },
+                    "accessToken": {
+                        "type": "string",
+                        "description": "Pre-issued access token from /v2/get-token. When present, authorization code grant fields are optional."
+                    },
+                    "tokenType": {
+                        "type": "string",
+                        "description": "Token type for the pre-issued access token (Bearer or DPoP). Defaults to Bearer when omitted.",
+                        "example": "DPoP"
+                    },
+                    "cNonce": {
+                        "type": "string",
+                        "description": "Optional c_nonce from the token response for credential proof binding."
                     }
                 },
-                "description": "Credential download request used in the OpenID4VCI flow to exchange an authorization code for a credential."
+                "description": "Credential download request used in the OpenID4VCI flow. Provide either a pre-issued accessToken from /v2/get-token or an authorization code grant (code, grantType, redirectUri, codeVerifier)."
             },
             "VerifiableCredentialResponseDTO": {
                 "required": [
@@ -6811,9 +7019,30 @@
                             "description": "Grant types supported by the issuer's authorization server.",
                             "example": "[\"authorization_code\"]"
                         }
+                    },
+                    "token_endpoint": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Public authorization server token URL used as DPoP htu. May differ from the backend URL Mimoto posts to.",
+                        "example": "https://esignet-insurance.collab.mosip.net/v1/esignet/oauth/v2/token"
+                    },
+                    "credential_endpoint": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Real credential issuer endpoint used as DPoP htu for credential requests",
+                        "example": "https://injicertify-insurance.collab.mosip.net/v1/certify/issuance/credential"
+                    },
+                    "dpop_signing_alg_values_supported": {
+                        "type": "array",
+                        "description": "JWS algorithms the authorization server accepts for DPoP proofs",
+                        "items": {
+                            "type": "string",
+                            "example": "ES256"
+                        },
+                        "nullable": true
                     }
                 },
-                "description": "Issuer configuration response containing the credential types supported by the issuer and authorization server details required by the client."
+                "description": "Issuer configuration response containing the credential types supported by the issuer and authorization server details required by the client, including DPoP htu endpoints when available."
             },
             "CredentialsResponse": {
                 "required": [

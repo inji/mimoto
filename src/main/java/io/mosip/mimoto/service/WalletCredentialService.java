@@ -27,7 +27,8 @@ public interface WalletCredentialService {
      */
     VerifiableCredentialResponseDTO downloadVCAndStoreInDB(String issuerId, String credentialConfigurationId,
                                                            TokenResponseDTO tokenResponse,
-                                                           String locale, String walletId, String base64Key)
+                                                           String locale, String walletId, String base64Key,
+                                                           String dpopProof)
             throws CredentialProcessingException, ExternalServiceUnavailableException;
 
     /**

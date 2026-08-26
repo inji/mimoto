@@ -28,6 +28,7 @@ import static io.mosip.mimoto.exception.ErrorConstants.*;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -73,7 +74,11 @@ public class IdpServiceImpl implements IdpService {
         IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
 
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        String clientAssertion = joseUtil.getJWT(issuerDTO.getClient_id(), keyStorePath, fileName, issuerDTO.getClient_alias(), cyptoPassword, tokenEndpoint);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        String audience = StringUtils.hasText(issuerDTO.getAuthorization_audience())
+                ? issuerDTO.getAuthorization_audience()
+                : tokenEndpoint;
+        String clientAssertion = joseUtil.getJWT(issuerDTO.getClient_id(), keyStorePath, fileName, issuerDTO.getClient_alias(), cyptoPassword, audience);
         map.add("code", params.get("code"));
         map.add("client_id", issuerDTO.getClient_id());
         map.add(GRANT_TYPE, params.get(GRANT_TYPE));
@@ -90,6 +95,14 @@ public class IdpServiceImpl implements IdpService {
             throws ApiNotAccessibleException, IOException,
             AuthorizationServerWellknownResponseException,
             InvalidWellknownResponseException {
+        try {
+            IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
+            if (StringUtils.hasText(issuerDTO.getProxy_token_endpoint())) {
+                return issuerDTO.getProxy_token_endpoint();
+            }
+        } catch (InvalidIssuerIdException e) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "Invalid issuer");
+        }
         CredentialIssuerConfiguration credentialIssuerConfiguration =
                 issuersService.getIssuerConfiguration(issuerId);
         return credentialIssuerConfiguration.getAuthorizationServerWellKnownResponse().getTokenEndpoint();

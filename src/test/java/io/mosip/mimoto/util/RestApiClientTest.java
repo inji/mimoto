@@ -180,8 +180,8 @@ class RestApiClientTest {
     void postApiWithErrorResponse_shouldReturnResponseOnSuccess() {
         TestResponse expected = new TestResponse("ok", null);
 
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
-                .thenReturn(expected);
+        when(plainRestTemplate.exchange(eq(TEST_URI), eq(HttpMethod.POST), any(HttpEntity.class), eq(TestResponse.class)))
+                .thenReturn(new ResponseEntity<>(expected, HttpStatus.OK));
 
         TestResponse result = restApiClient.postApiWithErrorResponse(
                 TEST_URI, MediaType.APPLICATION_JSON, "request", TestResponse.class, ACCESS_TOKEN);
@@ -197,7 +197,7 @@ class RestApiClientTest {
                 HttpStatus.BAD_REQUEST, "Bad Request",
                 HttpHeaders.EMPTY, errorJson.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
 
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
+        when(plainRestTemplate.exchange(eq(TEST_URI), eq(HttpMethod.POST), any(HttpEntity.class), eq(TestResponse.class)))
                 .thenThrow(exception);
 
         TestResponse result = restApiClient.postApiWithErrorResponse(
@@ -214,7 +214,7 @@ class RestApiClientTest {
                 HttpStatus.BAD_REQUEST, "Bad Request",
                 HttpHeaders.EMPTY, malformedBody.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
 
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
+        when(plainRestTemplate.exchange(eq(TEST_URI), eq(HttpMethod.POST), any(HttpEntity.class), eq(TestResponse.class)))
                 .thenThrow(exception);
 
         TestResponse result = restApiClient.postApiWithErrorResponse(
@@ -225,7 +225,7 @@ class RestApiClientTest {
 
     @Test
     void postApiWithErrorResponse_shouldReturnNullOnNonClientError() {
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
+        when(plainRestTemplate.exchange(eq(TEST_URI), eq(HttpMethod.POST), any(HttpEntity.class), eq(TestResponse.class)))
                 .thenThrow(new ResourceAccessException("Connection refused"));
 
         TestResponse result = restApiClient.postApiWithErrorResponse(
@@ -240,7 +240,7 @@ class RestApiClientTest {
                 HttpStatus.FORBIDDEN, "Forbidden",
                 HttpHeaders.EMPTY, "{}".getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
 
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
+        when(plainRestTemplate.exchange(eq(TEST_URI), eq(HttpMethod.POST), any(HttpEntity.class), eq(TestResponse.class)))
                 .thenThrow(exception);
 
         TestResponse result = restApiClient.postApiWithErrorResponse(

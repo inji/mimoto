@@ -119,7 +119,10 @@ public class IssuersController {
             CredentialIssuerConfigurationResponseDTO credentialIssuerConfigurationResponseDTO = new CredentialIssuerConfigurationResponseDTO(
                     credentials,
                     issuerConfiguration.getAuthorizationServerWellKnownResponse().getAuthorizationEndpoint(),
-                    issuerConfiguration.getAuthorizationServerWellKnownResponse().getGrantTypesSupported());
+                    issuerConfiguration.getAuthorizationServerWellKnownResponse().getGrantTypesSupported(),
+                    issuerConfiguration.getAuthorizationServerWellKnownResponse().getTokenEndpoint(),
+                    issuerConfiguration.getCredentialEndPoint(),
+                    issuerConfiguration.getAuthorizationServerWellKnownResponse().getDpopSigningAlgValuesSupported());
             responseWrapper.setResponse(credentialIssuerConfigurationResponseDTO);
             return ResponseEntity.status(HttpStatus.OK).body(responseWrapper);
         } catch (Exception exception) {
