@@ -402,7 +402,7 @@ class V1VCDownloadHandlerTest {
     }
 
     @Test
-    void shouldDeserializeLocalMockV1ResponseThatIncludesCredentialIssuer() throws Exception {
+    void should_deserializeLocalMockV1Response_when_credentialIssuerIsIncluded() throws Exception {
         String json = """
                 {
                   "credentials": [ { "credential": { "id": "urn:uuid:1" } } ],

@@ -1,5 +1,6 @@
 package io.mosip.mimoto.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.DpopConstants;
@@ -151,7 +152,7 @@ public final class DpopResponseHelper {
         }
         try {
             return OBJECT_MAPPER.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             return responseBody;
         }
     }

@@ -84,7 +84,7 @@ public class CredentialsControllerTest {
     }
 
     @Test
-    public void downloadPDFSuccessfullyWithPreIssuedDpopToken() throws Exception {
+    public void should_downloadPdf_when_preIssuedDpopTokenIsProvided() throws Exception {
         String dpopProof = "guest-dpop-proof";
         String preIssuedContent = EntityUtils.toString(new UrlEncodedFormEntity(List.of(
                 new BasicNameValuePair("issuer", issuer),
@@ -117,7 +117,7 @@ public class CredentialsControllerTest {
     }
 
     @Test
-    public void returnDpopNonceChallengeToClientWhenCredentialIssuerRequiresNonce() throws Exception {
+    public void should_returnDpopNonceChallenge_when_credentialIssuerRequiresNonce() throws Exception {
         String dpopProof = "stale-dpop-proof";
         String preIssuedContent = EntityUtils.toString(new UrlEncodedFormEntity(List.of(
                 new BasicNameValuePair("issuer", issuer),

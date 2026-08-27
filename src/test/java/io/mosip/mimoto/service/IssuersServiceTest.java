@@ -191,7 +191,7 @@ public class IssuersServiceTest {
     }
 
     @Test
-    public void shouldKeepAuthorizationServerWellKnownTokenEndpointForDpopHtu() throws Exception {
+    public void should_keepAuthorizationServerWellKnownTokenEndpoint_when_proxyTokenEndpointIsConfiguredForDpopHtu() throws Exception {
         String proxyTokenEndpoint = "http://localhost:8088/v1/esignet/oauth/v2/token";
         issuers.getIssuers().getFirst().setProxy_token_endpoint(proxyTokenEndpoint);
 

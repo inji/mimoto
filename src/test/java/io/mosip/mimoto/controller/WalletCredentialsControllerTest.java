@@ -633,7 +633,7 @@ public class WalletCredentialsControllerTest {
     }
 
     @Test
-    public void shouldDownloadCredentialUsingPreIssuedDpopTokenWithoutTokenExchange() throws Exception {
+    public void should_downloadCredentialUsingPreIssuedDpopToken_when_tokenExchangeIsNotRequired() throws Exception {
         verifiableCredentialRequest.setIssuer(issuer);
         verifiableCredentialRequest.setCredentialConfigurationId(credentialConfigurationId);
         verifiableCredentialRequest.setAccessToken("pre-issued-access-token");
@@ -666,7 +666,7 @@ public class WalletCredentialsControllerTest {
     }
 
     @Test
-    public void shouldReturnDpopNonceChallengeToClientForWalletCredentialDownload() throws Exception {
+    public void should_returnDpopNonceChallengeToClient_when_walletCredentialDownloadRequiresNonce() throws Exception {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
         when(idpService.getTokenResponse(verifiableCredentialRequest)).thenReturn(new TokenResponseDTO());
 

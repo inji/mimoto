@@ -119,7 +119,7 @@ public class IdpServiceTest {
     }
 
     @Test
-    public void shouldUseAuthorizationAudienceForClientAssertionWhenConfigured() throws Exception {
+    public void should_useAuthorizationAudienceForClientAssertion_when_authorizationAudienceIsConfigured() throws Exception {
         String proxyTokenEndpoint = "http://localhost:8088/v1/esignet/oauth/v2/token";
         String audience = "http://localhost:3000/v1/esignet/oauth/v2/token";
         IssuerDTO issuerDTO = new IssuerDTO();
@@ -138,7 +138,7 @@ public class IdpServiceTest {
     }
 
     @Test
-    public void shouldReturnTokenEndpointFromCredentialIssuerConfigurationResponse() throws Exception {
+    public void should_returnTokenEndpoint_when_credentialIssuerConfigurationResponseIsUsed() throws Exception {
         CredentialIssuerConfiguration credentialIssuerConfiguration =
                 getCredentialIssuerConfigurationResponseDto("issuer1", "CredentialType1", List.of());
         String expectedTokenEndpoint = "https://dev/token";
@@ -152,7 +152,7 @@ public class IdpServiceTest {
     }
 
     @Test
-    public void shouldReturnProxyTokenEndpointWhenConfigured() throws Exception {
+    public void should_returnProxyTokenEndpoint_when_proxyTokenEndpointIsConfigured() throws Exception {
         String proxyTokenEndpoint = "http://localhost:8088/v1/esignet/oauth/v2/token";
         IssuerDTO issuerDTO = new IssuerDTO();
         issuerDTO.setProxy_token_endpoint(proxyTokenEndpoint);

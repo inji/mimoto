@@ -1719,39 +1719,6 @@
                         "schema": {
                             "type": "string"
                         }
-                    },
-                    {
-                        "name": "grant_type",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "example": "authorization_code"
-                        }
-                    },
-                    {
-                        "name": "code",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "redirect_uri",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "code_verifier",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "requestBody": {
@@ -1759,22 +1726,7 @@
                     "content": {
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "grant_type": {
-                                        "type": "string",
-                                        "example": "authorization_code"
-                                    },
-                                    "code": {
-                                        "type": "string"
-                                    },
-                                    "redirect_uri": {
-                                        "type": "string"
-                                    },
-                                    "code_verifier": {
-                                        "type": "string"
-                                    }
-                                }
+                                "$ref": "#/components/schemas/GetTokenV2Request"
                             }
                         }
                     }
@@ -1834,6 +1786,20 @@
                     },
                     "401": {
                         "description": "Authorization server unauthorized response returned as-is",
+                        "headers": {
+                            "DPoP-Nonce": {
+                                "description": "DPoP nonce when the AS returns use_dpop_nonce",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "WWW-Authenticate": {
+                                "description": "AS challenge when present",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4736,6 +4702,35 @@
                     }
                 },
                 "description": "Standard error payload returned by Mimoto and upstream integrations when a request cannot be processed."
+            },
+            "GetTokenV2Request": {
+                "required": [
+                    "code_verifier"
+                ],
+                "type": "object",
+                "properties": {
+                    "grant_type": {
+                        "type": "string",
+                        "example": "authorization_code"
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Authorization code from the OIDC authorization response"
+                    },
+                    "redirect_uri": {
+                        "type": "string",
+                        "description": "Redirect URI used in the authorization request"
+                    },
+                    "code_verifier": {
+                        "type": "string",
+                        "description": "PKCE code verifier. Required; must be 43-128 unreserved characters (RFC 7636).",
+                        "minLength": 43,
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z0-9\\-._~]{43,128}$",
+                        "example": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+                    }
+                },
+                "description": "Form-urlencoded body for POST /v2/get-token/{issuer}. Mimoto rejects missing or invalid code_verifier with 400 before calling the authorization server."
             },
             "CreateWalletRequestDto": {
                 "required": [

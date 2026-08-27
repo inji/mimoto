@@ -220,7 +220,7 @@ public class IdpControllerTest {
     }
 
     @Test
-    public void shouldNormalizeXmlOAuthErrorBodyToJsonForV2() throws Exception {
+    public void should_normalizeXmlOAuthErrorBodyToJson_when_upstreamResponseIsXml() throws Exception {
         String issuer = "test-issuer";
         String errorBody = "<OAuthError><error>use_dpop_nonce</error>"
                 + "<error_description>Authorization server requires nonce in DPoP proof</error_description></OAuthError>";
