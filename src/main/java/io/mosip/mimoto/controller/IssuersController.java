@@ -1,17 +1,27 @@
 package io.mosip.mimoto.controller;
 
+import io.mosip.mimoto.constant.DpopConstants;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.core.http.ResponseWrapper;
 import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuersDTO;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeRequest;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeResponse;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
+import io.mosip.mimoto.exception.InvalidRequestException;
+import io.mosip.mimoto.service.DpopIssuanceSessionService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.util.Utilities;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,9 +41,11 @@ import static io.mosip.mimoto.exception.PlatformErrorMessages.*;
 public class IssuersController {
 
     private final IssuersService issuersService;
+    private final DpopIssuanceSessionService dpopIssuanceSessionService;
 
-    public IssuersController(IssuersService issuersService) {
+    public IssuersController(IssuersService issuersService, DpopIssuanceSessionService dpopIssuanceSessionService) {
         this.issuersService = issuersService;
+        this.dpopIssuanceSessionService = dpopIssuanceSessionService;
     }
 
     @Operation(summary = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_GET_ISSUERS_DESCRIPTION)
@@ -132,6 +144,30 @@ public class IssuersController {
             responseWrapper.setResponse(null);
             responseWrapper.setErrors(errors);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
+        }
+    }
+
+    @Operation(summary = SwaggerLiteralConstants.ISSUERS_AUTHORIZE_SUMMARY, description = SwaggerLiteralConstants.ISSUERS_AUTHORIZE_DESCRIPTION,
+            parameters = @Parameter(name = DpopConstants.OAUTH_STATE_HEADER, in = ParameterIn.HEADER, required = true,
+                    description = "OAuth state that keys the BFF DPoP issuance session and is placed on the authorization URL",
+                    schema = @Schema(type = "string", example = "Iv~UKBqw_XGsyIT~7GuKrVLFfUvtVSEk3993qSftpm.")))
+    @PostMapping(value = "/{issuer-id}/authorize", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<IssuerAuthorizeResponse> authorize(@PathVariable("issuer-id") String issuerId,
+                                                             @RequestHeader(value = DpopConstants.OAUTH_STATE_HEADER, required = false) String state,
+                                                             @Valid @RequestBody IssuerAuthorizeRequest request,
+                                                             HttpSession httpSession) {
+        try {
+            String authorizationUrl = dpopIssuanceSessionService.createAuthorizationUrl(httpSession, issuerId, state, request);
+            return ResponseEntity.status(HttpStatus.OK).body(IssuerAuthorizeResponse.builder()
+                    .authorizationUrl(authorizationUrl)
+                    .build());
+        } catch (InvalidRequestException exception) {
+            return Utilities.getErrorResponseEntityWithoutWrapper(
+                    exception, INVALID_ISSUER_ID_CONFIGURATION.getCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
+        } catch (Exception exception) {
+            log.error("Failed to build authorization URL for issuer {}", issuerId, exception);
+            return Utilities.getErrorResponseEntityWithoutWrapper(
+                    exception, INVALID_ISSUER_ID_CONFIGURATION.getCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
         }
     }
 }

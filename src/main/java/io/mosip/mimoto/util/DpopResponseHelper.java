@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.DpopConstants;
-import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
 import io.mosip.mimoto.exception.DpopChallengeException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.http.HttpHeaders;
@@ -28,58 +27,6 @@ public final class DpopResponseHelper {
     private static final Pattern XML_TAG = Pattern.compile("<([a-zA-Z0-9_]+)>([^<]*)</\\1>");
 
     private DpopResponseHelper() {
-    }
-
-    public static TokenResponseFromParams resolvePreIssuedToken(Map<String, String> params) {
-        return resolvePreIssuedToken(params, null);
-    }
-
-    public static TokenResponseFromParams resolvePreIssuedToken(Map<String, String> params, String dpopProof) {
-        return resolvePreIssuedToken(
-                params.get("access_token"),
-                params.get("token_type"),
-                params.get("c_nonce"),
-                dpopProof);
-    }
-
-    public static TokenResponseFromParams resolvePreIssuedToken(VerifiableCredentialRequestDTO request) {
-        return resolvePreIssuedToken(request, null);
-    }
-
-    public static TokenResponseFromParams resolvePreIssuedToken(VerifiableCredentialRequestDTO request, String dpopProof) {
-        return resolvePreIssuedToken(
-                request.getAccessToken(),
-                request.getTokenType(),
-                request.getCNonce(),
-                dpopProof);
-    }
-
-    private static TokenResponseFromParams resolvePreIssuedToken(String accessToken, String tokenType, String cNonce,
-                                                                 String dpopProof) {
-        if (StringUtils.isBlank(accessToken)) {
-            return null;
-        }
-        return new TokenResponseFromParams(buildTokenResponse(accessToken, tokenType, cNonce, dpopProof));
-    }
-
-    private static io.mosip.mimoto.dto.idp.TokenResponseDTO buildTokenResponse(String accessToken, String tokenType,
-                                                                               String cNonce, String dpopProof) {
-        io.mosip.mimoto.dto.idp.TokenResponseDTO tokenResponse = new io.mosip.mimoto.dto.idp.TokenResponseDTO();
-        tokenResponse.setAccess_token(accessToken);
-        tokenResponse.setToken_type(resolveTokenType(tokenType, dpopProof));
-        if (StringUtils.isNotBlank(cNonce)) {
-            tokenResponse.setC_nonce(cNonce);
-        }
-        return tokenResponse;
-    }
-
-    private static String resolveTokenType(String tokenType, String dpopProof) {
-        if (StringUtils.isNotBlank(tokenType)) {
-            return tokenType;
-        }
-        return StringUtils.isNotBlank(dpopProof)
-                ? DpopConstants.DPOP_TOKEN_TYPE
-                : DpopConstants.BEARER_TOKEN_TYPE;
     }
 
     public static ResponseEntity<Object> challengeResponse(DpopChallengeException exception) {
@@ -157,6 +104,4 @@ public final class DpopResponseHelper {
         }
     }
 
-    public record TokenResponseFromParams(io.mosip.mimoto.dto.idp.TokenResponseDTO tokenResponse) {
-    }
 }

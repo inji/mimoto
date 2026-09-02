@@ -5,7 +5,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 
 /**
- * Raised when an issuer responds with a DPoP nonce challenge that the browser must satisfy.
+ * Raised when an issuer responds with a DPoP nonce challenge. The BFF retries once internally.
  */
 @Getter
 public class DpopChallengeException extends RuntimeException {
