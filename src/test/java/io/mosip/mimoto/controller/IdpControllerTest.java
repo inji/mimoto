@@ -220,34 +220,6 @@ public class IdpControllerTest {
     }
 
     @Test
-    public void should_normalizeXmlOAuthErrorBodyToJson_when_upstreamResponseIsXml() throws Exception {
-        String issuer = "test-issuer";
-        String errorBody = "<OAuthError><error>use_dpop_nonce</error>"
-                + "<error_description>Authorization server requires nonce in DPoP proof</error_description></OAuthError>";
-
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.add("DPoP-Nonce", "server-nonce-123");
-        responseHeaders.setContentType(MediaType.APPLICATION_XML);
-
-        Mockito.when(idpService.getTokenResponseV2(Mockito.anyMap(), Mockito.eq("stale-dpop-proof")))
-                .thenReturn(ResponseEntity.status(400)
-                        .headers(responseHeaders)
-                        .body(errorBody));
-
-        mockMvc.perform(post("/v2/get-token/{issuer}", issuer)
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .header("DPoP", "stale-dpop-proof")
-                        .param("grant_type", "authorization_code")
-                        .param("code", "test-code")
-                        .param("redirect_uri", "test-redirect_uri")
-                        .param("code_verifier", "test-code_verifier"))
-                .andExpect(status().isBadRequest())
-                .andExpect(header().string("DPoP-Nonce", "server-nonce-123"))
-                .andExpect(jsonPath("$.error").value("use_dpop_nonce"))
-                .andExpect(jsonPath("$.error_description").value("Authorization server requires nonce in DPoP proof"));
-    }
-
-    @Test
     public void shouldReturnInternalServerErrorForV2InternalException() throws Exception {
         String issuer = "test-issuer";
 

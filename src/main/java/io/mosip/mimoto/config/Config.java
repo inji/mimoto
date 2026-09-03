@@ -193,11 +193,7 @@ public class Config {
         corsConfiguration.addAllowedHeader("*");  // Allow all headers
         corsConfiguration.addAllowedMethod("*");  // Allow all HTTP methods
         corsConfiguration.setAllowCredentials(true);// Allow cookies to be sent
-        corsConfiguration.setExposedHeaders(java.util.List.of(
-                "Content-Disposition",
-                io.mosip.mimoto.constant.DpopConstants.DPOP_NONCE_HEADER,
-                io.mosip.mimoto.constant.DpopConstants.WWW_AUTHENTICATE_HEADER
-        ));
+        corsConfiguration.setExposedHeaders(java.util.List.of("Content-Disposition"));
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;
     }

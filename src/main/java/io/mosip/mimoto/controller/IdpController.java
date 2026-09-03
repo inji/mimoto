@@ -13,7 +13,6 @@ import io.mosip.mimoto.service.IdpService;
 import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.util.JoseUtil;
 import io.mosip.mimoto.util.RequestValidator;
-import io.mosip.mimoto.util.DpopResponseHelper;
 import io.mosip.mimoto.util.Utilities;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -210,18 +209,10 @@ public class IdpController {
 
             ResponseEntity<String> response = idpService.getTokenResponseV2(tokenParams, dpopProof);
 
-            HttpHeaders forwardHeaders = getForwardableHeaders(response.getHeaders());
-            forwardHeaders.set(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, DpopResponseHelper.EXPOSED_DPOP_HEADERS);
-
-            Object body = DpopResponseHelper.normalizeOAuthErrorBody(response.getBody());
-            if (body instanceof Map) {
-                forwardHeaders.setContentType(MediaType.APPLICATION_JSON);
-            }
-
             return ResponseEntity
                     .status(response.getStatusCode())
-                    .headers(forwardHeaders)
-                    .body(body);
+                    .headers(getForwardableHeaders(response.getHeaders()))
+                    .body(response.getBody());
 
         } catch (InvalidRequestException ex) {
             log.error("Invalid token request: ", ex);
