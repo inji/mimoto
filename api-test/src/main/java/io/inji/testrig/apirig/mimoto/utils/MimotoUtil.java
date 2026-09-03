@@ -433,12 +433,12 @@ public class MimotoUtil extends AdminTestUtil {
 
 	private static String getClientIdForInjiVerify() {
 		String env_name = extractEnvironmentName();
-		return "did:web:injiverify." + env_name + ".mosip.net:v1:verify";
+		return "decentralized_identifier:did:web:injiverify." + env_name + ".mosip.net:v1:verify";
 	}
 
 	private static String getAuthorizationRequestUrlMock() {
 		String env_name = extractEnvironmentName();
 		return "openid4vp://authorize?client_id=" + getClientIdForInjiVerify()
-			+ "&request_uri=" + "https://injiverify." + env_name + ".mosip.net/v1/verify/vp-request/";
+			+ "&request_uri=" + "https://injiverify." + env_name + ".mosip.net/v1/verify/v2/vp-request/";
 	}
 }
