@@ -16,7 +16,7 @@ public class SwaggerLiteralConstants {
     public static final String CREDENTIALS_NAME = "Credentials download using OpenId4VCI";
     public static final String CREDENTIALS_DESCRIPTION = "All the credentials related endpoints";
     public static final String CREDENTIALS_DOWNLOAD_VC_SUMMARY = "Download credentials as PDF";
-    public static final String CREDENTIALS_DOWNLOAD_VC_DESCRIPTION = "BFF guest download. Requires an issuance session from POST /issuers/{issuer-id}/authorize. Send OAuth state in the state request header, plus code, grant_type, redirect_uri, and code_verifier in the form body. Mimoto exchanges the token and signs DPoP proofs server-side. Do not send access_token or a DPoP header.";
+    public static final String CREDENTIALS_DOWNLOAD_VC_DESCRIPTION = "BFF guest download. Requires an issuance session from POST /issuers/{issuer-id}/authorize. Send OAuth state in the state request header and the authorization code in the form body. Mimoto applies stored PKCE, exchanges the token, and signs DPoP proofs server-side. Do not send access_token, code_verifier, or a DPoP header.";
 
     /* Credentials Share Controller */
     public static final String CREDENTIALS_SHARE_NAME = "Credential Share";
@@ -54,7 +54,7 @@ public class SwaggerLiteralConstants {
     public static final String ISSUERS_GET_ISSUER_CONFIGURATION_SUMMARY = "Retrieve specific issuer's and its corresponding authorization server well-known config";
     public static final String ISSUERS_GET_ISSUER_CONFIGURATION_DESCRIPTION = "This endpoint allows you to retrieve the well-known configuration of a specific issuer and its corresponding authorization server";
     public static final String ISSUERS_AUTHORIZE_SUMMARY = "Build OpenID4VCI authorization URL";
-    public static final String ISSUERS_AUTHORIZE_DESCRIPTION = "Creates a BFF DPoP issuance session keyed by the OAuth state request header and returns the authorization URL, including ui_locales and dpop_jkt. Guest callers receive a SESSION cookie. Inji Web should open authorizationUrl.";
+    public static final String ISSUERS_AUTHORIZE_DESCRIPTION = "Creates a BFF DPoP issuance session, generates PKCE (state, code_verifier, code_challenge), and returns the authorization URL including ui_locales and dpop_jkt. Guest callers receive a SESSION cookie. Inji Web should store the returned state for the UI session and open authorizationUrl.";
 
     /* Issuers V2 Controller */
     public static final String ISSUERS_V2_NAME = "Issuers V2";

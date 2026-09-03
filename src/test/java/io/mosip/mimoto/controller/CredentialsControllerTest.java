@@ -29,6 +29,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
@@ -60,10 +61,7 @@ public class CredentialsControllerTest {
     public void setUp() throws Exception {
         tokenResponseDTO = TestUtilities.getTokenResponseDTO();
         requestContent = EntityUtils.toString(new UrlEncodedFormEntity(List.of(
-                new BasicNameValuePair("grant_type", "authorization_code"),
                 new BasicNameValuePair("code", "test-code"),
-                new BasicNameValuePair("redirect_uri", "test-redirect_uri"),
-                new BasicNameValuePair("code_verifier", "test-code_verifier"),
                 new BasicNameValuePair("issuer", issuer),
                 new BasicNameValuePair("vcStorageExpiryLimitInTimes", "3"),
                 new BasicNameValuePair("credential", credential),
@@ -85,6 +83,15 @@ public class CredentialsControllerTest {
                 .build();
 
         org.mockito.Mockito.when(dpopIssuanceSessionService.find(any(), eq("oauth-state"))).thenReturn(issuanceSession);
+
+        org.mockito.Mockito.when(dpopIssuanceSessionService.authorizationCodeParams(any(), eq("oauth-state"), any(), any()))
+                .thenReturn(Map.of(
+                        "code", "test-code",
+                        "code_verifier", "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+                        "redirect_uri", "https://example.com/cb",
+                        "grant_type", "authorization_code",
+                        "issuer", issuer,
+                        "state", "oauth-state"));
 
         org.mockito.Mockito.when(idpService.exchangeAndBindToken(anyMap(), any())).thenReturn(tokenResponseDTO);
 

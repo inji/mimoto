@@ -88,7 +88,7 @@ public class CredentialsController {
             String credentialValidity = params.get("vcStorageExpiryLimitInTimes");
             String locale = params.get("locale");
             log.info("Initiated Token Call");
-            TokenResponseDTO response = getTokenResponse(params, httpSession, state);
+            TokenResponseDTO response = getTokenResponse(params, httpSession, state, issuerId);
             String proof = dpopIssuanceSessionService.credentialProof(httpSession, state);
 
             log.info("Initiated Download Credential Call");
@@ -139,7 +139,7 @@ public class CredentialsController {
         return Utilities.handleErrorResponse(ex, PlatformErrorMessages.MIMOTO_PDF_SIGN_EXCEPTION.getCode(), HttpStatus.INTERNAL_SERVER_ERROR, MediaType.APPLICATION_JSON);
     }
 
-    private TokenResponseDTO getTokenResponse(Map<String, String> params, HttpSession httpSession, String state)
+    private TokenResponseDTO getTokenResponse(Map<String, String> params, HttpSession httpSession, String state, String issuerId)
             throws ApiNotAccessibleException, IOException,
             AuthorizationServerWellknownResponseException,
             InvalidWellknownResponseException,
@@ -154,9 +154,10 @@ public class CredentialsController {
             return boundToken;
         }
         if (dpopIssuanceSessionService.find(httpSession, state) != null) {
-            params.putIfAbsent("grant_type", "authorization_code");
-            log.info("Exchanging authorization code inside credential download for BFF DPoP session");
-            TokenResponseDTO exchanged = idpService.exchangeAndBindToken(params, httpSession);
+            TokenResponseDTO exchanged = idpService.exchangeAndBindToken(
+                    dpopIssuanceSessionService.authorizationCodeParams(
+                            httpSession, state, params.get("code"), issuerId),
+                    httpSession);
             if (exchanged != null) {
                 return exchanged;
             }

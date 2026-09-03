@@ -320,11 +320,7 @@ public class IdpServiceImpl implements IdpService {
     private Map<String, String> convertVerifiableCredentialRequestToMap(VerifiableCredentialRequestDTO verifiableCredentialRequest) {
         Map<String, String> params = new HashMap<>();
         params.put("code", verifiableCredentialRequest.getCode());
-        params.put(REDIRECT_URI, verifiableCredentialRequest.getRedirectUri());
-        params.put(GRANT_TYPE, verifiableCredentialRequest.getGrantType());
-        params.put(CODE_VERIFIER, verifiableCredentialRequest.getCodeVerifier());
         params.put("issuer", verifiableCredentialRequest.getIssuer());
-
         return params;
     }
 

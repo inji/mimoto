@@ -42,9 +42,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import static io.mosip.mimoto.exception.ErrorConstants.CREDENTIAL_DOWNLOAD_EXCEPTION;
@@ -94,7 +92,7 @@ public class WalletCredentialsController {
                             schema = @Schema(implementation = VerifiableCredentialRequestDTO.class),
                             examples = @ExampleObject(
                                     name = "VerifiableCredentialRequest Example",
-                                    value = "{ \"issuer\": \"issuerId\", \"credentialConfigurationId\": \"MockVerifiableCredential\", \"code\": \"authCode\", \"grantType\": \"authorization_code\", \"redirectUri\": \"https://example.com/cb\", \"codeVerifier\": \"verifier\" }"
+                                    value = "{ \"issuer\": \"issuerId\", \"credentialConfigurationId\": \"MockVerifiableCredential\", \"code\": \"authCode\" }"
                             )
                     )
             )
@@ -328,23 +326,14 @@ public class WalletCredentialsController {
         if (dpopIssuanceSessionService.find(httpSession, state) != null) {
             log.info("Exchanging authorization code inside wallet credential download for BFF DPoP session, issuer: {}", issuerId);
             TokenResponseDTO exchanged = idpService.exchangeAndBindToken(
-                    toTokenParams(request, state), httpSession);
+                    dpopIssuanceSessionService.authorizationCodeParams(
+                            httpSession, state, request.getCode(), issuerId),
+                    httpSession);
             if (exchanged != null) {
                 return exchanged;
             }
         }
         throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
                 "DPoP issuance session not found or token is not bound");
-    }
-
-    private static Map<String, String> toTokenParams(VerifiableCredentialRequestDTO request, String state) {
-        Map<String, String> params = new HashMap<>();
-        params.put("code", request.getCode());
-        params.put("redirect_uri", request.getRedirectUri());
-        params.put("grant_type", request.getGrantType());
-        params.put("code_verifier", request.getCodeVerifier());
-        params.put("issuer", request.getIssuer());
-        params.put("state", state);
-        return params;
     }
 }

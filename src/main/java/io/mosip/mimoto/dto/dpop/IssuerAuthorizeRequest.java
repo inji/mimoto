@@ -7,20 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-@Schema(description = "PKCE parameters used to build the OpenID4VCI authorization URL. code_verifier stays in the browser.")
+@Schema(description = "Parameters used to build the OpenID4VCI authorization URL. Mimoto generates PKCE state, code_verifier, and code_challenge.")
 public class IssuerAuthorizeRequest {
-
-    @NotBlank(message = "codeChallenge cannot be blank")
-    @JsonProperty("codeChallenge")
-    @JsonAlias("code_challenge")
-    @Schema(example = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
-    private String codeChallenge;
-
-    @NotBlank(message = "codeChallengeMethod cannot be blank")
-    @JsonProperty("codeChallengeMethod")
-    @JsonAlias("code_challenge_method")
-    @Schema(example = "S256")
-    private String codeChallengeMethod;
 
     @NotBlank(message = "redirectUri cannot be blank")
     @JsonProperty("redirectUri")

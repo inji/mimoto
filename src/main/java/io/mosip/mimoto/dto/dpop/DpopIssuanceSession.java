@@ -33,4 +33,6 @@ public class DpopIssuanceSession implements Serializable {
     private String cNonce;
     private String asDpopNonce;
     private String issuerDpopNonce;
+    private String codeVerifier;
+    private String redirectUri;
 }

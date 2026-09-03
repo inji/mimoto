@@ -270,9 +270,6 @@ public class IdpServiceTest {
     public void shouldReturnTokenResponseForVerifiableCredentialRequestDTO() throws Exception {
         VerifiableCredentialRequestDTO requestDTO = new VerifiableCredentialRequestDTO();
         requestDTO.setCode("sampleCode");
-        requestDTO.setRedirectUri("https://myapp.com/callback");
-        requestDTO.setGrantType("authorization_code");
-        requestDTO.setCodeVerifier("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
         requestDTO.setIssuer("issuer123");
 
         IssuerDTO mockIssuer = new IssuerDTO();
@@ -285,15 +282,10 @@ public class IdpServiceTest {
                 .thenReturn(authorizationServerWellKnownResponse);
         when(authorizationServerWellKnownResponse.getTokenEndpoint())
                 .thenReturn("https://example.com/token");
-        when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq("https://example.com/token")))
-                .thenReturn("jwt-token");
-        when(restTemplate.postForObject(eq("https://example.com/token"), any(HttpEntity.class), eq(TokenResponseDTO.class)))
-                .thenReturn(tokenResponseDTO);
+        InvalidRequestException ex = assertThrows(InvalidRequestException.class, () ->
+                idpService.getTokenResponse(requestDTO));
 
-        TokenResponseDTO response = idpService.getTokenResponse(requestDTO);
-
-        assertNotNull(response);
-        assertEquals(tokenResponseDTO, response);
+        assertEquals("invalid_request --> Invalid code verifier.", ex.getMessage());
     }
 
     @Test
