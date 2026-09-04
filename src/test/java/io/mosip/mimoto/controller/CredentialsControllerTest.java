@@ -260,8 +260,8 @@ public class CredentialsControllerTest {
                         .header("state", "oauth-state")
                         .content(requestContent))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.errorCode", Matchers.is("internal_server_error")))
-                .andExpect(jsonPath("$.errorMessage", Matchers.is("We are unable to process request now")));
+                .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is("RESIDENT-APP-034")))
+                .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is("Exception occurred while performing the authorization")));
 
     }
 
