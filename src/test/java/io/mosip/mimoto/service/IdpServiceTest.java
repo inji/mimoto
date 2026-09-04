@@ -267,21 +267,11 @@ public class IdpServiceTest {
     }
 
     @Test
-    public void shouldReturnTokenResponseForVerifiableCredentialRequestDTO() throws Exception {
+    public void shouldRejectVerifiableCredentialRequestWithoutCodeVerifier() {
         VerifiableCredentialRequestDTO requestDTO = new VerifiableCredentialRequestDTO();
         requestDTO.setCode("sampleCode");
         requestDTO.setIssuer("issuer123");
 
-        IssuerDTO mockIssuer = new IssuerDTO();
-        mockIssuer.setClient_id("client123");
-        mockIssuer.setClient_alias("clientAlias");
-
-        when(issuersService.getIssuerDetails("issuer123")).thenReturn(mockIssuer);
-        when(issuersService.getIssuerConfiguration("issuer123")).thenReturn(credentialIssuerConfiguration);
-        when(credentialIssuerConfiguration.getAuthorizationServerWellKnownResponse())
-                .thenReturn(authorizationServerWellKnownResponse);
-        when(authorizationServerWellKnownResponse.getTokenEndpoint())
-                .thenReturn("https://example.com/token");
         InvalidRequestException ex = assertThrows(InvalidRequestException.class, () ->
                 idpService.getTokenResponse(requestDTO));
 
