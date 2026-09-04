@@ -1,8 +1,10 @@
 package io.mosip.mimoto.util;
 
 import com.google.gson.Gson;
+import io.mosip.mimoto.constant.DpopConstants;
 import io.mosip.mimoto.core.http.RequestWrapper;
 import io.mosip.mimoto.dto.SecretKeyRequest;
+import io.mosip.mimoto.exception.DpopChallengeException;
 import io.mosip.mimoto.exception.TokenGenerationFailedException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
@@ -20,7 +22,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -190,22 +194,196 @@ public class RestApiClient {
     }
 
     public <T> T postApiWithErrorResponse(String uri, MediaType mediaType, Object requestType, Class<T> responseClass, String bearerToken) {
+        return postCredentialApi(uri, mediaType, requestType, responseClass, bearerToken, DpopConstants.BEARER_TOKEN_TYPE, null);
+    }
+
+    /**
+     * Posts a credential request supporting DPoP authorization and Bearer downgrade (RFC 9449 §7.2).
+     * Retries once as Bearer when the issuer rejects the DPoP auth scheme (including Certify-style
+     * responses without a Bearer WWW-Authenticate header). Never downgrades a use_dpop_nonce
+     * challenge or an issuer that requires a DPoP-bound token to be presented with a DPoP proof.
+     */
+    public <T> T postCredentialApi(String uri, MediaType mediaType, Object requestType, Class<T> responseClass,
+                                   String accessToken, String tokenType, String dpopProof) {
+        boolean useDpop = shouldSendDpop(tokenType, dpopProof);
         try {
-            log.info("RestApiClient::postApiWithErrorResponse()::entry uri: {}", uri);
-            return plainRestTemplate.postForObject(uri, setRequestHeader(requestType, mediaType, bearerToken), responseClass);
-        } catch (HttpClientErrorException e) {
-            log.error("RestApiClient::postApiWithErrorResponse()::client error uri: {} status: {}", uri, e.getStatusCode());
-log.debug("RestApiClient::postApiWithErrorResponse()::client error response body: {}", e.getResponseBodyAsString());
-            try {
-                return new com.fasterxml.jackson.databind.ObjectMapper().readValue(e.getResponseBodyAsString(), responseClass);
-            } catch (Exception ex) {
-                log.error("RestApiClient::postApiWithErrorResponse()::failed to parse error body as {}: {}", responseClass.getSimpleName(), ex.getMessage());
-                return null;
+            log.info("RestApiClient::postCredentialApi()::entry uri: {} dpop: {}", uri, useDpop);
+            return exchangeCredential(uri, mediaType, requestType, responseClass, accessToken, useDpop, dpopProof);
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            if (!useDpop || !isUnauthorizedOrForbidden(e.getStatusCode())) {
+                return parseCredentialErrorBody(uri, responseClass, e);
             }
+
+            HttpHeaders responseHeaders = e.getResponseHeaders();
+            String wwwAuthenticate = responseHeaders != null
+                    ? responseHeaders.getFirst(DpopConstants.WWW_AUTHENTICATE_HEADER) : null;
+            WwwAuthenticateChallenge challenge = WwwAuthenticateChallenge.parse(wwwAuthenticate);
+            String nonce = responseHeaders != null
+                    ? responseHeaders.getFirst(DpopConstants.DPOP_NONCE_HEADER) : null;
+            String responseBody = e.getResponseBodyAsString();
+
+            if (isDpopNonceChallenge(challenge, nonce, responseBody)) {
+                throw new DpopChallengeException(e.getStatusCode(), responseHeaders, responseBody);
+            }
+
+            if (shouldRetryWithBearer(challenge, responseBody)) {
+                log.warn("RestApiClient::postCredentialApi()::DPoP rejected by issuer, retrying with Bearer for uri: {} wwwAuthenticate: {} body: {}",
+                        uri, wwwAuthenticate, responseBody);
+                try {
+                    return exchangeCredential(uri, mediaType, requestType, responseClass, accessToken, false, null);
+                } catch (org.springframework.web.client.HttpStatusCodeException retryException) {
+                    return parseCredentialErrorBody(uri, responseClass, retryException);
+                }
+            }
+
+            return parseCredentialErrorBody(uri, responseClass, e);
+        } catch (DpopChallengeException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("RestApiClient::postApiWithErrorResponse()::error uri: {} {}", uri, e.getMessage(), e);
+            log.error("RestApiClient::postCredentialApi()::error uri: {} {}", uri, e.getMessage(), e);
             return null;
         }
+    }
+
+    private static boolean isUnauthorizedOrForbidden(org.springframework.http.HttpStatusCode statusCode) {
+        return statusCode == HttpStatus.UNAUTHORIZED || statusCode == HttpStatus.FORBIDDEN;
+    }
+
+    /**
+     * use_dpop_nonce + DPoP-Nonce must be returned to the client for a new proof — never Bearer-downgraded.
+     */
+    private static boolean isDpopNonceChallenge(WwwAuthenticateChallenge challenge, String nonce, String responseBody) {
+        if (StringUtils.isBlank(nonce)) {
+            return false;
+        }
+        if (challenge.isDpop() && DpopConstants.USE_DPOP_NONCE_ERROR.equals(challenge.getError())) {
+            return true;
+        }
+        return StringUtils.isNotBlank(responseBody)
+                && responseBody.contains(DpopConstants.USE_DPOP_NONCE_ERROR);
+    }
+
+    /**
+     * Retry as Bearer only when the issuer clearly does not support DPoP:
+     * - WWW-Authenticate is Bearer-only (RFC 9449 §7.2), or
+     * - response body matches Certify's DPoP-not-supported message.
+     * Never Bearer-downgrades a use_dpop_nonce challenge, invalid_dpop_proof, or a DPoP-bound token rejection.
+     */
+    private static boolean shouldRetryWithBearer(WwwAuthenticateChallenge challenge, String responseBody) {
+        if (indicatesUseDpopNonce(challenge, responseBody) || issuerRequiresDpopProof(challenge, responseBody)) {
+            return false;
+        }
+        if (!challenge.isDpop() && challenge.isBearer()) {
+            return true;
+        }
+        return isCertifyDpopUnsupported(responseBody);
+    }
+
+    /**
+     * Certify / Spring Security returns XML 403 Forbidden when the Authorization scheme is DPoP.
+     */
+    private static boolean isCertifyDpopUnsupported(String responseBody) {
+        if (StringUtils.isBlank(responseBody)) {
+            return false;
+        }
+        if (responseBody.contains(DpopConstants.CERTIFY_DPOP_NOT_SUPPORTED_MESSAGE)) {
+            return true;
+        }
+        String compact = responseBody.replaceAll("\\s+", "");
+        return compact.contains("<error>Forbidden</error>") && compact.contains("<status>403</status>");
+    }
+
+    /**
+     * Send DPoP only when a proof is present and the token is not a Bearer token.
+     * Certify rejects Authorization: DPoP with a gateway 403.
+     */
+    private static boolean shouldSendDpop(String tokenType, String dpopProof) {
+        if (StringUtils.isBlank(dpopProof)) {
+            return false;
+        }
+        return !DpopConstants.BEARER_TOKEN_TYPE.equalsIgnoreCase(StringUtils.defaultString(tokenType));
+    }
+
+    /**
+     * RFC 9449 resource servers reject a Bearer retry when the access token is DPoP-bound.
+     */
+    private static boolean issuerRequiresDpopProof(WwwAuthenticateChallenge challenge, String responseBody) {
+        if (challenge.isDpop() && (DpopConstants.INVALID_DPOP_PROOF_ERROR.equals(challenge.getError())
+                || DpopConstants.INVALID_TOKEN_ERROR.equals(challenge.getError()))) {
+            return true;
+        }
+        if (StringUtils.isBlank(responseBody)) {
+            return false;
+        }
+        return responseBody.contains(DpopConstants.INVALID_DPOP_PROOF_ERROR)
+                || responseBody.contains(DpopConstants.DPOP_BOUND_TOKEN_MESSAGE);
+    }
+
+    private static boolean indicatesUseDpopNonce(WwwAuthenticateChallenge challenge, String responseBody) {
+        if (challenge.isDpop() && DpopConstants.USE_DPOP_NONCE_ERROR.equals(challenge.getError())) {
+            return true;
+        }
+        return StringUtils.isNotBlank(responseBody)
+                && responseBody.contains(DpopConstants.USE_DPOP_NONCE_ERROR);
+    }
+
+    private <T> T exchangeCredential(String uri, MediaType mediaType, Object requestType, Class<T> responseClass,
+                                     String accessToken, boolean useDpop, String dpopProof) {
+        HttpEntity<Object> requestEntity = setCredentialRequestHeader(requestType, mediaType, accessToken, useDpop, dpopProof);
+        ResponseEntity<T> response = plainRestTemplate.exchange(uri, HttpMethod.POST, requestEntity, responseClass);
+        return response.getBody();
+    }
+
+    private <T> T parseCredentialErrorBody(String uri, Class<T> responseClass,
+                                           org.springframework.web.client.HttpStatusCodeException e) {
+        log.error("RestApiClient::postCredentialApi()::client error uri: {} status: {} wwwAuthenticate: {} dpopNonce: {} body: {}",
+                uri,
+                e.getStatusCode(),
+                e.getResponseHeaders() != null ? e.getResponseHeaders().getFirst(DpopConstants.WWW_AUTHENTICATE_HEADER) : null,
+                e.getResponseHeaders() != null ? e.getResponseHeaders().getFirst(DpopConstants.DPOP_NONCE_HEADER) : null,
+                e.getResponseBodyAsString());
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .disable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            return mapper.readValue(e.getResponseBodyAsString(), responseClass);
+        } catch (Exception ex) {
+            log.error("RestApiClient::postCredentialApi()::failed to parse error body as {}: {}",
+                    responseClass.getSimpleName(), ex.getMessage());
+            return null;
+        }
+    }
+
+    private HttpEntity<Object> setCredentialRequestHeader(Object requestType, MediaType mediaType, String accessToken,
+                                                          boolean useDpop, String dpopProof) {
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        if (mediaType != null) {
+            headers.add(CONTENT_TYPE, mediaType.toString());
+        }
+
+        if (useDpop) {
+            headers.add(HttpHeaders.AUTHORIZATION, DpopConstants.DPOP_TOKEN_TYPE + " " + accessToken);
+            headers.add(DpopConstants.DPOP_HEADER, dpopProof);
+        } else {
+            headers.add(HttpHeaders.AUTHORIZATION, DpopConstants.BEARER_TOKEN_TYPE + " " + accessToken);
+        }
+
+        if (requestType != null) {
+            try {
+                HttpEntity<Object> httpEntity = (HttpEntity<Object>) requestType;
+                HttpHeaders httpHeader = httpEntity.getHeaders();
+                Iterator<String> iterator = httpHeader.keySet().iterator();
+                while (iterator.hasNext()) {
+                    String key = iterator.next();
+                    if (!(headers.containsKey(CONTENT_TYPE) && key.equals(CONTENT_TYPE))) {
+                        headers.add(key, Objects.requireNonNull(httpHeader.get(key)).get(0));
+                    }
+                }
+                return new HttpEntity<>(httpEntity.getBody(), headers);
+            } catch (ClassCastException | NullPointerException ex) {
+                return new HttpEntity<>(requestType, headers);
+            }
+        }
+        return new HttpEntity<>(headers);
     }
 
     private HttpEntity<Object> setRequestHeader(Object requestType, MediaType mediaType, String bearerToken){

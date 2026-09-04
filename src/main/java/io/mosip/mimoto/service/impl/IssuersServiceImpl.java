@@ -37,7 +37,7 @@ public class IssuersServiceImpl implements IssuersService {
 
     private final String contextPath;
 
-    private static final String GET_TOKEN_PATH = "/get-token/";
+    private static final String GET_TOKEN_PATH = "/v2/get-token/";
 
     public IssuersServiceImpl(Utilities utilities, ObjectMapper objectMapper, IssuerConfigUtil issuersConfigUtil,
                               @Value("${mosip.api.public.url}") String mosipApiPublicUrl,

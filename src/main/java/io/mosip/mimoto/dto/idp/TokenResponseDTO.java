@@ -1,5 +1,6 @@
 package io.mosip.mimoto.dto.idp;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -10,6 +11,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(description = "Token response returned by the identity provider after a successful token request.")
 public class TokenResponseDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)

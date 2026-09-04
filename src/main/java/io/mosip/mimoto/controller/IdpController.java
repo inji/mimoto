@@ -44,6 +44,7 @@ public class IdpController {
     private static final Set<String> HOP_BY_HOP_HEADERS = Set.of(
             HttpHeaders.TRANSFER_ENCODING,
             HttpHeaders.CONNECTION,
+            HttpHeaders.CONTENT_LENGTH,
             "Keep-Alive",
             "Proxy-Authenticate",
             "Proxy-Authorization",

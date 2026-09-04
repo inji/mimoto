@@ -63,14 +63,14 @@ public class CredentialServiceImpl implements CredentialService {
 
 
     @Override
-    public ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialConfigurationId, TokenResponseDTO tokenResponse, String credentialValidity, String locale)
+    public ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialConfigurationId, TokenResponseDTO tokenResponse, String credentialValidity, String locale, String dpopProof)
             throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException, ExternalServiceUnavailableException, WriterException {
         IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
         CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse = issuersService.getIssuerWellKnownResponse(issuerDTO.getCredential_issuer_host());
         CredentialsSupportedResponse credentialsSupportedResponse = credentialIssuerWellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
         VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(credentialIssuerWellKnownResponse.getVersion());
-        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false);
+        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false, dpopProof);
 
         boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);
         if (verificationStatus) {
@@ -98,7 +98,7 @@ public class CredentialServiceImpl implements CredentialService {
      */
     public VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
             TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
-            String base64Key, String issuerId, String locale)
+            String base64Key, String issuerId, String locale, String dpopProof)
             throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException, VCVerificationException, InvalidCredentialResourceException {
 
         // Validate inputs
@@ -109,7 +109,7 @@ public class CredentialServiceImpl implements CredentialService {
 
         // Download credential from issuer
         VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(issuerConfig.getWellKnownResponse().getVersion());
-        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true);
+        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true, dpopProof);
 
         // Verify credential
         boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);

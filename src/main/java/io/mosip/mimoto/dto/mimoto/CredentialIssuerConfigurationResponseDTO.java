@@ -33,4 +33,16 @@ public class CredentialIssuerConfigurationResponseDTO {
             example = "[\"authorization_code\"]")
     private List<@NotBlank String> grantTypesSupported;
 
+    @JsonProperty("token_endpoint")
+    @Schema(description = "Public authorization server token URL used as DPoP htu. May differ from the backend URL Mimoto posts to.")
+    private String tokenEndpoint;
+
+    @JsonProperty("credential_endpoint")
+    @Schema(description = "Real credential issuer endpoint used as DPoP htu for credential requests")
+    private String credentialEndpoint;
+
+    @JsonProperty("dpop_signing_alg_values_supported")
+    @Schema(description = "JWS algorithms the authorization server accepts for DPoP proofs")
+    private List<String> dpopSigningAlgValuesSupported;
+
 }

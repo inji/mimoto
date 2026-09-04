@@ -18,6 +18,7 @@ public interface CredentialService {
      * @param response           The token response
      * @param credentialValidity The credential validity
      * @param locale             The locale
+     * @param dpopProof          Optional DPoP proof from the client
      * @return ByteArrayInputStream containing the PDF
      * @throws ApiNotAccessibleException        If the issuer API is not accessible
      * @throws IOException                      If an I/O error occurs
@@ -25,7 +26,7 @@ public interface CredentialService {
      * @throws ExternalServiceUnavailableException If the credential download service is unavailable
      * @throws WriterException                  If QR code generation fails
      */
-    ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialType, TokenResponseDTO response, String credentialValidity, String locale)
+    ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialType, TokenResponseDTO response, String credentialValidity, String locale, String dpopProof)
             throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException, ExternalServiceUnavailableException, WriterException;
 
     /**
@@ -46,6 +47,6 @@ public interface CredentialService {
      */
     VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
             TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
-            String base64Key, String issuerId, String locale)
+            String base64Key, String issuerId, String locale, String dpopProof)
             throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException, VCVerificationException, InvalidCredentialResourceException;
 }

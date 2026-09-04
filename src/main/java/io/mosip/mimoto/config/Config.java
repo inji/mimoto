@@ -193,6 +193,7 @@ public class Config {
         corsConfiguration.addAllowedHeader("*");  // Allow all headers
         corsConfiguration.addAllowedMethod("*");  // Allow all HTTP methods
         corsConfiguration.setAllowCredentials(true);// Allow cookies to be sent
+        corsConfiguration.setExposedHeaders(java.util.List.of("Content-Disposition"));
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;
     }

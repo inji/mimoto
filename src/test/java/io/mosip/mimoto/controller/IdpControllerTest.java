@@ -7,7 +7,7 @@ import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.BaseUncheckedException;
 import io.mosip.mimoto.exception.IdpException;
 import io.mosip.mimoto.service.RestClientService;
-import io.mosip.mimoto.service.impl.IdpServiceImpl;
+import io.mosip.mimoto.service.IdpService;
 import io.mosip.mimoto.util.*;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.message.BasicNameValuePair;
@@ -34,7 +34,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import io.mosip.mimoto.exception.InvalidRequestException;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = IdpController.class)
@@ -59,7 +58,7 @@ public class IdpControllerTest {
     public RestClientService<Object> restClientService;
 
     @MockBean
-    private IdpServiceImpl idpService;
+    private IdpService idpService;
 
     @Test
     public void otpRequestTest() throws Exception {
