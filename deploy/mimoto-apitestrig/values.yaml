@@ -10,8 +10,8 @@ modules:
   mimoto:
     enabled: true
     image:
-      repository: injistack/apitest-mimoto
-      tag: 1.0.0-alpha.1
+      repository: injistackdev2/apitest-mimoto
+      tag: release-1.0.x
       pullPolicy: Always
 
 apitestrig:
