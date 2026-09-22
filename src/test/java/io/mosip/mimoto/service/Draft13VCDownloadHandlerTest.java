@@ -9,6 +9,7 @@ import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponse;
 import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.service.impl.Draft13VCDownloadHandler;
 import io.mosip.mimoto.util.CredentialApiClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -179,6 +180,42 @@ class Draft13VCDownloadHandlerTest {
         );
 
         assertTrue(exception.getMessage().contains("Credential response did not contain a credential"));
+    }
+
+    @Test
+    void shouldThrowInvalidRequestExceptionWhenIssuerReturnsError() throws Exception {
+        String credentialConfigurationId = "config-1";
+        String walletId = "wallet-1";
+        String base64Key = "base64-key";
+        boolean isLoginFlow = false;
+
+        Draft13VCCredentialRequest request = getVCCredentialRequestDTO();
+        request.setFormat(CredentialFormat.LDP_VC.getFormat());
+
+        when(credentialRequestService.buildRequest(eq(issuerDTO), eq(credentialConfigurationId),
+                eq(wellKnownResponse), eq(tokenResponse.getC_nonce()), eq(walletId), eq(base64Key), eq(isLoginFlow)))
+                .thenReturn(request);
+
+        VerifiableCredentialResponse mockResponse = new VerifiableCredentialResponse();
+        mockResponse.setError("ERROR_FETCHING_IDENTITY_DATA");
+        mockResponse.setErrorDescription("ERROR_FETCHING_IDENTITY_DATA");
+
+        when(credentialApiClient.postCredentialApi(
+                eq("https://example.com/credential"),
+                eq(MediaType.APPLICATION_JSON),
+                eq(request),
+                eq(VerifiableCredentialResponse.class),
+                eq("valid-access-token"),
+                isNull(),
+                isNull()
+        )).thenReturn(mockResponse);
+
+        InvalidRequestException exception = assertThrows(
+                InvalidRequestException.class,
+                () -> handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow, null)
+        );
+
+        assertTrue(exception.getMessage().contains("ERROR_FETCHING_IDENTITY_DATA"));
     }
 
     @Test

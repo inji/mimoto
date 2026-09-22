@@ -10,6 +10,7 @@ import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.DPoPChallengeException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.service.Draft13CredentialRequestService;
 import io.mosip.mimoto.service.VCDownloadHandler;
 import io.mosip.mimoto.util.CredentialApiClient;
@@ -18,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import static io.mosip.mimoto.exception.ErrorConstants.CREDENTIAL_DOWNLOAD_EXCEPTION;
+import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
 import static io.mosip.mimoto.exception.ErrorConstants.SERVER_UNAVAILABLE;
 
 @Slf4j
@@ -60,8 +62,12 @@ public class Draft13VCDownloadHandler implements VCDownloadHandler {
             throw new ExternalServiceUnavailableException(SERVER_UNAVAILABLE.getErrorCode(), message, e);
         }
 
-        if (response == null) {
-            String message = String.format("Unable to download credential from issuerId: %s, credentialConfigurationId: %s", issuerId, credentialConfigId);
+        if (response == null || response.hasError()) {
+            String errorDetail = response != null ? response.getError() + ": " + response.getErrorDescription() : "no response";
+            String message = String.format("Unable to download credential from issuerId: %s, credentialConfigurationId: %s", issuerId, credentialConfigId) + " - " + errorDetail;
+            if (response != null && response.hasError()) {
+                throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), message);
+            }
             throw new ExternalServiceUnavailableException(SERVER_UNAVAILABLE.getErrorCode(), message);
         }
 
