@@ -7,6 +7,7 @@ import io.mosip.mimoto.dto.mimoto.V1Credential;
 import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.service.impl.V1VCDownloadHandler;
 import io.mosip.mimoto.util.CredentialApiClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -223,8 +224,8 @@ class V1VCDownloadHandlerTest {
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN), isNull(), isNull()))
                 .thenReturn(invalidNonceResponse);
 
-        ExternalServiceUnavailableException exception = assertThrows(
-                ExternalServiceUnavailableException.class,
+        InvalidRequestException exception = assertThrows(
+                InvalidRequestException.class,
                 () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
                         wellKnownResponse, tokenResponse, null, null, false, null));
 
@@ -250,7 +251,7 @@ class V1VCDownloadHandlerTest {
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN), isNull(), isNull()))
                 .thenReturn(invalidNonceResponse);
 
-        assertThrows(ExternalServiceUnavailableException.class,
+        assertThrows(InvalidRequestException.class,
                 () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
                         wellKnownResponse, tokenResponse, null, null, false, null));
 
@@ -276,7 +277,7 @@ class V1VCDownloadHandlerTest {
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN), isNull(), isNull()))
                 .thenReturn(invalidNonceResponse);
 
-        assertThrows(ExternalServiceUnavailableException.class,
+        assertThrows(InvalidRequestException.class,
                 () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
                         wellKnownResponse, tokenResponse, null, null, false, null));
 
@@ -367,8 +368,8 @@ class V1VCDownloadHandlerTest {
                 eq(request), eq(V1VCCredentialResponse.class), eq(ACCESS_TOKEN), isNull(), isNull()))
                 .thenReturn(errorResponse);
 
-        ExternalServiceUnavailableException exception = assertThrows(
-                ExternalServiceUnavailableException.class,
+        InvalidRequestException exception = assertThrows(
+                InvalidRequestException.class,
                 () -> handler.downloadCredential(issuerDTO, CREDENTIAL_CONFIG_ID,
                         wellKnownResponse, tokenResponse, null, null, false, null));
 

@@ -2,6 +2,7 @@ package io.mosip.mimoto.util;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.mosip.mimoto.constant.DPoPConstants;
 import io.mosip.mimoto.exception.DPoPChallengeException;
 import io.mosip.mimoto.exception.InvalidRequestException;
@@ -180,7 +181,12 @@ public class CredentialApiClient {
         try {
             ObjectMapper mapper = new ObjectMapper()
                     .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-            return mapper.readValue(e.getResponseBodyAsString(), responseClass);
+            String body = e.getResponseBodyAsString();
+            if (XmlErrorToJson.isXml(body)) {
+                ObjectNode errorJson = XmlErrorToJson.toJson(body);
+                return errorJson == null ? null : mapper.convertValue(errorJson, responseClass);
+            }
+            return mapper.readValue(body, responseClass);
         } catch (Exception ex) {
             log.error("CredentialApiClient::postCredentialApi()::failed to parse error body as {}: {}",
                     responseClass.getSimpleName(), ex.getMessage());

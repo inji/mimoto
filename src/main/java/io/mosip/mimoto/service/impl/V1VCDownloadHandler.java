@@ -11,6 +11,7 @@ import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.DPoPChallengeException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.service.V1CredentialRequestService;
 import io.mosip.mimoto.service.VCDownloadHandler;
 import io.mosip.mimoto.util.CredentialApiClient;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import static io.mosip.mimoto.exception.ErrorConstants.CREDENTIAL_DOWNLOAD_EXCEPTION;
+import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
 import static io.mosip.mimoto.exception.ErrorConstants.SERVER_UNAVAILABLE;
 
 @Slf4j
@@ -61,8 +63,11 @@ public class V1VCDownloadHandler implements VCDownloadHandler {
 
         if (response == null || response.hasError()) {
             String errorDetail = response != null ? response.getError() + ": " + response.getErrorDescription() : "no response";
-            throw new ExternalServiceUnavailableException(SERVER_UNAVAILABLE.getErrorCode(),
-                    String.format(DOWNLOAD_FAILURE_MESSAGE, issuerId, credentialConfigurationId) + " - " + errorDetail);
+            String message = String.format(DOWNLOAD_FAILURE_MESSAGE, issuerId, credentialConfigurationId) + " - " + errorDetail;
+            if (response != null && response.hasError()) {
+                throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), message);
+            }
+            throw new ExternalServiceUnavailableException(SERVER_UNAVAILABLE.getErrorCode(), message);
         }
 
         List<V1Credential> credentials = response.getCredentials();

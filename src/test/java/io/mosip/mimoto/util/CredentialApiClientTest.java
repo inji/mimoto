@@ -205,6 +205,30 @@ class CredentialApiClientTest {
     }
 
     @Test
+    void postCredentialApi_shouldMapXmlVcError_when_issuerReturnsXmlErrorBody() {
+        String xmlBody = "<VCError><error>ERROR_FETCHING_IDENTITY_DATA</error>"
+                + "<error_description>ERROR_FETCHING_IDENTITY_DATA</error_description></VCError>";
+        HttpClientErrorException badRequest = HttpClientErrorException.create(
+                HttpStatus.BAD_REQUEST, "Bad Request",
+                new HttpHeaders(), xmlBody.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+
+        when(plainRestTemplate.exchange(eq(TEST_URI), eq(HttpMethod.POST), any(HttpEntity.class),
+                eq(io.mosip.mimoto.dto.mimoto.V1VCCredentialResponse.class)))
+                .thenThrow(badRequest);
+
+        io.mosip.mimoto.dto.mimoto.V1VCCredentialResponse result = credentialApiClient.postCredentialApi(
+                TEST_URI, MediaType.APPLICATION_JSON, "request",
+                io.mosip.mimoto.dto.mimoto.V1VCCredentialResponse.class,
+                ACCESS_TOKEN, DPoPConstants.BEARER_TOKEN_TYPE, null);
+
+        assertNotNull(result);
+        assertEquals("ERROR_FETCHING_IDENTITY_DATA", result.getError());
+        assertEquals("ERROR_FETCHING_IDENTITY_DATA", result.getErrorDescription());
+        verify(plainRestTemplate, times(1)).exchange(eq(TEST_URI), eq(HttpMethod.POST), any(HttpEntity.class),
+                eq(io.mosip.mimoto.dto.mimoto.V1VCCredentialResponse.class));
+    }
+
+    @Test
     void postCredentialApi_shouldMapJsonOAuthError_when_issuerReturnsErrorObject() {
         String errorBody = "{\"error\":\"invalid_dpop_proof\","
                 + "\"error_description\":\"This access token is DPoP-bound and cannot be presented as a Bearer token.\"}";
