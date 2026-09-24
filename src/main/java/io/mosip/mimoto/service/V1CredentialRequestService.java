@@ -1,8 +1,10 @@
 package io.mosip.mimoto.service;
 
+import io.mosip.mimoto.constant.BindingMethod;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.*;
+import io.mosip.mimoto.util.BindingMethodUtil;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -22,12 +24,14 @@ public class V1CredentialRequestService {
     private static final String PROOF_TYPE_JWT = "jwt";
     private final RestApiClient restApiClient;
     private final KeyPairRetrievalService keyPairService;
+    private final BindingMethodUtil bindingMethodUtil;
     @Value("${signing.algorithms.priority.order:ED25519,ES256K,ES256,RS256}")
     private String signingAlgorithmsPriorityOrder;
 
-    public V1CredentialRequestService(RestApiClient restApiClient, KeyPairRetrievalService keyPairService) {
+    public V1CredentialRequestService(RestApiClient restApiClient, KeyPairRetrievalService keyPairService, BindingMethodUtil bindingMethodUtil) {
         this.restApiClient = restApiClient;
         this.keyPairService = keyPairService;
+        this.bindingMethodUtil = bindingMethodUtil;
     }
 
     public V1VCCredentialRequest buildRequest(IssuerDTO issuerDTO, String credentialConfigurationId, CredentialIssuerWellKnownResponse wellKnownResponse, String walletId, String base64EncodedWalletKey, boolean isLoginFlow) throws Exception {
@@ -35,6 +39,7 @@ public class V1CredentialRequestService {
         CredentialsSupportedResponse credentialsSupportedResponse = wellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
         SigningAlgorithm signingAlgorithm = resolveAlgorithm(credentialsSupportedResponse);
+        BindingMethod bindingMethod = bindingMethodUtil.selectBindingMethod(credentialsSupportedResponse.getCryptographicBindingMethodsSupported());
 
         String cNonce = fetchNonce(wellKnownResponse.getNonceEndpoint());
 
@@ -46,7 +51,7 @@ public class V1CredentialRequestService {
             keyPair = SigningKeyUtil.generateKeyPair(signingAlgorithm);
             log.debug("Generated KeyPair for signing algorithm: {}", signingAlgorithm);
         }
-        jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair);
+        jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair, bindingMethod);
 
         Map<String, List<String>> proofs = Map.of(PROOF_TYPE_JWT, List.of(jwt));
 

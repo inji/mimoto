@@ -5,6 +5,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.*;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.exception.KeyGenerationException;
+import io.mosip.mimoto.constant.BindingMethod;
 import io.mosip.mimoto.util.factory.SigningAlgorithmHandler;
 import io.mosip.mimoto.util.factory.SigningAlgorithmHandlerFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -98,10 +99,12 @@ public class SigningKeyUtil {
      * @param clientId         The client ID (used as subject and issuer)
      * @param cNonce           The challenge nonce
      * @param keyPair          The key pair to use for signing
+     * @param bindingMethod    The cryptographic binding method — determines whether the public key
+     *                         is embedded as a raw JWK, a did:jwk kid, or a did:key kid in the header
      * @return Serialized signed JWT string
      * @throws JOSEException If JWT generation fails
      */
-    public static String generateJwt(SigningAlgorithm signingAlgorithm, String audience, String clientId, String cNonce, KeyPair keyPair) throws JOSEException {
+    public static String generateJwt(SigningAlgorithm signingAlgorithm, String audience, String clientId, String cNonce, KeyPair keyPair, BindingMethod bindingMethod) throws JOSEException {
         SigningAlgorithmHandler handler = SigningAlgorithmHandlerFactory.getHandler(signingAlgorithm);
 
         // Use handler to create JWK and signer
@@ -109,7 +112,23 @@ public class SigningKeyUtil {
         JWSSigner signer = handler.createSigner(jwk);
 
         JWTClaimsSet claimsSet = createClaims(clientId, audience, cNonce);
-        JWSHeader header = new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm()).type(new JOSEObjectType(OPENID4VCI_PROOF_JWT)).jwk(jwk.toPublicJWK()).build();
+
+        JWSHeader header = switch (bindingMethod) {
+            case JWK -> new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm())
+                    .type(new JOSEObjectType(OPENID4VCI_PROOF_JWT))
+                    .jwk(jwk.toPublicJWK())
+                    .build();
+            case DID_JWK -> new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm())
+                    .type(new JOSEObjectType(OPENID4VCI_PROOF_JWT))
+                    .keyID(BindingMethodUtil.encodeDidJwk(jwk))
+                    .build();
+            case DID_KEY -> new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm())
+                    .type(new JOSEObjectType(OPENID4VCI_PROOF_JWT))
+                    .keyID(BindingMethodUtil.encodeDidKey(jwk, signingAlgorithm))
+                    .build();
+        };
+        log.info("Proof JWT header — alg: {}, binding: {}, kid: {}, jwk present: {}",
+                signingAlgorithm, bindingMethod, header.getKeyID(), header.getJWK() != null);
 
         SignedJWT signedJWT = new SignedJWT(header, claimsSet);
         signedJWT.sign(signer);

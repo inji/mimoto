@@ -1,6 +1,7 @@
 package io.mosip.mimoto.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.mosip.mimoto.constant.BindingMethod;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.*;
@@ -26,6 +27,7 @@ import java.util.Map;
 
 import static io.mosip.mimoto.util.TestUtilities.*;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -47,6 +49,9 @@ public class CredentialRequestServiceTest {
     @MockBean
     private KeyPairRetrievalService keyPairService;
 
+    @MockBean
+    private BindingMethodUtil bindingMethodUtil;
+
     @Autowired
     private Draft13CredentialRequestBuilder draft13CredentialRequestBuilder;
 
@@ -60,6 +65,7 @@ public class CredentialRequestServiceTest {
         issuerId = "issuer1";
         issuerDTO = getIssuerConfigDTO(issuerId);
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(new LdpVcCredentialFormatHandler(objectMapper));
+        when(bindingMethodUtil.selectBindingMethod(any())).thenReturn(BindingMethod.DID_JWK);
     }
 
     @After

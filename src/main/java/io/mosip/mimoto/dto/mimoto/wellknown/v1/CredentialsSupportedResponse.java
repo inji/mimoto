@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -42,4 +43,10 @@ public class CredentialsSupportedResponse {
 
     @Schema(description = "Identify the type or schema of the claims included")
     private String vct;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @SerializedName("cryptographic_binding_methods_supported")
+    @JsonProperty("cryptographic_binding_methods_supported")
+    @Schema(description = "Supported cryptographic binding methods")
+    private List<String> cryptographicBindingMethodsSupported;
 }

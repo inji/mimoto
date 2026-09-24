@@ -3,6 +3,7 @@ package io.mosip.mimoto.util;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
+import io.mosip.mimoto.constant.BindingMethod;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.exception.KeyGenerationException;
 import io.mosip.mimoto.model.ProofSigningKey;
@@ -105,7 +106,8 @@ public class SigningKeyUtilTest {
                 "test-audience",
                 "test-client-id",
                 "test-nonce",
-                keyPair
+                keyPair,
+                BindingMethod.JWK
         );
         
         assertNotNull("JWT should not be null", jwt);
@@ -120,7 +122,7 @@ public class SigningKeyUtilTest {
     @Test
     public void shouldGenerateJwtWithoutNonceClaimWhenCNonceIsNull() throws Exception {
         KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.RS256);
-        String jwt = SigningKeyUtil.generateJwt(SigningAlgorithm.RS256, "test-audience", "test-client-id", null, keyPair);
+        String jwt = SigningKeyUtil.generateJwt(SigningAlgorithm.RS256, "test-audience", "test-client-id", null, keyPair, BindingMethod.JWK);
 
         assertNotNull("JWT should not be null", jwt);
         assertFalse("JWT should not be empty", jwt.isEmpty());
@@ -176,12 +178,51 @@ public class SigningKeyUtilTest {
     public void shouldCreateProofSigningKeyForAllAlgorithms() {
         for (SigningAlgorithm algorithm : SigningAlgorithm.values()) {
             ProofSigningKey proofSigningKey = SigningKeyUtil.createProofSigningKey(algorithm);
-            
+
             assertNotNull("ProofSigningKey should not be null for " + algorithm, proofSigningKey);
             assertEquals("Algorithm name should match for " + algorithm,
                          algorithm.name(),
                          proofSigningKey.getKeyMetadata().getAlgorithmName());
         }
+    }
+
+    @Test
+    public void shouldGenerateJwtWithJwkBinding() throws Exception {
+        KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.RS256);
+        String jwt = SigningKeyUtil.generateJwt(
+                SigningAlgorithm.RS256, "test-audience", "test-client-id", "test-nonce", keyPair, BindingMethod.JWK);
+
+        SignedJWT signedJWT = SignedJWT.parse(jwt);
+        assertNotNull("jwk should be present in header for jwk binding", signedJWT.getHeader().getJWK());
+        assertNull("kid should be absent for jwk binding", signedJWT.getHeader().getKeyID());
+    }
+
+    @Test
+    public void shouldGenerateJwtWithDidJwkBinding() throws Exception {
+        KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
+        String jwt = SigningKeyUtil.generateJwt(
+                SigningAlgorithm.ED25519, "test-audience", "test-client-id", "test-nonce", keyPair, BindingMethod.DID_JWK);
+
+        SignedJWT signedJWT = SignedJWT.parse(jwt);
+        String kid = signedJWT.getHeader().getKeyID();
+        assertNotNull("kid should be present for did:jwk binding", kid);
+        assertTrue("kid should start with did:jwk:", kid.startsWith("did:jwk:"));
+        assertTrue("kid should end with #0", kid.endsWith("#0"));
+        assertNull("jwk should be absent from header for did:jwk binding", signedJWT.getHeader().getJWK());
+    }
+
+    @Test
+    public void shouldGenerateJwtWithDidKeyBinding() throws Exception {
+        KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
+        String jwt = SigningKeyUtil.generateJwt(
+                SigningAlgorithm.ED25519, "test-audience", "test-client-id", "test-nonce", keyPair, BindingMethod.DID_KEY);
+
+        SignedJWT signedJWT = SignedJWT.parse(jwt);
+        String kid = signedJWT.getHeader().getKeyID();
+        assertNotNull("kid should be present for did:key binding", kid);
+        assertTrue("kid should start with did:key:z", kid.startsWith("did:key:z"));
+        assertTrue("kid fragment should repeat the identifier", kid.contains("#z"));
+        assertNull("jwk should be absent from header for did:key binding", signedJWT.getHeader().getJWK());
     }
 }
 
