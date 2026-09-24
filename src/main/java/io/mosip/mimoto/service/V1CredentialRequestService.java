@@ -36,11 +36,15 @@ public class V1CredentialRequestService {
 
         CredentialsSupportedResponse credentialsSupportedResponse = wellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
-        if (!requiresProof(credentialsSupportedResponse)) {
-            log.debug("Issuer does not require a proof, building request without proof");
-            return V1VCCredentialRequest.builder().credentialConfigurationId(credentialConfigurationId).build();
+        if (requiresProof(credentialsSupportedResponse)) {
+            return buildRequestWithProof(issuerDTO, credentialConfigurationId, credentialsSupportedResponse, wellKnownResponse, walletId, base64EncodedWalletKey, isLoginFlow);
         }
 
+        log.debug("Issuer does not require a proof, building request without proof");
+        return V1VCCredentialRequest.builder().credentialConfigurationId(credentialConfigurationId).build();
+    }
+
+    private V1VCCredentialRequest buildRequestWithProof(IssuerDTO issuerDTO, String credentialConfigurationId, CredentialsSupportedResponse credentialsSupportedResponse, CredentialIssuerWellKnownResponse wellKnownResponse, String walletId, String base64EncodedWalletKey, boolean isLoginFlow) throws Exception {
         SigningAlgorithm signingAlgorithm = resolveAlgorithm(credentialsSupportedResponse);
 
         String cNonce = fetchNonce(wellKnownResponse.getNonceEndpoint());

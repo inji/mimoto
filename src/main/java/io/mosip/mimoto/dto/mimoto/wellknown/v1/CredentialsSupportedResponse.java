@@ -27,7 +27,6 @@ public class CredentialsSupportedResponse {
     @Schema(description = "document Type of the Credential")
     private String doctype;
 
-    @NotEmpty(message = "Proof types supported must not be empty")
     @Valid
     @SerializedName("proof_types_supported")
     @JsonProperty("proof_types_supported")

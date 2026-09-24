@@ -49,13 +49,22 @@ public class Draft13CredentialRequestService {
                                             String base64EncodedWalletKey,
                                             boolean isLoginFlow) throws GeneralSecurityException, JOSEException, DecryptionException {
         CredentialsSupportedResponse credentialsSupportedResponse = wellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
-        String format = credentialsSupportedResponse.getFormat();
 
-        if (!requiresProof(credentialsSupportedResponse)) {
-            log.debug("Issuer does not require a proof, building request without proof");
-            return draft13CredentialRequestBuilder.buildCredentialRequest(format, null, credentialsSupportedResponse);
+        if (requiresProof(credentialsSupportedResponse)) {
+            return buildRequestWithProof(issuerDTO, credentialsSupportedResponse, wellKnownResponse, cNonce, walletId, base64EncodedWalletKey, isLoginFlow);
         }
 
+        log.debug("Issuer does not require a proof, building request without proof");
+        return draft13CredentialRequestBuilder.buildCredentialRequest(credentialsSupportedResponse.getFormat(), null, credentialsSupportedResponse);
+    }
+
+    private Draft13VCCredentialRequest buildRequestWithProof(IssuerDTO issuerDTO,
+                                                             CredentialsSupportedResponse credentialsSupportedResponse,
+                                                             CredentialIssuerWellKnownResponse wellKnownResponse,
+                                                             String cNonce,
+                                                             String walletId,
+                                                             String base64EncodedWalletKey,
+                                                             boolean isLoginFlow) throws GeneralSecurityException, JOSEException, DecryptionException {
         SigningAlgorithm signingAlgorithm = resolveAlgorithm(credentialsSupportedResponse);
 
         String jwt;
@@ -67,6 +76,7 @@ public class Draft13CredentialRequestService {
             jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair);
         }
 
+        String format = credentialsSupportedResponse.getFormat();
         return credentialsSupportedResponse.getProofTypesSupported()
                 .keySet()
                 .stream()
