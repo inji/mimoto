@@ -16,6 +16,8 @@ import java.security.KeyPair;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static io.mosip.mimoto.util.IssuerConfigUtil.requiresProof;
+
 @Service
 @Slf4j
 public class Draft13CredentialRequestService {
@@ -47,6 +49,12 @@ public class Draft13CredentialRequestService {
                                             String base64EncodedWalletKey,
                                             boolean isLoginFlow) throws GeneralSecurityException, JOSEException, DecryptionException {
         CredentialsSupportedResponse credentialsSupportedResponse = wellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
+        String format = credentialsSupportedResponse.getFormat();
+
+        if (!requiresProof(credentialsSupportedResponse)) {
+            log.debug("Issuer does not require a proof, building request without proof");
+            return draft13CredentialRequestBuilder.buildCredentialRequest(format, null, credentialsSupportedResponse);
+        }
 
         SigningAlgorithm signingAlgorithm = resolveAlgorithm(credentialsSupportedResponse);
 
@@ -59,7 +67,6 @@ public class Draft13CredentialRequestService {
             jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair);
         }
 
-        String format = credentialsSupportedResponse.getFormat();
         return credentialsSupportedResponse.getProofTypesSupported()
                 .keySet()
                 .stream()
