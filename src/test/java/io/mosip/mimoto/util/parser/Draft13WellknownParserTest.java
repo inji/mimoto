@@ -80,6 +80,37 @@ class Draft13WellknownParserTest {
     }
 
     @Test
+    void shouldMapCryptographicBindingMethodsFromDraft13Config() throws IOException {
+        String json = """
+                {
+                    "credential_issuer": "https://issuer.example.com",
+                    "credential_endpoint": "https://issuer.example.com/credential",
+                    "credential_configurations_supported": {
+                        "Bound": {
+                            "format": "ldp_vc",
+                            "scope": "bound",
+                            "cryptographic_binding_methods_supported": ["did:jwk"],
+                            "proof_types_supported": {
+                                "jwt": {"proof_signing_alg_values_supported": ["ES256"]}
+                            },
+                            "display": [{"name": "Bound", "locale": "en"}]
+                        },
+                        "Unbound": {
+                            "format": "ldp_vc",
+                            "scope": "unbound",
+                            "display": [{"name": "Unbound", "locale": "en"}]
+                        }
+                    }
+                }
+                """;
+
+        CredentialIssuerWellKnownResponse result = parser.parse(json);
+
+        assertEquals(List.of("did:jwk"), result.getCredentialConfigurationsSupported().get("Bound").getCryptographicBindingMethodsSupported());
+        assertNull(result.getCredentialConfigurationsSupported().get("Unbound").getCryptographicBindingMethodsSupported());
+    }
+
+    @Test
     void shouldMapAllFieldsFromDraft13Config() throws IOException {
         String json = """
                 {

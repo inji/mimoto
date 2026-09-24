@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -32,6 +33,12 @@ public class CredentialsSupportedResponse {
     @JsonProperty("proof_types_supported")
     @Schema(description = "List of proof types supported")
     private Map<@NotEmpty String, @Valid ProofTypesSupported> proofTypesSupported;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @SerializedName("cryptographic_binding_methods_supported")
+    @JsonProperty("cryptographic_binding_methods_supported")
+    @Schema(description = "List of cryptographic binding methods supported")
+    private List<String> cryptographicBindingMethodsSupported;
 
     @NotNull(message = "Credential metadata must not be null")
     @Valid
