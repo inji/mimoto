@@ -59,4 +59,10 @@ public class CredentialsSupportedResponse {
     @Schema(description = "Identify the type or schema of the claims included")
     private String vct;
 
+    @JsonInclude(NON_NULL)
+    @SerializedName("cryptographic_binding_methods_supported")
+    @JsonProperty("cryptographic_binding_methods_supported")
+    @Schema(description = "Supported cryptographic binding methods")
+    private List<String> cryptographicBindingMethodsSupported;
+
 }
