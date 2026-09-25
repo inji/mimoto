@@ -27,6 +27,7 @@ AuthenticateUserForGoogleLogin:
     }
     }'
       output: '{
+  "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_Smoke_sid_transactionId$",
   "sendOtpResp":{
         "maskedMobile": "$IGNORE$",
         "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult",
@@ -62,6 +63,7 @@ AuthenticateUserForGoogleLogin:
     }
     }'
       output: '{
+  "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_transactionId$",
   "sendOtpResp":{
         "maskedMobile": "$IGNORE$",
         "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult",

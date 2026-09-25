@@ -5,12 +5,13 @@ GetAllIssuers:
       uniqueIdentifier: TC_Mimoto_GetAllIssuers_01
       role: resident
       restMethod: get
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/GetAllIssuers/GetAllIssuers
-      outputTemplate: mimoto/GetAllIssuers/GetAllIssuersResult
+      outputTemplate: mimoto/responseCode
       input: '{
 }'
       output: '{
+      "responseCode": "200"
 }'
 
    Mimoto_GetAllIssuers_Specific_Issuer_All_Valid_Smoke:
@@ -19,12 +20,13 @@ GetAllIssuers:
       uniqueIdentifier: TC_Mimoto_GetAllIssuers_02
       role: resident
       restMethod: get
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/GetAllIssuers/GetAllIssuers
-      outputTemplate: mimoto/GetAllIssuers/GetAllIssuersResult
+      outputTemplate: mimoto/responseCode
       input: '{
 }'
       output: '{
+      "responseCode": "200"
 }'
 
    Mimoto_GetAllIssuers_Invalid_Issuer_Neg:

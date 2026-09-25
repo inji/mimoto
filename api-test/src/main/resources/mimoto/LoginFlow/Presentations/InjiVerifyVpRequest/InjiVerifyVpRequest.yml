@@ -5,11 +5,12 @@ InjiVerifyVpRequest:
       uniqueIdentifier: TC_InjiVerify_InjiVerifyVpRequest_01
       restMethod: post
       role: noauth
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/InjiVerifyVpRequest/InjiVerifyVpRequest
-      outputTemplate: mimoto/LoginFlow/Presentations/InjiVerifyVpRequest/InjiVerifyVpRequestResult
+      outputTemplate: mimoto/responseCode
       input: '{
       "clientId": "$CLIENT_ID_INJI_VERIFY$"
       }'
       output: '{
+      "responseCode": "201"
 }'

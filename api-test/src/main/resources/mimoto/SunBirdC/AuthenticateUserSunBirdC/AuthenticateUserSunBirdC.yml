@@ -20,4 +20,5 @@ AuthenticateUserSunBirdC:
       	"format": "base64url-encoded-json"
     }'
       output: '{
+        "transactionId": "$ID:ESignet_OAuthDetailsRequest_SunBirdC_all_Valid_Smoke_sid_transactionId$"
 }'

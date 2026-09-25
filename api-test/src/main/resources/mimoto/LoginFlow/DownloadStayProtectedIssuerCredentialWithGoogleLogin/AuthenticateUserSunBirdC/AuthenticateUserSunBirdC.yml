@@ -20,6 +20,7 @@ AuthenticateUserSunBirdCForGoogleLogin:
       	"format": "base64url-encoded-json"
     }'
       output: '{
+  "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_SunBirdC_all_Valid_Smoke_sid_transactionId$"
 }'
 
    Mimoto_ESignet_AuthenticateUserSunBirdCForGoogleLogin_SunBirdC_MultipleVC_Valid_Smoke:
@@ -43,4 +44,5 @@ AuthenticateUserSunBirdCForGoogleLogin:
       	"format": "base64url-encoded-json"
     }'
       output: '{
+  "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_SunBirdC_MultipleVC_all_Valid_Smoke_sid_transactionId$"
 }'

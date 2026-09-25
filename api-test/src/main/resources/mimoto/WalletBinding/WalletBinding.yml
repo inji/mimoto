@@ -293,7 +293,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "IDA-MLC-009"
+      "errorCode": "key_binding_failed"
     }
   ],      
         "sendOtpResp": {
@@ -372,7 +372,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "IDA-MLC-009"
+      "errorCode": "key_binding_failed"
     }
   ],      
         "sendOtpResp": {
@@ -465,7 +465,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_13
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_auth_factor_type
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -505,7 +504,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_14
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_auth_factor_type
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -530,7 +528,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "invalid_auth_factor_type_format"
+      "errorCode": "invalid_auth_factor_type"
     }
   ],        
         "sendOtpResp": {
@@ -545,7 +543,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_15
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_auth_factor_type
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -570,7 +567,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "invalid_auth_factor_type_format"
+      "errorCode": "invalid_auth_factor_type"
     }
   ],        
         "sendOtpResp": {
@@ -585,7 +582,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_16
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_auth_factor_type
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -610,7 +606,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "invalid_auth_factor_type_format"
+      "errorCode": "invalid_auth_factor_type"
     }
   ],        
         "sendOtpResp": {
@@ -625,7 +621,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_17
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_auth_factor_type
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -665,7 +660,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_18
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -705,7 +699,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_19
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -730,7 +723,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "invalid_challenge_length"
+      "errorCode": "invalid_challenge"
     }
   ],       
         "sendOtpResp": {
@@ -745,7 +738,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_20
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -770,7 +762,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "invalid_challenge_length"
+      "errorCode": "invalid_challenge"
     }
   ],       
         "sendOtpResp": {
@@ -785,7 +777,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_21
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -810,7 +801,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "invalid_challenge_length"
+      "errorCode": "invalid_challenge"
     }
   ],       
         "sendOtpResp": {
@@ -825,7 +816,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_22
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: 
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -865,7 +855,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_23
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge_format
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -905,7 +894,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_24
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge_format
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -930,7 +918,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "invalid_auth_factor_type_format"
+      "errorCode": "invalid_challenge_format"
     }
   ],      
         "sendOtpResp": {
@@ -945,7 +933,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_25
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge_format
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -970,7 +957,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "invalid_auth_factor_type_format"
+      "errorCode": "invalid_challenge_format"
     }
   ],      
         "sendOtpResp": {
@@ -985,7 +972,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_26
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge_format
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -1025,7 +1011,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_27
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge_format
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -1792,7 +1777,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "IDA-MLC-009"
+      "errorCode": "key_binding_failed"
     }
   ],      
         "sendOtpResp": {
@@ -1871,7 +1856,7 @@ WalletBinding:
       output: '{
   "errors": [
     {
-      "errorCode": "IDA-MLC-009"
+      "errorCode": "key_binding_failed"
     }
   ],      
         "sendOtpResp": {
@@ -1964,7 +1949,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_51
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_auth_factor_type
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2004,7 +1988,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_52
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_auth_factor_type
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2044,7 +2027,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_53
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_auth_factor_type
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2163,7 +2145,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_56
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2203,7 +2184,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_57
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2243,7 +2223,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_58
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2283,7 +2262,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_59
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2401,7 +2379,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_62
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge_format
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2441,7 +2418,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_63
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge_format
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding
@@ -2481,7 +2457,6 @@ WalletBinding:
       uniqueIdentifier: TC_Mimoto_WalletBinding_64
       role: resident
       validityCheckRequired: true
-      allowedErrorCodes: invalid_challenge_format
       restMethod: post
       checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/WalletBinding/WalletBinding

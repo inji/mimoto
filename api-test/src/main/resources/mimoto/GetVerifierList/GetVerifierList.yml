@@ -5,10 +5,11 @@ GetVerifierList:
       uniqueIdentifier: TC_Mimoto_GetVerifierList_01
       role: resident
       restMethod: get
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/GetVerifierList/GetVerifierList
-      outputTemplate: mimoto/GetVerifierList/GetVerifierListResult
+      outputTemplate: mimoto/responseCode
       input: '{
 }'
       output: '{
+      "responseCode": "200"
 }'
