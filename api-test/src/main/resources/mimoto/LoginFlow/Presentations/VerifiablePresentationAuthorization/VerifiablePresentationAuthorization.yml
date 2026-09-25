@@ -16,6 +16,8 @@ VerifiablePresentationAuthorization:
         "authorizationRequestUrl": "$AUTHORIZATION_REQUEST_URL$$ID:InjiVerifyVpRequest_all_Valid_Smoke_sid_requestId$"
 }'
       output: '{
+        "trusted": false,
+        "preregisteredWithWallet": false
 }'
 
    Mimoto_VerifiablePresentationAuthorization_withInvalid_authorizationRequestUrl_Neg:

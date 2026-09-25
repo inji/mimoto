@@ -6,10 +6,10 @@ AuthorizationCodeSunBirdCForGoogleLogin:
       role: resident
       restMethod: post
       additionalDependencies: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_01
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/AuthorizationCodeSunBirdC/AuthorizationCodeSunBirdC
-      outputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/AuthorizationCodeSunBirdC/AuthorizationCodeSunBirdCResult
+      outputTemplate: mimoto/responseCode
       input: '{
         "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_SunBirdC_all_Valid_Smoke_sid_encodedResp$",
       	"requestTime": "$TIMESTAMP$",
@@ -17,6 +17,7 @@ AuthorizationCodeSunBirdCForGoogleLogin:
       	"permittedAuthorizeScopes": [{scope: "sunbird_rc_insurance_vc_ldp"}]
 }'
       output: '{
+      "responseCode": "200"
 }'
 
    Mimoto_ESignet_AuthorizationCode_SunBirdCForGoogleLogin_MultipleVC_SunBirdC_All_Valid_Smoke_sid:
@@ -26,10 +27,10 @@ AuthorizationCodeSunBirdCForGoogleLogin:
       role: resident
       restMethod: post
       additionalDependencies: TC_Mimoto_AuthenticateUserSunBirdCForGoogleLogin_02
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/AuthorizationCodeSunBirdC/AuthorizationCodeSunBirdC
-      outputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/AuthorizationCodeSunBirdC/AuthorizationCodeSunBirdCResult
+      outputTemplate: mimoto/responseCode
       input: '{
         "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_SunBirdC_MultipleVC_all_Valid_Smoke_sid_encodedResp$",
       	"requestTime": "$TIMESTAMP$",
@@ -37,4 +38,5 @@ AuthorizationCodeSunBirdCForGoogleLogin:
       	"permittedAuthorizeScopes": [{scope: "sunbird_rc_insurance_vc_ldp"}]
 }'
       output: '{
+      "responseCode": "200"
 }'

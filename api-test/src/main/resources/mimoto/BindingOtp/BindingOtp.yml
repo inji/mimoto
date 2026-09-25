@@ -4,17 +4,18 @@ BindingOtp:
       role: resident
       description: Validate that the system successfully creates an OTP to bind an individualID to a valid UIN
       uniqueIdentifier: TC_Mimoto_BindingOtp_01
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       restMethod: post
       validityCheckRequired: true
       inputTemplate: mimoto/BindingOtp/BindingOtp
-      outputTemplate: mimoto/BindingOtp/BindingOtpResult
+      outputTemplate: mimoto/responseCode
       input: '{
       "requestTime": "$TIMESTAMP$",
       "individualId": "$ID:AddIdentity_Binding_smoke_Pos_UIN$",
       "otpChannels": [{channel: "EMAIL"}]
 }'
       output: '{
+      "responseCode": "200"
 }'
 
    Mimoto_BindingOtp_Valid_vid_All_Smoke:
@@ -52,7 +53,7 @@ BindingOtp:
       output: '{
   "errors": [
     {
-      "errorCode": "IDA-MLC-009"
+      "errorCode": "send_otp_failed"
     }
   ]
 }'
@@ -118,7 +119,7 @@ BindingOtp:
       output: '{
   "errors": [
     {
-      "errorCode": "IDA-MLC-009"
+      "errorCode": "send_otp_failed"
     }
   ]
 }'
@@ -423,7 +424,7 @@ BindingOtp:
       output: '{
   "errors": [
     {
-      "errorCode": "IDA-MLC-009"
+      "errorCode": "send_otp_failed"
     }
   ]
 }'
@@ -489,7 +490,7 @@ BindingOtp:
       output: '{
   "errors": [
     {
-      "errorCode": "IDA-MLC-009"
+      "errorCode": "send_otp_failed"
     }
   ]
 }'

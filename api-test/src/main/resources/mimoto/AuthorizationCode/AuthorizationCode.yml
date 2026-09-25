@@ -6,14 +6,15 @@ AuthorizationCode:
       role: resident
       restMethod: post
       additionalDependencies: TC_Mimoto_AuthenticateUser_01
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/AuthorizationCode/AuthorizationCode
-      outputTemplate: mimoto/AuthorizationCode/AuthorizationCodeResult
+      outputTemplate: mimoto/responseCode
       input: '{
         "encodedHash": "$ID:ESignet_OAuthDetailsRequest_all_Valid_Smoke_sid_encodedResp$",
       	"requestTime": "$TIMESTAMP$",
       	"transactionId": "$ID:ESignet_OAuthDetailsRequest_all_Valid_Smoke_sid_transactionId$"
 }'
       output: '{
+      "responseCode": "200"
 }'

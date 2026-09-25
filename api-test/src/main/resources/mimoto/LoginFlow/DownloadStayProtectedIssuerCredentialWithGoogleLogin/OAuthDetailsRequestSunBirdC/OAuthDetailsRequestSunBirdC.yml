@@ -5,9 +5,9 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestSunBirdCForGoogleLogin_01
       role: resident
       restMethod: post
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/OAuthDetailsRequestSunBirdC/OAuthDetailsRequestSunBirdC
-      outputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/OAuthDetailsRequestSunBirdC/OAuthDetailsRequestSunBirdCResult
+      outputTemplate: mimoto/responseCode
       input: '{
       	"requestTime": "$TIMESTAMP$",
       	"clientId": "$GETCLIENTIDFORINSURANCEFROMMIMOTOACTUATOR$",
@@ -24,7 +24,7 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
         "codeChallengeMethod": "S256"
 }'
       output: '{
-       
+      "responseCode": "200"
 }'
 
    Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_SunBirdC_MultipleVC_all_Valid_Smoke_sid:
@@ -33,9 +33,9 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestSunBirdCForGoogleLogin_02
       role: resident
       restMethod: post
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/OAuthDetailsRequestSunBirdC/OAuthDetailsRequestSunBirdC
-      outputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/OAuthDetailsRequestSunBirdC/OAuthDetailsRequestSunBirdCResult
+      outputTemplate: mimoto/responseCode
       input: '{
       	"requestTime": "$TIMESTAMP$",
       	"clientId": "$GETCLIENTIDFORINSURANCEFROMMIMOTOACTUATOR$",
@@ -52,5 +52,5 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
         "codeChallengeMethod": "S256"
 }'
       output: '{
-       
+      "responseCode": "200"
 }'

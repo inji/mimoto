@@ -27,6 +27,7 @@ AuthenticateUser:
     }
     }'
       output: '{
+        "transactionId": "$ID:ESignet_OAuthDetailsRequest_all_Valid_Smoke_sid_transactionId$",
   "sendOtpResp":{
         "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult"
     }

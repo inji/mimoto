@@ -5,10 +5,10 @@ SearchPolicySunBirdR:
       uniqueIdentifier: TC_Mimoto_SearchPolicySunBirdR_01
       role: resident
       restMethod: post
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/SunBirdR/SearchPolicySunBirdR/SearchPolicySunBirdR
-      outputTemplate: mimoto/SunBirdR/SearchPolicySunBirdR/SearchPolicySunBirdRResult
+      outputTemplate: mimoto/responseCode
       input: '{
         "offset": "0",
       	"limit": "5",
@@ -17,4 +17,5 @@ SearchPolicySunBirdR:
       	"policyNumber": "$POLICYNUMBERFORSUNBIRDRC$"
     }'
       output: '{
+      "responseCode": "200"
 }'

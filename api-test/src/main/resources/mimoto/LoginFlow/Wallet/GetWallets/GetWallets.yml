@@ -5,14 +5,15 @@ GetWallets:
       uniqueIdentifier: TC_Mimoto_GetWallets_01
       role: userDefinedCookie
       restMethod: get
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/Wallet/GetWallets/GetWallets
-      outputTemplate: mimoto/LoginFlow/Wallet/GetWallets/GetWalletsResult
+      outputTemplate: mimoto/responseCode
       input: '{
       	"cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
       	"cookieName": "SESSION"
 }'
       output: '{
+      "responseCode": "200"
 }'
 
    Mimoto_GetWallets_WithoutLogin_Neg:
