@@ -52,6 +52,7 @@ Guidelines for implementation in INJI Web wallet:
   - Handling the credential response based on the respective specification
   - Returning the credential to the caller in a standard format(same as draft 13 specification), so that the rest of the flow remains unaffected by the changes in the specification.
 3. In both wallet and guest credential download flows, only the first credential from the credentials array will be extracted and used for subsequent operations.
+4. Holder binding is optional. When a credential configuration in the issuer's well-known does not declare both `cryptographic_binding_methods_supported` and `proof_types_supported`, no nonce is fetched and the credential request is sent without a proof.
 
 ### Class structure : 
 
@@ -123,9 +124,10 @@ public interface WellknownResponseParser {
          │ DownloadHandler      │    │  (V1 - default)      │
          │                      │    │                      │
          |downloadCredential()  │    │ downloadCredential() │
-         │ • Get cNonce         │    │ • Get cNonce         │
-         │ (from token response)│    │ (from nonce endpoint)│
-         │ • Build proof        │    │ • Build proof        │
+         │ • If bound (†):      │    │ • If bound (†):      │
+         │   - Get cNonce       │    │   - Get cNonce       │
+         │   (token response)   │    │   (nonce endpoint)   │
+         │   - Build proof      │    │   - Build proof      │
          │ • Build request      │    │ • Build request      │
          │ • POST endpoint      │    │ • POST endpoint      │
          │ • Parse response     │    │ • Parse response     │
@@ -142,6 +144,8 @@ public interface WellknownResponseParser {
                       │  (normalized array)  │
                       └──────────────────────┘
 ```
+
+† Only when the credential configuration is holder-bound (see point 4 above); otherwise the request is sent without a proof.
 
 Interface :
 
