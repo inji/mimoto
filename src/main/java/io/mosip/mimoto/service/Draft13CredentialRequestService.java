@@ -1,8 +1,10 @@
 package io.mosip.mimoto.service;
 
+import io.mosip.mimoto.constant.BindingMethod;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.*;
+import io.mosip.mimoto.util.BindingMethodUtil;
 import io.mosip.mimoto.util.Draft13CredentialRequestBuilder;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +31,12 @@ public class Draft13CredentialRequestService {
 
     private final KeyPairRetrievalService keyPairService;
 
-    public Draft13CredentialRequestService(Draft13CredentialRequestBuilder draft13CredentialRequestBuilder, KeyPairRetrievalService keyPairService) {
+    private final BindingMethodUtil bindingMethodUtil;
+
+    public Draft13CredentialRequestService(Draft13CredentialRequestBuilder draft13CredentialRequestBuilder, KeyPairRetrievalService keyPairService, BindingMethodUtil bindingMethodUtil) {
         this.draft13CredentialRequestBuilder = draft13CredentialRequestBuilder;
         this.keyPairService = keyPairService;
+        this.bindingMethodUtil = bindingMethodUtil;
     }
 
     public Set<String> getSigningAlgorithmsPriorityOrder() {
@@ -49,14 +54,15 @@ public class Draft13CredentialRequestService {
         CredentialsSupportedResponse credentialsSupportedResponse = wellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
         SigningAlgorithm signingAlgorithm = resolveAlgorithm(credentialsSupportedResponse);
+        BindingMethod bindingMethod = bindingMethodUtil.selectBindingMethod(credentialsSupportedResponse.getCryptographicBindingMethodsSupported());
 
         String jwt;
         if (isLoginFlow) {
-            jwt = generateJwtUsingDBKeys(walletId, base64EncodedWalletKey, signingAlgorithm, wellKnownResponse, issuerDTO, cNonce);
+            jwt = generateJwtUsingDBKeys(walletId, base64EncodedWalletKey, signingAlgorithm, wellKnownResponse, issuerDTO, cNonce, bindingMethod);
         } else {
             KeyPair keyPair = SigningKeyUtil.generateKeyPair(signingAlgorithm);
             log.debug("Generated KeyPair for signing signingAlgorithm: {}", signingAlgorithm);
-            jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair);
+            jwt = SigningKeyUtil.generateJwt(signingAlgorithm, wellKnownResponse.getCredentialIssuer(), issuerDTO.getClient_id(), cNonce, keyPair, bindingMethod);
         }
 
         String format = credentialsSupportedResponse.getFormat();
@@ -104,7 +110,8 @@ public class Draft13CredentialRequestService {
                                           SigningAlgorithm signingAlgorithm,
                                           CredentialIssuerWellKnownResponse wellKnownResponse,
                                           IssuerDTO issuerDTO,
-                                          String cNonce) throws JOSEException, DecryptionException {
+                                          String cNonce,
+                                          BindingMethod bindingMethod) throws JOSEException, DecryptionException {
 
         KeyPair keyPair = keyPairService.getKeyPairFromDB(walletId, base64EncodedWalletKey, signingAlgorithm);
 
@@ -112,6 +119,7 @@ public class Draft13CredentialRequestService {
                 wellKnownResponse.getCredentialIssuer(),
                 issuerDTO.getClient_id(),
                 cNonce,
-                keyPair);
+                keyPair,
+                bindingMethod);
     }
 }
