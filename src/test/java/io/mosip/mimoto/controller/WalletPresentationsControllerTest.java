@@ -1,7 +1,15 @@
 package io.mosip.mimoto.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.mosip.mimoto.dto.*;
+import io.mosip.mimoto.dto.ErrorDTO;
+import io.mosip.mimoto.dto.MatchingCredentialsDTO;
+import io.mosip.mimoto.dto.MatchingCredentialsResponseDTO;
+import io.mosip.mimoto.dto.SelectedCredentials;
+import io.mosip.mimoto.dto.SubmitPresentationRequestDTO;
+import io.mosip.mimoto.dto.SubmitPresentationResponseDTO;
+import io.mosip.mimoto.dto.VPAuthorizationRequestDTO;
+import io.mosip.mimoto.dto.VPResponseDTO;
+import io.mosip.mimoto.dto.VerifiablePresentationVerifierDTO;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
@@ -81,7 +89,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "client_id=mock-client&presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenReturn(presentationResponseDTO);
+        when(walletPresentationService.handleVPAuthorizationRequest(eq(authorizationRequest.getAuthorizationRequestUrl()), eq(walletId), any(HttpSession.class))).thenReturn(presentationResponseDTO);
         String expectedResponse = new ObjectMapper().writeValueAsString(presentationResponseDTO);
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
@@ -101,7 +109,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new OpenID4VPExceptions.MissingInput(List.of("client_id"), "client_id request param is Missing", "AuthorizationRequest", true));
+        when(walletPresentationService.handleVPAuthorizationRequest(eq(authorizationRequest.getAuthorizationRequestUrl()), eq(walletId), any(HttpSession.class))).thenThrow(new OpenID4VPExceptions.MissingInput(List.of("client_id"), "client_id request param is Missing", "AuthorizationRequest", true));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -119,7 +127,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new ApiNotAccessibleException("Error occurred while fetching trusted verifiers"));
+        when(walletPresentationService.handleVPAuthorizationRequest(eq(authorizationRequest.getAuthorizationRequestUrl()), eq(walletId), any(HttpSession.class))).thenThrow(new ApiNotAccessibleException("Error occurred while fetching trusted verifiers"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -137,7 +145,7 @@ public class WalletPresentationsControllerTest {
         String authorizationRequestUrl = "presentation_definition_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fpresentation_definition_uri&response_type=vp_token&response_mode=direct_post&nonce=NHgLcWlae745DpfJbUyfdg%253D%253D&response_uri=https%3A%2F%2Finji-verify.collab.mosip.net%2Fverifier%2Fvp-response&state=pcmxBfvdPEcjFObgt%252BLekA%253D%253D";
         VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
-        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequest.getAuthorizationRequestUrl(), walletId)).thenThrow(new RuntimeException("Error occurred while creating presentation in openid4vp flow"));
+        when(walletPresentationService.handleVPAuthorizationRequest(eq(authorizationRequest.getAuthorizationRequestUrl()), eq(walletId), any(HttpSession.class))).thenThrow(new RuntimeException("Error occurred while creating presentation in openid4vp flow"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -168,7 +176,7 @@ public class WalletPresentationsControllerTest {
     public void shouldThrowBadRequestWhenApiNotAccessibleExceptionIsThrown() throws Exception {
         String presentationId = "presentation123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -187,7 +195,7 @@ public class WalletPresentationsControllerTest {
     public void shouldThrowInternalServerErrorWhenIOExceptionIsThrown() throws Exception {
         String presentationId = "presentation123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -206,7 +214,7 @@ public class WalletPresentationsControllerTest {
     public void shouldThrowInternalServerErrorWhenVPNotCreatedExceptionIsThrown() throws Exception {
         String presentationId = "presentation123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -225,7 +233,7 @@ public class WalletPresentationsControllerTest {
     public void shouldThrowInternalServerErrorWhenIllegalArgumentExceptionIsThrown() throws Exception {
         String presentationId = "presentation123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         when(sessionManager.getPresentationSessionData(httpSession, walletId, presentationId)).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -336,21 +344,21 @@ public class WalletPresentationsControllerTest {
 
     @Test
     public void testUserRejectedVerifierNullSessionData() throws Exception {
-        String walletId = "wallet-123";
+        String testWalletId = "wallet-123";
         String presentationId = "presentation-123";
         ErrorDTO payload = new ErrorDTO("access_denied", "User denied authorization");
 
         // Arrange: make session manager return null to simulate missing session data
-        when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId)))
+        when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(testWalletId), eq(presentationId)))
                 .thenReturn(null);
 
         // Serialize payload to ensure MockMvc .content(...) is not null
         String content = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload);
 
-        mockMvc.perform(patch("/wallets/{walletId}/presentations/{presentationId}", walletId, presentationId)
+        mockMvc.perform(patch("/wallets/{walletId}/presentations/{presentationId}", testWalletId, presentationId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(content)
-                        .sessionAttr("wallet_id", walletId)
+                        .sessionAttr("wallet_id", testWalletId)
                         .sessionAttr("wallet_key", walletKey))
                 .andExpect(status().isBadRequest());
     }
@@ -364,7 +372,7 @@ public class WalletPresentationsControllerTest {
         VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         
-        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequestUrl, walletId))
+        when(walletPresentationService.handleVPAuthorizationRequest(eq(authorizationRequestUrl), eq(walletId), any(HttpSession.class)))
                 .thenThrow(new java.net.URISyntaxException("invalid://url with spaces", "Invalid URI"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
@@ -383,7 +391,7 @@ public class WalletPresentationsControllerTest {
         VPAuthorizationRequestDTO authorizationRequest = new VPAuthorizationRequestDTO();
         authorizationRequest.setAuthorizationRequestUrl(authorizationRequestUrl);
         
-        when(walletPresentationService.handleVPAuthorizationRequest(authorizationRequestUrl, walletId))
+        when(walletPresentationService.handleVPAuthorizationRequest(eq(authorizationRequestUrl), eq(walletId), any(HttpSession.class)))
                 .thenThrow(new VPNotCreatedException("Failed to create VP"));
 
         mockMvc.perform(post("/wallets/{walletId}/presentations", walletId)
@@ -400,7 +408,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsSuccess() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         MatchingCredentialsResponseDTO responseDTO = new MatchingCredentialsResponseDTO();
         MatchingCredentialsDTO matchingCredentials = new MatchingCredentialsDTO();
@@ -425,7 +433,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsWithIllegalArgumentException() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -443,7 +451,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsWithApiNotAccessibleException() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -461,7 +469,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsWithIOException() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -479,7 +487,7 @@ public class WalletPresentationsControllerTest {
     public void testGetMatchingCredentialsWithVPNotCreatedException() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         when(sessionManager.getPresentationSessionData(any(HttpSession.class), eq(walletId), eq(presentationId))).thenReturn(sessionData);
         when(walletPresentationService.getMatchingCredentials(sessionData, walletId, walletKey))
@@ -497,7 +505,7 @@ public class WalletPresentationsControllerTest {
     public void testHandlePresentationSubmissionSuccess() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         SubmitPresentationRequestDTO submitRequest = SubmitPresentationRequestDTO.builder()
                 .selectedCredentials(SelectedCredentials.ofStrings(java.util.Arrays.asList("cred-1", "cred-2")))
@@ -526,7 +534,7 @@ public class WalletPresentationsControllerTest {
     public void testHandlePresentationSubmissionMissingWalletKey() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         SubmitPresentationRequestDTO submitRequest = SubmitPresentationRequestDTO.builder()
                 .selectedCredentials(SelectedCredentials.ofStrings(java.util.Arrays.asList("cred-1")))
@@ -549,7 +557,7 @@ public class WalletPresentationsControllerTest {
     public void testHandlePresentationActionInvalidRequestFormat() throws Exception {
         String presentationId = "presentation-123";
         VerifiablePresentationSessionData sessionData = new VerifiablePresentationSessionData(
-                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false);
+                presentationId, "authorizationRequestUrl", java.time.Instant.now(), true, null, false, null, null);
 
         SubmitPresentationRequestDTO invalidRequest = SubmitPresentationRequestDTO.builder()
                 .build();

@@ -5,10 +5,10 @@ AuthorizationCodeSunBirdC:
       uniqueIdentifier: TC_Mimoto_AuthorizationCodeSunBirdC_01
       role: resident
       restMethod: post
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/SunBirdC/AuthorizationCodeSunBirdC/AuthorizationCodeSunBirdC
-      outputTemplate: mimoto/SunBirdC/AuthorizationCodeSunBirdC/AuthorizationCodeSunBirdCResult
+      outputTemplate: mimoto/responseCode
       input: '{
         "encodedHash": "$ID:ESignet_OAuthDetailsRequest_SunBirdC_all_Valid_Smoke_sid_encodedResp$",
       	"requestTime": "$TIMESTAMP$",
@@ -16,4 +16,5 @@ AuthorizationCodeSunBirdC:
       	"permittedAuthorizeScopes": [{scope: "sunbird_rc_insurance_vc_ldp"}]
 }'
       output: '{
+      "responseCode": "200"
 }'

@@ -18,7 +18,8 @@ public class AuthorizationRequestHelperTest {
     @Test
     public void should_returnTrue_when_dcqlQueryPresent() {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
-        when(dcqlRequest.getDcqlQuery()).thenReturn(mock(DCQLQuery.class));
+        DCQLQuery mockDcqlQuery = mock(DCQLQuery.class);
+        when(dcqlRequest.getDcqlQuery()).thenReturn(mockDcqlQuery);
 
         assertTrue(AuthorizationRequestHelper.hasDcqlQuery(dcqlRequest));
     }

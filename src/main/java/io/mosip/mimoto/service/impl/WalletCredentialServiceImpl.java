@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
 import io.mosip.mimoto.dto.IssuerDTO;
-import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.dto.mimoto.IssuerConfig;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
@@ -20,6 +19,7 @@ import io.mosip.mimoto.service.CredentialService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.mimoto.service.DataProtectionService;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,9 +77,11 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
 
     @Override
     public VerifiableCredentialResponseDTO downloadVCAndStoreInDB(String issuerId, String credentialConfigurationId,
-                                                                  TokenResponseDTO tokenResponse,
-                                                                  String locale, String walletId, String base64Key)
-            throws CredentialProcessingException, ExternalServiceUnavailableException {
+                                                                  String locale, String walletId, String base64Key,
+                                                                  String code, String state, HttpSession httpSession)
+            throws CredentialProcessingException, ExternalServiceUnavailableException, ApiNotAccessibleException,
+            IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException,
+            IssuerOnboardingException {
         log.info("Fetching and storing credential for wallet: {}, issuer: {}, type: {}", walletId, issuerId, credentialConfigurationId);
 
         Set<String> issuers = Arrays.stream(issuersWithSingleVcLimit.split(","))
@@ -90,15 +92,11 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
             throw new InvalidRequestException(CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(), "Duplicate credential for issuer and type");
         }
 
-
-        VerifiableCredentialResponseDTO credential;
-
-        credential = credentialService.downloadCredentialAndStoreInDB(
-                tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId, locale);
+        VerifiableCredentialResponseDTO credential = credentialService.downloadCredentialAndStoreInDB(
+                issuerId, credentialConfigurationId, walletId, base64Key, locale, code, state, httpSession);
 
         log.debug("Credential stored successfully: {}", credential.getCredentialId());
         return credential;
-
     }
 
     @Override
@@ -208,8 +206,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
         } catch (JsonProcessingException e) {
             log.error("Failed to parse decrypted credential for issuerId: {}, credentialType: {}", credentialMetadata.getIssuerId(), credentialMetadata.getCredentialType(), e);
             throw new CredentialProcessingException(CREDENTIAL_FETCH_EXCEPTION.getErrorCode(), "Failed to parse decrypted credential");
-        } catch (ApiNotAccessibleException | IOException | AuthorizationServerWellknownResponseException |
-                 InvalidWellknownResponseException | InvalidIssuerIdException e) {
+        } catch (ApiNotAccessibleException | IOException | InvalidIssuerIdException e) {
             log.error("Failed to fetch issuer details or configuration for issuerId: {}", credentialMetadata.getIssuerId(), e);
             throw new CredentialProcessingException(CREDENTIAL_FETCH_EXCEPTION.getErrorCode(), "Failed to fetch issuer configuration");
         } catch (Exception e) {
@@ -239,7 +236,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
                 })
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.toList());
+                .toList();
 
         log.info("Successfully decrypted {} out of {} credentials", decryptedCredentials.size(), walletCredentials.size());
         return decryptedCredentials;

@@ -5,7 +5,6 @@ import io.mosip.biometrics.util.CommonUtil;
 import io.mosip.kernel.biometrics.constant.BiometricType;
 import io.mosip.kernel.biometrics.entities.BDBInfo;
 import io.mosip.kernel.biometrics.entities.BIR;
-import io.mosip.kernel.core.websub.spi.PublisherClient;
 import io.mosip.mimoto.constant.*;
 import io.mosip.mimoto.dto.CryptoWithPinRequestDto;
 import io.mosip.mimoto.dto.CryptoWithPinResponseDto;
@@ -13,7 +12,6 @@ import io.mosip.mimoto.dto.JsonValue;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.EventModel;
 import io.mosip.mimoto.service.CredentialShareService;
-import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -23,7 +21,6 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.BadPaddingException;
@@ -44,6 +41,7 @@ import java.util.*;
 @Slf4j
 @Service
 public class CredentialShareServiceImpl implements CredentialShareService {
+
     public static final String VC_REQUEST_FILE_NAME = "%s.json";
     public static final String EVENT_JSON_FILE_NAME = "%s_EVENT.json";
     public static final String VC_JSON_FILE_NAME = "%s_VC.json";
@@ -54,10 +52,6 @@ public class CredentialShareServiceImpl implements CredentialShareService {
     public static final String DATA_BINARY_BASE_64 = "data:binary;base64,";
 
     private Gson gson = new Gson();
-
-    private final WebSubSubscriptionHelper webSubSubscriptionHelper;
-
-    private final DataShareUtil dataShareUtil;
 
     private final DerivedKeyCryptoUtil derivedKeyCryptoUtil;
 
@@ -82,32 +76,23 @@ public class CredentialShareServiceImpl implements CredentialShareService {
     /** The utilities. */
     private final Utilities utilities;
 
-    /** The rest client service. */
-    private final RestClientService<Object> restClientService;
-
     /** The env. */
     private final Environment env;
-
-    private final PublisherClient<String, Object, HttpHeaders> pb;
 
     @Value("#{'${mosip.mandatory-languages:}'.concat('${mosip.optional-languages:}')}")
     private String supportedLang;
 
-    public CredentialShareServiceImpl(RestApiClient restApiClient, WebSubSubscriptionHelper webSubSubscriptionHelper, DataShareUtil dataShareUtil, DerivedKeyCryptoUtil derivedKeyCryptoUtil, P12KeyStoreManager p12KeyStoreManager, CbeffToBiometricUtil util, AuditLogRequestBuilder auditLogRequestBuilder, Utilities utilities, RestClientService<Object> restClientService, Environment env, PublisherClient<String, Object, HttpHeaders> pb) {
+    public CredentialShareServiceImpl(RestApiClient restApiClient, DerivedKeyCryptoUtil derivedKeyCryptoUtil, P12KeyStoreManager p12KeyStoreManager, CbeffToBiometricUtil util, AuditLogRequestBuilder auditLogRequestBuilder, Utilities utilities, Environment env) {
         this.restApiClient = restApiClient;
-        this.webSubSubscriptionHelper = webSubSubscriptionHelper;
-        this.dataShareUtil = dataShareUtil;
         this.derivedKeyCryptoUtil = derivedKeyCryptoUtil;
         this.p12KeyStoreManager = p12KeyStoreManager;
         this.util = util;
         this.auditLogRequestBuilder = auditLogRequestBuilder;
         this.utilities = utilities;
-        this.restClientService = restClientService;
         this.env = env;
-        this.pb = pb;
     }
 
-    public boolean generateDocuments(EventModel eventModel) throws Exception {
+    public boolean generateDocuments(EventModel eventModel) throws IOException {
         Path eventFilePath = Path.of(utilities.getDataPath(),
                 String.format(EVENT_JSON_FILE_NAME, eventModel.getEvent().getTransactionId()));
         Files.write(eventFilePath, gson.toJson(eventModel).getBytes(), StandardOpenOption.CREATE);
@@ -128,9 +113,6 @@ public class CredentialShareServiceImpl implements CredentialShareService {
             }
             String encryptionPin = eventModel.getEvent().getData().get("protectionKey").toString();
             decodedCredential = p12KeyStoreManager.decrypt(credential);
-            @SuppressWarnings("unchecked")
-            Map<String, String> proofMap = (Map<String, String>) eventModel.getEvent().getData().get("proof");
-            String sign = proofMap.get("signature").toString();
 
             credentialSubject = getCredentialSubject(decodedCredential);
 
@@ -141,8 +123,7 @@ public class CredentialShareServiceImpl implements CredentialShareService {
             Files.deleteIfExists(vcTextFilePath);
             Files.write(vcTextFilePath, gson.toJson(gson.fromJson(decodedCredential, TreeMap.class)).getBytes(), StandardOpenOption.CREATE);
 
-            String credentialType = eventModel.getEvent().getData().get("credentialType").toString();
-            byteMap = getDocuments(credentialJSON, credentialType, eventModel.getEvent().getTransactionId(), getSignature(sign, credential));
+            byteMap = getDocuments(credentialJSON);
 
             Path textFilePath = Path.of(utilities.getDataPath(),
                     String.format(CARD_JSON_FILE_NAME, eventModel.getEvent().getTransactionId()));
@@ -173,11 +154,7 @@ public class CredentialShareServiceImpl implements CredentialShareService {
         return decryptedJson;
     }
 
-    public Map<String, byte[]> getDocuments(
-            org.json.JSONObject credentialJSON,
-            String credentialType,
-            String requestId,
-            String sign) {
+    public Map<String, byte[]> getDocuments(org.json.JSONObject credentialJSON) {
         log.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
                 "CredentialShareServiceImpl::getDocuments()::entry");
 
@@ -196,9 +173,6 @@ public class CredentialShareServiceImpl implements CredentialShareService {
 
             byte[] textFileByte = createJSONFile(credentialJSON, individualBiometric);
             byteMap.put(UIN_TEXT_FILE, textFileByte);
-
-            // TODO: Uncomment this after datashare creation API fixed.
-            // statusUpdate(requestId, textFileByte, credentialType);
             isTransactionSuccessful = true;
 
         } catch (Exception e) {
@@ -435,9 +409,9 @@ public class CredentialShareServiceImpl implements CredentialShareService {
                 JSONObject objects = getJSONObjectFromArray(demographicJsonNode, i);
                 if (objects != null) {
                     language = (String) objects.get("language");
-                    value = (String) objects.get("value");
+                    value = (String) objects.get(VALUE);
                     FieldUtils.writeField(jsonNodeElement, "language", language, true);
-                    FieldUtils.writeField(jsonNodeElement, "value", value, true);
+                    FieldUtils.writeField(jsonNodeElement, VALUE, value, true);
                     javaObject[i] = jsonNodeElement;
                 }
             }

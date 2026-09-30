@@ -28,5 +28,5 @@ public interface CredentialFormatHandler {
     /**
      * Extract all properties from the Credential
      */
-    Map<String, ?> extractAllCredentialProperties(VCCredentialResponse vcCredentialResponse);
+    Map<String, Object> extractAllCredentialProperties(VCCredentialResponse vcCredentialResponse);
 }

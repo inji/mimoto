@@ -1,6 +1,8 @@
 package io.mosip.mimoto.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,38 +22,17 @@ public class UrlParameterUtilsTest {
         assertEquals(VALID_CLIENT_ID, result);
     }
 
-    @Test
-    public void testExtractQueryParameterWithNoQueryParameters() throws Exception {
-        String url = "https://example.com";
-
-        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testExtractQueryParameterWithNoParameter() throws Exception {
-        String url = "https://example.com?other_param=value&another_param=value2";
-
-        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testExtractQueryParameterWithMalformedParameter() throws Exception {
-        String url = "https://example.com?client_id&other_param=value";
-
-        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testExtractQueryParameterWithNullInput() throws Exception {
-        String url = null;
-
-        String result = UrlParameterUtils.extractQueryParameter(url, "client_id");
+    @ParameterizedTest
+    @CsvSource(value = {
+        "https://example.com, client_id",
+        "https://example.com?other_param=value&another_param=value2, client_id",
+        "https://example.com?client_id&other_param=value, client_id",
+        "NULL, client_id",
+        "https://example.com?other_param=value&another_param=value2, response_uri",
+        "https://example.com?response_uri&other_param=value, response_uri"
+    }, nullValues = "NULL")
+    public void extractQueryParameterReturnsNullForMissingOrInvalidInput(String url, String paramName) throws Exception {
+        String result = UrlParameterUtils.extractQueryParameter(url, paramName);
 
         assertNull(result);
     }
@@ -72,24 +53,6 @@ public class UrlParameterUtilsTest {
         String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
 
         assertEquals(VALID_RESPONSE_URI, result);
-    }
-
-    @Test
-    public void testExtractQueryParameterWithNoResponseUriParameter() throws Exception {
-        String url = "https://example.com?other_param=value&another_param=value2";
-
-        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testExtractQueryParameterWithMalformedResponseUri() throws Exception {
-        String url = "https://example.com?response_uri&other_param=value";
-
-        String result = UrlParameterUtils.extractQueryParameter(url, "response_uri");
-
-        assertNull(result);
     }
 
     @Test

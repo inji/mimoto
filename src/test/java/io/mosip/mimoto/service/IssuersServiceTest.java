@@ -9,10 +9,14 @@ import io.mosip.mimoto.dto.IssuersV2DTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.IssuerConfig;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeRequest;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeResponse;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.AuthorizationServerWellknownResponseException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
+import io.mosip.mimoto.service.DPoPSessionService;
 import io.mosip.mimoto.service.impl.IssuersServiceImpl;
 import io.mosip.mimoto.util.IssuerConfigUtil;
 import io.mosip.mimoto.util.Utilities;
@@ -31,8 +35,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.mock.web.MockHttpSession;
+
 import static io.mosip.mimoto.util.TestUtilities.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -47,6 +54,15 @@ public class IssuersServiceTest {
 
     @Mock
     IssuerConfigUtil issuersConfigUtil;
+
+    @Mock
+    DPoPSessionService dPoPSessionService;
+
+    @Mock
+    PkceSessionManager pkceSessionManager;
+
+    @Mock
+    DPoPManager dPoPManager;
 
     @Spy
     ObjectMapper objectMapper;
@@ -68,6 +84,7 @@ public class IssuersServiceTest {
         credentialIssuerHostUrl = "https://issuer.env.net";
 
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer3"), getIssuerConfigDTO("Issuer4")));
+        issuers.getIssuers().forEach(i -> i.setToken_endpoint(null));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
         Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
@@ -80,19 +97,21 @@ public class IssuersServiceTest {
         expectedCredentialIssuerConfiguration = getCredentialIssuerConfigurationResponseDto(issuerId, "CredentialType1", List.of());
         Mockito.when(issuersConfigUtil.getAuthServerWellknown(authServerWellknownUrl)).thenReturn(expectedCredentialIssuerConfiguration.getAuthorizationServerWellKnownResponse());
 
-        issuersService = new IssuersServiceImpl(utilities, objectMapper, issuersConfigUtil, publicUrl, context);
+        issuersService = new IssuersServiceImpl(utilities, objectMapper, issuersConfigUtil, publicUrl, context,
+                dPoPSessionService, pkceSessionManager, dPoPManager);
     }
 
     @Test
     public void shouldReturnAllIssuersWhenSearchValueIsNull() throws ApiNotAccessibleException, IOException {
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
+        issuers.getIssuers().forEach(i -> i.setToken_endpoint(null));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
         Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
         IssuersDTO expectedIssuers = new IssuersDTO();
-        List<IssuerDTO> issuers = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
-        issuers.forEach(i -> i.setToken_endpoint(publicUrl + context + "/get-token/" + i.getIssuer_id()));
-        expectedIssuers.setIssuers(issuers);
+        List<IssuerDTO> localIssuers = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
+        localIssuers.forEach(i -> i.setToken_endpoint(publicUrl + context + "/v2/get-token/" + i.getIssuer_id()));
+        expectedIssuers.setIssuers(localIssuers);
 
         IssuersDTO allIssuers = issuersService.getIssuers(null);
 
@@ -102,12 +121,13 @@ public class IssuersServiceTest {
     @Test
     public void shouldReturnMatchingIssuersWhenSearchValuePatternMatchesWithIssuerName() throws ApiNotAccessibleException, IOException {
         issuers.setIssuers(List.of(getIssuerConfigDTO("Issuer1"), getIssuerConfigDTO("Issuer2")));
+        issuers.getIssuers().forEach(i -> i.setToken_endpoint(null));
         issuersConfigJsonValue = new Gson().toJson(issuers);
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
         Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
         IssuersDTO expectedFilteredIssuers = new IssuersDTO();
         List<IssuerDTO> filteredIssuersList = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer1")));
-        filteredIssuersList.forEach(i -> i.setToken_endpoint(publicUrl + context + "/get-token/" + i.getIssuer_id()));
+        filteredIssuersList.forEach(i -> i.setToken_endpoint(publicUrl + context + "/v2/get-token/" + i.getIssuer_id()));
         expectedFilteredIssuers.setIssuers(filteredIssuersList);
 
         IssuersDTO filteredIssuers = issuersService.getIssuers("Issuer1");
@@ -125,7 +145,7 @@ public class IssuersServiceTest {
     @Test
     public void shouldReturnIssuerDataAndConfigForTheIssuerIdIfExist() throws ApiNotAccessibleException, IOException, InvalidIssuerIdException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException {
         IssuerDTO expectedIssuer = getIssuerConfigDTO("Issuer3");
-        expectedIssuer.setToken_endpoint(publicUrl + context + "/get-token/" + expectedIssuer.getIssuer_id());
+        expectedIssuer.setToken_endpoint(publicUrl + context + "/v2/get-token/" + expectedIssuer.getIssuer_id());
 
         IssuerDTO issuer = issuersService.getIssuerDetails("Issuer3id");
 
@@ -135,9 +155,9 @@ public class IssuersServiceTest {
     @Test
     public void shouldReturnIssuerDataAndConfigForAllIssuer() throws ApiNotAccessibleException, IOException {
         IssuersDTO expectedIssuers = new IssuersDTO();
-        List<IssuerDTO> issuers = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer3"), getIssuerConfigDTO("Issuer4")));
-        issuers.forEach(i -> i.setToken_endpoint(publicUrl + context + "/get-token/" + i.getIssuer_id()));
-        expectedIssuers.setIssuers(issuers);
+        List<IssuerDTO> localIssuers = new ArrayList<>(List.of(getIssuerConfigDTO("Issuer3"), getIssuerConfigDTO("Issuer4")));
+        localIssuers.forEach(i -> i.setToken_endpoint(publicUrl + context + "/v2/get-token/" + i.getIssuer_id()));
+        expectedIssuers.setIssuers(localIssuers);
 
         IssuersDTO issuersDTO = issuersService.getAllIssuers();
 
@@ -158,16 +178,18 @@ public class IssuersServiceTest {
 
     @Test
     public void shouldReturnOnlyEnabledIssuers() throws IOException, ApiNotAccessibleException {
-        IssuersDTO issuers = new IssuersDTO();
+        IssuersDTO localIssuers = new IssuersDTO();
         IssuerDTO enabledIssuer = getIssuerConfigDTO("Issuer1");
         IssuerDTO disabledIssuer = getIssuerConfigDTO("Issuer2");
+        enabledIssuer.setToken_endpoint(null);
+        disabledIssuer.setToken_endpoint(null);
         disabledIssuer.setEnabled("false");
-        issuersConfigJsonValue = new Gson().toJson(issuers);
-        issuers.setIssuers(List.of(enabledIssuer, disabledIssuer));
+        issuersConfigJsonValue = new Gson().toJson(localIssuers);
+        localIssuers.setIssuers(List.of(enabledIssuer, disabledIssuer));
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
-        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
+        Mockito.when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(localIssuers);
         IssuersDTO expectedIssuersDTO = new IssuersDTO();
-        enabledIssuer.setToken_endpoint(publicUrl + context + "/get-token/" + enabledIssuer.getIssuer_id());
+        enabledIssuer.setToken_endpoint(publicUrl + context + "/v2/get-token/" + enabledIssuer.getIssuer_id());
         expectedIssuersDTO.setIssuers(List.of(enabledIssuer));
 
         IssuersDTO actualIssuersDTO = issuersService.getIssuers("");
@@ -182,6 +204,19 @@ public class IssuersServiceTest {
         CredentialIssuerConfiguration actualCredentialIssuerConfiguration = issuersService.getIssuerConfiguration("Issuer3id");
 
         assertEquals(expectedCredentialIssuerConfiguration, actualCredentialIssuerConfiguration);
+    }
+
+    @Test
+    public void should_keepAuthorizationServerWellKnownTokenEndpoint_when_proxyTokenEndpointIsConfiguredForDPoPHtu() throws Exception {
+        String proxyTokenEndpoint = "http://localhost:8088/v1/esignet/oauth/v2/token";
+        issuers.getIssuers().getFirst().setProxy_token_endpoint(proxyTokenEndpoint);
+
+        CredentialIssuerConfiguration actual = issuersService.getIssuerConfiguration("Issuer3id");
+
+        assertEquals(
+                expectedCredentialIssuerConfiguration.getAuthorizationServerWellKnownResponse().getTokenEndpoint(),
+                actual.getAuthorizationServerWellKnownResponse().getTokenEndpoint());
+        assertNotEquals(proxyTokenEndpoint, actual.getAuthorizationServerWellKnownResponse().getTokenEndpoint());
     }
 
     @Test
@@ -256,12 +291,12 @@ public class IssuersServiceTest {
     @Test
     public void shouldReturnIssuerConfigForValidIssuerIdAndCredentialType() throws ApiNotAccessibleException, IOException, InvalidIssuerIdException, InvalidWellknownResponseException {
         // Arrange
-        String issuerId = "Issuer3id";
+        String localIssuerId = "Issuer3id";
         String credentialType = "CredentialType1";
         IssuerDTO expectedIssuerDTO = getIssuerConfigDTO("Issuer3");
-        expectedIssuerDTO.setToken_endpoint(publicUrl + context + "/get-token/" + expectedIssuerDTO.getIssuer_id());
+        expectedIssuerDTO.setToken_endpoint(publicUrl + context + "/v2/get-token/" + expectedIssuerDTO.getIssuer_id());
         CredentialIssuerWellKnownResponse wellKnownResponse = getCredentialIssuerWellKnownResponseDto(
-                issuerId, Map.of(credentialType, getCredentialSupportedResponse(credentialType)));
+                localIssuerId, Map.of(credentialType, getCredentialSupportedResponse(credentialType)));
         IssuerConfig expectedIssuerConfig = new IssuerConfig(
                 expectedIssuerDTO,
                 wellKnownResponse,
@@ -269,7 +304,7 @@ public class IssuersServiceTest {
         );
 
         // Act
-        IssuerConfig actualIssuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
+        IssuerConfig actualIssuerConfig = issuersService.getIssuerConfig(localIssuerId, credentialType);
 
         // Assert
         assertEquals(expectedIssuerConfig, actualIssuerConfig);
@@ -284,12 +319,12 @@ public class IssuersServiceTest {
     @Test
     public void shouldThrowInvalidIssuerIdExceptionForNonExistentIssuerId() throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException {
         // Arrange
-        String issuerId = "InvalidIssuerId";
+        String localIssuerId = "InvalidIssuerId";
         String credentialType = "CredentialType1";
 
         // Act & Assert
         InvalidIssuerIdException exception = assertThrows(InvalidIssuerIdException.class,
-                () -> issuersService.getIssuerConfig(issuerId, credentialType));
+                () -> issuersService.getIssuerConfig(localIssuerId, credentialType));
 
         assertEquals("RESIDENT-APP-035 --> Invalid issuer ID", exception.getMessage());
         verify(utilities, times(1)).getIssuersConfigJsonValue();
@@ -299,13 +334,13 @@ public class IssuersServiceTest {
     @Test
     public void shouldThrowApiNotAccessibleExceptionWhenIssuersConfigJsonIsNull() throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException {
         // Arrange
-        String issuerId = "Issuer3id";
+        String localIssuerId = "Issuer3id";
         String credentialType = "CredentialType1";
         Mockito.when(utilities.getIssuersConfigJsonValue()).thenReturn(null);
 
         // Act & Assert
         ApiNotAccessibleException exception = assertThrows(ApiNotAccessibleException.class,
-                () -> issuersService.getIssuerConfig(issuerId, credentialType));
+                () -> issuersService.getIssuerConfig(localIssuerId, credentialType));
 
         assertEquals("RESIDENT-APP-026 --> Unable to fetch issuer configuration for issuerId: Issuer3id; \n" +
                 "nested exception is io.mosip.mimoto.exception.ApiNotAccessibleException: RESIDENT-APP-026 --> Api not accessible failure", exception.getMessage());
@@ -316,14 +351,14 @@ public class IssuersServiceTest {
     @Test
     public void shouldThrowApiNotAccessibleExceptionWhenGetIssuerWellknownFails() throws IOException, InvalidWellknownResponseException, ApiNotAccessibleException {
         // Arrange
-        String issuerId = "Issuer3id";
+        String localIssuerId = "Issuer3id";
         String credentialType = "CredentialType1";
         Mockito.when(issuersConfigUtil.getIssuerWellknown(credentialIssuerHostUrl))
                 .thenThrow(new ApiNotAccessibleException("Well-known endpoint inaccessible"));
 
         // Act & Assert
         ApiNotAccessibleException exception = assertThrows(ApiNotAccessibleException.class,
-                () -> issuersService.getIssuerConfig(issuerId, credentialType));
+                () -> issuersService.getIssuerConfig(localIssuerId, credentialType));
 
         assertEquals("RESIDENT-APP-026 --> Unable to fetch issuer configuration for issuerId: Issuer3id; \n" +
                 "nested exception is io.mosip.mimoto.exception.ApiNotAccessibleException: RESIDENT-APP-026 --> Well-known endpoint inaccessible", exception.getMessage());
@@ -334,14 +369,14 @@ public class IssuersServiceTest {
     @Test
     public void shouldLogErrorWhenApiNotAccessibleExceptionOccurs() throws IOException, InvalidWellknownResponseException, ApiNotAccessibleException {
         // Arrange
-        String issuerId = "Issuer3id";
+        String localIssuerId = "Issuer3id";
         String credentialType = "CredentialType1";
         ApiNotAccessibleException apiException = new ApiNotAccessibleException("Well-known endpoint inaccessible");
         Mockito.when(issuersConfigUtil.getIssuerWellknown(credentialIssuerHostUrl)).thenThrow(apiException);
 
         // Act & Assert
         ApiNotAccessibleException exception = assertThrows(ApiNotAccessibleException.class,
-                () -> issuersService.getIssuerConfig(issuerId, credentialType));
+                () -> issuersService.getIssuerConfig(localIssuerId, credentialType));
 
         assertEquals("RESIDENT-APP-026 --> Unable to fetch issuer configuration for issuerId: Issuer3id; \n" +
                 "nested exception is io.mosip.mimoto.exception.ApiNotAccessibleException: RESIDENT-APP-026 --> Well-known endpoint inaccessible", exception.getMessage());
@@ -361,7 +396,7 @@ public class IssuersServiceTest {
         assertEquals("OpenId4VCI", first.getProtocol());
         assertEquals(getIssuerConfigDTO("Issuer3").getDisplay(), first.getDisplay());
         assertEquals("123", first.getClientId());
-        assertEquals(publicUrl + context + "/get-token/Issuer3id", first.getTokenEndpoint());
+        assertEquals(publicUrl + context + "/v2/get-token/Issuer3id", first.getTokenEndpoint());
         assertEquals("test-client-alias", first.getClientAlias());
         assertEquals(getIssuerConfigDTO("Issuer3").getQr_code_type(), first.getQrCodeType());
         assertEquals("true", first.getEnabled());
@@ -380,7 +415,7 @@ public class IssuersServiceTest {
         assertEquals("OpenId4VCI", result.getProtocol());
         assertEquals(getIssuerConfigDTO("Issuer3").getDisplay(), result.getDisplay());
         assertEquals("123", result.getClientId());
-        assertEquals(publicUrl + context + "/get-token/Issuer3id", result.getTokenEndpoint());
+        assertEquals(publicUrl + context + "/v2/get-token/Issuer3id", result.getTokenEndpoint());
         assertEquals("test-client-alias", result.getClientAlias());
         assertEquals(getIssuerConfigDTO("Issuer3").getQr_code_type(), result.getQrCodeType());
         assertEquals("true", result.getEnabled());
@@ -415,11 +450,12 @@ public class IssuersServiceTest {
 
     @Test
     public void shouldGenerateTokenEndpointWhenMissingInV1() throws Exception {
-        String publicUrl = "https://api.dev.mosip.net";
-        String context = "/v4/mimoto";
-        String getTokenPath = "/get-token/";
+        String localPublicUrl = "https://api.dev.mosip.net";
+        String localContext = "/v4/mimoto";
+        String getTokenPath = "/v2/get-token/";
         IssuersServiceImpl serviceWithConfig = new IssuersServiceImpl(
-                utilities, objectMapper, issuersConfigUtil, publicUrl, context);
+                utilities, objectMapper, issuersConfigUtil, localPublicUrl, localContext,
+                dPoPSessionService, pkceSessionManager, dPoPManager);
 
         String issuerIdMissing = "Issuer-Missing";
         String issuerIdExisting = "Issuer-Existing";
@@ -441,26 +477,26 @@ public class IssuersServiceTest {
 
         IssuersDTO result = serviceWithConfig.getAllIssuers();
 
-        String expectedGeneratedUrlIssuerA = publicUrl + context + getTokenPath + issuerIdMissing;
-        String expectedGeneratedUrlIssuerB = publicUrl + context + getTokenPath + issuerIdExisting;
+        String expectedGeneratedUrlIssuerA = localPublicUrl + localContext + getTokenPath + issuerIdMissing;
 
         assertEquals(expectedGeneratedUrlIssuerA, result.getIssuers().get(0).getToken_endpoint());
-        assertEquals(expectedGeneratedUrlIssuerB, result.getIssuers().get(1).getToken_endpoint());
+        assertEquals(existingUrl, result.getIssuers().get(1).getToken_endpoint());
     }
 
     @Test
     public void shouldGenerateTokenEndpointWhenMissingInV2() throws Exception {
         // Arrange
-        String publicUrl = "https://api.dev.mosip.net";
-        String context = "/v4/mimoto";
-        String getTokenPath = "/get-token/";
+        String localPublicUrl = "https://api.dev.mosip.net";
+        String localContext = "/v4/mimoto";
+        String getTokenPath = "/v2/get-token/";
 
         IssuersServiceImpl serviceWithConfig = new IssuersServiceImpl(
-                utilities, objectMapper, issuersConfigUtil, publicUrl, context);
+                utilities, objectMapper, issuersConfigUtil, localPublicUrl, localContext,
+                dPoPSessionService, pkceSessionManager, dPoPManager);
 
         String issuerIdMissing = "IssuerV2-Missing";
         String issuerIdExisting = "Issuer-Existing";
-        String existingUrl = "https://external-idp.com/token";
+        String existingUrl = "https://external-idp.com/v2/get-token/Issuer-Existing";
 
         IssuerDTO issuerA = getIssuerConfigDTO(issuerIdMissing);
         issuerA.setIssuer_id(issuerIdMissing);
@@ -478,10 +514,75 @@ public class IssuersServiceTest {
 
         IssuersV2DTO result = serviceWithConfig.getIssuersV2DTO();
 
-        String expectedGeneratedUrlIssuerA = publicUrl + context + getTokenPath + issuerIdMissing;
-        String expectedGeneratedUrlIssuerB = publicUrl + context + getTokenPath + issuerIdExisting;
+        String expectedGeneratedUrlIssuerA = localPublicUrl + localContext + getTokenPath + issuerIdMissing;
 
         assertEquals(expectedGeneratedUrlIssuerA, result.getIssuers().get(0).getTokenEndpoint());
-        assertEquals(expectedGeneratedUrlIssuerB, result.getIssuers().get(1).getTokenEndpoint());
+        assertEquals(existingUrl, result.getIssuers().get(1).getTokenEndpoint());
+    }
+
+    @Test
+    public void shouldCreatePkceAndDPoPSessionsThenBuildAuthorizationUrl() throws Exception {
+        IssuerAuthorizeRequest request = authorizeRequest("CredentialType1");
+        MockHttpSession httpSession = new MockHttpSession();
+        io.mosip.mimoto.dto.pkce.PkceSession pkceSession = io.mosip.mimoto.dto.pkce.PkceSession.builder()
+                .state("oauth-state")
+                .codeVerifier("code-verifier")
+                .codeChallenge("code-challenge")
+                .redirectUri("https://injiweb.example.com/redirect")
+                .build();
+        io.mosip.mimoto.dto.dpop.DPoPSession dPoPSession = io.mosip.mimoto.dto.dpop.DPoPSession.builder()
+                .state("oauth-state")
+                .alg("ES256")
+                .jwkJson("{}")
+                .build();
+        when(pkceSessionManager.createSession(eq("https://injiweb.example.com/redirect"))).thenReturn(pkceSession);
+        when(dPoPSessionService.createSession(eq("oauth-state"), any())).thenReturn(dPoPSession);
+        when(dPoPManager.jwkThumbprint(dPoPSession)).thenReturn("thumbprint");
+
+        IssuerAuthorizeResponse actual = issuersService.createAuthorizationUrl(httpSession, issuerId, request);
+
+        assertEquals("oauth-state", actual.getState());
+        org.junit.Assert.assertTrue(actual.getAuthorizationUrl().startsWith("https://dev/authorize?"));
+        org.junit.Assert.assertTrue(actual.getAuthorizationUrl().contains("dpop_jkt=thumbprint"));
+        org.junit.Assert.assertTrue(actual.getAuthorizationUrl().contains("code_challenge=code-challenge"));
+        verify(pkceSessionManager).createSession("https://injiweb.example.com/redirect");
+        verify(dPoPSessionService).createSession(eq("oauth-state"), any());
+        verify(pkceSessionManager).store(httpSession, pkceSession);
+        verify(dPoPSessionService).store(httpSession, dPoPSession);
+    }
+
+    @Test
+    public void shouldThrowInvalidRequestWhenCredentialConfigurationIdIsUnknown() throws Exception {
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+                () -> issuersService.createAuthorizationUrl(new MockHttpSession(), issuerId,
+                        authorizeRequest("UnknownCredential")));
+
+        assertEquals("credentialConfigurationId is not supported by this issuer", exception.getErrorText());
+        verify(pkceSessionManager, never()).createSession(any());
+        verify(dPoPSessionService, never()).createSession(any(), any());
+    }
+
+    @Test
+    public void shouldThrowInvalidRequestWhenClientIdIsBlank() throws Exception {
+        issuers.getIssuers().get(0).setClient_id(" ");
+        issuersConfigJsonValue = new Gson().toJson(issuers);
+        when(utilities.getIssuersConfigJsonValue()).thenReturn(issuersConfigJsonValue);
+        when(objectMapper.readValue(issuersConfigJsonValue, IssuersDTO.class)).thenReturn(issuers);
+
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+                () -> issuersService.createAuthorizationUrl(new MockHttpSession(), issuerId,
+                        authorizeRequest("CredentialType1")));
+
+        assertEquals("client_id is missing", exception.getErrorText());
+        verify(pkceSessionManager, never()).createSession(any());
+        verify(dPoPSessionService, never()).createSession(any(), any());
+    }
+
+    private static IssuerAuthorizeRequest authorizeRequest(String credentialConfigurationId) {
+        IssuerAuthorizeRequest request = new IssuerAuthorizeRequest();
+        request.setRedirectUri("https://injiweb.example.com/redirect");
+        request.setCredentialConfigurationId(credentialConfigurationId);
+        request.setUiLocales("en");
+        return request;
     }
 }

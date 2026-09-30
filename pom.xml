@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.inji</groupId>
     <artifactId>mimoto</artifactId>
-    <version>1.0.0-alpha.1</version>
+    <version>1.0.0-alpha.2-SNAPSHOT</version>
     <name>mimoto</name>
     <url>https://github.com/inji/mimoto</url>
     <description>Mobile server backend supporting Inji.</description>
@@ -89,6 +89,8 @@
         <jjwt-version>0.9.1</jjwt-version>
         <postgresql.version>42.7.2</postgresql.version>
         <central.publishing.maven.plugin.version>0.7.0</central.publishing.maven.plugin.version>
+        <jandex.version>3.6.0</jandex.version>
+        <titanium-json-ld.version>1.7.0</titanium-json-ld.version>
         <sonar.coverage.exclusions>
             **/constant/**,**/config/**,**/httpfilter/**,**/cache/**,**/dto/**,**/entity/**,**/dbentity/**,**/model/**,**/exception/**,**/repository/**,**/security/**,**/*Config.java,**/*BootApplication.java,**/*VertxApplication.java,**/cbeffutil/**,**/core/http/**,**/util/**
         </sonar.coverage.exclusions>
@@ -104,10 +106,21 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>io.smallrye</groupId>
+                <artifactId>jandex</artifactId>
+                <version>${jandex.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.apicatalog</groupId>
+                <artifactId>titanium-json-ld</artifactId>
+                <version>${titanium-json-ld.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
+
         <dependency>
             <groupId>io.mosip.kernel</groupId>
             <artifactId>kernel-core</artifactId>
@@ -139,12 +152,12 @@
         <dependency>
             <groupId>io.inji</groupId>
             <artifactId>vcverifier-jar</artifactId>
-            <version>1.8.1</version>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.inji</groupId>
             <artifactId>inji-openid4vp-jar</artifactId>
-            <version>1.0.0-alpha.1</version>
+            <version>1.0.0-alpha.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -364,6 +377,11 @@
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
             <groupId>javax.activation</groupId>
             <artifactId>activation</artifactId>
         </dependency>
@@ -466,11 +484,6 @@
             </exclusions>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-            <version>5.1.12.RELEASE</version>
-        </dependency>
         <dependency>
             <groupId>io.mosip.kernel</groupId>
             <artifactId>kernel-cbeffutil-api</artifactId>
@@ -655,7 +668,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.6.3</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>

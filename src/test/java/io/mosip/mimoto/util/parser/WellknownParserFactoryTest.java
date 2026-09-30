@@ -74,6 +74,7 @@ class WellknownParserFactoryTest {
 
         @Override
         public void validate(CredentialIssuerWellKnownResponse response, Validator validator) throws InvalidWellknownResponseException {
+            // No-op: test stub only exercises factory routing, not validation logic
         }
     }
 }

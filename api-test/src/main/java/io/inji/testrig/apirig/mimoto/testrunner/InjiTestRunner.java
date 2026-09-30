@@ -112,6 +112,8 @@ public class InjiTestRunner {
 				}
 			}
 
+			AdminTestUtil.fetchAndStoreCsrfToken();
+
 			startTestRunner();
 		} catch (Exception e) {
 			LOGGER.error("Exception " + e.getMessage());

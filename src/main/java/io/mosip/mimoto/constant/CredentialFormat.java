@@ -3,7 +3,8 @@ package io.mosip.mimoto.constant;
 public enum CredentialFormat {
     VC_SD_JWT("vc+sd-jwt"),
     DC_SD_JWT("dc+sd-jwt"),
-    LDP_VC("ldp_vc");
+    LDP_VC("ldp_vc"),
+    MSO_MDOC("mso_mdoc");
 
     private final String format;
 

@@ -12,12 +12,15 @@ import io.mosip.mimoto.service.impl.VerifierServiceImpl;
 import io.mosip.mimoto.util.TestUtilities;
 import io.mosip.mimoto.util.Utilities;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -26,12 +29,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class VerifierServiceTest {
 
     @Mock
@@ -49,12 +53,12 @@ public class VerifierServiceTest {
     private static final String VALID_RESPONSE_URI = "https://example.com/callback";
     private static final String ENCODED_RESPONSE_URI = "https%3A%2F%2Fexample.com%2Fcallback";
 
-    @Before
+    @BeforeEach
     public void setUp() throws JsonProcessingException {
         VerifiersDTO verifiersDTO = TestUtilities.getTrustedVerifiers();
         String verifiersListString = TestUtilities.getObjectAsString(verifiersDTO);
-        when(utilities.getTrustedVerifiersJsonValue()).thenReturn(verifiersListString);
-        when(objectMapper.readValue(eq(verifiersListString), eq(VerifiersDTO.class))).thenReturn(verifiersDTO);
+        lenient().when(utilities.getTrustedVerifiersJsonValue()).thenReturn(verifiersListString);
+        lenient().when(objectMapper.readValue(eq(verifiersListString), eq(VerifiersDTO.class))).thenReturn(verifiersDTO);
     }
 
     @Test
@@ -193,17 +197,25 @@ public class VerifierServiceTest {
         assertEquals(expectedMsg, ex.getMessage());
     }
 
-    @Test(expected = InvalidVerifierException.class)
+    @Test
     public void validateTrustedVerifiersAndThrowInvalidVerifierExceptionWhenClientIdIsIncorrect() throws ApiNotAccessibleException, IOException {
         PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId2").responseUri("https://test-responseUri").build();
-        verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri());
+        String clientId = presentationRequestDTO.getClientId();
+        String responseUri = presentationRequestDTO.getResponseUri();
+        String redirectUri = presentationRequestDTO.getRedirectUri();
+        assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier(clientId, responseUri, redirectUri));
     }
 
     @Test
     public void validateTrustedVerifiersAndThrowInvalidVerifiersExceptionForAInvalidClientId() throws ApiNotAccessibleException, IOException {
         PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId2").responseUri("https://test-responseUri").build();
         String expectedExceptionMsg = "invalid_client --> The requested client doesn’t match.";
-        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class, () -> verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri()));
+        String clientId = presentationRequestDTO.getClientId();
+        String responseUri = presentationRequestDTO.getResponseUri();
+        String redirectUri = presentationRequestDTO.getRedirectUri();
+        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier(clientId, responseUri, redirectUri));
 
         assertEquals(expectedExceptionMsg, actualException.getMessage());
     }
@@ -212,8 +224,11 @@ public class VerifierServiceTest {
     public void validateTrustedVerifiersAndThrowInvalidVerifiersExceptionWhenClientIdIsValidAndResponseUriIsIncorrect() throws ApiNotAccessibleException, IOException {
         PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder().clientId("test-clientId").responseUri("https://test-reponseUri/invalid-uri").build();
         String expectedExceptionMsg = "invalid_response_uri --> The requested response uri doesn’t match.";
-
-        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class, () -> verifiersService.validateVerifier(presentationRequestDTO.getClientId(), presentationRequestDTO.getResponseUri(), presentationRequestDTO.getRedirectUri()));
+        String clientId = presentationRequestDTO.getClientId();
+        String responseUri = presentationRequestDTO.getResponseUri();
+        String redirectUri = presentationRequestDTO.getRedirectUri();
+        InvalidVerifierException actualException = assertThrows(InvalidVerifierException.class,
+                () -> verifiersService.validateVerifier(clientId, responseUri, redirectUri));
 
         assertEquals(expectedExceptionMsg, actualException.getMessage());
     }
@@ -302,30 +317,11 @@ public class VerifierServiceTest {
         assertFalse(result);
     }
 
-    @Test
-    public void testIsVerifierClientPreregisteredNullClientId() throws URISyntaxException {
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   ", "https://example.com?other_param=value", "https://example.com?client_id=", "https://example.com?client_id=%20%20"})
+    public void isVerifierClientPreregisteredReturnsFalseForBlankOrMissingClientId(String url) throws URISyntaxException {
         List<Verifier> verifiers = List.of(new Verifier(VALID_CLIENT_ID, List.of(VALID_RESPONSE_URI), null));
-        String url = "https://example.com?other_param=value";
-
-        boolean result = verifiersService.isVerifierClientPreregistered(verifiers, url);
-
-        assertFalse(result);
-    }
-
-    @Test
-    public void testIsVerifierClientPreregisteredEmptyClientId() throws URISyntaxException {
-        List<Verifier> verifiers = List.of(new Verifier(VALID_CLIENT_ID, List.of(VALID_RESPONSE_URI), null));
-        String url = "https://example.com?client_id=";
-
-        boolean result = verifiersService.isVerifierClientPreregistered(verifiers, url);
-
-        assertFalse(result);
-    }
-
-    @Test
-    public void testIsVerifierClientPreregisteredWhitespaceOnlyClientId() throws URISyntaxException {
-        List<Verifier> verifiers = List.of(new Verifier(VALID_CLIENT_ID, List.of(VALID_RESPONSE_URI), null));
-        String url = "https://example.com?client_id=%20%20";
 
         boolean result = verifiersService.isVerifierClientPreregistered(verifiers, url);
 
@@ -347,36 +343,6 @@ public class VerifierServiceTest {
         List<String> verifierResponseUris = Arrays.asList("https://example.com/callback1", "https://example.com/callback2");
         List<Verifier> verifiers = List.of(new Verifier(VALID_CLIENT_ID, verifierResponseUris, null));
         String url = "https://example.com?client_id=" + ENCODED_CLIENT_ID + "&response_uri=" + ENCODED_RESPONSE_URI;
-
-        boolean result = verifiersService.isVerifierClientPreregistered(verifiers, url);
-
-        assertFalse(result);
-    }
-
-    @Test
-    public void testIsVerifierClientPreregisteredNullUrl() throws URISyntaxException {
-        List<Verifier> verifiers = List.of(new Verifier(VALID_CLIENT_ID, List.of(VALID_RESPONSE_URI), null));
-        String url = null;
-
-        boolean result = verifiersService.isVerifierClientPreregistered(verifiers, url);
-
-        assertFalse(result);
-    }
-
-    @Test
-    public void testIsVerifierClientPreregisteredEmptyUrl() throws URISyntaxException {
-        List<Verifier> verifiers = List.of(new Verifier(VALID_CLIENT_ID, List.of(VALID_RESPONSE_URI), null));
-        String url = "";
-
-        boolean result = verifiersService.isVerifierClientPreregistered(verifiers, url);
-
-        assertFalse(result);
-    }
-
-    @Test
-    public void testIsVerifierClientPreregisteredWhitespaceOnlyUrl() throws URISyntaxException {
-        List<Verifier> verifiers = List.of(new Verifier(VALID_CLIENT_ID, List.of(VALID_RESPONSE_URI), null));
-        String url = "   ";
 
         boolean result = verifiersService.isVerifierClientPreregistered(verifiers, url);
 

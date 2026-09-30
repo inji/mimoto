@@ -17,7 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -63,6 +65,21 @@ public class IssuerConfigUtil {
         }
 
         return finalResult.toString().trim();
+    }
+
+    public static String snakeToTitleCase(String input) {
+        if (input == null || input.isEmpty()) return input;
+        return Arrays.stream(input.split("_"))
+                .filter(word -> !word.isEmpty())
+                .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
+                .collect(Collectors.joining(" "));
+    }
+
+    public static String toTitleCase(String input) {
+        if (input == null || input.isEmpty()) return input;
+        if (input.matches(".*_.*")) return snakeToTitleCase(input);
+        if (input.matches(".*[A-Z].*")) return camelToTitleCase(input);
+        return Character.toUpperCase(input.charAt(0)) + input.substring(1);
     }
 
     @Cacheable(value = "issuerWellknown", key = "#p0")

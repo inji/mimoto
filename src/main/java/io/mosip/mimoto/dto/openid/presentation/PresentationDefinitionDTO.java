@@ -17,4 +17,5 @@ public class PresentationDefinitionDTO {
     String id;
     @JsonProperty("input_descriptors")
     List<InputDescriptorDTO> inputDescriptors;
+
 }

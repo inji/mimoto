@@ -22,7 +22,7 @@ public interface PresentationActionService {
      * @param base64Key The wallet key for decryption (required for submission)
      * @return ResponseEntity with appropriate response type and HTTP status
      */
-    ResponseEntity<?> handlePresentationAction(
+    ResponseEntity<Object> handlePresentationAction(
             String walletId,
             String presentationId,
             SubmitPresentationRequestDTO request,

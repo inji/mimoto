@@ -13,4 +13,5 @@ import lombok.NoArgsConstructor;
 public class FilterDTO {
     String type;
     String pattern;
+
 }

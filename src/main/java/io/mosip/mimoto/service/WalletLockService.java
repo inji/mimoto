@@ -17,7 +17,7 @@ public class WalletLockService {
     }
 
     public Wallet enforceLockCyclePolicy(Wallet wallet) {
-        wallet = initializePasscodeControlInWallet(wallet);
+        initializePasscodeControlInWallet(wallet);
         WalletMetadata walletMetadata = wallet.getWalletMetadata();
         PasscodeControl passcodeControl = walletMetadata.getPasscodeControl();
 
@@ -50,7 +50,7 @@ public class WalletLockService {
     }
 
     public Wallet resetTemporaryLockIfExpired(Wallet wallet) {
-        wallet = initializePasscodeControlInWallet(wallet);
+        initializePasscodeControlInWallet(wallet);
         WalletMetadata walletMetadata = wallet.getWalletMetadata();
         PasscodeControl passcodeControl = walletMetadata.getPasscodeControl();
 
@@ -67,7 +67,7 @@ public class WalletLockService {
     }
 
     public Wallet resetLockState(Wallet wallet) {
-        wallet = initializePasscodeControlInWallet(wallet);
+        initializePasscodeControlInWallet(wallet);
         WalletMetadata walletMetadata = wallet.getWalletMetadata();
         PasscodeControl passcodeControl = walletMetadata.getPasscodeControl();
 
@@ -78,11 +78,10 @@ public class WalletLockService {
         return wallet;
     }
 
-    private Wallet initializePasscodeControlInWallet(Wallet wallet) {
+    private void initializePasscodeControlInWallet(Wallet wallet) {
         PasscodeControl passcodeControl = wallet.getWalletMetadata().getPasscodeControl();
         if (passcodeControl == null) {
             wallet.getWalletMetadata().setPasscodeControl(new PasscodeControl());
         }
-        return wallet;
     }
 }

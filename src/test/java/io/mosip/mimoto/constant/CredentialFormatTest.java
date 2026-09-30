@@ -17,8 +17,8 @@ class CredentialFormatTest {
     }
 
     @Test
-    void shouldHaveThreeEnumValues() {
-        assertEquals(3, CredentialFormat.values().length);
+    void shouldHaveFourEnumValues() {
+        assertEquals(4, CredentialFormat.values().length);
     }
 
     @Test

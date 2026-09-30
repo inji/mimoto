@@ -1,5 +1,6 @@
 package io.mosip.mimoto.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,9 +30,11 @@ import lombok.NoArgsConstructor;
  * @param status the status
  */
 @AllArgsConstructor
+@Schema(description = "Audit service response indicating whether the audit entry was recorded successfully.")
 public class AuditResponseDto {
 
     /** The boolean audit status. */
+    @Schema(description = "Flag indicating whether the audit request was processed successfully.")
     private boolean status;
 
 }

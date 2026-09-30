@@ -6,9 +6,9 @@ AddTrustedVerifier:
       role: userDefinedCookie
       restMethod: post
       additionalDependencies: TC_Mimoto_UnlockWallet_01
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifier
-      outputTemplate: mimoto/LoginFlow/Presentations/AddTrustedVerifier/AddTrustedVerifierResult
+      outputTemplate: mimoto/responseCode
       input: '{
         "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
         "cookieName": "SESSION",
@@ -16,6 +16,7 @@ AddTrustedVerifier:
         "verifierId": "$ID:VerifiablePresentationAuthorization_all_Valid_Smoke_sid_id$"
 }'
       output: '{
+      "responseCode": "201"
 }'
 
    Mimoto_AddTrustedVerifier_withEmpty_verifierId_Neg:

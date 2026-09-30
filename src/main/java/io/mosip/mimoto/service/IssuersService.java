@@ -4,11 +4,14 @@ import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.IssuersDTO;
 import io.mosip.mimoto.dto.IssuersV2DTO;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeRequest;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeResponse;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.AuthorizationServerWellknownResponseException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.constraints.NotBlank;
 
 import java.io.IOException;
@@ -29,4 +32,7 @@ public interface IssuersService {
     IssuersV2DTO getIssuersV2DTO() throws ApiNotAccessibleException, IOException;
 
     IssuerV2DTO getIssuerV2Details(String issuerId) throws ApiNotAccessibleException, IOException;
+
+    IssuerAuthorizeResponse createAuthorizationUrl(HttpSession httpSession, String issuerId, IssuerAuthorizeRequest request)
+            throws Exception;
 }

@@ -17,13 +17,16 @@ import io.mosip.openID4VP.common.OpenID4VPErrorCodes;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
 import io.mosip.openID4VP.verifier.VerifierResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -37,7 +40,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 @Slf4j
 public class OpenID4VPServiceTest {
 
@@ -52,7 +55,7 @@ public class OpenID4VPServiceTest {
     private AuthorizationPresentationExchangeRequest mockAuthorizationRequest;
     private PresentationDefinition mockPresentationDefinition;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         // Setup mock VerifierDTO with required vp_formats
         mockVerifierDTO = VerifierDTO.builder()
@@ -75,25 +78,10 @@ public class OpenID4VPServiceTest {
         mockPresentationDefinition = mock(PresentationDefinition.class);
     }
 
-    @Test
-    public void testCreateReturnsValidOpenID4VP() {
-        OpenID4VP openID4VP = openID4VPService.create("presentation-123", List.of(), true);
-
-        assertNotNull(openID4VP);
-        assertEquals("io.mosip.openID4VP.OpenID4VP", openID4VP.getClass().getName());
-    }
-
-    @Test
-    public void testCreateWithValidPresentationIdReturnsValidOpenID4VP() {
-        OpenID4VP openID4VP = openID4VPService.create("valid-presentation-id", List.of(), true);
-
-        assertNotNull(openID4VP);
-        assertEquals("io.mosip.openID4VP.OpenID4VP", openID4VP.getClass().getName());
-    }
-
-    @Test
-    public void testCreateWithSpecialCharactersPresentationIdReturnsValidOpenID4VP() {
-        OpenID4VP openID4VP = openID4VPService.create("presentation-123_with.special@chars", List.of(), true);
+    @ParameterizedTest
+    @ValueSource(strings = {"presentation-123", "valid-presentation-id", "presentation-123_with.special@chars"})
+    public void createWithVariousPresentationIdsReturnsValidOpenID4VP(String presentationId) {
+        OpenID4VP openID4VP = openID4VPService.create(presentationId, List.of(), true);
 
         assertNotNull(openID4VP);
         assertEquals("io.mosip.openID4VP.OpenID4VP", openID4VP.getClass().getName());
@@ -130,44 +118,16 @@ public class OpenID4VPServiceTest {
         verify(mockAuthorizationRequest).getPresentationDefinition();
     }
 
-    @Test
-    public void testResolvePresentationDefinitionWithNullPresentationIdReturnsNull() throws Exception {
-        // Execute
+    @ParameterizedTest
+    @CsvSource(value = {
+        "NULL, authorization-request",
+        "presentation-123, NULL",
+        "NULL, NULL"
+    }, nullValues = "NULL")
+    public void resolvePresentationDefinitionWithNullParametersReturnsNull(String presentationId, String authorizationRequest) throws Exception {
         PresentationDefinition result = openID4VPService.resolvePresentationDefinition(
-                null, 
-                "authorization-request", 
-                true
-        );
+                presentationId, authorizationRequest, true);
 
-        // Verify
-        assertNull(result);
-        verifyNoInteractions(verifierService);
-    }
-
-    @Test
-    public void testResolvePresentationDefinitionWithNullAuthorizationRequestReturnsNull() throws Exception {
-        // Execute
-        PresentationDefinition result = openID4VPService.resolvePresentationDefinition(
-                "presentation-123", 
-                null, 
-                true
-        );
-
-        // Verify
-        assertNull(result);
-        verifyNoInteractions(verifierService);
-    }
-
-    @Test
-    public void testResolvePresentationDefinitionWithBothNullParametersReturnsNull() throws Exception {
-        // Execute
-        PresentationDefinition result = openID4VPService.resolvePresentationDefinition(
-                null, 
-                null, 
-                true
-        );
-
-        // Verify
         assertNull(result);
         verifyNoInteractions(verifierService);
     }
@@ -356,25 +316,14 @@ public class OpenID4VPServiceTest {
         verify(mockDcqlRequest).getDcqlQuery();
     }
 
-    @Test
-    public void testResolveDcqlQueryWithNullPresentationIdReturnsNull() throws Exception {
-        DCQLQuery result = openID4VPService.resolveDcqlQuery(null, "authorization-request", true);
-
-        assertNull(result);
-        verifyNoInteractions(verifierService);
-    }
-
-    @Test
-    public void testResolveDcqlQueryWithNullAuthorizationRequestReturnsNull() throws Exception {
-        DCQLQuery result = openID4VPService.resolveDcqlQuery("presentation-123", null, true);
-
-        assertNull(result);
-        verifyNoInteractions(verifierService);
-    }
-
-    @Test
-    public void testResolveDcqlQueryWithBothNullParametersReturnsNull() throws Exception {
-        DCQLQuery result = openID4VPService.resolveDcqlQuery(null, null, true);
+    @ParameterizedTest
+    @CsvSource(value = {
+        "NULL, authorization-request",
+        "presentation-123, NULL",
+        "NULL, NULL"
+    }, nullValues = "NULL")
+    public void resolveDcqlQueryWithNullParametersReturnsNull(String presentationId, String authorizationRequest) throws Exception {
+        DCQLQuery result = openID4VPService.resolveDcqlQuery(presentationId, authorizationRequest, true);
 
         assertNull(result);
         verifyNoInteractions(verifierService);
@@ -696,8 +645,6 @@ public class OpenID4VPServiceTest {
         VerifiablePresentationSessionData sessionData = mock(VerifiablePresentationSessionData.class);
         when(sessionData.getPresentationId()).thenReturn("presentation-123");
         when(sessionData.getAuthorizationRequest()).thenReturn("auth-request");
-        // Remove this line - isVerifierClientPreregistered is never called due to early exception
-        // when(sessionData.isVerifierClientPreregistered()).thenReturn(false);
 
         ErrorDTO payload = mock(ErrorDTO.class);
 

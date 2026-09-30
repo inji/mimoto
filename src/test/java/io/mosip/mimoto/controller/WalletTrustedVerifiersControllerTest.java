@@ -11,6 +11,9 @@ import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -79,64 +82,18 @@ public class WalletTrustedVerifiersControllerTest {
         }
     }
 
-    @Test
-    void testAddTrustedVerifierMissingVerifierId() throws Exception {
-        // Given
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void testAddTrustedVerifierInvalidVerifierId(String verifierId) throws Exception {
         String walletId = "test-wallet-id";
         TrustedVerifierRequest request = new TrustedVerifierRequest();
-        request.setVerifierId("");
+        request.setVerifierId(verifierId);
 
         try (MockedStatic<WalletUtil> walletUtilMock = mockStatic(WalletUtil.class)) {
             walletUtilMock.when(() -> WalletUtil.validateWalletId(any(HttpSession.class), eq(walletId)))
                     .thenAnswer(invocation -> null);
 
-            // When & Then
-            mockMvc.perform(post("/wallets/{walletId}/trusted-verifiers", walletId)
-                            .session(session)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.errorCode").value("invalid_request"));
-
-            verifyNoInteractions(trustedVerifierService);
-        }
-    }
-
-    @Test
-    void testAddTrustedVerifierBlankVerifierId() throws Exception {
-        // Given
-        String walletId = "test-wallet-id";
-        TrustedVerifierRequest request = new TrustedVerifierRequest();
-        request.setVerifierId("   ");
-
-        try (MockedStatic<WalletUtil> walletUtilMock = mockStatic(WalletUtil.class)) {
-            walletUtilMock.when(() -> WalletUtil.validateWalletId(any(HttpSession.class), eq(walletId)))
-                    .thenAnswer(invocation -> null);
-
-            // When & Then
-            mockMvc.perform(post("/wallets/{walletId}/trusted-verifiers", walletId)
-                            .session(session)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.errorCode").value("invalid_request"));
-
-            verifyNoInteractions(trustedVerifierService);
-        }
-    }
-
-    @Test
-    void testAddTrustedVerifierNullVerifierId() throws Exception {
-        // Given
-        String walletId = "test-wallet-id";
-        TrustedVerifierRequest request = new TrustedVerifierRequest();
-        request.setVerifierId(null);
-
-        try (MockedStatic<WalletUtil> walletUtilMock = mockStatic(WalletUtil.class)) {
-            walletUtilMock.when(() -> WalletUtil.validateWalletId(any(HttpSession.class), eq(walletId)))
-                    .thenAnswer(invocation -> null);
-
-            // When & Then
             mockMvc.perform(post("/wallets/{walletId}/trusted-verifiers", walletId)
                             .session(session)
                             .contentType(MediaType.APPLICATION_JSON)

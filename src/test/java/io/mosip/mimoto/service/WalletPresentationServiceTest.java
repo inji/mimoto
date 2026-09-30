@@ -20,7 +20,9 @@ import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.VerifiablePresentation;
 import io.mosip.mimoto.repository.VerifiablePresentationsRepository;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
+import io.mosip.mimoto.service.impl.SessionManager;
 import io.mosip.mimoto.service.impl.WalletPresentationServiceImpl;
+import jakarta.servlet.http.HttpSession;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import io.mosip.mimoto.util.UrlParameterUtils;
 import io.mosip.openID4VP.OpenID4VP;
@@ -34,8 +36,10 @@ import io.mosip.openID4VP.authorizationResponse.unsignedVPToken.UnsignedVPToken;
 import io.mosip.openID4VP.authorizationResponse.vpTokenSigningResult.VPTokenSigningResult;
 import io.mosip.openID4VP.common.OpenID4VPErrorCodes;
 import io.mosip.openID4VP.constants.FormatType;
+import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
 import io.mosip.openID4VP.verifier.VerifierResponse;
+import io.mosip.openID4VP.wallet.Credential;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,6 +94,15 @@ public class WalletPresentationServiceTest {
     @Mock
     private WalletCredentialService walletCredentialService;
 
+    @Mock
+    private SessionManager sessionManager;
+
+    @Mock
+    private HttpSession mockHttpSession;
+
+    @Mock
+    private AuthorizationDcqlRequest mockDcqlAuthorizationRequest;
+
     @InjectMocks
     private WalletPresentationServiceImpl walletPresentationService;
 
@@ -137,6 +150,7 @@ public class WalletPresentationServiceTest {
         sessionData.setAuthorizationRequest(urlEncodedVPAuthorizationRequest);
         sessionData.setCreatedAt(Instant.now());
         sessionData.setVerifierClientPreregistered(true);
+        sessionData.setParsedAuthorizationRequest(mockDcqlAuthorizationRequest);
 
         vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.LDP_VC.getFormat());
@@ -203,7 +217,7 @@ public class WalletPresentationServiceTest {
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(peRequest);
 
         VPResponseDTO result = walletPresentationService.handleVPAuthorizationRequest(
-                urlEncodedVPAuthorizationRequest, walletId);
+                urlEncodedVPAuthorizationRequest, walletId, mockHttpSession);
 
         assertNotNull(result);
         assertNotNull(result.getPresentationId());
@@ -231,7 +245,7 @@ public class WalletPresentationServiceTest {
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(peRequest);
 
         VPResponseDTO result = walletPresentationService.handleVPAuthorizationRequest(
-                urlEncodedVPAuthorizationRequest, walletId);
+                urlEncodedVPAuthorizationRequest, walletId, mockHttpSession);
 
         assertNotNull(result);
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getName());
@@ -246,7 +260,7 @@ public class WalletPresentationServiceTest {
         when(verifierService.isVerifierTrustedByWallet(anyString(), anyString())).thenReturn(false);
 
         VPResponseDTO result = walletPresentationService.handleVPAuthorizationRequest(
-                urlEncodedVPAuthorizationRequest, walletId);
+                urlEncodedVPAuthorizationRequest, walletId, mockHttpSession);
 
         assertNotNull(result);
         assertEquals("test-client", result.getVerifiablePresentationVerifierDTO().getName());
@@ -263,7 +277,8 @@ public class WalletPresentationServiceTest {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getClientId()).thenReturn("test-client");
         when(dcqlRequest.getRedirectUri()).thenReturn("https://verifier.com/redirect");
-        when(dcqlRequest.getDcqlQuery()).thenReturn(mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class));
+        DCQLQuery mockDcqlQuery = mock(DCQLQuery.class);
+        when(dcqlRequest.getDcqlQuery()).thenReturn(mockDcqlQuery);
         ClientMetadata clientMetadata = mock(ClientMetadata.class);
         when(clientMetadata.getClientName()).thenReturn("DCQL Verifier");
         when(clientMetadata.getLogoUri()).thenReturn("https://verifier.com/dcql-logo.png");
@@ -271,7 +286,7 @@ public class WalletPresentationServiceTest {
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(dcqlRequest);
 
         VPResponseDTO result = walletPresentationService.handleVPAuthorizationRequest(
-                urlEncodedVPAuthorizationRequest, walletId);
+                urlEncodedVPAuthorizationRequest, walletId, mockHttpSession);
 
         assertNotNull(result);
         assertTrue(result.isDcql());
@@ -290,14 +305,15 @@ public class WalletPresentationServiceTest {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getClientId()).thenReturn("test-client");
         when(dcqlRequest.getRedirectUri()).thenReturn("https://verifier.com/redirect");
-        when(dcqlRequest.getDcqlQuery()).thenReturn(mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class));
+        DCQLQuery mockDcqlQuery = mock(DCQLQuery.class);
+        when(dcqlRequest.getDcqlQuery()).thenReturn(mockDcqlQuery);
         ClientMetadata clientMetadata = mock(ClientMetadata.class);
         when(clientMetadata.getClientName()).thenReturn("   ");
         when(dcqlRequest.getClientMetadata()).thenReturn(clientMetadata);
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(dcqlRequest);
 
         VPResponseDTO result = walletPresentationService.handleVPAuthorizationRequest(
-                urlEncodedVPAuthorizationRequest, walletId);
+                urlEncodedVPAuthorizationRequest, walletId, mockHttpSession);
 
         assertNotNull(result);
         assertTrue(result.isDcql());
@@ -315,12 +331,13 @@ public class WalletPresentationServiceTest {
         AuthorizationDcqlRequest dcqlRequest = mock(AuthorizationDcqlRequest.class);
         when(dcqlRequest.getClientId()).thenReturn("test-client");
         when(dcqlRequest.getRedirectUri()).thenReturn("https://verifier.com/redirect");
-        when(dcqlRequest.getDcqlQuery()).thenReturn(mock(io.mosip.openID4VP.dcql.query.DCQLQuery.class));
+        DCQLQuery mockDcqlQuery = mock(DCQLQuery.class);
+        when(dcqlRequest.getDcqlQuery()).thenReturn(mockDcqlQuery);
         when(dcqlRequest.getClientMetadata()).thenReturn(null);
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(dcqlRequest);
 
         VPResponseDTO result = walletPresentationService.handleVPAuthorizationRequest(
-                urlEncodedVPAuthorizationRequest, walletId);
+                urlEncodedVPAuthorizationRequest, walletId, mockHttpSession);
 
         assertNotNull(result);
         assertTrue(result.isDcql());
@@ -343,7 +360,7 @@ public class WalletPresentationServiceTest {
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(dcqlRequest);
 
         VPResponseDTO result = walletPresentationService.handleVPAuthorizationRequest(
-                urlEncodedVPAuthorizationRequest, walletId);
+                urlEncodedVPAuthorizationRequest, walletId, mockHttpSession);
 
         assertNotNull(result);
         assertFalse(result.isDcql());
@@ -656,8 +673,7 @@ public class WalletPresentationServiceTest {
         when(dcqlQuery.getCredentialSets()).thenReturn(null);
 
         stubOpenId4VpCreate(mockOpenID4VP);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
         List<UnsignedVPToken> unsignedTokens = List.of(mockLdpUnsignedToken());
@@ -713,8 +729,7 @@ public class WalletPresentationServiceTest {
         when(dcqlQuery.getCredentialSets()).thenReturn(null);
 
         stubOpenId4VpCreate(mockOpenID4VP);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
         List<UnsignedVPToken> unsignedTokens = List.of(mockLdpUnsignedToken());
@@ -790,8 +805,7 @@ public class WalletPresentationServiceTest {
         when(dcqlQuery.getCredentialSets()).thenReturn(null);
 
         stubOpenId4VpCreate(mockOpenID4VP);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
         List<UnsignedVPToken> unsignedTokens = List.of(mockLdpUnsignedToken(), mockLdpUnsignedToken());
@@ -878,8 +892,7 @@ public class WalletPresentationServiceTest {
         doReturn(allProps).when(credentialFormatHandler).extractAllCredentialProperties(any());
 
         stubOpenId4VpCreate(mockOpenID4VP);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
         List<UnsignedVPToken> unsignedTokens = List.of(mockSdJwtUnsignedToken());
@@ -978,8 +991,7 @@ public class WalletPresentationServiceTest {
         doReturn(allProps).when(credentialFormatHandler).extractAllCredentialProperties(any());
 
         stubOpenId4VpCreate(mockOpenID4VP);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
         List<UnsignedVPToken> unsignedTokens = List.of(mockSdJwtUnsignedToken());
@@ -1034,8 +1046,7 @@ public class WalletPresentationServiceTest {
 
         stubOpenId4VpCreate(mockOpenID4VP);
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
 
         try {
             walletPresentationService.submitPresentation(
@@ -1081,8 +1092,7 @@ public class WalletPresentationServiceTest {
 
         stubOpenId4VpCreate(mockOpenID4VP);
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
 
         try {
             walletPresentationService.submitPresentation(
@@ -1120,8 +1130,7 @@ public class WalletPresentationServiceTest {
 
         stubOpenId4VpCreate(mockOpenID4VP);
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
 
         try {
             walletPresentationService.submitPresentation(
@@ -1174,8 +1183,7 @@ public class WalletPresentationServiceTest {
 
         stubOpenId4VpCreate(mockOpenID4VP);
         when(mockOpenID4VP.authenticateVerifier(anyString())).thenReturn(mockAuthorizationRequest);
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
         when(keyPairService.getKeyPairFromDB(anyString(), anyString(), any(SigningAlgorithm.class))).thenReturn(keyPair);
 
         List<UnsignedVPToken> unsignedTokens = List.of(mockLdpUnsignedToken());
@@ -1506,11 +1514,10 @@ public class WalletPresentationServiceTest {
                     .thenReturn("test-client");
 
             
-            try {
-                walletPresentationService.submitPresentation(
-                        nullSessionData, walletId, presentationId, submitRequest, base64Key);
-            } catch (Exception e) {
-            }
+            Exception ex = assertThrows(Exception.class, () ->
+                    walletPresentationService.submitPresentation(
+                            nullSessionData, walletId, presentationId, submitRequest, base64Key));
+            assertNotNull(ex);
         }
     }
 
@@ -1703,13 +1710,8 @@ public class WalletPresentationServiceTest {
         List<UnsignedVPToken> unsignedTokens = List.of(mockLdpUnsignedToken());
         when(mockOpenID4VP.constructUnsignedVPToken(anyMap())).thenReturn(unsignedTokens);
 
-        VerifierResponse verifierResponse = mock(VerifierResponse.class);
-        when(verifierResponse.getStatusCode()).thenReturn(200);
-        when(verifierResponse.getRedirectUri()).thenReturn("https://verifier.com/success");
-        when(mockOpenID4VP.sendVPResponseToVerifier(any())).thenReturn(verifierResponse);
-
+        // Fail on the first serialization attempt, simulating a failure during presentation data creation
         when(objectMapper.writeValueAsString(any()))
-                .thenReturn("{\"kty\":\"OKP\"}")
                 .thenThrow(new JsonProcessingException("JSON error") {});
 
         try (MockedStatic<SigningKeyUtil> jwtUtilMock = mockStatic(SigningKeyUtil.class);
@@ -2201,7 +2203,8 @@ public class WalletPresentationServiceTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> result = (Map<String, Object>) method.invoke(walletPresentationService, credential);
 
-        assertNull(result);
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -2340,4 +2343,86 @@ public class WalletPresentationServiceTest {
             verify(jwsSigner, times(2)).sign(any(JWSHeader.class), eq(kbt.getBytes(StandardCharsets.US_ASCII)));
         }
     }
+
+    @Test
+    public void testSignVPTokensMsoMdocSignsRawCborBytesWithoutDotSplit() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod(
+                "signVPTokens", List.class, String.class, String.class);
+        method.setAccessible(true);
+
+        byte[] cborBytes = new byte[]{(byte) 0x84, 0x01, 0x02, 0x03};
+
+        UnsignedVPToken mockToken = mock(UnsignedVPToken.class);
+        when(mockToken.getId()).thenReturn("mdoc-token-1");
+        when(mockToken.getFormat()).thenReturn(FormatType.MSO_MDOC);
+        when(mockToken.getDataToSign()).thenReturn(cborBytes);
+        when(mockToken.getSignatureAlgorithm()).thenReturn("ES256");
+        when(jwsSigner.sign(any(JWSHeader.class), any(byte[].class))).thenReturn(Base64URL.encode("mdoc-sig"));
+
+        KeyPair mockKeyPair = mock(KeyPair.class);
+        JWK mockJwk = mock(JWK.class);
+        when(keyPairService.getKeyPairFromDB(eq("wallet-1"), eq("base64Key"), eq(SigningAlgorithm.ES256)))
+                .thenReturn(mockKeyPair);
+
+        try (MockedStatic<SigningKeyUtil> mockedSigningKeyUtil = mockStatic(SigningKeyUtil.class)) {
+            mockedSigningKeyUtil.when(() -> SigningKeyUtil.generateJwk(SigningAlgorithm.ES256, mockKeyPair))
+                    .thenReturn(mockJwk);
+            mockedSigningKeyUtil.when(() -> SigningKeyUtil.createSigner(SigningAlgorithm.ES256, mockJwk))
+                    .thenReturn(jwsSigner);
+
+            @SuppressWarnings("unchecked")
+            List<VPTokenSigningResult> results = (List<VPTokenSigningResult>) method.invoke(
+                    walletPresentationService, List.of(mockToken), "wallet-1", "base64Key");
+
+            assertEquals(1, results.size());
+            verify(jwsSigner).sign(any(JWSHeader.class), eq(cborBytes));
+            assertArrayEquals(Base64URL.encode("mdoc-sig").decode(), results.get(0).getSignedData());
+        }
+    }
+
+    @Test
+    public void testToLibraryCredentialMsoMdocWithStringCredentialReturnsMsoMdocCredential() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod(
+                "toLibraryCredential", DecryptedCredentialDTO.class, Map.class);
+        method.setAccessible(true);
+
+        DecryptedCredentialDTO dto = DecryptedCredentialDTO.builder()
+                .id("mdoc-cred-1")
+                .credential(VCCredentialResponse.builder()
+                        .format(CredentialFormat.MSO_MDOC.getFormat())
+                        .credential("base64url-encoded-mdoc-data")
+                        .build())
+                .build();
+
+        Credential result = (Credential) method.invoke(walletPresentationService, dto, null);
+
+        assertNotNull(result);
+        assertEquals(FormatType.MSO_MDOC, result.getFormat());
+        assertEquals("mdoc-cred-1", result.getCredentialId());
+        assertEquals("base64url-encoded-mdoc-data", result.getData());
+    }
+
+    @Test
+    public void testToLibraryCredentialMsoMdocNonStringCredentialThrowsInvalidRequest() throws Exception {
+        Method method = WalletPresentationServiceImpl.class.getDeclaredMethod(
+                "toLibraryCredential", DecryptedCredentialDTO.class, Map.class);
+        method.setAccessible(true);
+
+        DecryptedCredentialDTO dto = DecryptedCredentialDTO.builder()
+                .id("mdoc-cred-2")
+                .credential(VCCredentialResponse.builder()
+                        .format(CredentialFormat.MSO_MDOC.getFormat())
+                        .credential(Map.of("unexpected", "map"))
+                        .build())
+                .build();
+
+        try {
+            method.invoke(walletPresentationService, dto, null);
+            fail("Expected InvocationTargetException wrapping InvalidRequestException");
+        } catch (InvocationTargetException e) {
+            assertTrue(e.getCause() instanceof InvalidRequestException);
+            assertTrue(e.getCause().getMessage().contains("mso_mdoc data must be a String"));
+        }
+    }
+
 }

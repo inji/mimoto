@@ -9,4 +9,6 @@ public class SessionKeys {
     public static final String CLIENT_REGISTRATION_ID = "clientRegistrationId";
     
     public static final String PRESENTATIONS = "presentations";
+    public static final String PKCE_SESSION = "pkce_session";
+    public static final String DPOP_SESSION = "dpop_session";
 }

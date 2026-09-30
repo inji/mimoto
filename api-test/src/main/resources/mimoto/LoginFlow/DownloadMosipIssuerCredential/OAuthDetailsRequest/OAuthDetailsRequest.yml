@@ -5,9 +5,9 @@ OAuthDetailsRequestForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_01
       role: resident
       restMethod: post
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest
-      outputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequestResult
+      outputTemplate: mimoto/responseCode
       input: '{
       	"requestTime": "$TIMESTAMP$",
       	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
@@ -24,7 +24,7 @@ OAuthDetailsRequestForGoogleLogin:
         "codeChallengeMethod": "S256"
 }'
       output: '{
-       
+      "responseCode": "200"
 }'
 
    Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg:
@@ -33,9 +33,9 @@ OAuthDetailsRequestForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_02
       role: resident
       restMethod: post
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest
-      outputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequestResult
+      outputTemplate: mimoto/responseCode
       input: '{
       	"requestTime": "$TIMESTAMP$",
       	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
@@ -52,5 +52,5 @@ OAuthDetailsRequestForGoogleLogin:
         "codeChallengeMethod": "S256"
 }'
       output: '{
-       
+      "responseCode": "200"
 }'

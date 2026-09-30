@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.mosip.mimoto.exception.ApisResourceAccessException;
 import jakarta.validation.Valid;
 
 @RestController
@@ -43,12 +44,12 @@ public class ResidentServiceController {
      *
      * @param requestDTO
      * @return
-     * @throws Exception
+     * @throws ApisResourceAccessException
      */
     @PostMapping("/req/otp")
     @Operation(summary = SwaggerLiteralConstants.RESIDENT_REQUEST_OTP_SUMMARY, description = SwaggerLiteralConstants.RESIDENT_REQUEST_OTP_DESCRIPTION)
     @SuppressWarnings("unchecked")
-    public ResponseEntity<ResponseWrapper<CredentialRequestResponseDTO>> otpRequest(@Valid @RequestBody AppOTPRequestDTO requestDTO, BindingResult result) throws Exception {
+    public ResponseEntity<ResponseWrapper<CredentialRequestResponseDTO>> otpRequest(@Valid @RequestBody AppOTPRequestDTO requestDTO, BindingResult result) throws ApisResourceAccessException {
         requestValidator.validateInputRequest(result);
         requestValidator.validateNotificationChannel(requestDTO.getOtpChannel());
         OTPRequestDTO mosipOTPRequestPayload = new OTPRequestDTO();
@@ -71,12 +72,12 @@ public class ResidentServiceController {
      *
      * @param requestDTO
      * @return
-     * @throws Exception
+     * @throws ApisResourceAccessException
      */
     @PostMapping("/vid")
     @Operation(hidden = true)
     @SuppressWarnings("unchecked")
-    public ResponseEntity<Object> vidGenerate(@RequestBody AppVIDGenerateRequestDTO requestDTO) throws Exception {
+    public ResponseEntity<Object> vidGenerate(@RequestBody AppVIDGenerateRequestDTO requestDTO) throws ApisResourceAccessException {
         VIDGenerateRequestDTO vidRequestDTO = new VIDGenerateRequestDTO();
         RequestWrapper<VIDGenerateRequestDTO> mosipVIDRequestPayload = new RequestWrapper<>();
 
@@ -100,12 +101,12 @@ public class ResidentServiceController {
      * Request auth lock
      * @param requestDTO
      * @return
-     * @throws Exception
+     * @throws ApisResourceAccessException
      */
     @PostMapping("/req/auth/lock")
     @Operation(hidden = true)
     @SuppressWarnings("unchecked")
-    public ResponseEntity<Object> authLock(@RequestBody AuthLockRequestDTO requestDTO) throws Exception {
+    public ResponseEntity<Object> authLock(@RequestBody AuthLockRequestDTO requestDTO) throws ApisResourceAccessException {
         RequestWrapper<AuthLockRequestDTO> mosipAuthLockRequestPayload = new RequestWrapper<>();
         mosipAuthLockRequestPayload.setId("mosip.resident.authlock");
         mosipAuthLockRequestPayload.setVersion("v1");
@@ -122,12 +123,12 @@ public class ResidentServiceController {
      * Request auth unlock
      * @param requestDTO
      * @return
-     * @throws Exception
+     * @throws ApisResourceAccessException
      */
     @PostMapping("/req/auth/unlock")
     @Operation(hidden = true)
     @SuppressWarnings("unchecked")
-    public ResponseEntity<Object> authUnlock(@RequestBody AuthUnlockRequestDTO requestDTO) throws Exception {
+    public ResponseEntity<Object> authUnlock(@RequestBody AuthUnlockRequestDTO requestDTO) throws ApisResourceAccessException {
         RequestWrapper<AuthUnlockRequestDTO> mosipAuthUnlockRequestPayload = new RequestWrapper<>();
         mosipAuthUnlockRequestPayload.setId("mosip.resident.authunlock");
         mosipAuthUnlockRequestPayload.setVersion("v1");

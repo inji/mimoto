@@ -1,6 +1,5 @@
 package io.mosip.mimoto.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.SessionKeys;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
 import io.mosip.mimoto.dto.mimoto.UserMetadataDTO;
@@ -17,12 +16,6 @@ import java.util.Map;
 @Component
 @Slf4j
 public class SessionManager {
-
-    private final ObjectMapper objectMapper;
-
-    public SessionManager(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
 
     public void setupSession(HttpServletRequest request, String provider, UserMetadataDTO userMetadata, String userId) {
         HttpSession session = request.getSession(true);
@@ -86,7 +79,9 @@ public class SessionManager {
                 existingSessionData.getCreatedAt(),
                 existingSessionData.isVerifierClientPreregistered(),
                 credentials,
-                existingSessionData.isDcql());
+                existingSessionData.isDcql(),
+                existingSessionData.getParsedAuthorizationRequest(),
+                existingSessionData.getOpenID4VPInstance());
 
         // Update the presentations map with the updated session data
         Map<String, VerifiablePresentationSessionData> presentations = (Map<String, VerifiablePresentationSessionData>) httpSession.getAttribute(SessionKeys.PRESENTATIONS + "::" + walletId);

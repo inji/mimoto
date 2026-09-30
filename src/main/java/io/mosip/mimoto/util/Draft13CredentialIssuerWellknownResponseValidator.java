@@ -6,12 +6,16 @@ import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 @Component
 public class Draft13CredentialIssuerWellknownResponseValidator {
 
@@ -28,29 +32,40 @@ public class Draft13CredentialIssuerWellknownResponseValidator {
             throw new InvalidWellknownResponseException(sb.toString());
         }
 
-        for (CredentialsSupportedResponse supportedCredentialConfiguration : response.getCredentialConfigurationsSupported().values()) {
-            if (MSO_MDOC.equals(supportedCredentialConfiguration.getFormat())) {
-                if (StringUtils.isBlank(supportedCredentialConfiguration.getDoctype())) {
-                    throw new InvalidWellknownResponseException("Mandatory field 'doctype' missing");
+        Map<String, CredentialsSupportedResponse> validConfigs = new LinkedHashMap<>();
+        for (Map.Entry<String, CredentialsSupportedResponse> entry : response.getCredentialConfigurationsSupported().entrySet()) {
+            String key = entry.getKey();
+            CredentialsSupportedResponse config = entry.getValue();
+            try {
+                if (config == null) {
+                    throw new InvalidWellknownResponseException("Null credential configuration");
                 }
-                if (CollectionUtils.isEmpty(supportedCredentialConfiguration.getClaims())) {
-                    throw new InvalidWellknownResponseException("Mandatory field 'claims' missing");
-                }
-            }
-
-            if (LDP_VC.equals(supportedCredentialConfiguration.getFormat())) {
-                if (supportedCredentialConfiguration.getCredentialDefinition() == null) {
-                    throw new InvalidWellknownResponseException("credentialDefinition: must not be null");
-                }
-                Set<ConstraintViolation<CredentialDefinitionResponseDto>> credentialDefinitionViolations = validator.validate(supportedCredentialConfiguration.getCredentialDefinition());
-                if (!credentialDefinitionViolations.isEmpty()) {
-                    StringBuilder sb = new StringBuilder("Validation failed:");
-                    for (ConstraintViolation<CredentialDefinitionResponseDto> violation : credentialDefinitionViolations) {
-                        sb.append("\n").append(violation.getPropertyPath()).append(": ").append(violation.getMessage());
+                if (MSO_MDOC.equals(config.getFormat())) {
+                    if (StringUtils.isBlank(config.getDoctype())) {
+                        throw new InvalidWellknownResponseException("Mandatory field 'doctype' missing");
                     }
-                    throw new InvalidWellknownResponseException(sb.toString());
                 }
+                if (LDP_VC.equals(config.getFormat())) {
+                    if (config.getCredentialDefinition() == null) {
+                        throw new InvalidWellknownResponseException("credentialDefinition: must not be null");
+                    }
+                    Set<ConstraintViolation<CredentialDefinitionResponseDto>> credentialDefinitionViolations = validator.validate(config.getCredentialDefinition());
+                    if (!credentialDefinitionViolations.isEmpty()) {
+                        StringBuilder sb = new StringBuilder("Validation failed:");
+                        for (ConstraintViolation<CredentialDefinitionResponseDto> violation : credentialDefinitionViolations) {
+                            sb.append("\n").append(violation.getPropertyPath()).append(": ").append(violation.getMessage());
+                        }
+                        throw new InvalidWellknownResponseException(sb.toString());
+                    }
+                }
+                validConfigs.put(key, config);
+            } catch (InvalidWellknownResponseException e) {
+                log.warn("Skipping invalid credential configuration '{}': {}", key, e.getMessage());
             }
         }
+        if (!response.getCredentialConfigurationsSupported().isEmpty() && validConfigs.isEmpty()) {
+            throw new InvalidWellknownResponseException("All credential configurations in issuer well-known are invalid");
+        }
+        response.setCredentialConfigurationsSupported(validConfigs);
     }
 }

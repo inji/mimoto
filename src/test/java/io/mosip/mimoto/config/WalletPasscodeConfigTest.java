@@ -5,4 +5,5 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableConfigurationProperties(WalletPasscodeConfig.class)
+@SuppressWarnings("S2187")
 public class WalletPasscodeConfigTest {}

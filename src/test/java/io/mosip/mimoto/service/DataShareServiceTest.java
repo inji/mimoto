@@ -10,21 +10,21 @@ import io.mosip.mimoto.exception.InvalidCredentialResourceException;
 import io.mosip.mimoto.service.impl.DataShareServiceImpl;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.TestUtilities;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+
 import static io.mosip.mimoto.util.TestUtilities.getDataShareResponseDTO;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
-@RunWith(MockitoJUnitRunner.class)
-
+@ExtendWith(MockitoExtension.class)
 public class DataShareServiceTest {
 
     @Mock
@@ -35,20 +35,18 @@ public class DataShareServiceTest {
     DataShareServiceImpl dataShareService;
     PresentationRequestDTO presentationRequestDTO;
 
-    private static final String TEST_HOST_URL = "https://test-url";
     private static final String TEST_CREATE_URL = "https://test-url";
     private static final String TEST_GET_URL_PATTERN = "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/*";
     private static final String MISCONFIGURED_GET_URL_PATTERN = "http://datashare.datashare/*";
     private static final int DEFAULT_MAX_RETRY_COUNT = 1;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
 
         dataShareService = new DataShareServiceImpl(
                 restApiClient,
                 objectMapper,
-                TEST_HOST_URL,
                 TEST_CREATE_URL,
                 TEST_GET_URL_PATTERN,
                 DEFAULT_MAX_RETRY_COUNT
@@ -62,20 +60,20 @@ public class DataShareServiceTest {
                 .thenReturn(dataShareResponseWrapperDTO);
         String actualDataShareLink = dataShareService.storeDataInDataShare("SampleData", "3");
         String expectedDataShareLink = dataShareResponseWrapperDTO.getDataShare().getUrl();
-        Assert.assertEquals(expectedDataShareLink, actualDataShareLink);
+        assertEquals(expectedDataShareLink, actualDataShareLink);
     }
 
-    @Test(expected = InvalidCredentialResourceException.class)
+    @Test
     public void throwRequestTimedOutExceptionWhenMaxCountIsReached() throws Exception {
-        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, TEST_HOST_URL, TEST_CREATE_URL, TEST_GET_URL_PATTERN, 0);
-        dataShareService.storeDataInDataShare("SampleData", "3");
+        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, TEST_CREATE_URL, TEST_GET_URL_PATTERN, 0);
+        assertThrows(InvalidCredentialResourceException.class, () -> dataShareService.storeDataInDataShare("SampleData", "3"));
     }
 
-    @Test(expected = InvalidCredentialResourceException.class)
+    @Test
     public void throwServiceUnavailableExceptionWhenCredentialPushIsNotDone() throws Exception {
         Mockito.when(restApiClient.postApi(Mockito.anyString(), Mockito.eq(MediaType.MULTIPART_FORM_DATA), Mockito.any(), Mockito.eq(DataShareResponseWrapperDTO.class)))
                 .thenThrow(InvalidCredentialResourceException.class);
-        dataShareService.storeDataInDataShare("SampleData", "3");
+        assertThrows(InvalidCredentialResourceException.class, () -> dataShareService.storeDataInDataShare("SampleData", "3"));
     }
 
     @Test
@@ -89,7 +87,7 @@ public class DataShareServiceTest {
 
         VCCredentialResponse actualVCCredentialResponse = dataShareService.downloadCredentialFromDataShare(presentationRequestDTO);
 
-        Assert.assertEquals(vcCredentialResponseDTO, actualVCCredentialResponse);
+        assertEquals(vcCredentialResponseDTO, actualVCCredentialResponse);
     }
 
     @Test
@@ -146,31 +144,9 @@ public class DataShareServiceTest {
     }
 
     @Test
-    public void throwResourceInvalidRequestExceptionWhenCredentialURLHasIllegalDirectoryCharacter() {
-        String expectedExceptionMsg = "invalid_resource --> Invalid path structure in resource URL";
-
-        presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/te..st");
-
-        InvalidCredentialResourceException actualException = assertThrows(InvalidCredentialResourceException.class, () -> dataShareService.downloadCredentialFromDataShare(presentationRequestDTO));
-
-        assertEquals(expectedExceptionMsg, actualException.getMessage());
-    }
-
-    @Test
-    public void throwResourceInvalidRequestExceptionWhenCredentialURLHasIllegalForwardSlashCharacter() {
-        String expectedExceptionMsg = "invalid_resource --> Invalid path structure in resource URL";
-
-        presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid//test");
-
-        InvalidCredentialResourceException actualException = assertThrows(InvalidCredentialResourceException.class, () -> dataShareService.downloadCredentialFromDataShare(presentationRequestDTO));
-
-        assertEquals(expectedExceptionMsg, actualException.getMessage());
-    }
-
-    @Test
     public void throwResourceInvalidRequestExceptionWhenCredentialURLIsMisconfiguredAndHasNoWildcard() {
         String expectedExceptionMsg = "invalid_resource --> Invalid resource identifier in URL";
-        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, TEST_HOST_URL, TEST_CREATE_URL, MISCONFIGURED_GET_URL_PATTERN, DEFAULT_MAX_RETRY_COUNT);
+        dataShareService = new DataShareServiceImpl(restApiClient, objectMapper, TEST_CREATE_URL, MISCONFIGURED_GET_URL_PATTERN, DEFAULT_MAX_RETRY_COUNT);
 
         presentationRequestDTO.setResource("http://datashare.datashare/");
 
@@ -179,34 +155,20 @@ public class DataShareServiceTest {
         assertEquals(expectedExceptionMsg, actualException.getMessage());
     }
 
-    @Test
-    public void throwResourceInvalidRequestExceptionWhenCredentialURLHasIllegalCharacters() {
-        String expectedExceptionMsg = "invalid_resource --> Invalid characters in wildcard segment";
-        presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test$");
-
-        InvalidCredentialResourceException actualException = assertThrows(InvalidCredentialResourceException.class, () -> dataShareService.downloadCredentialFromDataShare(presentationRequestDTO));
-
-        assertEquals(expectedExceptionMsg, actualException.getMessage());
-    }
-
-    @Test
-    public void throwResourceInvalidRequestExceptionWhenCredentialURLIsMalformed() {
-        String expectedExceptionMsg = "invalid_resource --> Malformed resource URL";
-        presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/%%illegal");
-
-        InvalidCredentialResourceException actualException = assertThrows(InvalidCredentialResourceException.class, () -> dataShareService.downloadCredentialFromDataShare(presentationRequestDTO));
-
-        assertEquals(expectedExceptionMsg, actualException.getMessage());
-    }
-
-    @Test
-    public void throwResourceInvalidRequestExceptionWhenCredentialURLHasDoubleEncodedPathTraversal() {
-        String expectedExceptionMsg = "invalid_resource --> Invalid characters in wildcard segment";
-        presentationRequestDTO.setResource("http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/%252e%252e");
+    @ParameterizedTest
+    @CsvSource({
+        "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/te..st,    invalid_resource --> Invalid path structure in resource URL",
+        "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid//test,     invalid_resource --> Invalid path structure in resource URL",
+        "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test$,     invalid_resource --> Invalid characters in wildcard segment",
+        "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/%%illegal, invalid_resource --> Malformed resource URL",
+        "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/%252e%252e,invalid_resource --> Invalid characters in wildcard segment"
+    })
+    public void throwResourceInvalidRequestExceptionForInvalidCredentialURL(String resourceUrl, String expectedExceptionMsg) {
+        presentationRequestDTO.setResource(resourceUrl);
 
         InvalidCredentialResourceException actualException = assertThrows(InvalidCredentialResourceException.class,
                 () -> dataShareService.downloadCredentialFromDataShare(presentationRequestDTO));
 
-        assertEquals(expectedExceptionMsg, actualException.getMessage());
+        assertEquals(expectedExceptionMsg.strip(), actualException.getMessage());
     }
 }

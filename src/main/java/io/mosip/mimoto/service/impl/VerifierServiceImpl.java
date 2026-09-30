@@ -1,6 +1,7 @@
 package io.mosip.mimoto.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.IOException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.dto.openid.VerifiersDTO;
@@ -61,13 +62,13 @@ public class VerifierServiceImpl implements VerifierService {
         return objectMapper.readValue(trustedVerifiersJsonValue, VerifiersDTO.class);
     }
 
-    public Optional<VerifierDTO> getVerifierByClientId(String clientId) throws ApiNotAccessibleException, JsonProcessingException {
+    public Optional<VerifierDTO> getVerifierByClientId(String clientId) throws ApiNotAccessibleException, IOException {
         VerifiersDTO verifiersDTO = getTrustedVerifiers();
         return verifiersDTO.getVerifiers().stream().filter(verifier -> verifier.getClientId().equals(clientId)).findFirst();
     }
 
     @Override
-    public VerifierDTO validateVerifier(String clientId, String responseUri, String redirectUri) throws ApiNotAccessibleException, JsonProcessingException {
+    public VerifierDTO validateVerifier(String clientId, String responseUri, String redirectUri) throws ApiNotAccessibleException, IOException {
         log.info("Started the presentation Validation");
         VerifierDTO verifierDTO = getVerifierByClientId(clientId)
                 .orElseThrow(() -> new InvalidVerifierException(

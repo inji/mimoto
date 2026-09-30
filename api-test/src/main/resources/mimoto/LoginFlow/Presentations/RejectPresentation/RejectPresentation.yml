@@ -5,7 +5,6 @@ RejectPresentation:
       uniqueIdentifier: TC_Mimoto_RejectPresentation_01
       role: userDefinedCookie
       restMethod: patch
-      checkErrorsOnlyInResponse: true
       inputTemplate: mimoto/LoginFlow/Presentations/RejectPresentation/RejectPresentation
       outputTemplate: mimoto/LoginFlow/Presentations/RejectPresentation/RejectPresentationResult
       input: '{
@@ -17,6 +16,8 @@ RejectPresentation:
         "errorMessage": "User denied authorization to share credentials"
 }'
       output: '{
+        "status": "success",
+        "message": "Presentation request rejected. An OpenID4VP error response has been sent to the verifier."
 }'
 
    Mimoto_RejectPresentation_invalidWalletID_Neg:

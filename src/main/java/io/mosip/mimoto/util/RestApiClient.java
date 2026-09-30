@@ -5,6 +5,7 @@ import io.mosip.mimoto.core.http.RequestWrapper;
 import io.mosip.mimoto.dto.SecretKeyRequest;
 import io.mosip.mimoto.exception.TokenGenerationFailedException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -39,6 +41,7 @@ import java.util.Objects;
 @Slf4j
 @Component
 public class RestApiClient {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(RestApiClient.class);
 
     public static final String TOKEN = "token";
     public static final String CONTENT_TYPE = "Content-Type";
@@ -185,25 +188,6 @@ public class RestApiClient {
             log.error("RestApiClient::postApi()::error uri: {} {} {}", uri, e.getMessage(), e);
         }
         return result;
-    }
-
-    public <T> T postApiWithErrorResponse(String uri, MediaType mediaType, Object requestType, Class<T> responseClass, String bearerToken) {
-        try {
-            log.info("RestApiClient::postApiWithErrorResponse()::entry uri: {}", uri);
-            return plainRestTemplate.postForObject(uri, setRequestHeader(requestType, mediaType, bearerToken), responseClass);
-        } catch (HttpClientErrorException e) {
-            log.error("RestApiClient::postApiWithErrorResponse()::client error uri: {} status: {}", uri, e.getStatusCode());
-log.debug("RestApiClient::postApiWithErrorResponse()::client error response body: {}", e.getResponseBodyAsString());
-            try {
-                return new com.fasterxml.jackson.databind.ObjectMapper().readValue(e.getResponseBodyAsString(), responseClass);
-            } catch (Exception ex) {
-                log.error("RestApiClient::postApiWithErrorResponse()::failed to parse error body as {}: {}", responseClass.getSimpleName(), ex.getMessage());
-                return null;
-            }
-        } catch (Exception e) {
-            log.error("RestApiClient::postApiWithErrorResponse()::error uri: {} {}", uri, e.getMessage(), e);
-            return null;
-        }
     }
 
     private HttpEntity<Object> setRequestHeader(Object requestType, MediaType mediaType, String bearerToken){

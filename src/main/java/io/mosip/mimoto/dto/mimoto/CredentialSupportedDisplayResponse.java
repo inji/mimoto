@@ -52,4 +52,5 @@ public class CredentialSupportedDisplayResponse {
     @NotBlank
     @Schema(description = "Text Colour of the Supported Credential")
     String textColor;
+
 }

@@ -436,7 +436,7 @@ public class CredentialShareServiceTest {
 
         Mockito.doReturn(new org.json.JSONObject()).when(service).getBiometricsDataJSON(Mockito.anyString());
 
-        Map<String, byte[]> result = service.getDocuments(credentialJson, "VERCRED", "req-123", "dummySign");
+        Map<String, byte[]> result = service.getDocuments(credentialJson);
 
         assertNotNull(result);
         String uinTextFile = (String) ReflectionTestUtils.getField(CredentialShareServiceImpl.class, "UIN_TEXT_FILE");
@@ -452,7 +452,7 @@ public class CredentialShareServiceTest {
         Mockito.doThrow(new RuntimeException("forced failure"))
                 .when(service).createJSONFile(Mockito.any(org.json.JSONObject.class), Mockito.anyString());
 
-        service.getDocuments(credentialJson, "VERCRED", "req-456", "dummySign");
+        service.getDocuments(credentialJson);
     }
 
     @Test(expected = IdentityNotFoundException.class)
@@ -602,9 +602,8 @@ public class CredentialShareServiceTest {
 
     private CredentialShareServiceImpl buildTestService() {
         CredentialShareServiceImpl testService = new CredentialShareServiceImpl(
-                restApiClient, webSubSubscriptionHelper, dataShareUtil,
-                derivedKeyCryptoUtil, p12KeyStoreManager, util, auditLogRequestBuilder,
-                utilities, restClientService, env, pb
+                restApiClient, derivedKeyCryptoUtil, p12KeyStoreManager, util,
+                auditLogRequestBuilder, utilities, env
         );
         ReflectionTestUtils.setField(testService, "util", util);
         return testService;

@@ -6,8 +6,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuersDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerConfiguration;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeResponse;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.service.impl.IssuersServiceImpl;
 import io.mosip.mimoto.util.Utilities;
 import org.hamcrest.Matchers;
@@ -28,12 +30,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static io.mosip.mimoto.exception.PlatformErrorMessages.API_NOT_ACCESSIBLE_EXCEPTION;
 import static io.mosip.mimoto.exception.PlatformErrorMessages.INVALID_ISSUER_ID_EXCEPTION;
 import static io.mosip.mimoto.util.TestUtilities.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.junit.Assert.assertTrue;
@@ -67,7 +72,7 @@ public class IssuersControllerTest {
         IssuersDTO filteredIssuers = new IssuersDTO();
         filteredIssuers.setIssuers(issuers.getIssuers().stream().filter(issuer -> issuer.getDisplay().stream()
                         .anyMatch(displayDTO -> displayDTO.getTitle().toLowerCase().contains("Issuer1".toLowerCase())))
-                .collect(Collectors.toList()));
+                .toList());
 
         Mockito.when(issuersService.getIssuers("Issuer1"))
                 .thenReturn(filteredIssuers)
@@ -110,7 +115,7 @@ public class IssuersControllerTest {
         IssuersDTO filteredIssuers = new IssuersDTO();
         filteredIssuers.setIssuers(issuers.getIssuers().stream().filter(issuer -> issuer.getDisplay().stream()
                         .anyMatch(displayDTO -> displayDTO.getTitle().toLowerCase().contains("Issuer2".toLowerCase())))
-                .collect(Collectors.toList()));
+                .toList());
 
         Mockito.when(issuersService.getIssuers("Issuer2"))
                 .thenReturn(filteredIssuers)
@@ -248,11 +253,11 @@ public class IssuersControllerTest {
         String issuerId = "id1";
 
         //get the IssuerConfig from the json file expectedIssuerConfig and wrap it inside response to test the response of configuration endpoint response wrapper
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode originalJson = objectMapper.readTree(new ClassPathResource("responses/expectedIssuerConfig.json").getInputStream());
-        ObjectNode wrappedJson = objectMapper.createObjectNode();
+        ObjectMapper localMapper = new ObjectMapper();
+        JsonNode originalJson = localMapper.readTree(new ClassPathResource("responses/expectedIssuerConfig.json").getInputStream());
+        ObjectNode wrappedJson = localMapper.createObjectNode();
         wrappedJson.set("response", originalJson);
-        String expectedJsonString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(wrappedJson);
+        String expectedJsonString = localMapper.writerWithDefaultPrettyPrinter().writeValueAsString(wrappedJson);
         if (expectedJsonString.startsWith("\uFEFF")) {
             expectedJsonString = expectedJsonString.substring(1);
         }
@@ -279,5 +284,72 @@ public class IssuersControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].errorCode", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getCode())))
                 .andExpect(jsonPath("$.errors[0].errorMessage", Matchers.is(API_NOT_ACCESSIBLE_EXCEPTION.getMessage())));
+    }
+
+    @Test
+    public void should_returnAuthorizationUrlAndState_when_authorizationServiceSucceeds() throws Exception {
+        String authUrl = "https://dev/authorize?client_id=123&redirect_uri=https%3A%2F%2Finjiweb.example.com%2Fredirect"
+                + "&response_type=code&scope=openid+MockVerifiableCredential&state=oauth-state"
+                + "&code_challenge=challenge&code_challenge_method=S256&dpop_jkt=thumbprint";
+        when(issuersService.createAuthorizationUrl(any(), eq("LocalMock"), any()))
+                .thenReturn(IssuerAuthorizeResponse.builder()
+                        .authorizationUrl(authUrl)
+                        .state("oauth-state")
+                        .build());
+
+        mockMvc.perform(post("/issuers/{issuer-id}/authorize", "LocalMock")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "redirectUri": "https://injiweb.example.com/redirect",
+                                  "credentialConfigurationId": "MockVerifiableCredential",
+                                  "uiLocales": "en"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authorizationUrl").value(authUrl))
+                .andExpect(jsonPath("$.state").value("oauth-state"));
+    }
+
+    @Test
+    public void should_returnStateWithTilde_when_authorizationServiceSucceeds() throws Exception {
+        String oauthState = "Iv~UKBqw_XGsyIT~7GuKrVLFfUvtVSEk3993qSftpm.";
+        String authUrl = "https://dev/authorize?state=Iv~UKBqw_XGsyIT~7GuKrVLFfUvtVSEk3993qSftpm.";
+        when(issuersService.createAuthorizationUrl(any(), eq("LocalMock"), any()))
+                .thenReturn(IssuerAuthorizeResponse.builder()
+                        .authorizationUrl(authUrl)
+                        .state(oauthState)
+                        .build());
+
+        mockMvc.perform(post("/issuers/{issuer-id}/authorize", "LocalMock")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "redirectUri": "https://injiweb.example.com/redirect",
+                                  "credentialConfigurationId": "MockVerifiableCredential",
+                                  "uiLocales": "en"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authorizationUrl").value(authUrl))
+                .andExpect(jsonPath("$.state").value(oauthState));
+    }
+
+    @Test
+    public void should_returnBadRequest_when_authorizationServiceFails() throws Exception {
+        when(issuersService.createAuthorizationUrl(any(), eq("unknown"), any()))
+                .thenThrow(new InvalidRequestException("invalid_request", "Invalid issuer"));
+
+        mockMvc.perform(post("/issuers/{issuer-id}/authorize", "unknown")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "redirectUri": "https://injiweb.example.com/redirect",
+                                  "credentialConfigurationId": "MockVerifiableCredential",
+                                  "uiLocales": "en"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").exists());
     }
 }

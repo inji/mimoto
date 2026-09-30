@@ -16,7 +16,7 @@ public class SwaggerLiteralConstants {
     public static final String CREDENTIALS_NAME = "Credentials download using OpenId4VCI";
     public static final String CREDENTIALS_DESCRIPTION = "All the credentials related endpoints";
     public static final String CREDENTIALS_DOWNLOAD_VC_SUMMARY = "Download credentials as PDF";
-    public static final String CREDENTIALS_DOWNLOAD_VC_DESCRIPTION = "This endpoint allow you to download the credentials as PDF";
+    public static final String CREDENTIALS_DOWNLOAD_VC_DESCRIPTION = "For guest download. Requires a DPoP session from POST /issuers/{issuer-id}/authorize. Send OAuth state in the state request header and the authorization code in the form body. Mimoto applies stored PKCE, exchanges the token, and signs DPoP proofs server-side. Do not send access_token, grant_type, redirect_uri, code_verifier, or a DPoP header.";
 
     /* Credentials Share Controller */
     public static final String CREDENTIALS_SHARE_NAME = "Credential Share";
@@ -32,13 +32,17 @@ public class SwaggerLiteralConstants {
 
     /* IDP Controller */
     public static final String IDP_NAME = "Wallet Binding";
-    public static final String IDP_DESCRIPTION = "All the authorization related endpoints";
+    public static final String IDP_DESCRIPTION = "All the wallet binding related endpoints";
+    public static final String IDP_TOKEN_NAME = "Token";
+    public static final String IDP_TOKEN_DESCRIPTION = "OIDC token exchange endpoints";
     public static final String IDP_BINDING_OTP_SUMMARY = "Invoke OTP request for wallet binding";
     public static final String IDP_BINDING_OTP_DESCRIPTION = "This endpoint allow you to invoke OTP for wallet binding";
     public static final String IDP_WALLET_BINDING_SUMMARY = "Wallet Binding";
     public static final String IDP_WALLET_BINDING_DESCRIPTION = "This endpoint allow you to perform the wallet binding";
     public static final String IDP_GET_TOKEN_SUMMARY = "Retrieve accessToken for OIDC flow";
     public static final String IDP_GET_TOKEN_DESCRIPTION = "This endpoint allow you to retrieve the access token in exchange for authorization code";
+    public static final String IDP_GET_TOKEN_V2_SUMMARY = "Retrieve accessToken for OIDC flow with DPoP support";
+    public static final String IDP_GET_TOKEN_V2_DESCRIPTION = "This endpoint allows you to retrieve access token in exchange for authorization code and return the response received from authorization server as is";
 
     /* Issuers Controller */
     public static final String ISSUERS_NAME = "Issuers";
@@ -51,6 +55,8 @@ public class SwaggerLiteralConstants {
     public static final String ISSUERS_GET_ISSUER_WELLKNOWN_DESCRIPTION = "This endpoint allow you to retrieve the well known of the specific issuer. Since version 0.16.0, this endpoint is deprecated and will be removed in a future release. Use issuers new endpoint issuers/{issuer-id}/configuration instead.";
     public static final String ISSUERS_GET_ISSUER_CONFIGURATION_SUMMARY = "Retrieve specific issuer's and its corresponding authorization server well-known config";
     public static final String ISSUERS_GET_ISSUER_CONFIGURATION_DESCRIPTION = "This endpoint allows you to retrieve the well-known configuration of a specific issuer and its corresponding authorization server";
+    public static final String ISSUERS_AUTHORIZE_SUMMARY = "Build OpenID4VCI authorization URL";
+    public static final String ISSUERS_AUTHORIZE_DESCRIPTION = "Creates a PKCE session and a DPoP session keyed by the same OAuth state, and returns the authorization URL including ui_locales and dpop_jkt. Guest callers receive a SESSION cookie. Inji Web should store the returned state for the UI session and open authorizationUrl.";
 
     /* Issuers V2 Controller */
     public static final String ISSUERS_V2_NAME = "Issuers V2";

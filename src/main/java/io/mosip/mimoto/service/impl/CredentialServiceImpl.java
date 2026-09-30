@@ -2,6 +2,7 @@ package io.mosip.mimoto.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.zxing.WriterException;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
@@ -13,15 +14,20 @@ import io.mosip.mimoto.repository.WalletCredentialsRepository;
 import io.mosip.mimoto.service.CredentialPDFGeneratorService;
 import io.mosip.mimoto.service.CredentialService;
 import io.mosip.mimoto.service.CredentialVerifierService;
+import io.mosip.mimoto.service.DPoPSessionService;
+import io.mosip.mimoto.service.IdpService;
 import io.mosip.mimoto.service.IssuersService;
+import io.mosip.mimoto.service.PkceSessionManager;
 import io.mosip.mimoto.service.DataProtectionService;
 import io.mosip.mimoto.service.VCDownloadHandler;
 import io.mosip.mimoto.service.VCDownloadHandlerFactory;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.UUID;
 
 import static io.mosip.mimoto.exception.ErrorConstants.*;
@@ -38,6 +44,9 @@ public class CredentialServiceImpl implements CredentialService {
     private final CredentialPDFGeneratorService credentialPDFGeneratorService;
     private final DataShareServiceImpl dataShareService;
     private final VCDownloadHandlerFactory vcDownloadHandlerFactory;
+    private final IdpService idpService;
+    private final DPoPSessionService dPoPSessionService;
+    private final PkceSessionManager pkceSessionManager;
 
     public CredentialServiceImpl(
             ObjectMapper objectMapper,
@@ -47,7 +56,10 @@ public class CredentialServiceImpl implements CredentialService {
             CredentialVerifierService credentialVerifierService,
             CredentialPDFGeneratorService credentialPDFGeneratorService,
             DataShareServiceImpl dataShareService,
-            VCDownloadHandlerFactory vcDownloadHandlerFactory) {
+            VCDownloadHandlerFactory vcDownloadHandlerFactory,
+            IdpService idpService,
+            DPoPSessionService dPoPSessionService,
+            PkceSessionManager pkceSessionManager) {
 
         this.objectMapper = objectMapper;
         this.dataProtectionService = dataProtectionService;
@@ -57,19 +69,67 @@ public class CredentialServiceImpl implements CredentialService {
         this.credentialPDFGeneratorService = credentialPDFGeneratorService;
         this.dataShareService = dataShareService;
         this.vcDownloadHandlerFactory = vcDownloadHandlerFactory;
+        this.idpService = idpService;
+        this.dPoPSessionService = dPoPSessionService;
+        this.pkceSessionManager = pkceSessionManager;
     }
 
 
     @Override
-    public ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialConfigurationId, TokenResponseDTO tokenResponse, String credentialValidity, String locale) throws Exception {
+    public ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialConfigurationId,
+                                                         String credentialValidity, String locale, String code,
+                                                         String state, HttpSession httpSession)
+            throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException,
+            ExternalServiceUnavailableException, WriterException, AuthorizationServerWellknownResponseException,
+            IssuerOnboardingException {
+        TokenResponseDTO tokenResponse = exchangeToken(httpSession, state, code, issuerId);
         IssuerDTO issuerDTO = issuersService.getIssuerDetails(issuerId);
-        CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse = issuersService.getIssuerWellKnownResponse(issuerDTO.getCredential_issuer_host());
+        CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse =
+                issuersService.getIssuerWellKnownResponse(issuerDTO.getCredential_issuer_host());
+        String credentialEndpoint = credentialIssuerWellKnownResponse.getCredentialEndPoint();
+        String proof = dPoPSessionService.credentialProof(httpSession, state, tokenResponse, credentialEndpoint);
+        try {
+            return generateCredentialPdf(issuerDTO, credentialIssuerWellKnownResponse, credentialConfigurationId,
+                    tokenResponse, credentialValidity, locale, proof);
+        } catch (DPoPChallengeException exception) {
+            log.info("Retrying guest credential download after DPoP nonce challenge for issuer: {}", issuerId);
+            String retryProof = dPoPSessionService.retryCredentialProof(
+                    httpSession, state, tokenResponse, exception.getNonce(), credentialEndpoint);
+            return generateCredentialPdf(issuerDTO, credentialIssuerWellKnownResponse, credentialConfigurationId,
+                    tokenResponse, credentialValidity, locale, retryProof);
+        }
+    }
+
+    private TokenResponseDTO exchangeToken(HttpSession httpSession, String state, String code, String issuerId)
+            throws ApiNotAccessibleException, IOException, AuthorizationServerWellknownResponseException,
+            InvalidWellknownResponseException, IssuerOnboardingException {
+        if (StringUtils.isBlank(state)) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "DPoP state is required");
+        }
+        if (dPoPSessionService.find(httpSession, state) != null) {
+            TokenResponseDTO exchanged = idpService.exchangeAndBindToken(
+                    pkceSessionManager.authorizationCodeParams(httpSession, state, code, issuerId),
+                    httpSession);
+            if (exchanged != null) {
+                return exchanged;
+            }
+        }
+        throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
+                "DPoP session not found or token is not bound");
+    }
+
+    private ByteArrayInputStream generateCredentialPdf(IssuerDTO issuerDTO,
+                                                       CredentialIssuerWellKnownResponse credentialIssuerWellKnownResponse,
+                                                       String credentialConfigurationId, TokenResponseDTO tokenResponse,
+                                                       String credentialValidity, String locale, String dPoPProof)
+            throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException,
+            ExternalServiceUnavailableException, WriterException {
         CredentialsSupportedResponse credentialsSupportedResponse = credentialIssuerWellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
         VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(credentialIssuerWellKnownResponse.getVersion());
-        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false);
+        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false, dPoPProof);
 
-        boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);
+        boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerDTO.getIssuer_id(), credentialConfigurationId);
         if (verificationStatus) {
             String dataShareUrl = QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type()) ? dataShareService.storeDataInDataShare(objectMapper.writeValueAsString(vcCredentialResponse), credentialValidity) : "";
             return credentialPDFGeneratorService.generatePdfForVerifiableCredential(credentialConfigurationId, vcCredentialResponse, issuerDTO, credentialsSupportedResponse, dataShareUrl, credentialValidity, locale);
@@ -77,36 +137,38 @@ public class CredentialServiceImpl implements CredentialService {
        throw new VCVerificationException(SIGNATURE_VERIFICATION_EXCEPTION.getErrorCode(), SIGNATURE_VERIFICATION_EXCEPTION.getErrorMessage());
     }
 
-    /**
-     * Download credential and stores a credential using the provided token and parameters.
-     *
-     * @param tokenResponse             The token response containing the access token.
-     * @param credentialConfigurationId The type of the credential.
-     * @param walletId                  The ID of the wallet.
-     * @param base64Key                 The Base64-encoded wallet key.
-     * @param issuerId                  The ID of the issuer.
-     * @param locale                    The locale for the response.
-     * @return The stored VerifiableCredential response.
-     * @throws InvalidRequestException             If input parameters are invalid.
-     * @throws CredentialProcessingException       If processing fails.
-     * @throws ExternalServiceUnavailableException If an external service is unavailable.
-     * @throws VCVerificationException             If credential verification fails.
-     * @throws InvalidCredentialResourceException  If the credential resource is invalid.
-     */
+    @Override
     public VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
-            TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
-            String base64Key, String issuerId, String locale)
-            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException, VCVerificationException, InvalidCredentialResourceException {
-
-        // Validate inputs
+            String issuerId, String credentialConfigurationId, String walletId, String base64Key,
+            String locale, String code, String state, HttpSession httpSession)
+            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException,
+            VCVerificationException, InvalidCredentialResourceException, ApiNotAccessibleException, IOException,
+            AuthorizationServerWellknownResponseException, InvalidWellknownResponseException, IssuerOnboardingException {
+        TokenResponseDTO tokenResponse = exchangeToken(httpSession, state, code, issuerId);
         validateInputs(tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId);
-
-        // Fetch issuer configuration
         IssuerConfig issuerConfig = fetchIssuerConfig(issuerId, credentialConfigurationId);
+        String credentialEndpoint = issuerConfig.getWellKnownResponse().getCredentialEndPoint();
+        String proof = dPoPSessionService.credentialProof(httpSession, state, tokenResponse, credentialEndpoint);
+        log.info("Credential DPoP proof for issuer {} endpoint {}: {}",
+                issuerId, credentialEndpoint, StringUtils.isNotBlank(proof) ? "present" : "absent");
+        try {
+            return storeDownloadedCredential(tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId, locale, proof, issuerConfig);
+        } catch (DPoPChallengeException exception) {
+            log.info("Retrying wallet credential download after DPoP nonce challenge for issuer: {}", issuerId);
+            String retryProof = dPoPSessionService.retryCredentialProof(
+                    httpSession, state, tokenResponse, exception.getNonce(), credentialEndpoint);
+            return storeDownloadedCredential(tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId, locale, retryProof, issuerConfig);
+        }
+    }
 
-        // Download credential from issuer
+    private VerifiableCredentialResponseDTO storeDownloadedCredential(
+            TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
+            String base64Key, String issuerId, String locale, String dPoPProof, IssuerConfig issuerConfig)
+            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException,
+            VCVerificationException, InvalidCredentialResourceException {
+
         VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(issuerConfig.getWellKnownResponse().getVersion());
-        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true);
+        VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true, dPoPProof);
 
         // Verify credential
         boolean verificationStatus = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);

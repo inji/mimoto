@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -451,43 +452,14 @@ class CredentialPDFGeneratorServiceTest {
         // Indirectly tests that "photo" was used as fallback for $face variable
     }
 
-    @Test
-    void testFaceKeyFallbackToPortrait() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"portrait", "image", "picture"})
+    void testFaceKeyFallbackToAlternativeKey(String imageKey) throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        // Setup: No "face" or "photo", but has "portrait"
+
         Map<String, Object> subjectData = new HashMap<>();
         subjectData.put("name", "John Doe");
-        subjectData.put("portrait", "base64-portrait-image");
-
-        ((VCCredentialProperties)vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
-
-        Map<String, CredentialDisplayResponseDto> credentialSubjectMap = new HashMap<>();
-        credentialSubjectMap.put("name", createDisplay("Full Name"));
-
-        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(credentialSubjectMap);
-        credentialsSupportedResponse.setOrder(List.of("name"));
-
-        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>Portrait: $face, Name: $rowProperties.name</body></html>");
-        when(presentationService.constructPresentationDefinition(any()))
-                .thenReturn(new PresentationDefinitionDTO());
-        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
-
-        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
-
-        assertNotNull(result);
-        // Tests fallback to "portrait" key
-    }
-
-    @Test
-    void testFaceKeyFallbackToImage() throws Exception {
-        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        // Setup: Only "image" key available
-        Map<String, Object> subjectData = new HashMap<>();
-        subjectData.put("name", "John Doe");
-        subjectData.put("image", "base64-generic-image");
+        subjectData.put(imageKey, "base64-test-image");
 
         ((VCCredentialProperties)vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
 
@@ -508,37 +480,6 @@ class CredentialPDFGeneratorServiceTest {
                 "https://example.com/share", "", "en");
 
         assertNotNull(result);
-        // Tests fallback to "image" key
-    }
-
-    @Test
-    void testFaceKeyFallbackToPicture() throws Exception {
-        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        // Setup: Only "picture" key available
-        Map<String, Object> subjectData = new HashMap<>();
-        subjectData.put("name", "John Doe");
-        subjectData.put("picture", "base64-picture-image");
-
-        ((VCCredentialProperties)vcCredentialResponse.getCredential()).setCredentialSubject(subjectData);
-
-        Map<String, CredentialDisplayResponseDto> credentialSubjectMap = new HashMap<>();
-        credentialSubjectMap.put("name", createDisplay("Full Name"));
-
-        credentialsSupportedResponse.getCredentialDefinition().setCredentialSubject(credentialSubjectMap);
-        credentialsSupportedResponse.setOrder(List.of("name"));
-
-        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>Picture: $face, Name: $rowProperties.name</body></html>");
-        when(presentationService.constructPresentationDefinition(any()))
-                .thenReturn(new PresentationDefinitionDTO());
-        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
-
-        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
-
-        assertNotNull(result);
-        // Tests fallback to "picture" key
     }
 
     @Test
@@ -1050,7 +991,7 @@ class CredentialPDFGeneratorServiceTest {
         credentialMap.put(RENDER_METHOD, List.of(Map.of(TEMPLATE, "<svg></svg>",
                 RENDER_SUITE, SVG_MUSTACHE_RENDER_SUITE)));
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
                 .format("ldp_vc")
                 .credential(credentialMap)
                 .build();
@@ -1064,7 +1005,7 @@ class CredentialPDFGeneratorServiceTest {
         when(injiVcRenderer.convertSvgToPdf(anyList())).thenReturn("AQID");
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
                 "https://example.com/share", "", "en");
 
         assertNotNull(result);
@@ -1093,7 +1034,7 @@ class CredentialPDFGeneratorServiceTest {
             )
         ));
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
             .format("ldp_vc")
             .credential(credentialMap)
             .build();
@@ -1107,7 +1048,7 @@ class CredentialPDFGeneratorServiceTest {
         when(injiVcRenderer.convertSvgToPdf(anyList())).thenReturn("AQID");
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
                 "https://example.com/share", "", "en");
 
         assertNotNull(result);
@@ -1176,14 +1117,14 @@ class CredentialPDFGeneratorServiceTest {
         credentialMap.put(CONTEXT, List.of("https://www.w3.org/ns/credentials/v1"));
         credentialMap.put(RENDER_METHOD, List.of(Map.of(TEMPLATE, "<svg></svg>")));
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
                 .format("ldp_vc")
                 .credential(credentialMap)
                 .build();
 
         issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John"));
+        when(credentialFormatHandler.extractCredentialClaims(localVcResponse)).thenReturn(Map.of("name", "John"));
         when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString()))
                 .thenReturn(new LinkedHashMap<>());
         when(utilities.getCredentialSupportedTemplateString(anyString(), anyString())).thenReturn("<html></html>");
@@ -1191,7 +1132,7 @@ class CredentialPDFGeneratorServiceTest {
         when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
                 "https://example.com/share", "", "en");
 
         assertNotNull(result);
@@ -1203,14 +1144,14 @@ class CredentialPDFGeneratorServiceTest {
         when(credentialFormatHandlerFactory.getHandler("vc+sd-jwt")).thenReturn(sdJwtCredentialFormatHandler);
         String validSdJwt = "eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJfc2QiOltdLCJuYW1lIjoiSm9obiBEb2UifQ.signature~WyJzYWx0IiwgIm5hbWUiLCAiSm9obiBEb2UiXQ";
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
             .format("vc+sd-jwt")
             .credential(validSdJwt)
             .build();
 
         Map<String, Object> extractedClaims = new HashMap<>();
         extractedClaims.put("name", "John Doe");
-        when(sdJwtCredentialFormatHandler.extractCredentialClaims(vcCredentialResponse))
+        when(sdJwtCredentialFormatHandler.extractCredentialClaims(localVcResponse))
             .thenReturn(extractedClaims);
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
@@ -1227,7 +1168,7 @@ class CredentialPDFGeneratorServiceTest {
         issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-            "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+            "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
             "https://example.com/share", "", "en");
 
         assertNotNull(result);
@@ -1241,7 +1182,7 @@ class CredentialPDFGeneratorServiceTest {
         credentialMap.put(CONTEXT, List.of(V2_CONTEXT_URL));
         credentialMap.put(RENDER_METHOD, List.of(Map.of(RENDER_SUITE, SVG_MUSTACHE_RENDER_SUITE)));
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
             .format("ldp_vc")
             .credential(credentialMap)
             .build();
@@ -1252,7 +1193,7 @@ class CredentialPDFGeneratorServiceTest {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("name", "John Doe");
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claims);
+        when(credentialFormatHandler.extractCredentialClaims(localVcResponse)).thenReturn(claims);
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
         displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
@@ -1263,7 +1204,7 @@ class CredentialPDFGeneratorServiceTest {
         when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-            "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+            "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
             "https://example.com/share", "", "en");
 
         assertNotNull(result);
@@ -1275,7 +1216,7 @@ class CredentialPDFGeneratorServiceTest {
         Map<String, Object> credentialMap = new HashMap<>();
         credentialMap.put(CONTEXT, List.of(V2_CONTEXT_URL));
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
             .format("ldp_vc")
             .credential(credentialMap)
             .build();
@@ -1285,7 +1226,7 @@ class CredentialPDFGeneratorServiceTest {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("name", "John Doe");
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claims);
+        when(credentialFormatHandler.extractCredentialClaims(localVcResponse)).thenReturn(claims);
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
         displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
@@ -1296,7 +1237,7 @@ class CredentialPDFGeneratorServiceTest {
         when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-            "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+            "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
             "https://example.com/share", "", "en");
 
         assertNotNull(result);
@@ -1325,7 +1266,7 @@ class CredentialPDFGeneratorServiceTest {
             )
         ));
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
             .format("ldp_vc")
             .credential(credentialMap)
             .build();
@@ -1333,7 +1274,7 @@ class CredentialPDFGeneratorServiceTest {
         issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
 
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(Map.of("name", "John Doe"));
+        when(credentialFormatHandler.extractCredentialClaims(localVcResponse)).thenReturn(Map.of("name", "John Doe"));
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
         displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
         when(credentialFormatHandler.loadDisplayPropertiesFromWellknown(any(), any(), anyString())).thenReturn(displayProps);
@@ -1343,7 +1284,7 @@ class CredentialPDFGeneratorServiceTest {
         when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-            "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+            "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
             "https://example.com/share", "", "en");
 
         assertNotNull(result);
@@ -2288,7 +2229,7 @@ class CredentialPDFGeneratorServiceTest {
         credentialMap.put(CONTEXT, List.of(V2_CONTEXT_URL));
         credentialMap.put(RENDER_METHOD, List.of("not-a-map-entry"));
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
                 .format("ldp_vc")
                 .credential(credentialMap)
                 .build();
@@ -2298,7 +2239,7 @@ class CredentialPDFGeneratorServiceTest {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("name", "John Doe");
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claims);
+        when(credentialFormatHandler.extractCredentialClaims(localVcResponse)).thenReturn(claims);
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
         displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
@@ -2309,7 +2250,7 @@ class CredentialPDFGeneratorServiceTest {
         when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "credentialConfigId", vcCredentialResponse, issuerDTO,
+                "credentialConfigId", localVcResponse, issuerDTO,
                 credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
 
         assertNotNull(result);
@@ -2324,7 +2265,7 @@ class CredentialPDFGeneratorServiceTest {
                 Map.of(TEMPLATE, "<svg></svg>", RENDER_SUITE, "SomeOtherRenderSuite")
         ));
 
-        VCCredentialResponse vcCredentialResponse = VCCredentialResponse.builder()
+        VCCredentialResponse localVcResponse = VCCredentialResponse.builder()
                 .format("ldp_vc")
                 .credential(credentialMap)
                 .build();
@@ -2334,7 +2275,7 @@ class CredentialPDFGeneratorServiceTest {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("name", "John Doe");
-        when(credentialFormatHandler.extractCredentialClaims(vcCredentialResponse)).thenReturn(claims);
+        when(credentialFormatHandler.extractCredentialClaims(localVcResponse)).thenReturn(claims);
 
         LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> displayProps = new LinkedHashMap<>();
         displayProps.put("name", Map.of(createDisplayResponse("Name", "en"), "John Doe"));
@@ -2345,7 +2286,7 @@ class CredentialPDFGeneratorServiceTest {
         when(presentationService.constructPresentationDefinition(any())).thenReturn(new PresentationDefinitionDTO());
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "credentialConfigId", vcCredentialResponse, issuerDTO,
+                "credentialConfigId", localVcResponse, issuerDTO,
                 credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
 
         assertNotNull(result);

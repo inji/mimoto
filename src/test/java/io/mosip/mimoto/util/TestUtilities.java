@@ -22,7 +22,6 @@ import io.mosip.mimoto.dto.openid.datashare.DataShareResponseDTO;
 import io.mosip.mimoto.dto.openid.datashare.DataShareResponseWrapperDTO;
 import io.mosip.mimoto.dto.openid.presentation.*;
 import io.mosip.mimoto.model.WalletLockStatus;
-import io.mosip.openID4VP.OpenID4VP;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import org.springframework.util.ResourceUtils;
@@ -501,7 +500,7 @@ public class TestUtilities {
         return passcodeControl;
     }
 
-    public static VPResponseDTO getVerifiablePresentationResponseDTO(String clientId, String clientName, String clientLogo, boolean isTrusted, boolean isPreRegisteredWithWallet, String redirectUri, OpenID4VP openID4VP, Instant time) {
+    public static VPResponseDTO getVerifiablePresentationResponseDTO(String clientId, String clientName, String clientLogo, boolean isTrusted, boolean isPreRegisteredWithWallet, String redirectUri, Instant time) {
         VerifiablePresentationVerifierDTO presentationVerifierDTO = new VerifiablePresentationVerifierDTO(
                 clientId,
                 clientName,
@@ -510,7 +509,8 @@ public class TestUtilities {
                 isPreRegisteredWithWallet,
                 redirectUri
         );
-        VerifiablePresentationSessionData presentationSessionData = new VerifiablePresentationSessionData("123e4567-e89b-12d3-a456-426614174000", "authorizationRequest", time, true, null, false);
+        VerifiablePresentationSessionData presentationSessionData =
+                new VerifiablePresentationSessionData("123e4567-e89b-12d3-a456-426614174000", "authorizationRequest", time, true, null, false, null, null);
 
         VPResponseDTO presentationResponseDTO = new VPResponseDTO(
                 presentationSessionData.getPresentationId(), presentationVerifierDTO, false);

@@ -120,6 +120,25 @@ class Draft13CredentialIssuerWellknownResponseValidatorTest {
         assertDoesNotThrow(() -> validatorInstance.validate(response, validator));
     }
 
+    @Test
+    void shouldSkipInvalidConfigAndRetainValidConfigWhenMixedConfigurationsProvided() {
+        Draft13CredentialIssuerWellknownResponseValidator validatorInstance = new Draft13CredentialIssuerWellknownResponseValidator();
+
+        CredentialsSupportedResponse validConfig = getCredentialSupportedResponse("validConfig");
+
+        CredentialsSupportedResponse invalidConfig = getCredentialSupportedResponse("invalidConfig");
+        invalidConfig.setCredentialDefinition(null);
+
+        Map<String, CredentialsSupportedResponse> configs = new LinkedHashMap<>();
+        configs.put("validConfig", validConfig);
+        configs.put("invalidConfig", invalidConfig);
+
+        CredentialIssuerWellKnownResponse mixedResponse = getCredentialIssuerWellKnownResponseDto("Issuer1", configs);
+
+        assertDoesNotThrow(() -> validatorInstance.validate(mixedResponse, validator));
+        assertEquals(Set.of("validConfig"), mixedResponse.getCredentialConfigurationsSupported().keySet());
+    }
+
     @Nested
     class LdpVcFormatWellKnownResponseValidationTest {
         @Test
@@ -132,9 +151,7 @@ class Draft13CredentialIssuerWellknownResponseValidatorTest {
             InvalidWellknownResponseException invalidWellknownResponseException = assertThrows(InvalidWellknownResponseException.class, () ->
                     credentialIssuerWellknownResponseValidator.validate(response, validator));
             assertEquals("RESIDENT-APP-041", invalidWellknownResponseException.getErrorCode());
-            assertEquals("""
-                    RESIDENT-APP-041 --> Invalid Wellknown from Issuer
-                    credentialDefinition: must not be null""", invalidWellknownResponseException.getMessage());
+            assertTrue(invalidWellknownResponseException.getMessage().contains("All credential configurations in issuer well-known are invalid"));
         }
 
         @Test
@@ -151,10 +168,7 @@ class Draft13CredentialIssuerWellknownResponseValidatorTest {
                     credentialIssuerWellknownResponseValidator.validate(response, validator)
             );
 
-            // Update to check message contains validation errors
-            String message = invalidWellknownResponseException.getMessage();
-            assertTrue(message.contains("RESIDENT-APP-041 --> Invalid Wellknown from Issuer"));
-            assertTrue(message.contains("type: must not be empty"));
+            assertTrue(invalidWellknownResponseException.getMessage().contains("All credential configurations in issuer well-known are invalid"));
         }
 
         @Test
@@ -168,10 +182,7 @@ class Draft13CredentialIssuerWellknownResponseValidatorTest {
             InvalidWellknownResponseException invalidWellknownResponseException = assertThrows(InvalidWellknownResponseException.class, () ->
                     credentialIssuerWellknownResponseValidator.validate(response, validator));
             assertEquals("RESIDENT-APP-041", invalidWellknownResponseException.getErrorCode());
-            assertEquals("""
-                    RESIDENT-APP-041 --> Invalid Wellknown from Issuer
-                    Validation failed:
-                    type: must not be empty""", invalidWellknownResponseException.getMessage());
+            assertTrue(invalidWellknownResponseException.getMessage().contains("All credential configurations in issuer well-known are invalid"));
         }
     }
 
@@ -190,26 +201,20 @@ class Draft13CredentialIssuerWellknownResponseValidatorTest {
                     credentialIssuerWellknownResponseValidator.validate(wellKnownResponseWithoutDocType, validator)
             );
 
-            assertEquals("""
-                    RESIDENT-APP-041 --> Invalid Wellknown from Issuer
-                    Mandatory field 'doctype' missing""", invalidWellknownResponseException.getMessage());
+            assertTrue(invalidWellknownResponseException.getMessage().contains("All credential configurations in issuer well-known are invalid"));
         }
 
         @Test
-        void shouldThrowInvalidWellKnownResponseExceptionWhenMandatoryFieldClaimIsNotPresent() {
+        void shouldNotThrowWhenMsoMdocClaimsIsEmptySinceClaimsIsOptional() {
             CredentialsSupportedResponse credentialSupportedResponse = getCredentialSupportedResponse("CredentialType1", "mso_mdoc");
             credentialSupportedResponse.setClaims(Map.of());
             CredentialIssuerWellKnownResponse wellKnownResponseWithoutClaims = getCredentialIssuerWellKnownResponseDto("Issuer1",
                     Map.of("CredentialType1", credentialSupportedResponse));
 
             Draft13CredentialIssuerWellknownResponseValidator credentialIssuerWellknownResponseValidator = new Draft13CredentialIssuerWellknownResponseValidator();
-            InvalidWellknownResponseException invalidWellknownResponseException = assertThrows(InvalidWellknownResponseException.class, () ->
-                    credentialIssuerWellknownResponseValidator.validate(wellKnownResponseWithoutClaims, validator)
-            );
 
-            assertEquals("""
-                    RESIDENT-APP-041 --> Invalid Wellknown from Issuer
-                    Mandatory field 'claims' missing""", invalidWellknownResponseException.getMessage());
+            assertDoesNotThrow(() ->
+                    credentialIssuerWellknownResponseValidator.validate(wellKnownResponseWithoutClaims, validator));
         }
 
 

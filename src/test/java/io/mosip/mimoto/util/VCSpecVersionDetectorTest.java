@@ -6,6 +6,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.mosip.mimoto.constant.VCSpecificationVersion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -20,11 +24,74 @@ class VCSpecVersionDetectorTest {
         objectMapper = new ObjectMapper();
     }
 
-    @Test
-    void shouldDetectV1WhenNonceEndpointIsPresent() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {"nonce_endpoint": "https://example.com/nonce"}
-                """);
+    static Stream<String> v1JsonInputs() {
+        return Stream.of(
+            """
+            {"nonce_endpoint": "https://example.com/nonce"}
+            """,
+            """
+            {
+                "credential_configurations_supported": {
+                    "cred1": {
+                        "credential_metadata": {"display": []}
+                    }
+                }
+            }
+            """,
+            """
+            {
+                "credential_configurations_supported": {
+                    "cred1": {
+                        "format": "ldp_vc"
+                    }
+                }
+            }
+            """,
+            """
+            {"credential_issuer": "https://example.com"}
+            """,
+            """
+            {"credential_configurations_supported": "not_an_object"}
+            """,
+            """
+            {
+                "nonce_endpoint": "https://example.com/nonce",
+                "credential_configurations_supported": {
+                    "cred1": {
+                        "credential_metadata": {"display": []},
+                        "display": [{"name": "Test"}]
+                    }
+                }
+            }
+            """,
+            """
+            {
+                "credential_configurations_supported": {
+                    "cred1": {
+                        "credential_metadata": {"display": []},
+                        "display": [{"name": "Test"}]
+                    }
+                }
+            }
+            """,
+            """
+            {
+                "credential_configurations_supported": {
+                    "cred1": {"format": "ldp_vc"},
+                    "cred2": {"credential_metadata": {"display": []}}
+                }
+            }
+            """,
+            """
+            {"credential_configurations_supported": {}}
+            """
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("v1JsonInputs")
+    void detectVersionReturnsV1ForVaryingInputs(String json) throws Exception {
+        JsonNode node = objectMapper.readTree(json);
         assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
     }
 
@@ -36,20 +103,6 @@ class VCSpecVersionDetectorTest {
                 .putObject("cred1").put("display", "something");
 
         assertEquals(VCSpecificationVersion.DRAFT_13, detector.detectVersion(root));
-    }
-
-    @Test
-    void shouldDetectV1WhenCredentialMetadataExistsInConfiguration() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {
-                    "credential_configurations_supported": {
-                        "cred1": {
-                            "credential_metadata": {"display": []}
-                        }
-                    }
-                }
-                """);
-        assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
     }
 
     @Test
@@ -67,82 +120,8 @@ class VCSpecVersionDetectorTest {
     }
 
     @Test
-    void shouldDefaultToV1WhenNoIndicatorsPresent() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {
-                    "credential_configurations_supported": {
-                        "cred1": {
-                            "format": "ldp_vc"
-                        }
-                    }
-                }
-                """);
-        assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
-    }
-
-    @Test
-    void shouldDefaultToV1WhenConfigurationsSupportedIsNull() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {"credential_issuer": "https://example.com"}
-                """);
-        assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
-    }
-
-    @Test
-    void shouldDefaultToV1WhenConfigurationsSupportedIsNotAnObject() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {"credential_configurations_supported": "not_an_object"}
-                """);
-        assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
-    }
-
-    @Test
     void shouldDefaultToV1ForEmptyResponse() throws Exception {
         JsonNode node = objectMapper.readTree("{}");
-        assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
-    }
-
-    @Test
-    void shouldPrioritizeNonceEndpointOverCredentialMetadata() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {
-                    "nonce_endpoint": "https://example.com/nonce",
-                    "credential_configurations_supported": {
-                        "cred1": {
-                            "credential_metadata": {"display": []},
-                            "display": [{"name": "Test"}]
-                        }
-                    }
-                }
-                """);
-        assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
-    }
-
-    @Test
-    void shouldPrioritizeCredentialMetadataOverDisplay() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {
-                    "credential_configurations_supported": {
-                        "cred1": {
-                            "credential_metadata": {"display": []},
-                            "display": [{"name": "Test"}]
-                        }
-                    }
-                }
-                """);
-        assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
-    }
-
-    @Test
-    void shouldCheckAllConfigurationsForCredentialMetadata() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {
-                    "credential_configurations_supported": {
-                        "cred1": {"format": "ldp_vc"},
-                        "cred2": {"credential_metadata": {"display": []}}
-                    }
-                }
-                """);
         assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
     }
 
@@ -157,13 +136,5 @@ class VCSpecVersionDetectorTest {
                 }
                 """);
         assertEquals(VCSpecificationVersion.DRAFT_13, detector.detectVersion(node));
-    }
-
-    @Test
-    void shouldDefaultToV1WhenConfigurationsSupportedIsEmptyObject() throws Exception {
-        JsonNode node = objectMapper.readTree("""
-                {"credential_configurations_supported": {}}
-                """);
-        assertEquals(VCSpecificationVersion.V1, detector.detectVersion(node));
     }
 }

@@ -1,11 +1,12 @@
 package io.mosip.mimoto.service;
 
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
-import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
+import jakarta.servlet.http.HttpSession;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -14,21 +15,24 @@ import java.util.List;
 public interface WalletCredentialService {
 
     /**
-     * Fetches and stores a credential for a wallet.
+     * Exchanges the authorization code, downloads a credential, and stores it for a wallet.
      *
      * @param issuerId                  The issuer ID.
      * @param credentialConfigurationId The type of credential.
-     * @param tokenResponse             The token response containing the access token.
      * @param locale                    The locale for display purposes.
      * @param walletId                  The wallet ID.
      * @param base64Key                 The base64-encoded key for encryption.
+     * @param code                      The authorization code.
+     * @param state                     OAuth state identifying the DPoP session.
+     * @param httpSession               The HTTP session that holds the DPoP session.
      * @return The stored credential response.
-     * @throws CredentialProcessingException If processing fails.
      */
     VerifiableCredentialResponseDTO downloadVCAndStoreInDB(String issuerId, String credentialConfigurationId,
-                                                           TokenResponseDTO tokenResponse,
-                                                           String locale, String walletId, String base64Key)
-            throws CredentialProcessingException, ExternalServiceUnavailableException;
+                                                           String locale, String walletId, String base64Key,
+                                                           String code, String state, HttpSession httpSession)
+            throws CredentialProcessingException, ExternalServiceUnavailableException, ApiNotAccessibleException,
+            IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException,
+            IssuerOnboardingException;
 
     /**
      * Fetches all credentials for a wallet.

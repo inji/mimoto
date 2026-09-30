@@ -135,7 +135,6 @@ public class WalletLockServiceTest {
     @Test
     public void enforceLockCyclePolicyShouldNotSetLastAttemptStatusWhenConditionsNotMet() {
         // Test scenarios where LAST_ATTEMPT_BEFORE_LOCKOUT should NOT be set
-        // Format: {initialFailedCount, currentCycle, expectedFailedCountAfter, description}
         Object[][] testCases = {
                 {2, 3, 3, "neither penultimate attempt nor last cycle"},
                 {3, 2, 4, "penultimate attempt but not last cycle"},

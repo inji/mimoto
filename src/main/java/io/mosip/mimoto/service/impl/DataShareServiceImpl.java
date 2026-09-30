@@ -33,8 +33,6 @@ public class DataShareServiceImpl {
 
     private final RestApiClient restApiClient;
 
-    private final String dataShareHostUrl;
-
     private final String dataShareCreateUrl;
 
     private final String dataShareGetUrlPattern;
@@ -48,14 +46,12 @@ public class DataShareServiceImpl {
     public DataShareServiceImpl(
             RestApiClient restApiClient,
             ObjectMapper objectMapper,
-            @Value("${mosip.data.share.url}") String dataShareHostUrl,
             @Value("${mosip.data.share.create.url}") String dataShareCreateUrl,
             @Value("${mosip.data.share.get.url.pattern}") String dataShareGetUrlPattern,
             @Value("${mosip.data.share.create.retry.count}") Integer maxRetryCount) {
 
         this.restApiClient = restApiClient;
         this.objectMapper = objectMapper;
-        this.dataShareHostUrl = dataShareHostUrl;
         this.dataShareCreateUrl = dataShareCreateUrl;
         this.dataShareGetUrlPattern = dataShareGetUrlPattern;
         this.maxRetryCount = maxRetryCount;

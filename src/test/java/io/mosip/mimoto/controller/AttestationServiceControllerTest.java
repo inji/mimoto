@@ -46,7 +46,6 @@ public class AttestationServiceControllerTest {
 
     @Test
     public void processOfflineFailureTest() throws Exception {
-        AttestationStatement attestationStatement = new AttestationStatement();
         Mockito.when(attestationOfflineVerify.parseAndVerify(Mockito.anyString())).thenThrow(new Exception("Exception"));
         this.mockMvc.perform(post("/safetynet/offline/verify").contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content("offlineStr"))
@@ -64,7 +63,6 @@ public class AttestationServiceControllerTest {
 
     @Test
     public void processOnlineFailureTest() throws Exception {
-        AttestationStatement attestationStatement = new AttestationStatement();
         Mockito.when(attestationOnlineVerify.parseAndVerify(Mockito.anyString())).thenThrow(new Exception("Exception"));
         this.mockMvc.perform(post("/safetynet/online/verify").contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content("offlineStr"))

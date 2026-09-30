@@ -180,13 +180,13 @@ class CredentialFormatHandlerFactoryTest {
         List<CredentialFormatHandler> handlers = Arrays.asList(mockLdpVcHandler);
         credentialFormatHandlerFactory = new CredentialFormatHandlerFactory(toHandlerMap(handlers));
 
+        String vcSdJwtFormat = CredentialFormat.VC_SD_JWT.getFormat();
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> credentialFormatHandlerFactory.getHandler(CredentialFormat.VC_SD_JWT.getFormat())
+                () -> credentialFormatHandlerFactory.getHandler(vcSdJwtFormat)
         );
 
-        assertEquals("Unsupported credential format: " + CredentialFormat.VC_SD_JWT.getFormat(),
-                exception.getMessage());
+        assertEquals("Unsupported credential format: " + vcSdJwtFormat, exception.getMessage());
     }
 
     @Test
@@ -196,6 +196,6 @@ class CredentialFormatHandlerFactoryTest {
         List<CredentialFormatHandler> handlers = Arrays.asList(mockDcSdJwtHandler, null);
 
         // When & Then - Should handle null handler gracefully (might throw NPE during construction)
-        assertThrows(NullPointerException.class, () -> new CredentialFormatHandlerFactory(toHandlerMap(handlers)));
+        assertThrows(NullPointerException.class, () -> toHandlerMap(handlers));
     }
 }

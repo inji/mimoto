@@ -4,15 +4,17 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Data;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(description = "Response returned after a presentation authorization request is processed, including the local presentation session ID and verifier details.")
 public class VPResponseDTO {
 
-    @Schema(description = "Unique identifier for the Verifiable Presentation")
+    @Schema(description = "Unique identifier for the Verifiable Presentation",
+            example = "123e4567-e89b-12d3-a456-426614174000")
     private String presentationId;
 
     @JsonProperty("verifier")

@@ -86,6 +86,13 @@ public final class DcqlMatchingHelper {
             return new Credential(FormatType.LDP_VC, credentialMap, dto.getId());
         }
 
+        if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(format)) {
+            if (!(credentialData instanceof String mdocString) || mdocString.isBlank()) {
+                return null;
+            }
+            return new Credential(FormatType.MSO_MDOC, mdocString, dto.getId());
+        }
+
         return null;
     }
 
@@ -156,6 +163,9 @@ public final class DcqlMatchingHelper {
         }
         if (CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
             return FormatType.DC_SD_JWT;
+        }
+        if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(format)) {
+            return FormatType.MSO_MDOC;
         }
         return null;
     }

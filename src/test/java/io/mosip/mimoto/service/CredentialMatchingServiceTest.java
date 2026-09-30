@@ -12,6 +12,7 @@ import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.model.CredentialMetadata;
 import io.mosip.mimoto.service.impl.CredentialMatchingServiceImpl;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
+import io.mosip.openID4VP.authorizationRequest.AuthorizationDcqlRequest;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import io.mosip.openID4VP.dcql.query.ClaimValue;
 import io.mosip.openID4VP.dcql.query.ClaimsQuery;
@@ -60,6 +61,9 @@ public class CredentialMatchingServiceTest {
 
     @Mock
     private CredentialFormatHandler credentialFormatHandler;
+
+    @Mock
+    private AuthorizationDcqlRequest mockDcqlAuthorizationRequest;
 
     private VerifiablePresentationSessionData sessionData;
     private String walletId;
@@ -2449,7 +2453,6 @@ public class CredentialMatchingServiceTest {
         assertNull(group.getAvailableCredentials().get(0).getClaims());
         assertEquals(1, result.getMatchingCredentials().size());
         assertEquals("identity-query", result.getMatchingCredentials().get(0).getIdentifier());
-        verify(openID4VPService).resolveDcqlQuery(anyString(), anyString(), anyBoolean());
         verify(openID4VPService, never()).resolvePresentationDefinition(any(), any(), anyBoolean());
     }
 
@@ -2477,10 +2480,10 @@ public class CredentialMatchingServiceTest {
         when(dcqlQuery.getCredentialSets()).thenReturn(null);
         stubDcqlQuery(dcqlQuery);
 
-        List<DecryptedCredentialDTO> walletCredentials = createMockWalletCredentialsWithMapData();
-        assertNull(walletCredentials.get(0).getIdentifier());
+        List<DecryptedCredentialDTO> mapDataCredentials = createMockWalletCredentialsWithMapData();
+        assertNull(mapDataCredentials.get(0).getIdentifier());
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
-                .thenReturn(walletCredentials);
+                .thenReturn(mapDataCredentials);
         when(issuersService.getIssuerConfig(anyString(), anyString())).thenReturn(createMockIssuerConfig());
 
         MatchingCredentialsDTO result = credentialMatchingService.getMatchingCredentials(
@@ -2494,7 +2497,7 @@ public class CredentialMatchingServiceTest {
         assertEquals(1, result.getMatchingCredentials().size());
         assertEquals("first-query", result.getMatchingCredentials().get(0).getIdentifier());
         assertNull("shared wallet DTO must not be mutated with a query identifier",
-                walletCredentials.get(0).getIdentifier());
+                mapDataCredentials.get(0).getIdentifier());
     }
 
     @Test
@@ -2526,7 +2529,7 @@ public class CredentialMatchingServiceTest {
     @Test
     public void testGetMatchingCredentialsDcqlWhenResolveReturnsNull() throws Exception {
         VerifiablePresentationSessionData dcqlSession = createDcqlSessionData();
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean())).thenReturn(null);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(null);
         when(walletCredentialService.getDecryptedCredentials(eq(walletId), any()))
                 .thenReturn(createMockWalletCredentialsWithMapData());
 
@@ -2647,7 +2650,7 @@ public class CredentialMatchingServiceTest {
                 dcqlSession, walletId, base64Key);
 
         assertFalse(result.getMatchingCredentialsResponse().getQueryGroups().get(0).getAvailableCredentials().isEmpty());
-        assertTrue(result.getMatchingCredentials().size() == 1);
+        assertEquals(1, result.getMatchingCredentials().size());
     }
 
     @Test
@@ -2774,12 +2777,12 @@ public class CredentialMatchingServiceTest {
         data.setCreatedAt(Instant.parse("2025-09-08T12:34:56Z"));
         data.setVerifierClientPreregistered(true);
         data.setDcql(true);
+        data.setParsedAuthorizationRequest(mockDcqlAuthorizationRequest);
         return data;
     }
 
     private void stubDcqlQuery(DCQLQuery dcqlQuery) throws Exception {
-        when(openID4VPService.resolveDcqlQuery(anyString(), anyString(), anyBoolean()))
-                .thenReturn(dcqlQuery);
+        when(mockDcqlAuthorizationRequest.getDcqlQuery()).thenReturn(dcqlQuery);
     }
 
     private void stubCredentialQueryBasics(CredentialQuery credentialQuery) {

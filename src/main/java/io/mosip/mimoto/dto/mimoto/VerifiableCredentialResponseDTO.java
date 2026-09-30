@@ -3,6 +3,7 @@ package io.mosip.mimoto.dto.mimoto;
 import io.mosip.mimoto.dto.DisplayDTO;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,18 +19,23 @@ import static io.mosip.mimoto.util.LocaleUtils.getIssuerDisplayDTOBasedOnLocale;
 
 // Holds details related to credential UUID as per stored in DB and other metadata to display in wallet
 public class VerifiableCredentialResponseDTO {
+    @NotBlank(message = "Issuer display name is required and cannot be blank")
     @Schema(description = "Name of the issuer")
     private String issuerDisplayName;
 
+    @NotBlank(message = "Issuer logo is required and cannot be blank")
     @Schema(description = "logo of the issuer")
     private String issuerLogo;
 
+    @NotBlank(message = "Credential type display name is required and cannot be blank")
     @Schema(description = "Name of the credential type")
     private String credentialTypeDisplayName;
 
+    @NotBlank(message = "Credential type logo is required and cannot be blank")
     @Schema(description = "logo of the credential type")
     private String credentialTypeLogo;
 
+    @NotBlank(message = "Credential ID is required and cannot be blank")
     @Schema(description = "Unique Identifier of the Credential in database")
     private String credentialId;
 

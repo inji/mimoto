@@ -25,6 +25,7 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class DcqlMatchingHelperTest {
@@ -123,10 +124,41 @@ public class DcqlMatchingHelperTest {
         assertEquals(Set.of("age_above_18"), missingClaims);
     }
 
+    @Test
+    public void toLibraryCredentialMsoMdocWithValidCredentialReturnsMsoMdocCredential() {
+        DecryptedCredentialDTO dto = mdocCredential("cred-mdoc-1", "base64url-encoded-mdoc-data");
+
+        Credential credential = DcqlMatchingHelper.toLibraryCredential(dto, objectMapper);
+
+        assertNotNull(credential);
+        assertEquals(FormatType.MSO_MDOC, credential.getFormat());
+        assertEquals("cred-mdoc-1", credential.getCredentialId());
+        assertEquals("base64url-encoded-mdoc-data", credential.getData());
+    }
+
+    @Test
+    public void toLibraryCredentialMsoMdocWithBlankCredentialReturnsNull() {
+        DecryptedCredentialDTO dto = mdocCredential("cred-mdoc-2", "   ");
+
+        Credential credential = DcqlMatchingHelper.toLibraryCredential(dto, objectMapper);
+
+        assertNull(credential);
+    }
+
     private static DecryptedCredentialDTO walletCredential(String id, String format, Object payload) {
         DecryptedCredentialDTO dto = new DecryptedCredentialDTO();
         dto.setId(id);
         dto.setCredential(VCCredentialResponse.builder().format(format).credential(payload).build());
+        return dto;
+    }
+
+    private static DecryptedCredentialDTO mdocCredential(String id, Object payload) {
+        DecryptedCredentialDTO dto = new DecryptedCredentialDTO();
+        dto.setId(id);
+        dto.setCredential(VCCredentialResponse.builder()
+                .format(CredentialFormat.MSO_MDOC.getFormat())
+                .credential(payload)
+                .build());
         return dto;
     }
 

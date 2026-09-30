@@ -92,6 +92,13 @@ public class GlobalExceptionHandler {
         return new ErrorDTO(ex.getErrorCode(), ex.getErrorText());
     }
 
+    @ExceptionHandler(CredentialNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorDTO handleCredentialNotFoundException(CredentialNotFoundException ex) {
+        log.error("Credential not found: ", ex);
+        return new ErrorDTO(ex.getErrorCode(), ex.getErrorText());
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorDTO handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
@@ -140,6 +147,9 @@ public class GlobalExceptionHandler {
         String message = br.getFieldErrors().stream()
                 .map(fe -> fe.getField() + " " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));
+        if (message.isBlank()) {
+            message = "Invalid request";
+        }
         log.warn("Validation failed: {}", message);
         ErrorDTO err = new ErrorDTO("invalid_request", message);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);

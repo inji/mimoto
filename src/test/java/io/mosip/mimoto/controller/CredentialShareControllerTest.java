@@ -11,6 +11,7 @@ import io.mosip.mimoto.dto.resident.CredentialRequestResponseInnerResponseDTO;
 import io.mosip.mimoto.dto.resident.CredentialRequestStatusResponseDTO;
 import io.mosip.mimoto.model.Event;
 import io.mosip.mimoto.model.EventModel;
+import io.mosip.mimoto.model.Type;
 import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.service.impl.CredentialShareServiceImpl;
 import io.mosip.mimoto.util.RequestValidator;
@@ -68,10 +69,20 @@ public class CredentialShareControllerTest {
 
     @Test
     public void handleSubscribeEventTest() throws Exception {
+        Type type = new Type();
+        type.setNamespace("credentialshare");
+        type.setName("issued");
+
         Event event = new Event();
         event.setId("id");
         event.setTransactionId("transId");
+        event.setType(type);
+        event.setTimestamp("2026-04-30T08:00:00Z");
+
         EventModel eventModel = new EventModel();
+        eventModel.setPublisher("credentialshare");
+        eventModel.setTopic("topic");
+        eventModel.setPublishedOn("2026-04-30T08:00:01Z");
         eventModel.setEvent(event);
 
         Mockito.when(credentialShareService.generateDocuments(Mockito.any())).thenReturn(true);

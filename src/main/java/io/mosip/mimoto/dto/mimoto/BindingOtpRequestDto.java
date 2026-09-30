@@ -11,12 +11,14 @@ import jakarta.validation.constraints.NotNull;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(description = "Wallet binding OTP request wrapper containing the request timestamp and inner OTP delivery details.")
 public class BindingOtpRequestDto {
-    @Schema(description = "Request Time of the Binding OTP")
+    @Schema(description = "Timestamp at which the wallet binding OTP request was created, in ISO 8601 format.",
+            example = "2026-04-27T10:15:30Z")
     private String requestTime;
 
     @Valid
     @NotNull
-    @Schema(description = "Binding OTP Request")
+    @Schema(description = "Wallet binding OTP request details containing the individual identifier and delivery channels.")
     private BindingOtpInnerReqDto request;
 }

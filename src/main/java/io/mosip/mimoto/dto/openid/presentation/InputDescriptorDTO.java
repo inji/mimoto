@@ -16,4 +16,5 @@ public class InputDescriptorDTO {
     String id;
     Map<String, Map<String, List<String>>> format;
     ConstraintsDTO constraints;
+
 }

@@ -206,9 +206,6 @@ class GoogleTokenServiceTest {
 
     @Test
     void processTokenWithExistingUserMetadataAndNullNameShouldUseSavedName() throws Exception {
-        // Test when userMetadata exists and name is null - should use saved display name
-        UserMetadataDTO existingMetadata = new UserMetadataDTO("Saved Name", "http://example.com/saved-pic.jpg", "test@example.com", null);
-        
         Map<String, Object> claimsWithoutName = new HashMap<>(claims);
         claimsWithoutName.remove("name");
         Jwt jwtWithoutName = Jwt.withTokenValue(idToken)
@@ -319,13 +316,13 @@ class GoogleTokenServiceTest {
     }
 
     @Test
-    void processTokenWithDecryptionExceptionShouldThrowRuntimeException() throws Exception {
+    void processTokenWithDecryptionExceptionShouldThrowOAuth2AuthenticationException() throws Exception {
         // Test the DecryptionException catch block
         when(tokenDecoder.decode(idToken)).thenReturn(validJwt);
         when(userMetadataService.getUserMetadata("google-subject-id", provider))
                 .thenThrow(new io.mosip.mimoto.exception.DecryptionException("DEC_001", "Decryption failed"));
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+        assertThrows(OAuth2AuthenticationException.class, () ->
                 googleTokenService.processToken(idToken, provider, request, response));
 
         verify(tokenDecoder).decode(idToken);

@@ -15,4 +15,5 @@ public class ConstraintsDTO {
 
     @JsonProperty("limitDisclosure")
     private String limitDisclosure;
+
 }

@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.nimbusds.jose.JOSEException;
+import io.mosip.mimoto.exception.DecryptionException;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -42,7 +45,7 @@ public class Draft13CredentialRequestService {
                                             String cNonce,
                                             String walletId,
                                             String base64EncodedWalletKey,
-                                            boolean isLoginFlow) throws Exception {
+                                            boolean isLoginFlow) throws GeneralSecurityException, JOSEException, DecryptionException {
         CredentialsSupportedResponse credentialsSupportedResponse = wellKnownResponse.getCredentialConfigurationsSupported().get(credentialConfigurationId);
 
         SigningAlgorithm signingAlgorithm = resolveAlgorithm(credentialsSupportedResponse);
@@ -101,7 +104,7 @@ public class Draft13CredentialRequestService {
                                           SigningAlgorithm signingAlgorithm,
                                           CredentialIssuerWellKnownResponse wellKnownResponse,
                                           IssuerDTO issuerDTO,
-                                          String cNonce) throws Exception {
+                                          String cNonce) throws JOSEException, DecryptionException {
 
         KeyPair keyPair = keyPairService.getKeyPairFromDB(walletId, base64EncodedWalletKey, signingAlgorithm);
 

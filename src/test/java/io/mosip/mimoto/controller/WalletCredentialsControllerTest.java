@@ -2,11 +2,11 @@ package io.mosip.mimoto.controller;
 
 import com.jayway.jsonpath.JsonPath;
 import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
-import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
-import io.mosip.mimoto.service.IdpService;
+import io.mosip.mimoto.service.DPoPSessionService;
+import io.mosip.mimoto.service.PkceSessionManager;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.mimoto.util.GlobalExceptionHandler;
 import jakarta.servlet.http.HttpSession;
@@ -48,7 +48,10 @@ public class WalletCredentialsControllerTest {
     private WalletCredentialService walletCredentialService;
 
     @MockBean
-    private IdpService idpService;
+    private DPoPSessionService dPoPSessionService;
+
+    @MockBean
+    private PkceSessionManager pkceSessionManager;
 
     @Mock
     private HttpSession httpSession;
@@ -64,10 +67,8 @@ public class WalletCredentialsControllerTest {
     private final String issuer = "issuer1";
     private final String credentialConfigurationId = "type1";
     private final String code = "code";
-    private final String grantType = "authorization-code";
-    private final String redirectUri = "https://.../redirect";
-    private final String codeVerifier = "code-verifier";
     private final String locale = "en";
+    private final String state = "oauth-state";
     VerifiableCredentialRequestDTO verifiableCredentialRequest;
 
     @Before
@@ -94,15 +95,17 @@ public class WalletCredentialsControllerTest {
     // Tests for downloadCredential
     @Test
     public void shouldDownloadCredentialSuccessfully() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
-        when(idpService.getTokenResponse(verifiableCredentialRequest)).thenReturn(new TokenResponseDTO());
-        when(walletCredentialService.downloadVCAndStoreInDB(eq(issuer), eq(credentialConfigurationId), any(), eq(locale), eq(walletId), eq(walletKey)))
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
+        when(walletCredentialService.downloadVCAndStoreInDB(
+                eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
+                eq(code), eq(state), any()))
                 .thenReturn(verifiableCredentialResponseDTO);
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .header("Accept-Language", locale)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", walletId)
                         .sessionAttr("wallet_key", walletKey))
@@ -115,31 +118,62 @@ public class WalletCredentialsControllerTest {
     }
 
     @Test
-    public void shouldReturnErroResponseWhenRequestedCredentialIsAlreadyAvailableInWallet() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
-        when(idpService.getTokenResponse(verifiableCredentialRequest)).thenReturn(new TokenResponseDTO());
-        when(walletCredentialService.downloadVCAndStoreInDB(eq(issuer), eq(credentialConfigurationId), any(), eq(locale), eq(walletId), eq(walletKey)))
+    public void should_exchangeTokenInternally_when_dPoPSessionAndGrantAreProvided() throws Exception {
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
+        when(walletCredentialService.downloadVCAndStoreInDB(
+                eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
+                eq(code), eq(state), any()))
+                .thenReturn(verifiableCredentialResponseDTO);
+
+        mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Accept-Language", locale)
+                        .header("state", state)
+                        .content(createRequestBody(verifiableCredentialRequest))
+                        .sessionAttr("wallet_id", walletId)
+                        .sessionAttr("wallet_key", walletKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.credentialId").value("credentialId123"));
+
+        verify(walletCredentialService).downloadVCAndStoreInDB(
+                eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
+                eq(code), eq(state), any());
+        verify(dPoPSessionService).remove(any(), eq("oauth-state"));
+        verify(pkceSessionManager).remove(any(), eq("oauth-state"));
+    }
+
+    @Test
+    public void should_returnErrorResponse_when_requestedCredentialAlreadyExistsInWallet() throws Exception {
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
+        when(walletCredentialService.downloadVCAndStoreInDB(
+                eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
+                eq(code), eq(state), any()))
                 .thenThrow(new InvalidRequestException(CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(), "Duplicate credential for issuer and type"));
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .header("Accept-Language", locale)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", walletId)
                         .sessionAttr("wallet_key", walletKey))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("credential_download_error"))
                 .andExpect(jsonPath("$.errorMessage").value("Duplicate credential for issuer and type"));
+        verify(dPoPSessionService).remove(any(), eq(state));
+        verify(pkceSessionManager).remove(any(), eq(state));
     }
 
     @Test
     public void shouldReturnErrorResponseWhenSessionDoesNotHaveWalletIdAndKey() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .header("Accept-Language", locale)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                 )
                 .andExpect(status().isBadRequest())
@@ -149,43 +183,47 @@ public class WalletCredentialsControllerTest {
 
     @Test
     public void shouldCallServiceWithCorrectParameters() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Accept-Language", "fr")
+                .header("state", state)
                 .content(createRequestBody(verifiableCredentialRequest))
                 .sessionAttr("wallet_id", walletId)
                 .sessionAttr("wallet_key", walletKey));
 
-        verify(idpService).getTokenResponse(verifiableCredentialRequest);
-        verify(walletCredentialService
-        ).downloadVCAndStoreInDB(eq(issuer), eq(credentialConfigurationId), any(), eq("fr"), eq(walletId), eq(walletKey));
+        verify(walletCredentialService).downloadVCAndStoreInDB(
+                eq(issuer), eq(credentialConfigurationId), eq("fr"), eq(walletId), eq(walletKey),
+                eq(code), eq(state), any());
     }
 
     @Test
     public void shouldSetDefaultAndProceedWhenOptionalRequestParametersAreNotPassed() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
+                .header("state", state)
                 .content(createRequestBody(verifiableCredentialRequest))
                 .sessionAttr("wallet_id", walletId)
                 .sessionAttr("wallet_key", walletKey));
 
         // Default value for vcStorageExpiryLimit is -1 and locale is "en"
-        verify(walletCredentialService).downloadVCAndStoreInDB(any(), any(), any(), eq("en"), eq(walletId), eq(walletKey));
+        verify(walletCredentialService).downloadVCAndStoreInDB(
+                any(), any(), eq("en"), eq(walletId), eq(walletKey), eq(code), eq(state), any());
     }
 
     @Test
     public void shouldThrowExceptionWhenInvalidLocaleIsPassed() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .header("Accept-Language", "eng") // Three letter language code passed which is not valid
                         .header("Accept-Language", "invalid")
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", walletId)
                         .sessionAttr("wallet_key", walletKey))
@@ -197,11 +235,12 @@ public class WalletCredentialsControllerTest {
     @Test
     public void shouldThrowInvalidRequestForWalletIdMismatch() throws Exception {
         when(httpSession.getAttribute("wallet_id")).thenReturn("differentWalletId");
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", "differentWalletId")
                         .sessionAttr("wallet_key", walletKey))
@@ -213,11 +252,12 @@ public class WalletCredentialsControllerTest {
     @Test
     public void shouldThrowInvalidRequestForMissingWalletKey() throws Exception {
         when(httpSession.getAttribute("wallet_key")).thenReturn(null);
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", walletId))
                 .andExpect(status().isBadRequest())
@@ -227,11 +267,12 @@ public class WalletCredentialsControllerTest {
 
     @Test
     public void shouldThrowInvalidRequestForMissingIssuerAndCredentialConfigurationIdInDownloadCredentialApi() throws Exception {
-        buildVerifiableCredentialRequest(null, null, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(null, null, code);
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Accept-Language", "fr")
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", walletId)
                         .sessionAttr("wallet_key", walletKey))
@@ -251,10 +292,11 @@ public class WalletCredentialsControllerTest {
 
     @Test
     public void shouldThrowInvalidRequestForMissingIssuerInDownloadCredentialApi() throws Exception {
-        buildVerifiableCredentialRequest(null, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(null, credentialConfigurationId, code);
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .header("Accept-Language", "fr")
                         .sessionAttr("wallet_id", walletId)
@@ -266,10 +308,11 @@ public class WalletCredentialsControllerTest {
 
     @Test
     public void shouldThrowInvalidRequestForMissingCredentialConfigurationIdInDownloadCredentialApi() throws Exception {
-        buildVerifiableCredentialRequest(issuer, null, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, null, code);
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .header("Accept-Language", "fr")
                         .sessionAttr("wallet_id", walletId)
@@ -281,11 +324,12 @@ public class WalletCredentialsControllerTest {
 
     @Test
     public void shouldThrowInvalidRequestForMissingCodeInDownloadCredentialApi() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, null, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, null);
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .header("Accept-Language", "fr")
                         .sessionAttr("wallet_id", walletId)
@@ -296,83 +340,64 @@ public class WalletCredentialsControllerTest {
     }
 
     @Test
-    public void shouldThrowInvalidRequestForMissingGrantTypeInDownloadCredentialApi() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, null, redirectUri, codeVerifier);
-
-        mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(createRequestBody(verifiableCredentialRequest))
-                        .header("Accept-Language", "fr")
-                        .sessionAttr("wallet_id", walletId)
-                        .sessionAttr("wallet_key", walletKey))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode").value("invalid_request"))
-                .andExpect(jsonPath("$.errorMessage").value("grantType cannot be blank"));
-    }
-
-    @Test
-    public void shouldThrowInvalidRequestForMissingRedirectUriInDownloadCredentialApi() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, null, codeVerifier);
-
-        mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(createRequestBody(verifiableCredentialRequest))
-                        .header("Accept-Language", "fr")
-                        .sessionAttr("wallet_id", walletId)
-                        .sessionAttr("wallet_key", walletKey))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode").value("invalid_request"))
-                .andExpect(jsonPath("$.errorMessage").value("redirectUri cannot be blank"));
-    }
-
-    @Test
-    public void shouldThrowInvalidRequestForMissingCodeVerifierInDownloadCredentialApi() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, null);
-
-        mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(createRequestBody(verifiableCredentialRequest))
-                        .header("Accept-Language", "fr")
-                        .sessionAttr("wallet_id", walletId)
-                        .sessionAttr("wallet_key", walletKey))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode").value("invalid_request"))
-                .andExpect(jsonPath("$.errorMessage").value("codeVerifier cannot be blank"));
-    }
-
-    @Test
     public void shouldThrowServiceUnavailableForTokenResponseFailure() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
-        when(idpService.getTokenResponse(verifiableCredentialRequest))
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
+        when(walletCredentialService.downloadVCAndStoreInDB(
+                eq(issuer), eq(credentialConfigurationId), anyString(), eq(walletId), eq(walletKey),
+                eq(code), eq(state), any()))
                 .thenThrow(new ApiNotAccessibleException("API not accessible"));
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", walletId)
                         .sessionAttr("wallet_key", walletKey))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.errorCode").value("credential_download_error"));
+        verify(dPoPSessionService).remove(any(), eq(state));
+        verify(pkceSessionManager).remove(any(), eq(state));
     }
 
     @Test
     public void shouldThrowServiceUnavailableForExternalServiceFailure() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
-        when(idpService.getTokenResponse(anyMap())).thenReturn(new TokenResponseDTO());
-        when(walletCredentialService.downloadVCAndStoreInDB(anyString(), anyString(), any(), anyString(), anyString(), anyString()))
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
+        when(walletCredentialService.downloadVCAndStoreInDB(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any()))
                 .thenThrow(new ExternalServiceUnavailableException("Service unavailable", "Service unavailable"));
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", walletId)
                         .sessionAttr("wallet_key", walletKey))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.errorCode").value("Service unavailable"))
                 .andExpect(jsonPath("$.errorMessage").value("Service unavailable"));
+        verify(dPoPSessionService).remove(any(), eq(state));
+        verify(pkceSessionManager).remove(any(), eq(state));
+    }
+
+    @Test
+    public void shouldThrowInternalServerErrorForCredentialProcessingFailure() throws Exception {
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
+        when(walletCredentialService.downloadVCAndStoreInDB(
+                eq(issuer), eq(credentialConfigurationId), anyString(), eq(walletId), eq(walletKey),
+                eq(code), eq(state), any()))
+                .thenThrow(new CredentialProcessingException(CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(),
+                        "Unable to process credential"));
+
+        mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("state", state)
+                        .content(createRequestBody(verifiableCredentialRequest))
+                        .sessionAttr("wallet_id", walletId)
+                        .sessionAttr("wallet_key", walletKey))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.errorCode").value("credential_download_error"))
+                .andExpect(jsonPath("$.errorMessage").value("Unable to process credential"));
+        verify(dPoPSessionService).remove(any(), eq(state));
+        verify(pkceSessionManager).remove(any(), eq(state));
     }
 
     // Tests for fetchAllCredentialsForGivenWallet
@@ -408,7 +433,7 @@ public class WalletCredentialsControllerTest {
 
     @Test
     public void shouldReturnErrorResponseOnFetchAllCredentialsForGivenWalletWhenSessionDoesNotHaveWalletId() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         mockMvc.perform(get("/wallets/{walletId}/credentials", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
@@ -592,6 +617,7 @@ public class WalletCredentialsControllerTest {
     @Test
     public void shouldReturnErrorResponseOnDeleteCredentialWhenSessionDoesNotHaveWalletId() throws Exception {
         mockMvc.perform(delete("/wallets/{walletId}/credentials/{credentialId}", walletId, credentialId)
+                        .accept(MediaType.APPLICATION_JSON)
                         .sessionAttr("wallet_key", walletKey))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("wallet_locked"))
@@ -604,6 +630,7 @@ public class WalletCredentialsControllerTest {
                 .when(walletCredentialService).deleteCredential(credentialId, walletId);
 
         mockMvc.perform(delete("/wallets/{walletId}/credentials/{credentialId}", walletId, credentialId)
+                        .accept(MediaType.APPLICATION_JSON)
                         .sessionAttr("wallet_id", walletId)
                         .sessionAttr("wallet_key", walletKey))
                 .andExpect(status().isNotFound())
@@ -616,6 +643,7 @@ public class WalletCredentialsControllerTest {
         when(httpSession.getAttribute("wallet_id")).thenReturn("differentWalletId");
 
         mockMvc.perform(delete("/wallets/{walletId}/credentials/{credentialId}", walletId, credentialId)
+                        .accept(MediaType.APPLICATION_JSON)
                         .sessionAttr("wallet_id", "differentWalletId")
                         .sessionAttr("wallet_key", walletKey))
                 .andExpect(status().isBadRequest())
@@ -623,24 +651,66 @@ public class WalletCredentialsControllerTest {
                 .andExpect(jsonPath("$.errorMessage").value("Invalid Wallet ID. Session and request Wallet ID do not match"));
     }
 
-    private void buildVerifiableCredentialRequest(String issuer, String credentialConfigurationId, String code, String grantType, String redirectUri, String codeVerifier) {
+    @Test
+    public void should_rejectDownload_when_clientSendsAccessTokenWithoutDPoPSession() throws Exception {
+        verifiableCredentialRequest.setIssuer(issuer);
+        verifiableCredentialRequest.setCredentialConfigurationId(credentialConfigurationId);
+
+        mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Accept-Language", locale)
+                        .header("DPoP", "dpop-proof-jwt")
+                        .header("state", state)
+                        .content(createRequestBody(verifiableCredentialRequest))
+                        .sessionAttr("wallet_id", walletId)
+                        .sessionAttr("wallet_key", walletKey))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("invalid_request"));
+
+        verify(walletCredentialService, never()).downloadVCAndStoreInDB(
+                any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void should_retryInternally_when_walletCredentialDownloadRequiresNonce() throws Exception {
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
+        when(walletCredentialService.downloadVCAndStoreInDB(
+                eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
+                eq(code), eq(state), any()))
+                .thenReturn(verifiableCredentialResponseDTO);
+
+        mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Accept-Language", locale)
+                        .header("state", state)
+                        .content(createRequestBody(verifiableCredentialRequest))
+                        .sessionAttr("wallet_id", walletId)
+                        .sessionAttr("wallet_key", walletKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.credentialId").value("credentialId123"));
+
+        verify(dPoPSessionService).remove(any(), eq(state));
+        verify(pkceSessionManager).remove(any(), eq(state));
+    }
+
+    private void buildVerifiableCredentialRequest(String issuer, String credentialConfigurationId, String code) {
         verifiableCredentialRequest.setIssuer(issuer);
         verifiableCredentialRequest.setCredentialConfigurationId(credentialConfigurationId);
         verifiableCredentialRequest.setCode(code);
-        verifiableCredentialRequest.setGrantType(grantType);
-        verifiableCredentialRequest.setRedirectUri(redirectUri);
-        verifiableCredentialRequest.setCodeVerifier(codeVerifier);
     }
 
     @Test
     public void shouldThrowInvalidRequestForInvalidLocaleCode() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code, grantType, redirectUri, codeVerifier);
+        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
 
         // "zz" is not a valid ISO 639-1 language code
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .header("Accept-Language", "zz")
+                        .header("state", state)
                         .content(createRequestBody(verifiableCredentialRequest))
                         .sessionAttr("wallet_id", walletId)
                         .sessionAttr("wallet_key", walletKey))

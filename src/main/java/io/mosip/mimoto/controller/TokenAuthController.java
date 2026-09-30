@@ -1,6 +1,7 @@
 package io.mosip.mimoto.controller;
 
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
+import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.exception.ErrorConstants;
 import io.mosip.mimoto.exception.OAuth2AuthenticationException;
 import io.mosip.mimoto.service.TokenService;
@@ -112,9 +113,11 @@ public class TokenAuthController {
             }
     )
     @PostMapping("/auth/{provider}/token-login")
-    public ResponseEntity<?> createSessionFromIdToken(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable("provider") String provider, HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<Object> createSessionFromIdToken(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable("provider") String provider, HttpServletRequest request, HttpServletResponse response) {
         if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
-            return Utilities.buildErrorResponse(HttpStatus.BAD_REQUEST, ErrorConstants.INVALID_REQUEST.getErrorCode(), INVALID_TOKEN_MESSAGE);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorDTO(ErrorConstants.INVALID_REQUEST.getErrorCode(), INVALID_TOKEN_MESSAGE));
         }
 
         String idToken = authorization.substring(BEARER_PREFIX.length());

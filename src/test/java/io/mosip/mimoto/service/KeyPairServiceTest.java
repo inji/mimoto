@@ -85,8 +85,9 @@ public class KeyPairServiceTest {
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
              MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
             
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
@@ -121,8 +122,9 @@ public class KeyPairServiceTest {
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
              MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
             
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
@@ -155,8 +157,9 @@ public class KeyPairServiceTest {
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
              MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
             
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
@@ -216,8 +219,9 @@ public class KeyPairServiceTest {
                 .thenReturn(Optional.of(proofSigningKey));
         
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class)) {
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             try {
                 keyPairService.getKeyPairFromDB(walletId, base64EncodedWalletKey, algorithm);
@@ -242,8 +246,9 @@ public class KeyPairServiceTest {
                 .thenThrow(new RuntimeException("Decryption error"));
         
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class)) {
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             try {
                 keyPairService.getKeyPairFromDB(walletId, base64EncodedWalletKey, algorithm);
@@ -271,8 +276,9 @@ public class KeyPairServiceTest {
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
              MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
             
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
@@ -316,8 +322,9 @@ public class KeyPairServiceTest {
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
              MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
             
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
@@ -348,8 +355,9 @@ public class KeyPairServiceTest {
             try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
                  MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
                 
+                SecretKey mockSecretKey = mock(SecretKey.class);
                 mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                        .thenReturn(mock(SecretKey.class));
+                        .thenReturn(mockSecretKey);
                 
                 mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                         eq(algorithm), any(byte[].class), any(byte[].class)))
@@ -389,8 +397,9 @@ public class KeyPairServiceTest {
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
              MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
             
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
@@ -418,8 +427,9 @@ public class KeyPairServiceTest {
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
              MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
             
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))
@@ -443,8 +453,9 @@ public class KeyPairServiceTest {
                 .thenThrow(new RuntimeException("Corrupted key - decryption failed"));
         
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class)) {
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             try {
                 keyPairService.getKeyPairFromDB(walletId, base64EncodedWalletKey, algorithm);
@@ -472,8 +483,9 @@ public class KeyPairServiceTest {
         try (MockedStatic<DataProtectionService> mockedStaticUtil = Mockito.mockStatic(DataProtectionService.class);
              MockedStatic<SigningKeyUtil> mockedStaticKeyGen = Mockito.mockStatic(SigningKeyUtil.class)) {
             
+            SecretKey mockSecretKey = mock(SecretKey.class);
             mockedStaticUtil.when(() -> DataProtectionService.bytesToSecretKey(any(byte[].class)))
-                    .thenReturn(mock(SecretKey.class));
+                    .thenReturn(mockSecretKey);
             
             mockedStaticKeyGen.when(() -> SigningKeyUtil.generateKeyPair(
                     eq(algorithm), any(byte[].class), any(byte[].class)))

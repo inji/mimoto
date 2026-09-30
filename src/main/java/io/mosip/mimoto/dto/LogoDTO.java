@@ -23,4 +23,5 @@ public class LogoDTO {
     @NotBlank
     @Schema(description = "Display logo alt text of the Issuer")
     String alt_text;
+
 }

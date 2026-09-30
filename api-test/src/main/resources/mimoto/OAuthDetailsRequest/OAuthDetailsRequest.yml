@@ -5,9 +5,9 @@ OAuthDetailsRequest:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequest_01
       role: resident
       restMethod: post
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/OAuthDetailsRequest/OAuthDetailsRequest
-      outputTemplate: mimoto/OAuthDetailsRequest/OAuthDetailsRequestResult
+      outputTemplate: mimoto/responseCode
       input: '{
       	"requestTime": "$TIMESTAMP$",
       	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
@@ -24,5 +24,5 @@ OAuthDetailsRequest:
         "codeChallengeMethod": "S256"
 }'
       output: '{
-       
+      "responseCode": "200"
 }'

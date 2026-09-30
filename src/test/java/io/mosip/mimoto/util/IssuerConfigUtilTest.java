@@ -75,8 +75,9 @@ public class IssuerConfigUtilTest {
         String expectedWellknownJson = getExpectedWellKnownJson();
         Mockito.when(restApiClient.getApi(issuerWellKnownUrl, String.class))
                 .thenReturn(expectedWellknownJson);
+        JsonNode mockJsonNode = Mockito.mock(JsonNode.class);
         Mockito.when(objectMapper.readTree(expectedWellknownJson))
-                .thenReturn(Mockito.mock(JsonNode.class));
+                .thenReturn(mockJsonNode);
         Mockito.when(versionDetector.detectVersion(any(JsonNode.class)))
                 .thenReturn(VCSpecificationVersion.DRAFT_13);
         Mockito.when(parserFactory.getParser(eq(VCSpecificationVersion.DRAFT_13)))

@@ -113,10 +113,59 @@
 					"response": []
 				},
 				{
+					"name": "Authorize Issuer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test(\"Authorization URL and state are returned\", function () {",
+									"    pm.expect(jsonData.authorizationUrl).to.be.a(\"string\").and.not.empty;",
+									"    pm.expect(jsonData.state).to.be.a(\"string\").and.not.empty;",
+									"});",
+									"pm.environment.set(\"oauthState\", jsonData.state);",
+									"pm.environment.set(\"authorizationUrl\", jsonData.authorizationUrl);",
+									"pm.collectionVariables.set(\"oauthState\", jsonData.state);",
+									"pm.collectionVariables.set(\"authorizationUrl\", jsonData.authorizationUrl);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"redirectUri\": \"{{redirectionUrlForVcDownload}}\",\n    \"credentialConfigurationId\": \"{{credentialConfigurationId}}\",\n    \"uiLocales\": \"en\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{HOST}}/issuers/{{issuer}}/authorize",
+						"description": "Creates the PKCE and DPoP session and returns authorizationUrl plus state. Open authorizationUrl in a browser, complete login, and copy the code from the redirect. Send the saved oauthState as the state header on credential download, for both guest PDF download and wallet save, from the same Postman session so the session cookie is included."
+					},
+					"response": []
+				},
+				{
 					"name": "Download Credential With GetToken",
 					"request": {
 						"method": "POST",
 						"header": [
+							{
+								"key": "state",
+								"value": "{{oauthState}}",
+								"type": "text"
+							},
 							{
 								"key": "X-XSRF-TOKEN",
 								"value": "{{XSRF_TOKEN}}",
@@ -1227,6 +1276,11 @@
 								"type": "text"
 							},
 							{
+								"key": "state",
+								"value": "{{oauthState}}",
+								"type": "text"
+							},
+							{
 								"key": "X-XSRF-TOKEN",
 								"value": "{{XSRF_TOKEN}}",
 								"type": "text"
@@ -1234,7 +1288,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"grantType\": \"authorization_code\",\n    \"code\": \"{{authCode}}\",\n    \"codeVerifier\": \"{{codeVerifier}}\",\n    \"redirectUri\": \"http://localhost:3004/redirect\",\n    \"credentialConfigurationId\": \"{{credentialConfigurationId}}\",\n    \"issuer\": \"{{issuer}}\"\n}"
+							"raw": "{\n    \"issuer\": \"{{issuer}}\",\n    \"credentialConfigurationId\": \"{{credentialConfigurationId}}\",\n    \"code\": \"{{code}}\"\n}"
 						},
 						"url": "{{HOST}}/wallets/{{walletId}}/credentials"
 					},
@@ -1504,6 +1558,14 @@
 		},
 		{
 			"key": "credentialId2",
+			"value": ""
+		},
+		{
+			"key": "oauthState",
+			"value": ""
+		},
+		{
+			"key": "authorizationUrl",
 			"value": ""
 		}
 	]

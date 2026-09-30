@@ -34,8 +34,7 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
 
     private void addFallbackDisplayProperties(
             Map<String, Object> credentialProperties,
-            LinkedHashMap<String, CredentialIssuerDisplayResponse> localizedDisplayMap,
-            String resolvedLocale) {
+            LinkedHashMap<String, CredentialIssuerDisplayResponse> localizedDisplayMap) {
         // fallback for missing display properties from issuer well-known
         Set<String> credentialFields = credentialProperties.keySet();
         Set<String> missingDisplayFields = new HashSet<>(credentialFields);
@@ -94,7 +93,7 @@ public class LdpVcCredentialFormatHandler implements CredentialFormatHandler {
             });
         }
 
-        addFallbackDisplayProperties(credentialProperties, localizedDisplayMap, resolvedLocale);
+        addFallbackDisplayProperties(credentialProperties, localizedDisplayMap);
 
         List<String> fieldKeys = (orderedKeys != null && !orderedKeys.isEmpty())
                 ? new ArrayList<>(orderedKeys)

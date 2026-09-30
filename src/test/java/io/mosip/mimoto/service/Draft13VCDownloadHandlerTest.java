@@ -9,8 +9,9 @@ import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponse;
 import io.mosip.mimoto.exception.CredentialProcessingException;
 import io.mosip.mimoto.exception.ExternalServiceUnavailableException;
 import io.mosip.mimoto.exception.InvalidCredentialResourceException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.service.impl.Draft13VCDownloadHandler;
-import io.mosip.mimoto.util.RestApiClient;
+import io.mosip.mimoto.util.CredentialApiClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,11 +20,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 
+import io.mosip.mimoto.constant.CredentialFormat;
+import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
+
+import java.util.Map;
+
 import static io.mosip.mimoto.util.TestUtilities.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -34,7 +41,7 @@ class Draft13VCDownloadHandlerTest {
     private Draft13CredentialRequestService credentialRequestService;
 
     @Mock
-    private RestApiClient restApiClient;
+    private CredentialApiClient credentialApiClient;
 
     @InjectMocks
     private Draft13VCDownloadHandler handler;
@@ -48,8 +55,10 @@ class Draft13VCDownloadHandlerTest {
         issuerDTO = new IssuerDTO();
         issuerDTO.setIssuer_id("issuer-123");
 
+        CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("config-1", CredentialFormat.LDP_VC.getFormat());
         wellKnownResponse = new CredentialIssuerWellKnownResponse();
         wellKnownResponse.setCredentialEndPoint("https://example.com/credential");
+        wellKnownResponse.setCredentialConfigurationsSupported(Map.of("config-1", credentialsSupportedResponse));
 
         tokenResponse = new TokenResponseDTO();
         tokenResponse.setC_nonce("nonce-123");
@@ -64,7 +73,7 @@ class Draft13VCDownloadHandlerTest {
         boolean isLoginFlow = false;
 
         Draft13VCCredentialRequest request = getVCCredentialRequestDTO();
-        request.setFormat("jwt_vc");
+        request.setFormat(CredentialFormat.LDP_VC.getFormat());
 
         when(credentialRequestService.buildRequest(eq(issuerDTO), eq(credentialConfigurationId),
                 eq(wellKnownResponse), eq(tokenResponse.getC_nonce()), eq(walletId), eq(base64Key), eq(isLoginFlow)))
@@ -73,16 +82,18 @@ class Draft13VCDownloadHandlerTest {
         VerifiableCredentialResponse mockResponse = new VerifiableCredentialResponse();
         mockResponse.setCredential("mock-credential-data");
 
-        when(restApiClient.postApi(
+        when(credentialApiClient.postCredentialApi(
                 eq("https://example.com/credential"),
                 eq(MediaType.APPLICATION_JSON),
                 eq(request),
                 eq(VerifiableCredentialResponse.class),
-                eq("valid-access-token")
+                eq("valid-access-token"),
+                isNull(),
+                isNull()
         )).thenReturn(mockResponse);
 
         VCCredentialResponse result = handler.downloadCredential(
-                issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow);
+                issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow, null);
 
         assertNotNull(result);
         assertEquals(request.getFormat(), result.getFormat());
@@ -100,7 +111,7 @@ class Draft13VCDownloadHandlerTest {
                 .thenThrow(new RuntimeException("Build failed"));
 
         assertThrows(CredentialProcessingException.class, () ->
-            handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow)
+            handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow, null)
         );
     }
 
@@ -112,23 +123,25 @@ class Draft13VCDownloadHandlerTest {
         boolean isLoginFlow = false;
 
         Draft13VCCredentialRequest request = getVCCredentialRequestDTO();
-        request.setFormat("jwt_vc");
+        request.setFormat(CredentialFormat.LDP_VC.getFormat());
 
         when(credentialRequestService.buildRequest(eq(issuerDTO), eq(credentialConfigurationId),
                 eq(wellKnownResponse), eq(tokenResponse.getC_nonce()), eq(walletId), eq(base64Key), eq(isLoginFlow)))
                 .thenReturn(request);
 
-        when(restApiClient.postApi(
+        when(credentialApiClient.postCredentialApi(
                 eq("https://example.com/credential"),
                 eq(MediaType.APPLICATION_JSON),
                 eq(request),
                 eq(VerifiableCredentialResponse.class),
-                eq("valid-access-token")
+                eq("valid-access-token"),
+                isNull(),
+                isNull()
         )).thenReturn(null);
 
         ExternalServiceUnavailableException exception = assertThrows(
                 ExternalServiceUnavailableException.class,
-                () -> handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow)
+                () -> handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow, null)
         );
 
         assertTrue(exception.getMessage().contains("Unable to download credential from issuerId"));
@@ -142,7 +155,7 @@ class Draft13VCDownloadHandlerTest {
         boolean isLoginFlow = false;
 
         Draft13VCCredentialRequest request = getVCCredentialRequestDTO();
-        request.setFormat("jwt_vc");
+        request.setFormat(CredentialFormat.LDP_VC.getFormat());
 
         when(credentialRequestService.buildRequest(eq(issuerDTO), eq(credentialConfigurationId),
                 eq(wellKnownResponse), eq(tokenResponse.getC_nonce()), eq(walletId), eq(base64Key), eq(isLoginFlow)))
@@ -151,20 +164,58 @@ class Draft13VCDownloadHandlerTest {
         VerifiableCredentialResponse mockResponse = new VerifiableCredentialResponse();
         mockResponse.setCredential(null);
 
-        when(restApiClient.postApi(
+        when(credentialApiClient.postCredentialApi(
                 eq("https://example.com/credential"),
                 eq(MediaType.APPLICATION_JSON),
                 eq(request),
                 eq(VerifiableCredentialResponse.class),
-                eq("valid-access-token")
+                eq("valid-access-token"),
+                isNull(),
+                isNull()
         )).thenReturn(mockResponse);
 
         InvalidCredentialResourceException exception = assertThrows(
                 InvalidCredentialResourceException.class,
-                () -> handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow)
+                () -> handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow, null)
         );
 
         assertTrue(exception.getMessage().contains("Credential response did not contain a credential"));
+    }
+
+    @Test
+    void shouldThrowInvalidRequestExceptionWhenIssuerReturnsError() throws Exception {
+        String credentialConfigurationId = "config-1";
+        String walletId = "wallet-1";
+        String base64Key = "base64-key";
+        boolean isLoginFlow = false;
+
+        Draft13VCCredentialRequest request = getVCCredentialRequestDTO();
+        request.setFormat(CredentialFormat.LDP_VC.getFormat());
+
+        when(credentialRequestService.buildRequest(eq(issuerDTO), eq(credentialConfigurationId),
+                eq(wellKnownResponse), eq(tokenResponse.getC_nonce()), eq(walletId), eq(base64Key), eq(isLoginFlow)))
+                .thenReturn(request);
+
+        VerifiableCredentialResponse mockResponse = new VerifiableCredentialResponse();
+        mockResponse.setError("ERROR_FETCHING_IDENTITY_DATA");
+        mockResponse.setErrorDescription("ERROR_FETCHING_IDENTITY_DATA");
+
+        when(credentialApiClient.postCredentialApi(
+                eq("https://example.com/credential"),
+                eq(MediaType.APPLICATION_JSON),
+                eq(request),
+                eq(VerifiableCredentialResponse.class),
+                eq("valid-access-token"),
+                isNull(),
+                isNull()
+        )).thenReturn(mockResponse);
+
+        InvalidRequestException exception = assertThrows(
+                InvalidRequestException.class,
+                () -> handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow, null)
+        );
+
+        assertTrue(exception.getMessage().contains("ERROR_FETCHING_IDENTITY_DATA"));
     }
 
     @Test
@@ -175,18 +226,18 @@ class Draft13VCDownloadHandlerTest {
         boolean isLoginFlow = false;
 
         Draft13VCCredentialRequest request = getVCCredentialRequestDTO();
-        request.setFormat("jwt_vc");
+        request.setFormat(CredentialFormat.LDP_VC.getFormat());
 
         when(credentialRequestService.buildRequest(eq(issuerDTO), eq(credentialConfigurationId),
                 eq(wellKnownResponse), eq(tokenResponse.getC_nonce()), eq(walletId), eq(base64Key), eq(isLoginFlow)))
                 .thenReturn(request);
 
-        when(restApiClient.postApi(anyString(), any(), any(), any(), anyString()))
+        when(credentialApiClient.postCredentialApi(anyString(), any(), any(), any(), anyString(), isNull(), isNull()))
                 .thenThrow(new RuntimeException("API down"));
 
         ExternalServiceUnavailableException exception = assertThrows(
                 ExternalServiceUnavailableException.class,
-                () -> handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow)
+                () -> handler.downloadCredential(issuerDTO, credentialConfigurationId, wellKnownResponse, tokenResponse, walletId, base64Key, isLoginFlow, null)
         );
 
         assertTrue(exception.getMessage().contains("Unable to download credential from issuerId"));

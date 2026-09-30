@@ -12,7 +12,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(description = "Response containing the trusted verifiers known to Mimoto for presentation flows.")
 public class VerifiersDTO {
-    @Schema(description = "Trusted Verifiers List")
+    @Schema(description = "List of trusted verifiers that can request verifiable presentations.")
     List<VerifierDTO> verifiers;
 }

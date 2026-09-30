@@ -1,6 +1,7 @@
 package io.mosip.mimoto.service.impl;
 
 import io.mosip.mimoto.dto.ErrorDTO;
+import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.dto.resident.VerifiablePresentationSessionData;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.service.VerifierService;
@@ -9,6 +10,7 @@ import io.mosip.mimoto.util.AuthorizationRequestHelper;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationPresentationExchangeRequest;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationRequest;
 import io.mosip.openID4VP.authorizationRequest.LdpVpFormatSupported;
+import io.mosip.openID4VP.authorizationRequest.MsoMdocVpFormatSupported;
 import io.mosip.openID4VP.authorizationRequest.SdJwtVpFormatSupported;
 import io.mosip.openID4VP.authorizationRequest.VPFormatSupported;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
@@ -21,10 +23,11 @@ import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
 import io.mosip.openID4VP.verifier.VerifierResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -34,9 +37,12 @@ import static io.mosip.openID4VP.authorizationRequest.WalletConfigDefaultsKt.get
 import static io.mosip.openID4VP.authorizationRequest.WalletConfigDefaultsKt.getDefaultResponseTypeSupported;
 import static io.mosip.openID4VP.authorizationRequest.WalletConfigDefaultsKt.getDefaultSignatureAlgorithmSupported;
 
-@Component
+@Service
 @Slf4j
 public class OpenID4VPService {
+
+    private static final String ES256 = "ES256";
+    private static final String ED_DSA = "EdDSA";
 
     private final VerifierService verifierService;
 
@@ -51,8 +57,9 @@ public class OpenID4VPService {
     private WalletConfig buildWalletConfig(List<Verifier> trustedVerifiers, boolean validateTrustedVerifier) {
         Map<VPFormatType, VPFormatSupported> vpFormatsSupported = Map.of(
                 VPFormatType.LDP_VC, new LdpVpFormatSupported(List.of(ProofType.Ed25519Signature2020), null),
-                VPFormatType.VC_SD_JWT, new SdJwtVpFormatSupported(List.of("ES256", "EdDSA"), List.of("ES256", "EdDSA")),
-                VPFormatType.DC_SD_JWT, new SdJwtVpFormatSupported(List.of("ES256", "EdDSA"), List.of("ES256", "EdDSA"))
+                VPFormatType.VC_SD_JWT, new SdJwtVpFormatSupported(List.of(ES256, ED_DSA), List.of(ES256, ED_DSA)),
+                VPFormatType.DC_SD_JWT, new SdJwtVpFormatSupported(List.of(ES256, ED_DSA), List.of(ES256, ED_DSA)),
+                VPFormatType.MSO_MDOC, new MsoMdocVpFormatSupported(List.of(-7), List.of(-7))
         );
 
         WalletConfig defaultConfig = new WalletConfig();
@@ -154,7 +161,11 @@ public class OpenID4VPService {
     }
 
     public List<Verifier> getPreRegisteredVerifiers() throws ApiNotAccessibleException, IOException {
-        return verifierService.getTrustedVerifiers().getVerifiers().stream()
+        List<VerifierDTO> verifiers = verifierService.getTrustedVerifiers().getVerifiers();
+        if (verifiers == null) {
+            return Collections.emptyList();
+        }
+        return verifiers.stream()
                 .map(v -> new Verifier(v.getClientId(), v.getResponseUris(), v.getJwksUri(), v.getAllowUnsignedRequest(), v.getSpecVersion()))
                 .toList();
     }

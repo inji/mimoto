@@ -10,7 +10,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static io.mosip.mimoto.util.TestUtilities.getCredentialIssuerWellKnownResponseDto;
 import static io.mosip.mimoto.util.TestUtilities.getCredentialSupportedResponse;
@@ -51,7 +53,7 @@ class V1CredentialIssuerWellknownResponseValidatorTest {
 
         InvalidWellknownResponseException exception = assertThrows(InvalidWellknownResponseException.class,
                 () -> v1Validator.validate(response, validator));
-        assertTrue(exception.getMessage().contains("Mandatory field 'display' missing for V1 ldp_vc"));
+        assertTrue(exception.getMessage().contains("All credential configurations in issuer well-known are invalid"));
     }
 
     @Test
@@ -66,7 +68,7 @@ class V1CredentialIssuerWellknownResponseValidatorTest {
 
         InvalidWellknownResponseException exception = assertThrows(InvalidWellknownResponseException.class,
                 () -> v1Validator.validate(response, validator));
-        assertTrue(exception.getMessage().contains("Mandatory field 'display' missing for V1 ldp_vc"));
+        assertTrue(exception.getMessage().contains("All credential configurations in issuer well-known are invalid"));
     }
 
     @Test
@@ -80,7 +82,27 @@ class V1CredentialIssuerWellknownResponseValidatorTest {
 
         InvalidWellknownResponseException exception = assertThrows(InvalidWellknownResponseException.class,
                 () -> v1Validator.validate(response, validator));
-        assertTrue(exception.getMessage().contains("Mandatory field 'claims' missing for V1 ldp_vc"));
+        assertTrue(exception.getMessage().contains("All credential configurations in issuer well-known are invalid"));
+    }
+
+    @Test
+    void shouldSkipInvalidConfigAndRetainValidConfigWhenMixedConfigurationsProvided() {
+        CredentialsSupportedResponse validConfig = getCredentialSupportedResponse("validConfig");
+        validConfig.setCredentialDefinition(null);
+        validConfig.setClaims(Map.of("given_name", Map.of("display", java.util.List.of(Map.of("name", "Given Name", "locale", "en")))));
+
+        CredentialsSupportedResponse invalidConfig = getCredentialSupportedResponse("invalidConfig");
+        invalidConfig.setCredentialDefinition(null);
+        invalidConfig.setClaims(null);
+
+        Map<String, CredentialsSupportedResponse> configs = new LinkedHashMap<>();
+        configs.put("validConfig", validConfig);
+        configs.put("invalidConfig", invalidConfig);
+
+        CredentialIssuerWellKnownResponse response = getCredentialIssuerWellKnownResponseDto("Issuer1", configs);
+
+        assertDoesNotThrow(() -> v1Validator.validate(response, validator));
+        assertEquals(Set.of("validConfig"), response.getCredentialConfigurationsSupported().keySet());
     }
 
     @Test
@@ -94,6 +116,6 @@ class V1CredentialIssuerWellknownResponseValidatorTest {
 
         InvalidWellknownResponseException exception = assertThrows(InvalidWellknownResponseException.class,
                 () -> v1Validator.validate(response, validator));
-        assertTrue(exception.getMessage().contains("Mandatory field 'claims' missing for V1 ldp_vc"));
+        assertTrue(exception.getMessage().contains("All credential configurations in issuer well-known are invalid"));
     }
 }

@@ -5,11 +5,21 @@ import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuerV2DTO;
 import io.mosip.mimoto.dto.IssuersDTO;
 import io.mosip.mimoto.dto.IssuersV2DTO;
+import io.mosip.mimoto.constant.DPoPConstants;
+import io.mosip.mimoto.dto.dpop.DPoPSession;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeRequest;
+import io.mosip.mimoto.dto.dpop.IssuerAuthorizeResponse;
 import io.mosip.mimoto.dto.mimoto.*;
+import io.mosip.mimoto.dto.pkce.PkceSession;
 import io.mosip.mimoto.exception.*;
+import io.mosip.mimoto.service.DPoPManager;
+import io.mosip.mimoto.service.DPoPSessionService;
 import io.mosip.mimoto.service.IssuersService;
+import io.mosip.mimoto.service.PkceSessionManager;
+import io.mosip.mimoto.util.AuthorizationUrlBuilder;
 import io.mosip.mimoto.util.IssuerConfigUtil;
 import io.mosip.mimoto.util.Utilities;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -20,7 +30,9 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+
+import static io.mosip.mimoto.exception.ErrorConstants.INVALID_REQUEST;
 
 
 @Service
@@ -38,16 +50,27 @@ public class IssuersServiceImpl implements IssuersService {
 
     private final String contextPath;
 
-    private static final String GET_TOKEN_PATH = "/get-token/";
+    private final DPoPSessionService dPoPSessionService;
+
+    private final PkceSessionManager pkceSessionManager;
+
+    private final DPoPManager dPoPManager;
+
+    private static final String GET_TOKEN_PATH = "/v2/get-token/";
 
     public IssuersServiceImpl(Utilities utilities, ObjectMapper objectMapper, IssuerConfigUtil issuersConfigUtil,
                               @Value("${mosip.api.public.url}") String mosipApiPublicUrl,
-                              @Value("${server.servlet.context-path}") String contextPath) {
+                              @Value("${server.servlet.context-path}") String contextPath,
+                              DPoPSessionService dPoPSessionService, PkceSessionManager pkceSessionManager,
+                              DPoPManager dPoPManager) {
         this.utilities = utilities;
         this.objectMapper = objectMapper;
         this.issuersConfigUtil = issuersConfigUtil;
         this.mosipApiPublicUrl = mosipApiPublicUrl;
         this.contextPath = contextPath;
+        this.dPoPSessionService = dPoPSessionService;
+        this.pkceSessionManager = pkceSessionManager;
+        this.dPoPManager = dPoPManager;
     }
 
     @Override
@@ -74,7 +97,7 @@ public class IssuersServiceImpl implements IssuersService {
     private IssuersDTO getAllEnabledIssuers(IssuersDTO issuersDTO) {
         return new IssuersDTO(issuersDTO.getIssuers().stream()
                 .filter(issuer -> "true".equals(issuer.getEnabled()))
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     private IssuersDTO getFilteredIssuers(IssuersDTO issuersDTO, String search) {
@@ -85,7 +108,7 @@ public class IssuersServiceImpl implements IssuersService {
         return new IssuersDTO(issuersDTO.getIssuers().stream()
                 .filter(issuer -> issuer.getDisplay().stream()
                         .anyMatch(displayDTO -> displayDTO.getTitle().toLowerCase().contains(search.toLowerCase())))
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     @Override
@@ -105,7 +128,11 @@ public class IssuersServiceImpl implements IssuersService {
 
             issuersDTO.getIssuers().stream()
                     .filter(java.util.Objects::nonNull)
-                    .forEach(issuer -> issuer.setToken_endpoint(baseTokenEndpoint + issuer.getIssuer_id()));
+                    .forEach(issuer -> {
+                        if (StringUtils.isBlank(issuer.getToken_endpoint())) {
+                            issuer.setToken_endpoint(baseTokenEndpoint + issuer.getIssuer_id());
+                        }
+                    });
         }
 
         return issuersDTO;
@@ -158,7 +185,7 @@ public class IssuersServiceImpl implements IssuersService {
     @Override
     public IssuersV2DTO getIssuersV2DTO() throws ApiNotAccessibleException, IOException {
         IssuersDTO issuersDTO = getIssuers(null);
-        List<IssuerV2DTO> list = issuersDTO.getIssuers().parallelStream().map(this::toIssuerV2DTO).collect(Collectors.toList());
+        List<IssuerV2DTO> list = issuersDTO.getIssuers().parallelStream().map(this::toIssuerV2DTO).toList();
         return new IssuersV2DTO(list);
     }
 
@@ -166,6 +193,67 @@ public class IssuersServiceImpl implements IssuersService {
     public IssuerV2DTO getIssuerV2Details(String issuerId) throws ApiNotAccessibleException, IOException {
         IssuerDTO issuerDTO = getIssuerDetails(issuerId);
         return toIssuerV2DTO(issuerDTO);
+    }
+
+    @Override
+    public IssuerAuthorizeResponse createAuthorizationUrl(HttpSession httpSession, String issuerId,
+                                                          IssuerAuthorizeRequest request) throws Exception {
+        if (httpSession == null) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "HTTP session is required for DPoP");
+        }
+        if (request == null) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "authorization request is required");
+        }
+        CredentialIssuerConfiguration configuration = getIssuerConfiguration(issuerId);
+        IssuerDTO issuer = getIssuerDetails(issuerId);
+        if (configuration.getAuthorizationServerWellKnownResponse() == null
+                || StringUtils.isBlank(configuration.getAuthorizationServerWellKnownResponse().getAuthorizationEndpoint())) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "authorization_endpoint is missing");
+        }
+        if (StringUtils.isBlank(issuer.getClient_id())) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(), "client_id is missing");
+        }
+        String scope = scopeForCredentialConfiguration(configuration, request.getCredentialConfigurationId());
+
+        PkceSession pkceSession = pkceSessionManager.createSession(request.getRedirectUri());
+        DPoPSession dPoPSession = dPoPSessionService.createSession(
+                pkceSession.getState(), configuration.getAuthorizationServerWellKnownResponse());
+        pkceSessionManager.store(httpSession, pkceSession);
+        dPoPSessionService.store(httpSession, dPoPSession);
+
+        String authorizationUrl = AuthorizationUrlBuilder.build(
+                configuration.getAuthorizationServerWellKnownResponse().getAuthorizationEndpoint(),
+                issuer.getClient_id(),
+                pkceSession.getRedirectUri(),
+                scope,
+                DPoPConstants.AUTHORIZATION_RESPONSE_TYPE,
+                pkceSession.getState(),
+                pkceSession.getCodeChallenge(),
+                PkceSession.CODE_CHALLENGE_METHOD,
+                request.getUiLocales(),
+                dPoPManager.jwkThumbprint(dPoPSession));
+        return IssuerAuthorizeResponse.builder()
+                .authorizationUrl(authorizationUrl)
+                .state(pkceSession.getState())
+                .build();
+    }
+
+    private String scopeForCredentialConfiguration(CredentialIssuerConfiguration configuration,
+                                                   String credentialConfigurationId) {
+        Map<String, CredentialsSupportedResponse> supported =
+                configuration.getCredentialConfigurationsSupported();
+        CredentialsSupportedResponse credentialConfiguration = supported == null
+                ? null
+                : supported.get(credentialConfigurationId);
+        if (credentialConfiguration == null) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
+                    "credentialConfigurationId is not supported by this issuer");
+        }
+        if (StringUtils.isBlank(credentialConfiguration.getScope())) {
+            throw new InvalidRequestException(INVALID_REQUEST.getErrorCode(),
+                    "scope is missing for credentialConfigurationId");
+        }
+        return credentialConfiguration.getScope();
     }
 
     /**

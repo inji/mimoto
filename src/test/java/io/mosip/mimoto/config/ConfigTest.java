@@ -7,6 +7,8 @@ import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -193,60 +195,18 @@ class ConfigTest {
         verify(filterChain).doFilter(request, response);
     }
 
-    @Test
-    void testCsrfTokenCookieFilterPutRequestDoesNotInterfere() throws Exception {
-        // Setup
+    @ParameterizedTest
+    @ValueSource(strings = {"PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"})
+    void testCsrfTokenCookieFilterNonGetRequestDoesNotInterfere(String method) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setMethod("PUT");
+        request.setMethod(method);
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain filterChain = mock(FilterChain.class);
 
         Config.CsrfTokenCookieFilter filter = createFilterInstance();
 
-        // Execute
         filter.doFilterInternal(request, response, filterChain);
 
-        // Verify - should not process PUT requests
-        verify(csrfTokenRepository, never()).loadToken(any());
-        verify(csrfTokenRepository, never()).generateToken(any());
-        verify(csrfTokenRepository, never()).saveToken(any(), any(), any());
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void testCsrfTokenCookieFilterDeleteRequestDoesNotInterfere() throws Exception {
-        // Setup
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setMethod("DELETE");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        FilterChain filterChain = mock(FilterChain.class);
-
-        Config.CsrfTokenCookieFilter filter = createFilterInstance();
-
-        // Execute
-        filter.doFilterInternal(request, response, filterChain);
-
-        // Verify - should not process DELETE requests
-        verify(csrfTokenRepository, never()).loadToken(any());
-        verify(csrfTokenRepository, never()).generateToken(any());
-        verify(csrfTokenRepository, never()).saveToken(any(), any(), any());
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void testCsrfTokenCookieFilterHeadRequestDoesNotProcess() throws Exception {
-        // Setup
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setMethod("HEAD");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        FilterChain filterChain = mock(FilterChain.class);
-
-        Config.CsrfTokenCookieFilter filter = createFilterInstance();
-
-        // Execute
-        filter.doFilterInternal(request, response, filterChain);
-
-        // Verify - HEAD requests should not be processed (only GET is handled)
         verify(csrfTokenRepository, never()).loadToken(any());
         verify(csrfTokenRepository, never()).generateToken(any());
         verify(csrfTokenRepository, never()).saveToken(any(), any(), any());
@@ -341,46 +301,6 @@ class ConfigTest {
         // Verify - should save token since XSRF-TOKEN is not present
         verify(csrfTokenRepository).loadToken(any());
         verify(csrfTokenRepository).saveToken(any(), any(), any());
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void testCsrfTokenCookieFilterPatchRequestDoesNotInterfere() throws Exception {
-        // Setup
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setMethod("PATCH");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        FilterChain filterChain = mock(FilterChain.class);
-
-        Config.CsrfTokenCookieFilter filter = createFilterInstance();
-
-        // Execute
-        filter.doFilterInternal(request, response, filterChain);
-
-        // Verify - should not process PATCH requests
-        verify(csrfTokenRepository, never()).loadToken(any());
-        verify(csrfTokenRepository, never()).generateToken(any());
-        verify(csrfTokenRepository, never()).saveToken(any(), any(), any());
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void testCsrfTokenCookieFilterOptionsRequestDoesNotInterfere() throws Exception {
-        // Setup
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setMethod("OPTIONS");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        FilterChain filterChain = mock(FilterChain.class);
-
-        Config.CsrfTokenCookieFilter filter = createFilterInstance();
-
-        // Execute
-        filter.doFilterInternal(request, response, filterChain);
-
-        // Verify - should not process OPTIONS requests
-        verify(csrfTokenRepository, never()).loadToken(any());
-        verify(csrfTokenRepository, never()).generateToken(any());
-        verify(csrfTokenRepository, never()).saveToken(any(), any(), any());
         verify(filterChain).doFilter(request, response);
     }
 
@@ -519,27 +439,6 @@ class ConfigTest {
         // Verify - should save token since no cookies exist
         verify(csrfTokenRepository).loadToken(any());
         verify(csrfTokenRepository).saveToken(any(), any(), any());
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    void testCsrfTokenCookieFilterGetRequestTokenSetButCookieNotSet() throws Exception {
-        // Setup - token already set in request but cookie not in response
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setMethod("GET");
-        request.setAttribute(CsrfToken.class.getName(), csrfToken);
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        FilterChain filterChain = mock(FilterChain.class);
-
-        Config.CsrfTokenCookieFilter filter = createFilterInstance();
-
-        // Execute
-        filter.doFilterInternal(request, response, filterChain);
-
-        // Verify - should save token since cookie is not already set
-        verify(csrfTokenRepository, never()).loadToken(any());
-        verify(csrfTokenRepository, never()).generateToken(any());
-        verify(csrfTokenRepository).saveToken(eq(csrfToken), any(), any());
         verify(filterChain).doFilter(request, response);
     }
 

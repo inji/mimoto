@@ -85,7 +85,10 @@ public class GoogleTokenService implements TokenService {
             userId = userMetadataService.updateOrCreateUserMetadata(sub, provider, name, picture, email);
         } catch (DecryptionException e) {
             log.error("Failed to store the user info in the database", e);
-            throw new RuntimeException();
+            throw new OAuth2AuthenticationException("user_metadata_error", "Failed to store user info", HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            log.error("Unexpected error while processing user metadata", e);
+            throw e;
         }
         sessionManager.setupSession(request, provider, new UserMetadataDTO(name, picture, email,null), userId);
         securityContextManager.setupSecurityContext(createOAuth2Token(provider, sub, name, picture, email), request, response);

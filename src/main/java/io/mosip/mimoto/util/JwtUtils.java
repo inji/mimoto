@@ -4,6 +4,7 @@ import com.authlete.sd.SDJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @Slf4j
 public class JwtUtils {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(JwtUtils.class);
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -57,4 +59,3 @@ public class JwtUtils {
         }
     }
 }
-

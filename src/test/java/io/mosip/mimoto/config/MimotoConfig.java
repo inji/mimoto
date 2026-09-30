@@ -77,27 +77,7 @@ public class MimotoConfig {
     @Bean
     public RestTemplate plainRestTemplate()
             throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-
-        final RestTemplate restTemplate = new RestTemplate();
-
-        SSLContext sslContext = SSLContextBuilder.create()
-                .loadTrustMaterial((X509Certificate[] certificateChain, String authType) -> true)  // <--- accepts each certificate
-                .build();
-
-        Registry<ConnectionSocketFactory> socketRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
-                .register(URIScheme.HTTPS.getId(), new SSLConnectionSocketFactory(sslContext))
-                .register(URIScheme.HTTP.getId(), new PlainConnectionSocketFactory())
-                .build();
-
-        HttpClient httpClient = HttpClientBuilder.create()
-                .setConnectionManager(new PoolingHttpClientConnectionManager(socketRegistry))
-                .setConnectionManagerShared(true)
-                .build();
-
-        ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
-        restTemplate.setRequestFactory(requestFactory);
-        return restTemplate;
-
+        return selfTokenRestTemplate();
     }
 
 }

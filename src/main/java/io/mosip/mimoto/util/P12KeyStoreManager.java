@@ -40,6 +40,7 @@ import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.encodings.OAEPEncoding;
 import org.bouncycastle.crypto.engines.RSAEngine;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -51,6 +52,7 @@ import io.mosip.mimoto.exception.PlatformErrorMessages;
 @Slf4j
 @Component
 public class P12KeyStoreManager {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(P12KeyStoreManager.class);
 
     private final static String RSA_ECB_OAEP_PADDING = "RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING";
 

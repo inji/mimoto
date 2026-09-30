@@ -7,6 +7,7 @@ import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.IdpException;
+import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.exception.PlatformErrorMessages;
 import io.mosip.mimoto.service.IdpService;
 import io.mosip.mimoto.service.RestClientService;
@@ -21,20 +22,35 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @Slf4j
-@Tag(name = SwaggerLiteralConstants.IDP_NAME, description = SwaggerLiteralConstants.IDP_DESCRIPTION)
 public class IdpController {
     private static final boolean USE_BEARER_TOKEN = true;
+    private static final String DPOP_HEADER = "DPoP";
+    private static final Set<String> HOP_BY_HOP_HEADERS = Set.of(
+            HttpHeaders.TRANSFER_ENCODING,
+            HttpHeaders.CONNECTION,
+            HttpHeaders.CONTENT_LENGTH,
+            "Keep-Alive",
+            "Proxy-Authenticate",
+            "Proxy-Authorization",
+            "TE",
+            "Trailer",
+            HttpHeaders.UPGRADE
+    );
 
     private final RestClientService<Object> restClientService;
 
@@ -51,6 +67,7 @@ public class IdpController {
         this.requestValidator = requestValidator;
     }
 
+    @Tag(name = SwaggerLiteralConstants.IDP_NAME, description = SwaggerLiteralConstants.IDP_DESCRIPTION)
     @Operation(summary = SwaggerLiteralConstants.IDP_BINDING_OTP_SUMMARY, description = SwaggerLiteralConstants.IDP_BINDING_OTP_DESCRIPTION)
     @PostMapping(value = "/binding-otp", produces = MediaType.APPLICATION_JSON_VALUE)
     @SuppressWarnings("unchecked")
@@ -75,6 +92,7 @@ public class IdpController {
 
     }
 
+    @Tag(name = SwaggerLiteralConstants.IDP_NAME, description = SwaggerLiteralConstants.IDP_DESCRIPTION)
     @Operation(summary = SwaggerLiteralConstants.IDP_WALLET_BINDING_SUMMARY, description = SwaggerLiteralConstants.IDP_WALLET_BINDING_DESCRIPTION)
     @PostMapping(path = "/wallet-binding", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ResponseWrapper<WalletBindingResponseDto>> request(@RequestBody WalletBindingRequestDTO requestDTO)
@@ -111,6 +129,7 @@ public class IdpController {
         }
     }
 
+    @Tag(name = SwaggerLiteralConstants.IDP_TOKEN_NAME, description = SwaggerLiteralConstants.IDP_TOKEN_DESCRIPTION)
     @Operation(summary = SwaggerLiteralConstants.IDP_GET_TOKEN_SUMMARY, description = SwaggerLiteralConstants.IDP_GET_TOKEN_DESCRIPTION)
     @ApiResponses({
             @ApiResponse(responseCode = "200", content = {@Content(schema = @Schema(implementation = TokenResponseDTO.class), mediaType = "application/json")}),
@@ -130,5 +149,113 @@ public class IdpController {
             responseWrapper.setErrors(errors);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseWrapper);
         }
+    }
+
+    @Tag(name = SwaggerLiteralConstants.IDP_TOKEN_NAME, description = SwaggerLiteralConstants.IDP_TOKEN_DESCRIPTION)
+    @Operation(
+            summary = SwaggerLiteralConstants.IDP_GET_TOKEN_V2_SUMMARY,
+            description = SwaggerLiteralConstants.IDP_GET_TOKEN_V2_DESCRIPTION
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Token response from authorization server",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = TokenResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Authorization server error response returned as-is or invalid request detected by Mimoto",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(
+                                    example = "{\"error\":\"invalid_request\",\"error_description\":\"Invalid token request\"}"
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authorization server unauthorized response returned as-is",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(
+                                    example = "{\"error\":\"invalid_client\",\"error_description\":\"Client authentication failed\"}"
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal Mimoto error before receiving authorization server response",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(
+                                    example = "{\"error\":\"MIMOTO-XXX\",\"error_description\":\"Unable to fetch token\"}"
+                            )
+                    )
+            )
+    })
+    @PostMapping(
+            value = "/v2/get-token/{issuer}",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<Object> getTokenV2(@RequestParam Map<String, String> params,
+                                             @PathVariable(name = "issuer") String issuer,
+                                             @RequestHeader(value = DPOP_HEADER, required = false) String dPoPProof) {
+        log.info("Reached the getTokenV2 Controller for Issuer {}", issuer);
+
+        try {
+            Map<String, String> tokenParams = new HashMap<>(params);
+            tokenParams.put("issuer", issuer);
+
+            ResponseEntity<String> response = idpService.getTokenResponseV2(tokenParams, dPoPProof);
+
+            return ResponseEntity
+                    .status(response.getStatusCode())
+                    .headers(getForwardableHeaders(response.getHeaders()))
+                    .body(response.getBody());
+
+        } catch (InvalidRequestException ex) {
+            log.error("Invalid token request: ", ex);
+
+            String[] errorObj = Utilities.handleExceptionWithErrorCode(
+                    ex,
+                    PlatformErrorMessages.MIMOTO_FETCHING_TOKEN_EXCEPTION.getCode()
+            );
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "error", errorObj[0],
+                            "error_description", errorObj[1]
+                    ));
+
+        } catch (Exception ex) {
+            log.error("Exception occurred while invoking the token endpoint: ", ex);
+
+            String[] errorObj = Utilities.handleExceptionWithErrorCode(
+                    ex,
+                    PlatformErrorMessages.MIMOTO_FETCHING_TOKEN_EXCEPTION.getCode()
+            );
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "error", errorObj[0],
+                            "error_description", errorObj[1]
+                    ));
+        }
+    }
+
+    private static HttpHeaders getForwardableHeaders(HttpHeaders sourceHeaders) {
+        HttpHeaders forwardHeaders = new HttpHeaders();
+        forwardHeaders.putAll(sourceHeaders);
+
+        HOP_BY_HOP_HEADERS.forEach(forwardHeaders::remove);
+        sourceHeaders.getConnection().forEach(forwardHeaders::remove);
+
+        return forwardHeaders;
     }
 }

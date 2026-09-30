@@ -8,13 +8,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.*;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -174,81 +171,6 @@ class RestApiClientTest {
         assertNull(result);
     }
 
-    // --- postApiWithErrorResponse ---
-
-    @Test
-    void postApiWithErrorResponse_shouldReturnResponseOnSuccess() {
-        TestResponse expected = new TestResponse("ok", null);
-
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
-                .thenReturn(expected);
-
-        TestResponse result = restApiClient.postApiWithErrorResponse(
-                TEST_URI, MediaType.APPLICATION_JSON, "request", TestResponse.class, ACCESS_TOKEN);
-
-        assertNotNull(result);
-        assertEquals("ok", result.status);
-    }
-
-    @Test
-    void postApiWithErrorResponse_shouldParseErrorBodyOnHttpClientError() {
-        String errorJson = "{\"status\":null,\"error\":\"invalid_nonce\"}";
-        HttpClientErrorException exception = HttpClientErrorException.create(
-                HttpStatus.BAD_REQUEST, "Bad Request",
-                HttpHeaders.EMPTY, errorJson.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
-                .thenThrow(exception);
-
-        TestResponse result = restApiClient.postApiWithErrorResponse(
-                TEST_URI, MediaType.APPLICATION_JSON, "request", TestResponse.class, ACCESS_TOKEN);
-
-        assertNotNull(result);
-        assertEquals("invalid_nonce", result.error);
-    }
-
-    @Test
-    void postApiWithErrorResponse_shouldReturnNullWhenErrorBodyCannotBeParsed() {
-        String malformedBody = "not-valid-json";
-        HttpClientErrorException exception = HttpClientErrorException.create(
-                HttpStatus.BAD_REQUEST, "Bad Request",
-                HttpHeaders.EMPTY, malformedBody.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
-                .thenThrow(exception);
-
-        TestResponse result = restApiClient.postApiWithErrorResponse(
-                TEST_URI, MediaType.APPLICATION_JSON, "request", TestResponse.class, ACCESS_TOKEN);
-
-        assertNull(result);
-    }
-
-    @Test
-    void postApiWithErrorResponse_shouldReturnNullOnNonClientError() {
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
-                .thenThrow(new ResourceAccessException("Connection refused"));
-
-        TestResponse result = restApiClient.postApiWithErrorResponse(
-                TEST_URI, MediaType.APPLICATION_JSON, "request", TestResponse.class, ACCESS_TOKEN);
-
-        assertNull(result);
-    }
-
-    @Test
-    void postApiWithErrorResponse_shouldHandleHttpServerError() {
-        HttpClientErrorException exception = HttpClientErrorException.create(
-                HttpStatus.FORBIDDEN, "Forbidden",
-                HttpHeaders.EMPTY, "{}".getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-
-        when(plainRestTemplate.postForObject(eq(TEST_URI), any(HttpEntity.class), eq(TestResponse.class)))
-                .thenThrow(exception);
-
-        TestResponse result = restApiClient.postApiWithErrorResponse(
-                TEST_URI, MediaType.APPLICATION_JSON, "request", TestResponse.class, ACCESS_TOKEN);
-
-        assertNotNull(result);
-    }
-
     // --- getApiWithCustomHeaders ---
 
     @Test
@@ -291,17 +213,5 @@ class RestApiClientTest {
         String result = restApiClient.getApiWithCustomHeaders(TEST_URI, String.class, customHeaders);
 
         assertNull(result);
-    }
-
-    static class TestResponse {
-        public String status;
-        public String error;
-
-        public TestResponse() {}
-
-        public TestResponse(String status, String error) {
-            this.status = status;
-            this.error = error;
-        }
     }
 }

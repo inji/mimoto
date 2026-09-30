@@ -58,4 +58,5 @@ public class CredentialsSupportedResponse {
 
     @Schema(description = "Identify the type or schema of the claims included")
     private String vct;
+
 }

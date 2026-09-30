@@ -10,6 +10,20 @@ This repository contains source code for backend service of Inji Mobile and Inji
 ## Build & run (for developers)
 The project requires JDK 21, postgres and google client credentials
 
+### Required Environment Variables
+
+Set the following environment variables before running the application:
+
+| Variable | Description |
+|----------|-------------|
+| `WALLET_BINDING_PARTNER_API_KEY` | Authenticates requests to the wallet binding partner API |
+| `SPRING_DATASOURCE_PASSWORD` | Password to connect to the PostgreSQL database |
+
+Set these using **one** of the following approaches:
+- **IDE (IntelliJ / VS Code):** Add them in the run configuration's environment variables section. These persist across IDE restarts.
+- **Terminal (Windows):** `set WALLET_BINDING_PARTNER_API_KEY=<your-api-key>` and `set SPRING_DATASOURCE_PASSWORD=<your-db-password>` *(session only — lost when terminal is closed)*
+- **Terminal (Linux/Mac):** `export WALLET_BINDING_PARTNER_API_KEY=<your-api-key>` and `export SPRING_DATASOURCE_PASSWORD=<your-db-password>` *(session only — lost when terminal is closed)*
+
 ### without docker-compose Build & install
 1. Install pgadmin and update application-default.properties file with values
    ```properties

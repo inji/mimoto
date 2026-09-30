@@ -6,16 +6,17 @@ AuthorizationCodeForGoogleLogin:
       role: resident
       restMethod: post
       additionalDependencies: TC_Mimoto_AuthenticateUserForGoogleLogin_01
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthorizationCode/AuthorizationCode
-      outputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthorizationCode/AuthorizationCodeResult
+      outputTemplate: mimoto/responseCode
       input: '{
         "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_Smoke_sid_encodedResp$",
       	"requestTime": "$TIMESTAMP$",
       	"transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_Smoke_sid_transactionId$"
 }'
       output: '{
+      "responseCode": "200"
 }'
 
    Mimoto_ESignet_AuthorizationCode_GoogleLogin_uin_All_Valid_sid_ForNeg:
@@ -25,14 +26,15 @@ AuthorizationCodeForGoogleLogin:
       role: resident
       restMethod: post
       additionalDependencies: TC_Mimoto_AuthenticateUserForGoogleLogin_02
-      checkErrorsOnlyInResponse: true
+      checkOnlyStatusCodeInResponse: true
       validityCheckRequired: true
       inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthorizationCode/AuthorizationCode
-      outputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthorizationCode/AuthorizationCodeResult
+      outputTemplate: mimoto/responseCode
       input: '{
        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_encodedResp$",
       	"requestTime": "$TIMESTAMP$",
       	"transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_transactionId$"
 }'
       output: '{
+      "responseCode": "200"
 }'

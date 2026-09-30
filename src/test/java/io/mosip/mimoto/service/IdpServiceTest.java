@@ -1,5 +1,6 @@
 package io.mosip.mimoto.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
 import io.mosip.mimoto.dto.idp.TokenResponseDTO;
@@ -15,11 +16,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -48,6 +52,15 @@ public class IdpServiceTest {
     private IssuersService issuersService;
 
     @Mock
+    private DPoPSessionService dPoPSessionService;
+
+    @Mock
+    private DPoPManager dPoPManager;
+
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    @Mock
     private CredentialIssuerConfiguration credentialIssuerConfiguration;
 
     @Mock
@@ -56,7 +69,6 @@ public class IdpServiceTest {
     @Mock
     private TokenResponseDTO tokenResponseDTO;
 
-    private IssuerDTO issuerDTO;
     private Map<String, String> params;
     private final String authorizationAudience = "https://example.com/auth";
 
@@ -64,28 +76,31 @@ public class IdpServiceTest {
 
     @Before
     public void setUp() throws IOException {
-        issuerDTO = new IssuerDTO();
-        issuerDTO.setClient_id("client123");
-        issuerDTO.setClient_alias("clientAlias");
-
         params = new HashMap<>();
+        params.put("issuer", "issuer123");
         params.put("code", "sampleCode");
         params.put("grant_type", "authorization_code");
         params.put("redirect_uri", "https://myapp.com/callback");
-        params.put("code_verifier", "verifier123");
+        params.put("code_verifier", "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
     }
 
     @Test
     public void shouldConstructTokenRequestForTheValidIssuerAndParams() throws Exception {
+        IssuerDTO issuerDTO = new IssuerDTO();
+        issuerDTO.setClient_id("client123");
+        issuerDTO.setClient_alias("clientAlias");
+
+        when(issuersService.getIssuerDetails("issuer123")).thenReturn(issuerDTO);
         when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(authorizationAudience)))
                 .thenReturn("jwt-token");
 
         HttpEntity<MultiValueMap<String, String>> httpEntity =
-                idpService.constructGetTokenRequest(params, issuerDTO, authorizationAudience);
+                idpService.constructGetTokenRequest(params, "issuer123", authorizationAudience);
 
         HttpHeaders headers = httpEntity.getHeaders();
         MultiValueMap<String, String> body = httpEntity.getBody();
         assertEquals(MediaType.APPLICATION_FORM_URLENCODED, headers.getContentType());
+        assertEquals(List.of(MediaType.APPLICATION_JSON), headers.getAccept());
         assertNotNull(body);
         assertAll(
                 () -> assertEquals("sampleCode", body.getFirst("code")),
@@ -93,29 +108,36 @@ public class IdpServiceTest {
                 () -> assertEquals("authorization_code", body.getFirst("grant_type")),
                 () -> assertEquals("https://myapp.com/callback", body.getFirst("redirect_uri")),
                 () -> assertEquals("jwt-token", body.getFirst("client_assertion")),
-                () -> assertEquals("verifier123", body.getFirst("code_verifier"))
+                () -> assertEquals("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", body.getFirst("code_verifier"))
         );
     }
 
     @Test
-    public void shouldThrowExceptionIfThereIsAnyErrorOccurredWhileFetchingP12File() throws IOException {
+    public void shouldThrowExceptionIfThereIsAnyErrorOccurredWhileFetchingP12File() throws Exception {
+        IssuerDTO issuerDTO = new IssuerDTO();
+        issuerDTO.setClient_id("client123");
+        issuerDTO.setClient_alias("clientAlias");
+
         String expectedExceptionMsg = "RESIDENT-APP-037 --> Private Key Entry is Missing for the alias clientAlias";
+        when(issuersService.getIssuerDetails("issuer123")).thenReturn(issuerDTO);
         when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(authorizationAudience)))
                 .thenThrow(new IssuerOnboardingException("Private Key Entry is Missing for the alias clientAlias"));
 
         IssuerOnboardingException actualException = assertThrows(IssuerOnboardingException.class, () ->
-                idpService.constructGetTokenRequest(params, issuerDTO, authorizationAudience));
+                idpService.constructGetTokenRequest(params, "issuer123", authorizationAudience));
 
         assertEquals(expectedExceptionMsg, actualException.getMessage());
     }
 
     @Test
-    public void shouldReturnTokenEndpointFromCredentialIssuerConfigurationResponse() {
+    public void should_returnTokenEndpoint_when_credentialIssuerConfigurationResponseIsUsed() throws Exception {
         CredentialIssuerConfiguration credentialIssuerConfiguration =
                 getCredentialIssuerConfigurationResponseDto("issuer1", "CredentialType1", List.of());
         String expectedTokenEndpoint = "https://dev/token";
 
-        String actualTokenEndpoint = idpService.getTokenEndpoint(credentialIssuerConfiguration);
+        when(issuersService.getIssuerConfiguration("issuer1")).thenReturn(credentialIssuerConfiguration);
+
+        String actualTokenEndpoint = idpService.getTokenEndpoint("issuer1");
 
         assertEquals(expectedTokenEndpoint, actualTokenEndpoint);
     }
@@ -211,32 +233,176 @@ public class IdpServiceTest {
     }
 
     @Test
-    public void shouldReturnTokenResponseForVerifiableCredentialRequestDTO() throws Exception {
+    public void should_rejectVerifiableCredentialRequest_when_codeVerifierIsMissing() {
         VerifiableCredentialRequestDTO requestDTO = new VerifiableCredentialRequestDTO();
         requestDTO.setCode("sampleCode");
-        requestDTO.setRedirectUri("https://myapp.com/callback");
-        requestDTO.setGrantType("authorization_code");
-        requestDTO.setCodeVerifier("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
         requestDTO.setIssuer("issuer123");
 
-        IssuerDTO mockIssuer = new IssuerDTO();
-        mockIssuer.setClient_id("client123");
-        mockIssuer.setClient_alias("clientAlias");
+        InvalidRequestException ex = assertThrows(InvalidRequestException.class, () ->
+                idpService.getTokenResponse(requestDTO));
 
-        when(issuersService.getIssuerDetails("issuer123")).thenReturn(mockIssuer);
+        assertEquals("invalid_request --> Invalid code verifier.", ex.getMessage());
+    }
+
+    @Test
+    public void shouldPassThroughSuccessResponseAsIsForV2TokenResponse() throws Exception {
+        String tokenEndpoint = "https://as.example.com/token";
+        String body = "{\"access_token\":\"abc\",\"token_type\":\"DPoP\"}";
+        ResponseEntity<String> asResponse = ResponseEntity.status(HttpStatus.OK).body(body);
+
+        setupV2TokenEndpoint(tokenEndpoint);
+        when(restTemplate.exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class)))
+                .thenReturn(asResponse);
+
+        ResponseEntity<String> result = idpService.getTokenResponseV2(params, "dpop-proof-jwt");
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(body, result.getBody());
+    }
+
+    @Test
+    public void should_passThroughUseDPoPNonceErrorWithNonceHeader_when_v2TokenEndpointRequiresNonce() throws Exception {
+        String tokenEndpoint = "https://as.example.com/token";
+        String errorBody = "{\"error\":\"use_dpop_nonce\",\"error_description\":\"nonce required\"}";
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add("DPoP-Nonce", "server-issued-nonce-123");
+        HttpClientErrorException exception = HttpClientErrorException.create(
+                HttpStatus.BAD_REQUEST, "Bad Request", responseHeaders,
+                errorBody.getBytes(), null);
+
+        setupV2TokenEndpoint(tokenEndpoint);
+        when(restTemplate.exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class)))
+                .thenThrow(exception);
+
+        ResponseEntity<String> result = idpService.getTokenResponseV2(params, "dpop-proof-jwt");
+
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertEquals(errorBody, result.getBody());
+        assertEquals("server-issued-nonce-123", result.getHeaders().getFirst("DPoP-Nonce"));
+    }
+
+    @Test
+    public void shouldPassThroughWwwAuthenticateHeaderOnUnauthorizedForV2TokenResponse() throws Exception {
+        String tokenEndpoint = "https://as.example.com/token";
+        String errorBody = "{\"error\":\"invalid_dpop_proof\"}";
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add("WWW-Authenticate", "DPoP error=\"invalid_dpop_proof\"");
+        responseHeaders.add("DPoP-Nonce", "nonce-on-401");
+        HttpClientErrorException exception = HttpClientErrorException.create(
+                HttpStatus.UNAUTHORIZED, "Unauthorized", responseHeaders,
+                errorBody.getBytes(), null);
+
+        setupV2TokenEndpoint(tokenEndpoint);
+        when(restTemplate.exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class)))
+                .thenThrow(exception);
+
+        ResponseEntity<String> result = idpService.getTokenResponseV2(params, "dpop-proof-jwt");
+
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        assertEquals(errorBody, result.getBody());
+        assertEquals("DPoP error=\"invalid_dpop_proof\"", result.getHeaders().getFirst("WWW-Authenticate"));
+        assertEquals("nonce-on-401", result.getHeaders().getFirst("DPoP-Nonce"));
+    }
+
+    @Test
+    public void should_bindToken_when_dPoPSessionExists() throws Exception {
+        params.put("state", "oauth-state");
+        jakarta.servlet.http.HttpSession httpSession = mock(jakarta.servlet.http.HttpSession.class);
+        io.mosip.mimoto.dto.dpop.DPoPSession dPoPSession = io.mosip.mimoto.dto.dpop.DPoPSession.builder()
+                .state("oauth-state")
+                .alg("RS256")
+                .tokenHtu("https://as.example.com/token")
+                .jwkJson("{}")
+                .build();
+        when(dPoPSessionService.find(httpSession, "oauth-state")).thenReturn(dPoPSession);
+        when(dPoPManager.generateTokenProof(any())).thenReturn("server-dPoP");
+
+        String tokenEndpoint = "https://as.example.com/token";
+        setupV2TokenEndpoint(tokenEndpoint);
+        when(restTemplate.exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok().body("{\"access_token\":\"secret-token\",\"token_type\":\"DPoP\",\"c_nonce\":\"n1\"}"));
+
+        TokenResponseDTO result = idpService.exchangeAndBindToken(params, httpSession);
+
+        assertEquals("secret-token", result.getAccess_token());
+        assertEquals("DPoP", result.getToken_type());
+        assertEquals("n1", result.getC_nonce());
+        verify(dPoPSessionService, never()).store(any(), any());
+    }
+
+    @Test
+    public void should_retryTokenExchange_when_authorizationServerRequiresDPoPNonce() throws Exception {
+        params.put("state", "oauth-state");
+        jakarta.servlet.http.HttpSession httpSession = mock(jakarta.servlet.http.HttpSession.class);
+        io.mosip.mimoto.dto.dpop.DPoPSession dPoPSession = io.mosip.mimoto.dto.dpop.DPoPSession.builder()
+                .state("oauth-state")
+                .alg("RS256")
+                .tokenHtu("https://as.example.com/token")
+                .jwkJson("{}")
+                .build();
+        when(dPoPSessionService.find(httpSession, "oauth-state")).thenReturn(dPoPSession);
+        when(dPoPManager.generateTokenProof(any())).thenReturn("proof-without-nonce");
+        when(dPoPManager.generateTokenProof(any(), eq("as-nonce"))).thenReturn("proof-with-nonce");
+
+        String tokenEndpoint = "https://as.example.com/token";
+        setupV2TokenEndpoint(tokenEndpoint);
+        HttpHeaders challengeHeaders = new HttpHeaders();
+        challengeHeaders.add("DPoP-Nonce", "as-nonce");
+        HttpClientErrorException challenge = HttpClientErrorException.create(
+                HttpStatus.BAD_REQUEST, "Bad Request", challengeHeaders,
+                "{\"error\":\"use_dpop_nonce\"}".getBytes(), null);
+        when(restTemplate.exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class)))
+                .thenThrow(challenge)
+                .thenReturn(ResponseEntity.ok().body("{\"access_token\":\"secret-token\",\"token_type\":\"DPoP\"}"));
+
+        TokenResponseDTO result = idpService.exchangeAndBindToken(params, httpSession);
+
+        assertEquals("secret-token", result.getAccess_token());
+        verify(restTemplate, times(2)).exchange(eq(tokenEndpoint), eq(HttpMethod.POST), any(), eq(String.class));
+        verify(dPoPManager).generateTokenProof(any(), eq("as-nonce"));
+    }
+
+    @Test
+    public void should_returnNull_when_dPoPSessionIsMissing() throws Exception {
+        params.put("state", "oauth-state");
+        jakarta.servlet.http.HttpSession httpSession = mock(jakarta.servlet.http.HttpSession.class);
+        when(dPoPSessionService.find(httpSession, "oauth-state")).thenReturn(null);
+
+        assertNull(idpService.exchangeAndBindToken(params, httpSession));
+        verify(restTemplate, never()).exchange(anyString(), any(), any(), eq(String.class));
+    }
+
+    @Test
+    public void should_throwInvalidRequest_when_tokenRequestIssuerIsBlank() throws Exception {
+        params.put("state", "oauth-state");
+        params.put("issuer", " ");
+        jakarta.servlet.http.HttpSession httpSession = mock(jakarta.servlet.http.HttpSession.class);
+        io.mosip.mimoto.dto.dpop.DPoPSession dPoPSession = io.mosip.mimoto.dto.dpop.DPoPSession.builder()
+                .state("oauth-state")
+                .alg("RS256")
+                .tokenHtu("https://as.example.com/token")
+                .jwkJson("{}")
+                .build();
+        when(dPoPSessionService.find(httpSession, "oauth-state")).thenReturn(dPoPSession);
+
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+                () -> idpService.exchangeAndBindToken(params, httpSession));
+        assertEquals("issuerId cannot be blank", exception.getErrorText());
+        verify(restTemplate, never()).exchange(anyString(), any(), any(), eq(String.class));
+    }
+
+    private void setupV2TokenEndpoint(String tokenEndpoint) throws Exception {
+        IssuerDTO issuerDTO = new IssuerDTO();
+        issuerDTO.setClient_id("client123");
+        issuerDTO.setClient_alias("clientAlias");
+
+        when(issuersService.getIssuerDetails("issuer123")).thenReturn(issuerDTO);
         when(issuersService.getIssuerConfiguration("issuer123")).thenReturn(credentialIssuerConfiguration);
         when(credentialIssuerConfiguration.getAuthorizationServerWellKnownResponse())
                 .thenReturn(authorizationServerWellKnownResponse);
         when(authorizationServerWellKnownResponse.getTokenEndpoint())
-                .thenReturn("https://example.com/token");
-        when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq("https://example.com/token")))
+                .thenReturn(tokenEndpoint);
+        when(joseUtil.getJWT(eq("client123"), any(), any(), eq("clientAlias"), any(), eq(tokenEndpoint)))
                 .thenReturn("jwt-token");
-        when(restTemplate.postForObject(eq("https://example.com/token"), any(HttpEntity.class), eq(TokenResponseDTO.class)))
-                .thenReturn(tokenResponseDTO);
-
-        TokenResponseDTO response = idpService.getTokenResponse(requestDTO);
-
-        assertNotNull(response);
-        assertEquals(tokenResponseDTO, response);
     }
 }

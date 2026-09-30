@@ -19,6 +19,11 @@ import io.mosip.mimoto.service.RestClientService;
 import io.mosip.mimoto.service.impl.CredentialShareServiceImpl;
 import io.mosip.mimoto.util.*;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -30,6 +35,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import io.mosip.mimoto.exception.ApisResourceAccessException;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -74,13 +80,27 @@ public class CredentialShareController {
      *
      * @param eventModel
      * @return
-     * @throws Exception
+     * @throws IOException
      */
     @PostMapping(path = {"/callback/notify", "/callback/notify/"},consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthenticateContentAndVerifyIntent(secret = "${mosip.event.secret}", callback = "/v1/mimoto/credentialshare/callback/notify", topic = "${mosip.event.topic}")
-    @Operation(summary = SwaggerLiteralConstants.CREDENTIALS_SHARE_HANDLE_SUBSCRIBED_EVENT_SUMMARY, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_HANDLE_SUBSCRIBED_EVENT_DESCRIPTION)
-    public ResponseEntity<GenericResponseDTO> handleSubscribeEvent(@RequestBody EventModel eventModel)
-            throws Exception {
+    @Operation(summary = SwaggerLiteralConstants.CREDENTIALS_SHARE_HANDLE_SUBSCRIBED_EVENT_SUMMARY,
+               description = SwaggerLiteralConstants.CREDENTIALS_SHARE_HANDLE_SUBSCRIBED_EVENT_DESCRIPTION)
+    @RequestBody(description = "Credential share callback event payload delivered by the eventing system when the issuance workflow reaches a new state.",
+                 required = true,
+                 content = @Content(schema = @Schema(implementation = EventModel.class),
+                                   mediaType = MediaType.APPLICATION_JSON_VALUE))
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200",
+                     description = "Acknowledgment returned after Mimoto accepts a credential share callback event notification.",
+                     content = @Content(schema = @Schema(implementation = GenericResponseDTO.class))),
+        @ApiResponse(responseCode = "400",
+                     description = "Invalid request payload - Event model structure validation failed"),
+        @ApiResponse(responseCode = "500",
+                     description = "Internal server error - Processing credential share event failed")
+    })
+    public ResponseEntity<GenericResponseDTO> handleSubscribeEvent(@org.springframework.web.bind.annotation.RequestBody EventModel eventModel)
+            throws IOException {
         log.info("Received websub event:: transaction id = " + eventModel.getEvent().getTransactionId());
         GenericResponseDTO responseDTO = new GenericResponseDTO();
         Path vcRequestIdPath = Path.of(
@@ -104,12 +124,13 @@ public class CredentialShareController {
      *
      * @param requestDTO
      * @return
-     * @throws Exception
+     * @throws ApisResourceAccessException
+     * @throws IOException
      */
     @PostMapping(path = "/request", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = SwaggerLiteralConstants.CREDENTIALS_SHARE_REQUEST_VC_SUMMARY, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_REQUEST_VC_DESCRIPTION)
-    public ResponseEntity<CredentialRequestResponseDTO> request(@RequestBody AppCredentialRequestDTO requestDTO)
-            throws Exception {
+    public ResponseEntity<CredentialRequestResponseDTO> request(@org.springframework.web.bind.annotation.RequestBody AppCredentialRequestDTO requestDTO)
+            throws ApisResourceAccessException, IOException {
 
         if (StringUtils.isEmpty(requestDTO.getIndividualId())) {
             log.error("Received empty individual id for transaction id - " + requestDTO.getTransactionID());
@@ -153,13 +174,13 @@ public class CredentialShareController {
      *
      * @param requestId
      * @return
-     * @throws Exception
+     * @throws ApisResourceAccessException
      */
     @GetMapping(path = "/request/status/{requestId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = SwaggerLiteralConstants.CREDENTIALS_SHARE_REQUEST_VC_STATUS_SUMMARY, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_REQUEST_VC_STATUS_DESCRIPTION)
     @SuppressWarnings("unchecked")
     public ResponseEntity<ResponseWrapper<CredentialRequestStatusResponseDTO>> requestStatus(@PathVariable("requestId") String requestId)
-            throws Exception {
+            throws ApisResourceAccessException {
 
         List<String> pathSegment = new ArrayList<String>();
         pathSegment.add(requestId);
@@ -176,12 +197,10 @@ public class CredentialShareController {
      *
      * @param requestDTO
      * @return
-     * @throws Exception
      */
     @PostMapping(path = "/download", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = SwaggerLiteralConstants.CREDENTIALS_SHARE_DOWNLOAD_VC_SUMMARY, description = SwaggerLiteralConstants.CREDENTIALS_SHARE_DOWNLOAD_VC_DESCRIPTION)
-    public ResponseEntity<CredentialDownloadResponseDTO> download(@Valid @RequestBody CredentialDownloadRequestDTO requestDTO, BindingResult result)
-            throws Exception {
+    public ResponseEntity<CredentialDownloadResponseDTO> download(@Valid @org.springframework.web.bind.annotation.RequestBody CredentialDownloadRequestDTO requestDTO, BindingResult result) {
         try {
             requestValidator.validateInputRequest(result);
             JsonNode decryptedCredentialJSON = utilities.getDecryptedVC(requestDTO.getRequestId());
@@ -201,7 +220,7 @@ public class CredentialShareController {
             }
 
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        } catch (IOException exception) {
+        } catch (IOException | NoSuchFieldException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
     }

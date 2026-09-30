@@ -16,6 +16,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "Response listing credentials that satisfy a presentation definition together with any missing claims.")
 public class MatchingCredentialsResponseDTO {
 
     @JsonProperty("availableCredentials")
@@ -23,7 +24,8 @@ public class MatchingCredentialsResponseDTO {
     private List<CredentialDTO> availableCredentials;
 
     @JsonProperty("missingClaims")
-    @Schema(description = "Missing claims for Draft-23")
+    @Schema(description = "Missing claims for Draft-23",
+            example = "[\"birthdate\"]")
     private Set<String> missingClaims;
 
     @JsonProperty("queryGroups")

@@ -6,6 +6,7 @@ import io.mosip.kernel.cryptomanager.dto.CryptomanagerResponseDto;
 import io.mosip.kernel.cryptomanager.service.CryptomanagerService;
 import io.mosip.mimoto.exception.DecryptionException;
 import io.mosip.mimoto.exception.EncryptionException;
+import io.mosip.mimoto.exception.KeyGenerationException;
 import io.mosip.openID4VP.common.DecoderKt;
 import io.mosip.openID4VP.common.EncoderKt;
 import lombok.extern.slf4j.Slf4j;
@@ -157,7 +158,7 @@ public class DataProtectionService {
     public byte[] decryptWithAES(SecretKey key, String data) {
         if (data == null || data.isEmpty()) {
             log.warn("AES decryption skipped: Input data is null or empty");
-            return null;
+            return new byte[0];
         }
         try {
             // Decode Base64 data
@@ -213,9 +214,9 @@ public class DataProtectionService {
      * @param privateKeyBytes The byte array representing the private key.
      * @param algorithmName   The algorithm name (e.g., RSA, EC).
      * @return The PrivateKey.
-     * @throws Exception If key conversion fails.
+     * @throws KeyGenerationException If key conversion fails.
      */
-    public static PrivateKey bytesToPrivateKey(byte[] privateKeyBytes, String algorithmName) throws Exception {
+    public static PrivateKey bytesToPrivateKey(byte[] privateKeyBytes, String algorithmName) {
         if (privateKeyBytes == null || privateKeyBytes.length == 0) {
             log.error("Invalid private key bytes: null or empty");
             throw new IllegalArgumentException("Private key bytes cannot be null or empty");
@@ -230,7 +231,7 @@ public class DataProtectionService {
             return keyFactory.generatePrivate(keySpec);
         } catch (Exception e) {
             log.error("Failed to convert bytes to PrivateKey for algorithm: {}", algorithmName, e);
-            throw new Exception("Failed to create PrivateKey", e);
+            throw new KeyGenerationException("KEY_GEN_001", "Failed to create PrivateKey", e);
         }
     }
 
@@ -301,7 +302,7 @@ public class DataProtectionService {
      */
     private static byte[] stringToBytes(String data) {
         if (data == null) {
-            return null;
+            return new byte[0];
         }
         return data.getBytes(StandardCharsets.UTF_8);
     }

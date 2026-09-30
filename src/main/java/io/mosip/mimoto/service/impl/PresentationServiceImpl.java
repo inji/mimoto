@@ -26,7 +26,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static io.mosip.mimoto.util.JwtUtils.extractJwtPayloadFromSdJwt;
 import static io.mosip.mimoto.util.JwtUtils.parseJwtHeader;
@@ -34,7 +33,6 @@ import static io.mosip.mimoto.util.JwtUtils.parseJwtHeader;
 @Slf4j
 @Service
 public class PresentationServiceImpl implements PresentationService {
-
     private final DataShareServiceImpl dataShareService;
 
     private final ObjectMapper objectMapper;
@@ -158,7 +156,6 @@ public class PresentationServiceImpl implements PresentationService {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
 
-        // OVP 1.0 / DCQL vp_token: { "<query_id>": [ presentation ] }
         Map<String, Object> vpTokenMap = new LinkedHashMap<>();
         vpTokenMap.put(queryId, List.of(presentation));
         String vpToken = objectMapper.writeValueAsString(vpTokenMap);
@@ -308,25 +305,7 @@ public class PresentationServiceImpl implements PresentationService {
         } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat)
                 || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat)) {
             Map<String, Object> jwtPayload = extractJwtPayloadFromSdJwt((String) vcRes.getCredential());
-            Object vct = jwtPayload.get("vct");
-            if (vct != null) {
-                meta.put("vct_values", List.of(vct.toString()));
-            } else {
-                List<?> typeList = (List<?>) jwtPayload.get("type");
-                String lastType = null;
-                if (typeList != null && !typeList.isEmpty()) {
-                    Object lastItem = typeList.get(typeList.size() - 1);
-                    if (lastItem instanceof Map) {
-                        Object value = ((Map<?, ?>) lastItem).get("_value");
-                        lastType = value != null ? value.toString() : null;
-                    } else {
-                        lastType = lastItem.toString();
-                    }
-                }
-                if (lastType != null) {
-                    meta.put("vct_values", List.of(lastType));
-                }
-            }
+            buildSdJwtMetaFromPayload(jwtPayload, meta);
         }
         if (!meta.isEmpty()) {
             credentialQuery.put("meta", meta);
@@ -335,6 +314,30 @@ public class PresentationServiceImpl implements PresentationService {
         Map<String, Object> dcqlQuery = new LinkedHashMap<>();
         dcqlQuery.put("credentials", List.of(credentialQuery));
         return dcqlQuery;
+    }
+
+    private void buildSdJwtMetaFromPayload(Map<String, Object> jwtPayload, Map<String, Object> meta) {
+        Object vct = jwtPayload.get("vct");
+        if (vct != null) {
+            meta.put("vct_values", List.of(vct.toString()));
+        } else {
+            String lastType = resolveLastTypeFromList((List<?>) jwtPayload.get("type"));
+            if (lastType != null) {
+                meta.put("vct_values", List.of(lastType));
+            }
+        }
+    }
+
+    private String resolveLastTypeFromList(List<?> typeList) {
+        if (typeList == null || typeList.isEmpty()) {
+            return null;
+        }
+        Object lastItem = typeList.get(typeList.size() - 1);
+        if (lastItem instanceof Map) {
+            Object value = ((Map<?, ?>) lastItem).get("_value");
+            return value != null ? value.toString() : null;
+        }
+        return lastItem.toString();
     }
 
     private String processInputDescriptor(VCCredentialResponse vcCredentialResponse, InputDescriptorDTO inputDescriptorDTO,
@@ -411,17 +414,18 @@ public class PresentationServiceImpl implements PresentationService {
     private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken,
                                        String presentationSubmission, String state, SpecVersion specVersion) {
         MultiValueMap<String, String> postRequest = new LinkedMultiValueMap<>();
-        if (SpecVersion.V1 == specVersion) {
-            // OVP 1.0 / DCQL: raw JSON map { queryId: [presentation] } — not Base64-encoded
-            postRequest.add("vp_token", vpToken);
-        } else if (SpecVersion.DRAFT_23 == specVersion) {
-            postRequest.add("vp_token", Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
-            if (presentationSubmission != null) {
-                postRequest.add("presentation_submission", presentationSubmission);
+        switch (specVersion) {
+            case V1 -> postRequest.add("vp_token", vpToken);
+            case DRAFT_23 -> {
+                postRequest.add("vp_token", Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8)));
+                if (presentationSubmission != null) {
+                    postRequest.add("presentation_submission", presentationSubmission);
+                }
             }
-        } else {
-            log.error("Unsupported OpenID4VP spec_version for direct_post: {}", specVersion);
-            throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+            default -> {
+                log.error("Unsupported OpenID4VP spec_version for direct_post: {}", specVersion);
+                throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+            }
         }
 
         if (state != null) {
@@ -491,7 +495,7 @@ public class PresentationServiceImpl implements PresentationService {
                 .stream().map(verifiableCredential -> SubmissionDescriptorDTO.builder()
                         .id(inputDescriptorDTO.getId())
                         .format(format)
-                        .path("$.verifiableCredential[" + atomicInteger.getAndIncrement() + "]").build()).collect(Collectors.toList());
+                        .path("$.verifiableCredential[" + atomicInteger.getAndIncrement() + "]").build()).toList();
 
         PresentationSubmissionDTO presentationSubmissionDTO = PresentationSubmissionDTO.builder()
                 .id(UUID.randomUUID().toString())

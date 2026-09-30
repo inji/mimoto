@@ -180,7 +180,8 @@ class LdpVcCredentialFormatHandlerTest {
         Map<String, Object> credentialProperties = new HashMap<>();
         credentialProperties.put("firstName", "John");
 
-        credentialDefinition.setCredentialSubject(null);
+        // credentialSubject exists but is empty — no display config entries for any field
+        credentialDefinition.setCredentialSubject(new LinkedHashMap<>());
         credentialsSupportedResponse.setCredentialDefinition(credentialDefinition);
 
         // When
@@ -188,7 +189,7 @@ class LdpVcCredentialFormatHandlerTest {
                 ldpVcCredentialFormatHandler.loadDisplayPropertiesFromWellknown(
                         credentialProperties, credentialsSupportedResponse, "en");
 
-        // Then - now returns fallback for firstName
+        // Then - returns fallback for firstName since display config map has no entries
         assertNotNull(result);
         assertEquals(1, result.size());
         assertTrue(result.containsKey("firstName"));

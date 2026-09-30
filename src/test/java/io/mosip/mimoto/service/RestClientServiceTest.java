@@ -143,8 +143,6 @@ public class RestClientServiceTest {
         Mockito.when(env.getProperty(ArgumentMatchers.any())).thenReturn(API_NAME);
         Mockito.when(restApiClient.postApi(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.anyBoolean()))
                 .thenReturn(auditResponseDto);
-        List<String> pathSegments = new ArrayList<>();
-        pathSegments.add("test");
         AuditResponseDto resultDto = (AuditResponseDto) registrationProcessorRestClientService.postApi(ApiName.AUDIT,
                 auditRequestDto, AuditResponseDto.class, true);
         assertEquals(true, resultDto.isStatus());
@@ -156,10 +154,7 @@ public class RestClientServiceTest {
         Mockito.when(env.getProperty(ArgumentMatchers.any())).thenReturn(API_NAME);
         Mockito.when(restApiClient.postApi(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.anyBoolean()))
                 .thenThrow(new ApisResourceAccessException("Exception"));
-        List<String> pathSegments = new ArrayList<>();
-        pathSegments.add("test");
-        AuditResponseDto resultDto = (AuditResponseDto) registrationProcessorRestClientService.postApi(ApiName.AUDIT,
-                auditRequestDto, AuditResponseDto.class, true);
+        registrationProcessorRestClientService.postApi(ApiName.AUDIT, auditRequestDto, AuditResponseDto.class, true);
     }
 
     @Test(expected = ApisResourceAccessException.class)

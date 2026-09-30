@@ -95,9 +95,9 @@ public class DataProtectionServiceTest {
     @Test
     public void shouldEncryptPrivateKeyWithAESSuccessfully() throws Exception {
         SecretKey aesKey = SigningKeyUtil.generateEncryptionKey("AES", 256);
-        KeyPair keyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
+        KeyPair localKeyPair = SigningKeyUtil.generateKeyPair(SigningAlgorithm.ED25519);
 
-        String encryptedPrivateKey = dataProtectionService.encryptWithAES(aesKey, keyPair.getPrivate().getEncoded());
+        String encryptedPrivateKey = dataProtectionService.encryptWithAES(aesKey, localKeyPair.getPrivate().getEncoded());
 
         assertNotNull(encryptedPrivateKey);
         assertFalse(StringUtils.isBlank(encryptedPrivateKey));
@@ -126,26 +126,26 @@ public class DataProtectionServiceTest {
     @Test(expected = RuntimeException.class)
     public void shouldThrowRuntimeExceptionWhenEncryptionFails() {
         String data = "testData";
-        String refId = "refId";
-        String aad = "aad";
-        String salt = "salt";
+        String localRefId = "refId";
+        String localAad = "aad";
+        String localSalt = "salt";
         when(cryptomanagerService.encrypt(any(CryptomanagerRequestDto.class)))
                 .thenThrow(new RuntimeException("Simulated encryption failure"));
 
-        dataProtectionService.encrypt(data, refId, aad, salt);
+        dataProtectionService.encrypt(data, localRefId, localAad, localSalt);
     }
 
 
     @Test(expected = RuntimeException.class)
     public void shouldThrowRuntimeExceptionWhenDecryptionFails() {
         String data = "encryptedData";
-        String refId = "refId";
-        String aad = "aad";
-        String salt = "salt";
+        String localRefId = "refId";
+        String localAad = "aad";
+        String localSalt = "salt";
         when(cryptomanagerService.decrypt(any(CryptomanagerRequestDto.class)))
                 .thenThrow(new RuntimeException("Simulated decryption failure"));
 
-        dataProtectionService.decrypt(data, refId, aad, salt);
+        dataProtectionService.decrypt(data, localRefId, localAad, localSalt);
     }
 
 
@@ -174,19 +174,21 @@ public class DataProtectionServiceTest {
 
 
     @Test
-    public void shouldReturnNullIfDataToDecryptWithAESIsNull() {
+    public void shouldReturnEmptyArrayIfDataToDecryptWithAESIsNull() {
         SecretKey key = encryptionKey;
         String data = null;
         byte[] result = dataProtectionService.decryptWithAES(key, data);
-        assertNull(result);
+        assertNotNull(result);
+        assertEquals(0, result.length);
     }
 
     @Test
-    public void shouldReturnNullIfDataToDecryptWithAESEmpty() {
+    public void shouldReturnEmptyArrayIfDataToDecryptWithAESEmpty() {
         SecretKey key = encryptionKey;
         String data = "";
         byte[] result = dataProtectionService.decryptWithAES(key, data);
-        assertNull(result);
+        assertNotNull(result);
+        assertEquals(0, result.length);
     }
 
     @Test(expected = RuntimeException.class)
@@ -333,11 +335,12 @@ public class DataProtectionServiceTest {
 
 
     @Test
-    public void shouldReturnNullWhenStringToBytesInputIsNull() throws Exception {
-        // Use reflection to access private static method
+    public void shouldReturnEmptyArrayWhenStringToBytesInputIsNull() throws Exception {
         java.lang.reflect.Method method = DataProtectionService.class.getDeclaredMethod("stringToBytes", String.class);
         method.setAccessible(true);
-        assertNull(method.invoke(null, (Object) null));
+        byte[] result = (byte[]) method.invoke(null, (Object) null);
+        assertNotNull(result);
+        assertEquals(0, result.length);
     }
 
     @Test

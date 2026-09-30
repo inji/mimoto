@@ -1,44 +1,50 @@
 package io.mosip.mimoto.service;
 
-import io.mosip.mimoto.dto.idp.TokenResponseDTO;
+import com.google.zxing.WriterException;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 public interface CredentialService {
 
     /**
-     * Downloads credential as PDF.
+     * Exchanges the authorization code, builds DPoP proofs, and downloads the credential as PDF.
      *
      * @param issuerId           The issuer ID
      * @param credentialType     The credential type
-     * @param response           The token response
      * @param credentialValidity The credential validity
      * @param locale             The locale
+     * @param code               The authorization code
+     * @param state              OAuth state identifying the DPoP session
+     * @param httpSession        The HTTP session that holds the DPoP session
      * @return ByteArrayInputStream containing the PDF
-     * @throws Exception If any error occurs during processing
      */
-    ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialType, TokenResponseDTO response, String credentialValidity, String locale) throws Exception;
+    ByteArrayInputStream downloadCredentialAsPDF(String issuerId, String credentialType, String credentialValidity,
+                                                 String locale, String code, String state, HttpSession httpSession)
+            throws ApiNotAccessibleException, IOException, InvalidWellknownResponseException,
+            ExternalServiceUnavailableException, WriterException, AuthorizationServerWellknownResponseException,
+            IssuerOnboardingException;
 
     /**
-     * Downloads credential and stores it in the database.
+     * Exchanges the authorization code, builds DPoP proofs, downloads the credential, and stores it.
      *
-     * @param tokenResponse             The token response containing the access token
+     * @param issuerId                  The ID of the issuer
      * @param credentialConfigurationId The type of the credential
      * @param walletId                  The ID of the wallet
      * @param base64Key                 The Base64-encoded wallet key
-     * @param issuerId                  The ID of the issuer
      * @param locale                    The locale for the response
+     * @param code                      The authorization code
+     * @param state                     OAuth state identifying the DPoP session
+     * @param httpSession               The HTTP session that holds the DPoP session
      * @return The stored VerifiableCredential response
-     * @throws InvalidRequestException             If input parameters are invalid
-     * @throws CredentialProcessingException       If processing fails
-     * @throws ExternalServiceUnavailableException If an external service is unavailable
-     * @throws VCVerificationException             If credential verification fails
-     * @throws InvalidCredentialResourceException  If the credential resource is invalid
      */
     VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
-            TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
-            String base64Key, String issuerId, String locale)
-            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException, VCVerificationException, InvalidCredentialResourceException;
+            String issuerId, String credentialConfigurationId, String walletId, String base64Key,
+            String locale, String code, String state, HttpSession httpSession)
+            throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException,
+            VCVerificationException, InvalidCredentialResourceException, ApiNotAccessibleException, IOException,
+            AuthorizationServerWellknownResponseException, InvalidWellknownResponseException, IssuerOnboardingException;
 }
