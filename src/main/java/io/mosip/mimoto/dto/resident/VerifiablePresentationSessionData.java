@@ -26,5 +26,5 @@ public class VerifiablePresentationSessionData implements Serializable {
     private AuthorizationRequest parsedAuthorizationRequest;
     /** OpenID4VP instance from the initial authenticateVerifier call — reused in submitPresentation
      *  to avoid regenerating walletNonce (which causes wallet_nonce mismatch in request_uri_method=post). */
-    private transient OpenID4VP openID4VPInstance;
+    private OpenID4VP openID4VPInstance;
 }

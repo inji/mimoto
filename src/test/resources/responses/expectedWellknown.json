@@ -1,4 +1,4 @@
-﻿{
+{
   "credential_issuer": "https://dev/issuer1",
   "authorization_servers": ["https://auth-server.env.net"],
   "credential_endpoint": "https://dev/issuance/credential",
