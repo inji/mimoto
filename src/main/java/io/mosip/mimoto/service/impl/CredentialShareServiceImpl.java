@@ -164,7 +164,7 @@ public class CredentialShareServiceImpl implements CredentialShareService {
         String individualBio = null;
         boolean isTransactionSuccessful = false;
         try {
-            individualBio = credentialJSON.getString("biometrics");
+            individualBio = credentialJSON.isNull("biometrics") ? null : credentialJSON.getString("biometrics");
             String individualBiometric = individualBio;
             if (credentialJSON.has("UIN"))
                 id = credentialJSON.getString("UIN");
