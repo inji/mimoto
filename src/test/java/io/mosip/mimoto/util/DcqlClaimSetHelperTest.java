@@ -7,6 +7,7 @@ import io.mosip.openID4VP.dcql.query.ClaimsQuery;
 import io.mosip.openID4VP.dcql.query.CredentialQuery;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -159,6 +160,25 @@ public class DcqlClaimSetHelperTest {
     public void should_keepDotSeparatedSegments_when_buildingJsonPathForSimpleKeys() {
         assertEquals("$.credentialSubject.dateOfBirth",
                 DcqlClaimSetHelper.buildJsonPath(List.of("credentialSubject", "dateOfBirth")));
+    }
+
+    @Test
+    public void should_skipNullSegment_when_buildingPaths() {
+        List<Object> path = new ArrayList<>();
+        path.add("gender");
+        path.add(null);
+        path.add("value");
+
+        assertEquals("$.gender.value", DcqlClaimSetHelper.buildJsonPath(path));
+        assertEquals("gender.value", DcqlClaimSetHelper.buildClaimPath(path));
+
+        List<Object> stringNullPath = new ArrayList<>();
+        stringNullPath.add("gender");
+        stringNullPath.add("null");
+        stringNullPath.add("value");
+
+        assertEquals("$.gender.value", DcqlClaimSetHelper.buildJsonPath(stringNullPath));
+        assertEquals("gender.value", DcqlClaimSetHelper.buildClaimPath(stringNullPath));
     }
 
     @Test

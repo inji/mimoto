@@ -46,20 +46,41 @@ public final class DcqlClaimSetHelper {
 
     /**
      * Builds a credential claim path (without {@code $.}) for SD-JWT lookup and missing-claim reporting.
+     * A {@code null} segment, or the string {@code "null"}, is a DCQL array wildcard and is omitted.
      */
     public static String buildClaimPath(List<?> pathSegments) {
         if (pathSegments == null || pathSegments.isEmpty()) {
             return "";
         }
-        StringBuilder claimPath = new StringBuilder(pathSegments.get(0).toString());
-        if (pathSegments.size() > 1) {
-            appendPathSegments(claimPath, pathSegments.subList(1, pathSegments.size()));
+        int start = indexOfFirstPresentSegment(pathSegments);
+        if (start < 0) {
+            return "";
+        }
+        StringBuilder claimPath = new StringBuilder(pathSegments.get(start).toString());
+        if (start + 1 < pathSegments.size()) {
+            appendPathSegments(claimPath, pathSegments.subList(start + 1, pathSegments.size()));
         }
         return claimPath.toString();
     }
 
+    private static int indexOfFirstPresentSegment(List<?> pathSegments) {
+        for (int i = 0; i < pathSegments.size(); i++) {
+            if (!isSkippedPathSegment(pathSegments.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isSkippedPathSegment(Object segment) {
+        return segment == null || "null".equals(segment);
+    }
+
     private static void appendPathSegments(StringBuilder path, List<?> pathSegments) {
         for (Object segment : pathSegments) {
+            if (isSkippedPathSegment(segment)) {
+                continue;
+            }
             String value = segment.toString();
             if (SIMPLE_PATH_SEGMENT.matcher(value).matches()) {
                 path.append('.').append(value);
