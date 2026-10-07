@@ -113,20 +113,14 @@ public class SigningKeyUtil {
 
         JWTClaimsSet claimsSet = createClaims(clientId, audience, cNonce);
 
-        JWSHeader header = switch (bindingMethod) {
-            case JWK -> new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm())
-                    .type(new JOSEObjectType(OPENID4VCI_PROOF_JWT))
-                    .jwk(jwk.toPublicJWK())
-                    .build();
-            case DID_JWK -> new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm())
-                    .type(new JOSEObjectType(OPENID4VCI_PROOF_JWT))
-                    .keyID(BindingMethodUtil.encodeDidJwk(jwk))
-                    .build();
-            case DID_KEY -> new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm())
-                    .type(new JOSEObjectType(OPENID4VCI_PROOF_JWT))
-                    .keyID(BindingMethodUtil.encodeDidKey(jwk, signingAlgorithm))
-                    .build();
-        };
+        JWSHeader.Builder headerBuilder = new JWSHeader.Builder(signingAlgorithm.getJWSAlgorithm())
+                .type(new JOSEObjectType(OPENID4VCI_PROOF_JWT));
+        switch (bindingMethod) {
+            case JWK     -> headerBuilder.jwk(jwk.toPublicJWK());
+            case DID_JWK -> headerBuilder.keyID(BindingMethodUtil.encodeDidJwk(jwk));
+            case DID_KEY -> headerBuilder.keyID(BindingMethodUtil.encodeDidKey(jwk, signingAlgorithm));
+        }
+        JWSHeader header = headerBuilder.build();
         log.info("Proof JWT header — alg: {}, binding: {}, kid: {}, jwk present: {}",
                 signingAlgorithm, bindingMethod, header.getKeyID(), header.getJWK() != null);
 

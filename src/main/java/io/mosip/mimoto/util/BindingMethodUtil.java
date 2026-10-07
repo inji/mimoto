@@ -46,15 +46,15 @@ public class BindingMethodUtil {
      * Selects the binding method to use based on the issuer's advertised list and the
      * configured wallet priority order. Falls back to did:jwk if no match or list is empty.
      */
-    public BindingMethod selectBindingMethod(List<String> issuerSupported) {
-        if (issuerSupported == null || issuerSupported.isEmpty()) {
+    public BindingMethod selectBindingMethod(List<String> issuerSupportedBindingMethods) {
+        if (issuerSupportedBindingMethods == null || issuerSupportedBindingMethods.isEmpty()) {
             log.warn("Issuer has no cryptographic_binding_methods_supported, falling back to {}", DEFAULT_BINDING_METHOD);
             return DEFAULT_BINDING_METHOD;
         }
         List<String> priorityList = getBindingMethodsPriorityOrder();
-        log.info("Selecting binding method — issuer supports: {}, wallet priority: {}", issuerSupported, priorityList);
+        log.info("Selecting binding method — issuer supports: {}, wallet priority: {}", issuerSupportedBindingMethods, priorityList);
         BindingMethod selected = priorityList.stream()
-                .filter(issuerSupported::contains)
+                .filter(issuerSupportedBindingMethods::contains)
                 .findFirst()
                 .map(method -> {
                     try {
@@ -64,7 +64,7 @@ public class BindingMethodUtil {
                     }
                 })
                 .orElseGet(() -> {
-                    log.warn("No matching binding method found in issuer list: {}, falling back to {}", issuerSupported, DEFAULT_BINDING_METHOD);
+                    log.warn("No matching binding method found in issuer list: {}, falling back to {}", issuerSupportedBindingMethods, DEFAULT_BINDING_METHOD);
                     return DEFAULT_BINDING_METHOD;
                 });
         log.info("Selected binding method: {}", selected);
