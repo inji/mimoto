@@ -1,8 +1,10 @@
 package io.mosip.mimoto.service;
 
+import io.mosip.mimoto.constant.BindingMethod;
 import io.mosip.mimoto.constant.SigningAlgorithm;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.*;
+import io.mosip.mimoto.util.BindingMethodUtil;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.SigningKeyUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +39,8 @@ class V1CredentialRequestServiceTest {
     private RestApiClient restApiClient;
     @Mock
     private KeyPairRetrievalService keyPairService;
+    @Mock
+    private BindingMethodUtil bindingMethodUtil;
     private V1CredentialRequestService service;
     private MockedStatic<SigningKeyUtil> signingKeyUtilMock;
     private IssuerDTO issuerDTO;
@@ -49,8 +53,9 @@ class V1CredentialRequestServiceTest {
             java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         }
 
-        service = new V1CredentialRequestService(restApiClient, keyPairService);
+        service = new V1CredentialRequestService(restApiClient, keyPairService, bindingMethodUtil);
         ReflectionTestUtils.setField(service, "signingAlgorithmsPriorityOrder", "ED25519,ES256K,ES256,RS256");
+        Mockito.lenient().when(bindingMethodUtil.selectBindingMethod(any())).thenReturn(BindingMethod.JWK);
 
         signingKeyUtilMock = Mockito.mockStatic(SigningKeyUtil.class, Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
 
@@ -92,7 +97,7 @@ class V1CredentialRequestServiceTest {
         assertEquals(1, result.getProofs().get("jwt").size());
 
         ArgumentCaptor<String> nonceCaptor = ArgumentCaptor.forClass(String.class);
-        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class)));
+        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class), any(BindingMethod.class)));
         assertEquals("test-nonce", nonceCaptor.getValue());
     }
 
@@ -107,7 +112,7 @@ class V1CredentialRequestServiceTest {
         assertNotNull(result.getProofs());
 
         ArgumentCaptor<String> nonceCaptor = ArgumentCaptor.forClass(String.class);
-        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class)));
+        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class), any(BindingMethod.class)));
         assertNull(nonceCaptor.getValue());
     }
 
@@ -120,7 +125,7 @@ class V1CredentialRequestServiceTest {
         assertNotNull(result);
 
         ArgumentCaptor<String> nonceCaptor = ArgumentCaptor.forClass(String.class);
-        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class)));
+        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class), any(BindingMethod.class)));
         assertNull(nonceCaptor.getValue());
     }
 
@@ -133,7 +138,7 @@ class V1CredentialRequestServiceTest {
         assertNotNull(result);
 
         ArgumentCaptor<String> nonceCaptor = ArgumentCaptor.forClass(String.class);
-        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class)));
+        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class), any(BindingMethod.class)));
         assertNull(nonceCaptor.getValue());
     }
 
@@ -147,7 +152,7 @@ class V1CredentialRequestServiceTest {
         assertNotNull(result);
 
         ArgumentCaptor<String> nonceCaptor = ArgumentCaptor.forClass(String.class);
-        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class)));
+        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(any(SigningAlgorithm.class), eq(CREDENTIAL_ISSUER), eq("client-123"), nonceCaptor.capture(), any(KeyPair.class), any(BindingMethod.class)));
         assertNull(nonceCaptor.getValue());
     }
 
@@ -160,14 +165,14 @@ class V1CredentialRequestServiceTest {
 
         when(keyPairService.getKeyPairFromDB("wallet-1", "key-base64", SigningAlgorithm.ED25519)).thenReturn(mockKeyPair);
 
-        signingKeyUtilMock.when(() -> SigningKeyUtil.generateJwt(eq(SigningAlgorithm.ED25519), eq(CREDENTIAL_ISSUER), eq("client-123"), eq("test-nonce"), eq(mockKeyPair))).thenReturn("mocked-jwt-token");
+        signingKeyUtilMock.when(() -> SigningKeyUtil.generateJwt(eq(SigningAlgorithm.ED25519), eq(CREDENTIAL_ISSUER), eq("client-123"), eq("test-nonce"), eq(mockKeyPair), any(BindingMethod.class))).thenReturn("mocked-jwt-token");
 
         V1VCCredentialRequest result = service.buildRequest(issuerDTO, CREDENTIAL_CONFIG_ID, wellKnownResponse, "wallet-1", "key-base64", true);
 
         assertNotNull(result);
         assertEquals(CREDENTIAL_CONFIG_ID, result.getCredentialConfigurationId());
         assertEquals(List.of("mocked-jwt-token"), result.getProofs().get("jwt"));
-        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(eq(SigningAlgorithm.ED25519), eq(CREDENTIAL_ISSUER), eq("client-123"), eq("test-nonce"), eq(mockKeyPair)));
+        signingKeyUtilMock.verify(() -> SigningKeyUtil.generateJwt(eq(SigningAlgorithm.ED25519), eq(CREDENTIAL_ISSUER), eq("client-123"), eq("test-nonce"), eq(mockKeyPair), any(BindingMethod.class)));
     }
 
     @Test
