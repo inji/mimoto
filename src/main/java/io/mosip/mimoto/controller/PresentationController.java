@@ -107,10 +107,31 @@ public class PresentationController {
         } catch( InvalidVerifierException exception){
             sendRedirect(response, injiWebRedirectUrl, exception.getErrorCode(), exception.getErrorText(), exception);
         } catch(VPNotCreatedException | InvalidCredentialResourceException exception){
-            sendRedirect(response, redirectUri, exception.getErrorCode(), exception.getErrorText(), exception);
+            redirectAuthorizationError(response, responseUri, redirectUri, state,
+                    exception.getErrorCode(), exception.getErrorText(), exception);
         } catch (Exception exception){
-            sendRedirect(response, redirectUri, ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(), ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage(), exception);
+            redirectAuthorizationError(response, responseUri, redirectUri, state,
+                    ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(),
+                    ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage(),
+                    exception);
         }
+    }
+
+    private void redirectAuthorizationError(HttpServletResponse response, String responseUri, String redirectUri,
+                                            String state, String code, String message, Exception exception) throws IOException {
+        if (responseUri != null && !responseUri.isBlank()) {
+            try {
+                String redirectString = presentationService.submitErrorToResponseUri(responseUri, redirectUri, state, code, message);
+                if (redirectString != null && !redirectString.isBlank()) {
+                    log.info("Authorization error posted to response_uri. Verifier redirect target: {}. code - {}", redirectString, code);
+                    response.sendRedirect(redirectString);
+                    return;
+                }
+            } catch (Exception postFailure) {
+                log.error("Failed to post authorization error to response_uri. Falling back to error redirect.", postFailure);
+            }
+        }
+        sendRedirect(response, redirectUri, code, message, exception);
     }
 
     private void sendRedirect(HttpServletResponse response, String domain, String code, String message, Exception exception) throws IOException {

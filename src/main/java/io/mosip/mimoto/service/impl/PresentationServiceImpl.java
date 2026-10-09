@@ -442,24 +442,7 @@ public class PresentationServiceImpl implements PresentationService {
             );
 
             log.info("Response from verifier after POST: {}", postResponse);
-
-            // Check for redirect_uri in response first
-            if (postResponse != null && postResponse.containsKey("redirect_uri")) {
-                String responseRedirectUri = (String) postResponse.get("redirect_uri");
-                if (responseRedirectUri != null && !responseRedirectUri.isEmpty()) {
-                    return responseRedirectUri;
-                }
-            }
-
-            // Use request's redirectUri if it's non-blank
-            if (redirectUri != null && !redirectUri.isBlank()) {
-                log.info("Using redirectUri from request: {}", redirectUri);
-                return redirectUri;
-            }
-
-            // Fallback behavior if redirect_uri is not provided
-            log.warn("No redirect_uri received from verifier in POST response. Falling back to response_uri.");
-            return responseUri + "?status=vp_sent";
+            return resolveVerifierRedirect(postResponse, redirectUri, responseUri);
 
         } catch (VPNotCreatedException e) {
             throw e;
@@ -467,6 +450,51 @@ public class PresentationServiceImpl implements PresentationService {
             log.error("Exception while submitting the vp_token to the response_uri", e);
             throw new VPNotCreatedException(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(), ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage());
         }
+    }
+
+    @Override
+    public String submitErrorToResponseUri(String responseUri, String redirectUri, String state,
+                                            String errorCode, String errorDescription) {
+        MultiValueMap<String, String> postRequest = new LinkedMultiValueMap<>();
+        postRequest.add("error", errorCode);
+        if (errorDescription != null) {
+            postRequest.add("error_description", errorDescription);
+        }
+        if (state != null) {
+            postRequest.add("state", state);
+        }
+
+        log.info("Posting authorization error to response_uri: {}", responseUri);
+        try {
+            Map<String, Object> postResponse = restApiClient.postApi(
+                    responseUri,
+                    MediaType.APPLICATION_FORM_URLENCODED,
+                    postRequest,
+                    Map.class
+            );
+            log.info("Response from verifier after error POST: {}", postResponse);
+            return resolveVerifierRedirect(postResponse, redirectUri, responseUri);
+        } catch (VPNotCreatedException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Exception while submitting the error to the response_uri", e);
+            throw new VPNotCreatedException(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(), ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage());
+        }
+    }
+
+    private String resolveVerifierRedirect(Map<String, Object> postResponse, String redirectUri, String responseUri) {
+        log.info("response_uri returned body: {}", postResponse);
+        if (postResponse != null && postResponse.get("redirect_uri") instanceof String responseRedirectUri
+                && !responseRedirectUri.isEmpty()) {
+            log.info("response_uri returned redirect_uri: {}", responseRedirectUri);
+            return responseRedirectUri;
+        }
+        if (redirectUri != null && !redirectUri.isBlank()) {
+            log.info("Using redirectUri from request: {}", redirectUri);
+            return redirectUri;
+        }
+
+        return null;
     }
 
     private VerifiablePresentationDTO constructVerifiablePresentationString(VCCredentialProperties vcCredentialProperties) {

@@ -162,13 +162,8 @@ public class PresentationControllerTest {
                 .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
         when(presentationService.processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class)))
                 .thenThrow(exception);
-
-        String expectedRedirectUrl = String.format(
-                "%s?error_code=%s&error_message=%s",
-                REDIRECT_URI,
-                errorCode,
-                URLEncoder.encode(errorMessage, StandardCharsets.UTF_8)
-        );
+        when(presentationService.submitErrorToResponseUri(RESPONSE_URI, REDIRECT_URI, null, errorCode, errorMessage))
+                .thenReturn("https://verifier.example.com/after-error");
 
         // Act & Assert
         mockMvc.perform(get("/authorize")
@@ -179,10 +174,11 @@ public class PresentationControllerTest {
                         .param("redirect_uri", REDIRECT_URI)
                         .param("response_uri", RESPONSE_URI))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl(expectedRedirectUrl));
+                .andExpect(redirectedUrl("https://verifier.example.com/after-error"));
 
         verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(presentationService).processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class));
+        verify(presentationService).submitErrorToResponseUri(RESPONSE_URI, REDIRECT_URI, null, errorCode, errorMessage);
     }
 
     @Test
@@ -199,13 +195,8 @@ public class PresentationControllerTest {
                 .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
         when(presentationService.processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class)))
                 .thenThrow(exception);
-
-        String expectedRedirectUrl = String.format(
-                "%s?error_code=%s&error_message=%s",
-                REDIRECT_URI,
-                errorCode,
-                URLEncoder.encode(errorMessage, StandardCharsets.UTF_8)
-        );
+        when(presentationService.submitErrorToResponseUri(RESPONSE_URI, REDIRECT_URI, null, errorCode, errorMessage))
+                .thenReturn("https://verifier.example.com/after-error");
 
         // Act & Assert
         mockMvc.perform(get("/authorize")
@@ -216,10 +207,11 @@ public class PresentationControllerTest {
                         .param("redirect_uri", REDIRECT_URI)
                         .param("response_uri", RESPONSE_URI))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl(expectedRedirectUrl));
+                .andExpect(redirectedUrl("https://verifier.example.com/after-error"));
 
         verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(presentationService).processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class));
+        verify(presentationService).submitErrorToResponseUri(RESPONSE_URI, REDIRECT_URI, null, errorCode, errorMessage);
     }
 
     @Test
@@ -234,13 +226,11 @@ public class PresentationControllerTest {
                 .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
         when(presentationService.processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class)))
                 .thenThrow(exception);
-
-        String expectedRedirectUrl = String.format(
-                "%s?error_code=%s&error_message=%s",
-                REDIRECT_URI,
+        when(presentationService.submitErrorToResponseUri(
+                RESPONSE_URI, REDIRECT_URI, null,
                 ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(),
-                URLEncoder.encode(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage(), StandardCharsets.UTF_8)
-        );
+                ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage()))
+                .thenReturn("https://verifier.example.com/after-error");
 
         // Act & Assert
         mockMvc.perform(get("/authorize")
@@ -251,10 +241,14 @@ public class PresentationControllerTest {
                         .param("redirect_uri", REDIRECT_URI)
                         .param("response_uri", RESPONSE_URI))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl(expectedRedirectUrl));
+                .andExpect(redirectedUrl("https://verifier.example.com/after-error"));
 
         verify(verifierService).validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI);
         verify(presentationService).processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class));
+        verify(presentationService).submitErrorToResponseUri(
+                RESPONSE_URI, REDIRECT_URI, null,
+                ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(),
+                ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage());
     }
 
     @Test
@@ -264,13 +258,13 @@ public class PresentationControllerTest {
                 .thenThrow(new RuntimeException("JSON parsing failed"));
         when(verifierService.validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI))
                 .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
-
-        String expectedRedirectUrl = String.format(
-                "%s?error_code=%s&error_message=%s",
-                REDIRECT_URI,
+        when(presentationService.submitErrorToResponseUri(
+                RESPONSE_URI, REDIRECT_URI, null,
                 ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(),
-                URLEncoder.encode(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage(), StandardCharsets.UTF_8)
-        );
+                ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage()))
+                .thenReturn("https://verifier.example.com/after-error");
+
+        String expectedRedirectUrl = "https://verifier.example.com/after-error";
 
         // Act & Assert
         mockMvc.perform(get("/authorize")
@@ -416,13 +410,13 @@ public class PresentationControllerTest {
                 .thenThrow(new RuntimeException("Malformed JSON"));
         when(verifierService.validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI))
                 .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
-
-        String expectedRedirectUrl = String.format(
-                "%s?error_code=%s&error_message=%s",
-                REDIRECT_URI,
+        when(presentationService.submitErrorToResponseUri(
+                RESPONSE_URI, REDIRECT_URI, null,
                 ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(),
-                URLEncoder.encode(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage(), StandardCharsets.UTF_8)
-        );
+                ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage()))
+                .thenReturn("https://verifier.example.com/after-error");
+
+        String expectedRedirectUrl = "https://verifier.example.com/after-error";
 
         mockMvc.perform(get("/authorize")
                         .param("response_type", RESPONSE_TYPE)
@@ -480,13 +474,13 @@ public class PresentationControllerTest {
     public void should_rejectAuthorize_when_bothPresentationDefinitionAndDcqlQueryMissing() throws Exception {
         when(verifierService.validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI))
                 .thenReturn(createVerifierDTO(SpecVersion.V1));
-
-        String expectedRedirectUrl = String.format(
-                "%s?error_code=%s&error_message=%s",
-                REDIRECT_URI,
+        when(presentationService.submitErrorToResponseUri(
+                RESPONSE_URI, REDIRECT_URI, null,
                 ErrorConstants.INVALID_REQUEST.getErrorCode(),
-                URLEncoder.encode(ErrorConstants.INVALID_REQUEST.getErrorMessage(), StandardCharsets.UTF_8)
-        );
+                ErrorConstants.INVALID_REQUEST.getErrorMessage()))
+                .thenReturn("https://verifier.example.com/after-error");
+
+        String expectedRedirectUrl = "https://verifier.example.com/after-error";
 
         mockMvc.perform(get("/authorize")
                         .param("response_type", RESPONSE_TYPE)
@@ -498,6 +492,73 @@ public class PresentationControllerTest {
                 .andExpect(redirectedUrl(expectedRedirectUrl));
 
         verify(presentationService, never()).processVPRequest(any(), any());
+        verify(presentationService).submitErrorToResponseUri(
+                RESPONSE_URI, REDIRECT_URI, null,
+                ErrorConstants.INVALID_REQUEST.getErrorCode(),
+                ErrorConstants.INVALID_REQUEST.getErrorMessage());
+    }
+
+    @Test
+    public void should_keepErrorQueryRedirect_when_responseUriIsMissing() throws Exception {
+        String errorCode = "uri_too_long";
+        String errorMessage = "Resource URI is too long to be handled";
+        when(objectMapper.readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class))
+                .thenReturn(new PresentationDefinitionDTO());
+        when(verifierService.validateVerifier(CLIENT_ID, null, REDIRECT_URI))
+                .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
+        when(presentationService.processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class)))
+                .thenThrow(new VPNotCreatedException(errorCode, errorMessage));
+
+        String expectedRedirectUrl = String.format(
+                "%s?error_code=%s&error_message=%s",
+                REDIRECT_URI,
+                errorCode,
+                URLEncoder.encode(errorMessage, StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/authorize")
+                        .param("response_type", RESPONSE_TYPE)
+                        .param("resource", RESOURCE)
+                        .param("presentation_definition", PRESENTATION_DEFINITION_JSON)
+                        .param("client_id", CLIENT_ID)
+                        .param("redirect_uri", REDIRECT_URI))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedRedirectUrl));
+
+        verify(presentationService, never()).submitErrorToResponseUri(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void should_fallBackToErrorQueryRedirect_when_responseUriPostFails() throws Exception {
+        String errorCode = "uri_too_long";
+        String errorMessage = "Resource URI is too long to be handled";
+        when(objectMapper.readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class))
+                .thenReturn(new PresentationDefinitionDTO());
+        when(verifierService.validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI))
+                .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
+        when(presentationService.processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class)))
+                .thenThrow(new VPNotCreatedException(errorCode, errorMessage));
+        when(presentationService.submitErrorToResponseUri(RESPONSE_URI, REDIRECT_URI, "session-state", errorCode, errorMessage))
+                .thenThrow(new VPNotCreatedException(ErrorConstants.INTERNAL_SERVER_ERROR.getErrorCode(),
+                        ErrorConstants.INTERNAL_SERVER_ERROR.getErrorMessage()));
+
+        String expectedRedirectUrl = String.format(
+                "%s?error_code=%s&error_message=%s",
+                REDIRECT_URI,
+                errorCode,
+                URLEncoder.encode(errorMessage, StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/authorize")
+                        .param("response_type", RESPONSE_TYPE)
+                        .param("resource", RESOURCE)
+                        .param("presentation_definition", PRESENTATION_DEFINITION_JSON)
+                        .param("client_id", CLIENT_ID)
+                        .param("redirect_uri", REDIRECT_URI)
+                        .param("response_uri", RESPONSE_URI)
+                        .param("state", "session-state"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedRedirectUrl));
     }
 
 }

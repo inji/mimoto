@@ -763,6 +763,43 @@ public class PresentationServiceTest {
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
 
+    @Test
+    public void submitErrorToResponseUri_postsErrorAndRedirectsToVerifierRedirectUri() throws Exception {
+        Map<String, Object> mockResponse = Map.of("redirect_uri", "https://verifier.example.com/error-page");
+        when(restApiClient.postApi(eq("https://verifier.example.com/response"), eq(MediaType.APPLICATION_FORM_URLENCODED), any(), eq(Map.class)))
+                .thenReturn(mockResponse);
+
+        String result = presentationService.submitErrorToResponseUri(
+                "https://verifier.example.com/response",
+                "https://verifier.example.com/callback",
+                "test-state",
+                ErrorConstants.URI_TOO_LONG.getErrorCode(),
+                ErrorConstants.URI_TOO_LONG.getErrorMessage());
+
+        assertEquals("https://verifier.example.com/error-page", result);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<MultiValueMap<String, String>> body = ArgumentCaptor.forClass(MultiValueMap.class);
+        verify(restApiClient).postApi(eq("https://verifier.example.com/response"), eq(MediaType.APPLICATION_FORM_URLENCODED), body.capture(), eq(Map.class));
+        assertEquals(ErrorConstants.URI_TOO_LONG.getErrorCode(), body.getValue().getFirst("error"));
+        assertEquals(ErrorConstants.URI_TOO_LONG.getErrorMessage(), body.getValue().getFirst("error_description"));
+        assertEquals("test-state", body.getValue().getFirst("state"));
+    }
+
+    @Test
+    public void submitErrorToResponseUri_usesRequestRedirectUriWhenVerifierOmitsIt() throws Exception {
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(Map.of("status", "error"));
+
+        String result = presentationService.submitErrorToResponseUri(
+                "https://verifier.example.com/response",
+                "https://verifier.example.com/callback",
+                null,
+                ErrorConstants.RESOURCE_EXPIRED.getErrorCode(),
+                ErrorConstants.RESOURCE_EXPIRED.getErrorMessage());
+
+        assertEquals("https://verifier.example.com/callback", result);
+    }
+
     @Test(expected = VPNotCreatedException.class)
     public void testDirectPostResponseModeWithException() throws Exception {
         VCCredentialResponse vcCredentialResponse = TestUtilities.getVCCredentialResponseDTO("Ed25519Signature2020");
@@ -930,9 +967,12 @@ public class PresentationServiceTest {
                 .thenReturn((VCCredentialProperties) vcCredentialResponse.getCredential());
         when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockResponse);
 
-        String result = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
+        VPNotCreatedException exception = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23));
 
-        assertEquals("https://verifier.example.com/response?status=vp_sent", result);
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                exception.getMessage());
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
 
