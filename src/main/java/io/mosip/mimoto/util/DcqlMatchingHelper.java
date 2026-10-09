@@ -102,6 +102,7 @@ public final class DcqlMatchingHelper {
                     .map(ClaimFailure::getClaim)
                     .filter(Objects::nonNull)
                     .map(claim -> DcqlClaimSetHelper.buildClaimPath(claim.getPath()))
+                    .filter(path -> path != null && !path.isBlank())
                     .collect(Collectors.toCollection(LinkedHashSet::new));
         }
         return extractMissingClaimsFromQuery(credentialQuery);
@@ -119,6 +120,7 @@ public final class DcqlMatchingHelper {
         return credentialQuery.getClaims().stream()
                 .filter(cq -> cq.getPath() != null && !cq.getPath().isEmpty())
                 .map(cq -> DcqlClaimSetHelper.buildClaimPath(cq.getPath()))
+                .filter(path -> !path.isBlank())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 

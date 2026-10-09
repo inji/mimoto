@@ -7,6 +7,7 @@ import io.mosip.openID4VP.dcql.query.ClaimsQuery;
 import io.mosip.openID4VP.dcql.query.CredentialQuery;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -162,7 +163,64 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void should_quoteDottedNestedSegments_when_buildingClaimPath() {
+    public void should_selectAllArrayElements_when_pathContainsNull() {
+        List<Object> path = new ArrayList<>();
+        path.add("degrees");
+        path.add(null);
+        path.add("type");
+
+        String jsonPath = DcqlClaimSetHelper.buildJsonPath(path);
+        assertEquals("$.degrees[*].type", jsonPath);
+        assertEquals("degrees[*].type", DcqlClaimSetHelper.buildClaimPath(path));
+
+        Map<String, Object> credential = Map.of(
+                "degrees", List.of(
+                        Map.of("type", "Bachelor of Science"),
+                        Map.of("type", "Master of Science")));
+        assertEquals(List.of("Bachelor of Science", "Master of Science"), JsonPath.read(credential, jsonPath));
+        assertTrue(DcqlClaimSetHelper.claimPathMatches("degrees[0].type", "degrees[*].type"));
+        assertTrue(DcqlClaimSetHelper.claimPathMatches("$.degrees[1].type", "$.degrees[*].type"));
+        assertFalse(DcqlClaimSetHelper.claimPathMatches("degrees.type", "degrees[*].type"));
+    }
+
+    @Test
+    public void should_treatStringNullAsObjectKey_when_buildingPaths() {
+        List<Object> path = new ArrayList<>();
+        path.add("gender");
+        path.add("null");
+        path.add("value");
+
+        String jsonPath = DcqlClaimSetHelper.buildJsonPath(path);
+        assertEquals("$.gender.null.value", jsonPath);
+        assertEquals("gender.null.value", DcqlClaimSetHelper.buildClaimPath(path));
+
+        Map<String, Object> credential = Map.of(
+                "gender", Map.of("null", Map.of("value", "MLE")));
+        assertEquals("MLE", JsonPath.read(credential, jsonPath));
+    }
+
+    @Test
+    public void should_selectArrayIndex_when_pathContainsInteger() {
+        String jsonPath = DcqlClaimSetHelper.buildJsonPath(List.of("nationalities", 1));
+        assertEquals("$.nationalities[1]", jsonPath);
+        assertEquals("nationalities[1]", DcqlClaimSetHelper.buildClaimPath(List.of("nationalities", 1)));
+
+        Map<String, Object> credential = Map.of("nationalities", List.of("British", "Betelgeusian"));
+        assertEquals("Betelgeusian", JsonPath.read(credential, jsonPath));
+    }
+
+    @Test
+    public void should_matchWalletClaimPathExamples_when_buildingClaimPath() {
+        List<Object> wildcardPath = new ArrayList<>();
+        wildcardPath.add("credentialSubject");
+        wildcardPath.add(null);
+        wildcardPath.add("givenName");
+
+        assertEquals("credentialSubject[*].givenName", DcqlClaimSetHelper.buildClaimPath(wildcardPath));
+        assertEquals("credentialSubject[0].givenName",
+                DcqlClaimSetHelper.buildClaimPath(List.of("credentialSubject", 0, "givenName")));
+        assertEquals("credentialSubject.degree.ug",
+                DcqlClaimSetHelper.buildClaimPath(List.of("credentialSubject", "degree", "ug")));
         assertEquals("org.iso.18013.5.1",
                 DcqlClaimSetHelper.buildClaimPath(List.of("org.iso.18013.5.1")));
         assertEquals("credentialSubject['org.iso.18013.5.1'].family_name",
@@ -171,7 +229,7 @@ public class DcqlClaimSetHelperTest {
     }
 
     @Test
-    public void should_useBracketSafeSegments_when_resolvingJsonPaths() {
+    public void should_quoteDottedKeys_when_resolvingJsonPaths() {
         CredentialQuery query = mock(CredentialQuery.class);
         ClaimsQuery mdlClaim = mock(ClaimsQuery.class);
         when(mdlClaim.getId()).thenReturn("family-name");

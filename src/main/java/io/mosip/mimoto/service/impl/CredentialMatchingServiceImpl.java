@@ -724,7 +724,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                     ? key.substring(CREDENTIAL_SUBJECT_PREFIX.length())
                     : key;
             String jsonPath = JSON_PATH_PREFIX + cleanKey;
-            if (matchedPaths.contains(jsonPath)) {
+            if (matchedPaths.stream().anyMatch(queryPath -> DcqlClaimSetHelper.claimPathMatches(jsonPath, queryPath))) {
                 paths.add(jsonPath);
             }
         }

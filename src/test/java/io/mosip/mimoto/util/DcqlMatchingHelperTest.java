@@ -16,8 +16,8 @@ import io.mosip.openID4VP.helper.DCQLHelper;
 import io.mosip.openID4VP.wallet.Credential;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -122,6 +122,55 @@ public class DcqlMatchingHelperTest {
         Set<String> missingClaims = DcqlMatchingHelper.resolveMissingClaims(query, queryMatch);
 
         assertEquals(Set.of("age_above_18"), missingClaims);
+    }
+
+    @Test
+    public void should_keepNullAsArrayWildcard_when_resolvingMissingClaims() {
+        List<Object> path = new ArrayList<>();
+        path.add("gender");
+        path.add(null);
+        path.add("value");
+        ClaimsQuery genderClaim = new ClaimsQuery(
+                "male_gender", path, List.of(new ClaimValue.StringValue("MLE")));
+        CredentialQuery query = new CredentialQuery(
+                "health_insurance_credential_id",
+                CredentialFormat.LDP_VC.getFormat(),
+                true,
+                Map.of(),
+                false,
+                List.of(genderClaim),
+                null);
+        QueryMatchResult queryMatch = new QueryMatchResult(
+                null,
+                List.of(new ClaimFailure(genderClaim, DCQLEvaluationErrorCodes.CLAIM_UNAVAILABLE)),
+                DCQLEvaluationErrorCodes.REQUIRED_CLAIMS_NOT_SATISFIED,
+                false);
+
+        Set<String> missingClaims = DcqlMatchingHelper.resolveMissingClaims(query, queryMatch);
+
+        assertEquals(Set.of("gender[*].value"), missingClaims);
+    }
+
+    @Test
+    public void should_omitBlankPath_when_failedClaimPathIsEmpty() {
+        ClaimsQuery blankClaim = new ClaimsQuery("blank", List.of(), null);
+        CredentialQuery query = new CredentialQuery(
+                "life_insurance_credential_id",
+                CredentialFormat.LDP_VC.getFormat(),
+                true,
+                Map.of(),
+                false,
+                List.of(blankClaim),
+                null);
+        QueryMatchResult queryMatch = new QueryMatchResult(
+                null,
+                List.of(new ClaimFailure(blankClaim, DCQLEvaluationErrorCodes.CLAIM_UNAVAILABLE)),
+                DCQLEvaluationErrorCodes.REQUIRED_CLAIMS_NOT_SATISFIED,
+                false);
+
+        Set<String> missingClaims = DcqlMatchingHelper.resolveMissingClaims(query, queryMatch);
+
+        assertTrue(missingClaims.isEmpty());
     }
 
     @Test

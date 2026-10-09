@@ -26,14 +26,15 @@ import java.util.stream.Collectors;
  */
 public final class DcqlClaimSetHelper {
 
-    /** Simple JSON keys use dot notation; keys with dots/hyphens need bracket notation (e.g. {@code org.iso.18013.5.1}). */
+    /** Simple JSON keys use dot notation; keys with dots need bracket notation (e.g. {@code org.iso.18013.5.1}). */
     private static final Pattern SIMPLE_PATH_SEGMENT = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*$");
 
     private DcqlClaimSetHelper() {
     }
 
     /**
-     * Builds a Jayway JSONPath from DCQL path segments, quoting segments that are not simple identifiers.
+     * Builds a Jayway JSONPath from a DCQL claims path pointer.
+     * A JSON {@code null} selects every array element ({@code [*]}). A non-simple key is quoted.
      */
     public static String buildJsonPath(List<?> pathSegments) {
         if (pathSegments == null || pathSegments.isEmpty()) {
@@ -46,31 +47,89 @@ public final class DcqlClaimSetHelper {
 
     /**
      * Builds a credential claim path (without {@code $.}) for SD-JWT lookup and missing-claim reporting.
+     * A JSON {@code null} selects every array element ({@code [*]}). The string {@code "null"} is an object key.
+     * The first string segment is kept as stored; later keys that contain dots are bracket-quoted.
      */
     public static String buildClaimPath(List<?> pathSegments) {
         if (pathSegments == null || pathSegments.isEmpty()) {
             return "";
         }
-        StringBuilder claimPath = new StringBuilder(pathSegments.get(0).toString());
-        if (pathSegments.size() > 1) {
-            appendPathSegments(claimPath, pathSegments.subList(1, pathSegments.size()));
+        StringBuilder claimPath = new StringBuilder();
+        boolean first = true;
+        for (Object segment : pathSegments) {
+            if (first && segment instanceof String value) {
+                claimPath.append(value);
+            } else {
+                appendPathSegment(claimPath, segment);
+            }
+            first = false;
         }
         return claimPath.toString();
     }
 
     private static void appendPathSegments(StringBuilder path, List<?> pathSegments) {
         for (Object segment : pathSegments) {
-            String value = segment.toString();
-            if (SIMPLE_PATH_SEGMENT.matcher(value).matches()) {
-                path.append('.').append(value);
-            } else {
-                path.append("['").append(escapePathSegment(value)).append("']");
-            }
+            appendPathSegment(path, segment);
+        }
+    }
+
+    private static void appendPathSegment(StringBuilder path, Object segment) {
+        if (segment == null) {
+            path.append("[*]");
+            return;
+        }
+        if (segment instanceof Number number) {
+            path.append('[').append(formatArrayIndex(number)).append(']');
+            return;
+        }
+        if (!(segment instanceof String value)) {
+            return;
+        }
+        if (SIMPLE_PATH_SEGMENT.matcher(value).matches()) {
+            path.append('.').append(value);
+        } else {
+            path.append("['").append(escapePathSegment(value)).append("']");
         }
     }
 
     private static String escapePathSegment(String segment) {
         return segment.replace("\\", "\\\\").replace("'", "\\'");
+    }
+
+    private static String formatArrayIndex(Number number) {
+        if (number instanceof Integer || number instanceof Long || number instanceof Short || number instanceof Byte) {
+            return Long.toString(number.longValue());
+        }
+        return number.toString();
+    }
+
+    /**
+     * Returns whether {@code storedPath} is selected by {@code queryPath}.
+     * A {@code [*]} segment matches any array index.
+     */
+    public static boolean claimPathMatches(String storedPath, String queryPath) {
+        if (storedPath == null || queryPath == null) {
+            return false;
+        }
+        String stored = stripDollarPrefix(storedPath);
+        String query = stripDollarPrefix(queryPath);
+        if (!query.contains("[*]")) {
+            return stored.equals(query);
+        }
+        StringBuilder regex = new StringBuilder();
+        for (int i = 0; i < query.length(); i++) {
+            if (query.startsWith("[*]", i)) {
+                regex.append("\\[(?:\\d+|\\*)\\]");
+                i += 2;
+            } else {
+                regex.append(Pattern.quote(String.valueOf(query.charAt(i))));
+            }
+        }
+        return stored.matches(regex.toString());
+    }
+
+    private static String stripDollarPrefix(String path) {
+        return path.startsWith("$.") ? path.substring(2) : path;
     }
 
     public static boolean hasClaimSets(CredentialQuery credentialQuery) {
