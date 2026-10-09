@@ -35,6 +35,17 @@
 			<class name="io.inji.testrig.apirig.mimoto.testscripts.SimplePost" />
 		</classes>
 	</test>
+	<test name="IssuersAuthorize">
+		<parameter name="ymlFile"
+				   value="mimoto/IssuersAuthorize/IssuersAuthorize.yml" />
+		<parameter name="pathParams" value="issuerId" />
+		<parameter name="headers" value="X-XSRF-TOKEN" />
+		<parameter name="idKeyName" value="state,authorizationUrl,sessionCookie" />
+		<classes>
+			<class
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+		</classes>
+	</test>
 	<test name="OAuthDetailsRequest">
 		<parameter name="ymlFile"
 				   value="mimoto/OAuthDetailsRequest/OAuthDetailsRequest.yml" />
@@ -275,6 +286,17 @@
 				name="io.inji.testrig.apirig.mimoto.testscripts.PatchWithPathParamsBodyAndCookie" />
 		</classes>
 	</test>
+	<test name="IssuersAuthorizeForGoogleLogin">
+		<parameter name="ymlFile"
+				   value="mimoto/LoginFlow/DownloadMosipIssuerCredential/IssuersAuthorize/IssuersAuthorize.yml" />
+		<parameter name="pathParams" value="issuerId" />
+		<parameter name="headers" value="" />
+		<parameter name="idKeyName" value="state,authorizationUrl" />
+		<classes>
+			<class
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+		</classes>
+	</test>
 	<test name="OAuthDetailsRequestForGoogleLogin">
 		<parameter name="ymlFile"
 				   value="mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest.yml" />
@@ -307,9 +329,20 @@
 	<test name="DownloadMosipIssuerCredentialWithGoogleLogin">
 		<parameter name="pathParams" value="walletId" />
 		<parameter name="idKeyName" value="credentialId" />
-		<parameter name="headers" value="Accept-Language" />
+		<parameter name="headers" value="Accept-Language,state" />
 		<parameter name="ymlFile"
 				   value="mimoto/LoginFlow/DownloadMosipIssuerCredential/DownloadIssuerCredential/DownloadIssuerCredential.yml" />
+		<classes>
+			<class
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+		</classes>
+	</test>
+	<test name="IssuersAuthorizeForStayProtectedGoogleLogin">
+		<parameter name="ymlFile"
+				   value="mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/IssuersAuthorize/IssuersAuthorize.yml" />
+		<parameter name="pathParams" value="issuerId" />
+		<parameter name="headers" value="" />
+		<parameter name="idKeyName" value="state,authorizationUrl" />
 		<classes>
 			<class
 					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
@@ -346,7 +379,7 @@
 	<test name="DownloadIssuerCredentialWithGoogleLogin">
 		<parameter name="pathParams" value="walletId" />
 		<parameter name="idKeyName" value="credentialId" />
-		<parameter name="headers" value="Accept-Language" />
+		<parameter name="headers" value="Accept-Language,state" />
 		<parameter name="ymlFile"
 				   value="mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/DownloadIssuerCredential/DownloadIssuerCredential.yml" />
 		<classes>

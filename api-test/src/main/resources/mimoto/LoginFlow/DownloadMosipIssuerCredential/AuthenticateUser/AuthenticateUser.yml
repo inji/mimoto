@@ -70,3 +70,147 @@ AuthenticateUserForGoogleLogin:
         "maskedEmail": "$IGNORE$"
     }
 }'
+
+   Mimoto_ESignet_AuthenticateUserIDPForGoogleLogin_uin_Otp_Valid_ForNeg_InvalidIssuer:
+      endPoint: /v1/esignet/authorization/authenticate
+      description: Authenticate the user for the fresh transaction minted for the InvalidIssuer_Neg download test case
+      uniqueIdentifier: TC_Mimoto_AuthenticateUserForGoogleLogin_03
+      role: resident
+      restMethod: post
+      checkErrorsOnlyInResponse: true
+      validityCheckRequired: true
+      inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthenticateUser/AuthenticateUser
+      outputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthenticateUser/AuthenticateUserResult
+      input: '{
+        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidIssuer_encodedResp$",
+          "requestTime": "$TIMESTAMP$",
+          "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidIssuer_transactionId$",
+          "individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+          "authFactorType" : "OTP",
+          "challenge" : "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_EMAIL$",
+        "sendOtp":{
+    "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidIssuer_encodedResp$",
+    "requestTime": "$TIMESTAMP$",
+    "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidIssuer_transactionId$",
+    "individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+    "otpChannels": [{channel: "email"},{channel: "phone"}],
+    "sendOtpReqTemplate": "mimoto/SendOtpEsignet/SendOtp",
+    "sendOtpEndPoint": "/v1/esignet/authorization/send-otp"
+    }
+    }'
+      output: '{
+  "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidIssuer_transactionId$",
+  "sendOtpResp":{
+        "maskedMobile": "$IGNORE$",
+        "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult",
+        "maskedEmail": "$IGNORE$"
+    }
+}'
+
+   Mimoto_ESignet_AuthenticateUserIDPForGoogleLogin_uin_Otp_Valid_ForNeg_NumericInIssuer:
+      endPoint: /v1/esignet/authorization/authenticate
+      description: Authenticate the user for the fresh transaction minted for the NumericInIssuer_Neg download test case
+      uniqueIdentifier: TC_Mimoto_AuthenticateUserForGoogleLogin_04
+      role: resident
+      restMethod: post
+      checkErrorsOnlyInResponse: true
+      validityCheckRequired: true
+      inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthenticateUser/AuthenticateUser
+      outputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthenticateUser/AuthenticateUserResult
+      input: '{
+        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInIssuer_encodedResp$",
+          "requestTime": "$TIMESTAMP$",
+          "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInIssuer_transactionId$",
+          "individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+          "authFactorType" : "OTP",
+          "challenge" : "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_EMAIL$",
+        "sendOtp":{
+    "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInIssuer_encodedResp$",
+    "requestTime": "$TIMESTAMP$",
+    "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInIssuer_transactionId$",
+    "individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+    "otpChannels": [{channel: "email"},{channel: "phone"}],
+    "sendOtpReqTemplate": "mimoto/SendOtpEsignet/SendOtp",
+    "sendOtpEndPoint": "/v1/esignet/authorization/send-otp"
+    }
+    }'
+      output: '{
+  "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInIssuer_transactionId$",
+  "sendOtpResp":{
+        "maskedMobile": "$IGNORE$",
+        "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult",
+        "maskedEmail": "$IGNORE$"
+    }
+}'
+
+   Mimoto_ESignet_AuthenticateUserIDPForGoogleLogin_uin_Otp_Valid_ForNeg_InvalidCredential:
+      endPoint: /v1/esignet/authorization/authenticate
+      description: Authenticate the user for the fresh transaction minted for the InvalidCredential_Neg download test case
+      uniqueIdentifier: TC_Mimoto_AuthenticateUserForGoogleLogin_05
+      role: resident
+      restMethod: post
+      checkErrorsOnlyInResponse: true
+      validityCheckRequired: true
+      inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthenticateUser/AuthenticateUser
+      outputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthenticateUser/AuthenticateUserResult
+      input: '{
+        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidCredential_encodedResp$",
+          "requestTime": "$TIMESTAMP$",
+          "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidCredential_transactionId$",
+          "individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+          "authFactorType" : "OTP",
+          "challenge" : "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_EMAIL$",
+        "sendOtp":{
+    "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidCredential_encodedResp$",
+    "requestTime": "$TIMESTAMP$",
+    "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidCredential_transactionId$",
+    "individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+    "otpChannels": [{channel: "email"},{channel: "phone"}],
+    "sendOtpReqTemplate": "mimoto/SendOtpEsignet/SendOtp",
+    "sendOtpEndPoint": "/v1/esignet/authorization/send-otp"
+    }
+    }'
+      output: '{
+  "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidCredential_transactionId$",
+  "sendOtpResp":{
+        "maskedMobile": "$IGNORE$",
+        "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult",
+        "maskedEmail": "$IGNORE$"
+    }
+}'
+
+   Mimoto_ESignet_AuthenticateUserIDPForGoogleLogin_uin_Otp_Valid_ForNeg_NumericInCredential:
+      endPoint: /v1/esignet/authorization/authenticate
+      description: Authenticate the user for the fresh transaction minted for the NumericInCredential_Neg download test case
+      uniqueIdentifier: TC_Mimoto_AuthenticateUserForGoogleLogin_06
+      role: resident
+      restMethod: post
+      checkErrorsOnlyInResponse: true
+      validityCheckRequired: true
+      inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthenticateUser/AuthenticateUser
+      outputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/AuthenticateUser/AuthenticateUserResult
+      input: '{
+        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInCredential_encodedResp$",
+          "requestTime": "$TIMESTAMP$",
+          "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInCredential_transactionId$",
+          "individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+          "authFactorType" : "OTP",
+          "challenge" : "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_EMAIL$",
+        "sendOtp":{
+    "encodedHash": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInCredential_encodedResp$",
+    "requestTime": "$TIMESTAMP$",
+    "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInCredential_transactionId$",
+    "individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+    "otpChannels": [{channel: "email"},{channel: "phone"}],
+    "sendOtpReqTemplate": "mimoto/SendOtpEsignet/SendOtp",
+    "sendOtpEndPoint": "/v1/esignet/authorization/send-otp"
+    }
+    }'
+      output: '{
+  "transactionId": "$ID:ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInCredential_transactionId$",
+  "sendOtpResp":{
+        "maskedMobile": "$IGNORE$",
+        "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult",
+        "maskedEmail": "$IGNORE$"
+    }
+}'

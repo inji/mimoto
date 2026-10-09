@@ -5,6 +5,7 @@ OAuthDetailsRequest:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequest_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorize_01
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/OAuthDetailsRequest/OAuthDetailsRequest
       outputTemplate: mimoto/responseCode
@@ -20,7 +21,65 @@ OAuthDetailsRequest:
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "eree2311",
 	    "claimsLocales": "en",
-	    "codeChallenge": "$CODECHALLENGE$",
+	    "codeChallenge": "$ID:IssuersAuthorize_Mosip_All_Valid_Smoke_sid_authorizationUrl$",
+        "codeChallengeMethod": "S256"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_ESignet_OAuthDetailsRequest_ForNeg_Issuer_sid:
+      endPoint: /v1/esignet/authorization/v2/oauth-details
+      description: Mint a fresh transaction for the Invalid_Issuer_Neg credential download negative test case
+      uniqueIdentifier: TC_Mimoto_OAuthDetailsRequest_02
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorize_07
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/OAuthDetailsRequest/OAuthDetailsRequest
+      outputTemplate: mimoto/responseCode
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
+      	"scope": "mosip_identity_vc_ldp",
+      	"responseType": "code",
+      	"redirectUri": "$INJIREDIRECTURI$",
+      	"display": "popup",
+	    "prompt": "login",
+	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
+	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
+	    "state": "eree2311",
+	    "claimsLocales": "en",
+	    "codeChallenge": "$ID:IssuersAuthorize_Mosip_ForNeg_sid_authorizationUrl$",
+        "codeChallengeMethod": "S256"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_ESignet_OAuthDetailsRequest_ForNeg_Credential_sid:
+      endPoint: /v1/esignet/authorization/v2/oauth-details
+      description: Mint a fresh transaction for the Invalid_Credential_Neg credential download negative test case
+      uniqueIdentifier: TC_Mimoto_OAuthDetailsRequest_03
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorize_08
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/OAuthDetailsRequest/OAuthDetailsRequest
+      outputTemplate: mimoto/responseCode
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
+      	"scope": "mosip_identity_vc_ldp",
+      	"responseType": "code",
+      	"redirectUri": "$INJIREDIRECTURI$",
+      	"display": "popup",
+	    "prompt": "login",
+	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
+	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
+	    "state": "eree2311",
+	    "claimsLocales": "en",
+	    "codeChallenge": "$ID:IssuersAuthorize_Mosip_ForNeg_Credential_sid_authorizationUrl$",
         "codeChallengeMethod": "S256"
 }'
       output: '{

@@ -5,6 +5,7 @@ OAuthDetailsRequestForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorizeForGoogleLogin_01
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest
       outputTemplate: mimoto/responseCode
@@ -20,7 +21,7 @@ OAuthDetailsRequestForGoogleLogin:
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "eree2311",
 	    "claimsLocales": "en",
-	    "codeChallenge": "$CODECHALLENGE$",
+	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_All_Valid_Smoke_sid_authorizationUrl$",
         "codeChallengeMethod": "S256"
 }'
       output: '{
@@ -33,6 +34,7 @@ OAuthDetailsRequestForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_02
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorizeForGoogleLogin_02
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest
       outputTemplate: mimoto/responseCode
@@ -48,7 +50,123 @@ OAuthDetailsRequestForGoogleLogin:
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "eree2311",
 	    "claimsLocales": "en",
-	    "codeChallenge": "$CODECHALLENGE$",
+	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_sid_authorizationUrl$",
+        "codeChallengeMethod": "S256"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidIssuer:
+      endPoint: /v1/esignet/authorization/v2/oauth-details
+      description: Mint a fresh transaction for the InvalidIssuer_Neg download test case
+      uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_03
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorizeForGoogleLogin_13
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest
+      outputTemplate: mimoto/responseCode
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
+      	"scope": "mosip_identity_vc_ldp",
+      	"responseType": "code",
+      	"redirectUri": "$INJIREDIRECTURI$",
+      	"display": "popup",
+	    "prompt": "login",
+	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
+	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
+	    "state": "eree2311",
+	    "claimsLocales": "en",
+	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_InvalidIssuer_sid_authorizationUrl$",
+        "codeChallengeMethod": "S256"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInIssuer:
+      endPoint: /v1/esignet/authorization/v2/oauth-details
+      description: Mint a fresh transaction for the NumericInIssuer_Neg download test case
+      uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_04
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorizeForGoogleLogin_14
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest
+      outputTemplate: mimoto/responseCode
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
+      	"scope": "mosip_identity_vc_ldp",
+      	"responseType": "code",
+      	"redirectUri": "$INJIREDIRECTURI$",
+      	"display": "popup",
+	    "prompt": "login",
+	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
+	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
+	    "state": "eree2311",
+	    "claimsLocales": "en",
+	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_NumericInIssuer_sid_authorizationUrl$",
+        "codeChallengeMethod": "S256"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_InvalidCredential:
+      endPoint: /v1/esignet/authorization/v2/oauth-details
+      description: Mint a fresh transaction for the InvalidCredential_Neg download test case
+      uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_05
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorizeForGoogleLogin_15
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest
+      outputTemplate: mimoto/responseCode
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
+      	"scope": "mosip_identity_vc_ldp",
+      	"responseType": "code",
+      	"redirectUri": "$INJIREDIRECTURI$",
+      	"display": "popup",
+	    "prompt": "login",
+	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
+	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
+	    "state": "eree2311",
+	    "claimsLocales": "en",
+	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_InvalidCredential_sid_authorizationUrl$",
+        "codeChallengeMethod": "S256"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_ESignet_OAuthDetailsRequest_GoogleLogin_all_Valid_sid_ForNeg_NumericInCredential:
+      endPoint: /v1/esignet/authorization/v2/oauth-details
+      description: Mint a fresh transaction for the NumericInCredential_Neg download test case
+      uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestForGoogleLogin_06
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorizeForGoogleLogin_16
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadMosipIssuerCredential/OAuthDetailsRequest/OAuthDetailsRequest
+      outputTemplate: mimoto/responseCode
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
+      	"scope": "mosip_identity_vc_ldp",
+      	"responseType": "code",
+      	"redirectUri": "$INJIREDIRECTURI$",
+      	"display": "popup",
+	    "prompt": "login",
+	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
+	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
+	    "state": "eree2311",
+	    "claimsLocales": "en",
+	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_NumericInCredential_sid_authorizationUrl$",
         "codeChallengeMethod": "S256"
 }'
       output: '{

@@ -18,3 +18,43 @@ AuthorizationCode:
       output: '{
       "responseCode": "200"
 }'
+
+   Mimoto_ESignet_AuthorizationCode_ForNeg_Issuer_sid:
+      endPoint: /v1/esignet/authorization/auth-code
+      description: Mint a fresh, unused authorization code for the Invalid_Issuer_Neg credential download negative test case
+      uniqueIdentifier: TC_Mimoto_AuthorizationCode_02
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_AuthenticateUser_02
+      checkOnlyStatusCodeInResponse: true
+      validityCheckRequired: true
+      inputTemplate: mimoto/AuthorizationCode/AuthorizationCode
+      outputTemplate: mimoto/responseCode
+      input: '{
+        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Issuer_sid_encodedResp$",
+      	"requestTime": "$TIMESTAMP$",
+      	"transactionId": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Issuer_sid_transactionId$"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_ESignet_AuthorizationCode_ForNeg_Credential_sid:
+      endPoint: /v1/esignet/authorization/auth-code
+      description: Mint a fresh, unused authorization code for the Invalid_Credential_Neg credential download negative test case
+      uniqueIdentifier: TC_Mimoto_AuthorizationCode_03
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_AuthenticateUser_03
+      checkOnlyStatusCodeInResponse: true
+      validityCheckRequired: true
+      inputTemplate: mimoto/AuthorizationCode/AuthorizationCode
+      outputTemplate: mimoto/responseCode
+      input: '{
+        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Credential_sid_encodedResp$",
+      	"requestTime": "$TIMESTAMP$",
+      	"transactionId": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Credential_sid_transactionId$"
+}'
+      output: '{
+      "responseCode": "200"
+}'

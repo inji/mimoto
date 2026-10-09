@@ -1,0 +1,187 @@
+IssuersAuthorize:
+   Mimoto_IssuersAuthorize_Mosip_All_Valid_Smoke_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that an OpenID4VCI authorization URL and DPoP/PKCE session state are created successfully for a guest download of the Mosip issuer
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_01
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_StayProtected_All_Valid_Smoke_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that an OpenID4VCI authorization URL and DPoP/PKCE session state are created successfully for a guest download of the StayProtected issuer
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_02
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "StayProtected",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "InsuranceCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_InvalidIssuerId_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that building the authorization URL fails with a bad request when an invalid issuerId is provided
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_03
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "InvalidIssuer",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorize_MissingRedirectUri_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that building the authorization URL fails with a bad request when redirectUri is missing
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_04
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorize_MissingCredentialConfigurationId_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that building the authorization URL fails with a bad request when credentialConfigurationId is missing
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_05
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorize_MissingUiLocales_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that building the authorization URL fails with a bad request when uiLocales is missing
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_06
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorize_Mosip_ForNeg_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh DPoP/PKCE session state for the guest Mosip download Invalid_Issuer_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_07
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_Mosip_ForNeg_Credential_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh DPoP/PKCE session state for the guest Mosip download Invalid_Credential_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_08
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_Mosip_ForNeg_AuthCode_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh DPoP/PKCE session state for the guest Mosip download Invalid_AuthorizationCode_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_09
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_Mosip_ForNeg_Reused_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh DPoP/PKCE session state for the guest Mosip download Reused_AuthorizationCode_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_10
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'

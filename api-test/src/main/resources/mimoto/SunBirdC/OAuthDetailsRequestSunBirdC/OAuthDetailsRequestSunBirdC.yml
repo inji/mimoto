@@ -5,6 +5,7 @@ OAuthDetailsRequestSunBirdC:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestSunBirdC_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorize_02
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/SunBirdC/OAuthDetailsRequestSunBirdC/OAuthDetailsRequestSunBirdC
       outputTemplate: mimoto/responseCode
@@ -20,7 +21,7 @@ OAuthDetailsRequestSunBirdC:
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "eree2311",
 	    "claimsLocales": "en",
-	    "codeChallenge": "$CODECHALLENGE$",
+	    "codeChallenge": "$ID:IssuersAuthorize_StayProtected_All_Valid_Smoke_sid_authorizationUrl$",
         "codeChallengeMethod": "S256"
 }'
       output: '{
