@@ -4613,6 +4613,7 @@
                                         "ovp.qrdata.pattern": "INJI_OVP://https://injiweb.collab.mosip.net/authorize?response_type=vp_token&resource=%s&presentation_definition=%s",
                                         "minStorageRequiredForAuditEntry": "2",
                                         "minStorageRequired": "2",
+                                        "keyPriorityOrder": "Ed25519,ES256K,ES256,RS256",
                                         "vcDownloadPoolInterval": "6000",
                                         "issuer": "residentapp",
                                         "ovp.redirect.url.pattern": "%s#vp_token=%s&presentation_submission=%s",
