@@ -94,8 +94,8 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 		
 		String inputJson = getJsonFromTemplate(testCaseDTO.getInput(), testCaseDTO.getInputTemplate());
 		inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
-		
-		pdf = postWithFormDataBodyForPdf(ApplnURI + testCaseDTO.getEndPoint(), inputJson, COOKIENAME,  testCaseDTO.getRole(), testCaseDTO.getTestCaseName());
+
+		pdf = postWithFormDataBodyForPdfWithStateHeaderAndCookie(ApplnURI + testCaseDTO.getEndPoint(), inputJson);
 		PdfReader pdfReader = null;
 		ByteArrayInputStream bIS = null;
 		
@@ -111,8 +111,9 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 		}
 		 
 		if (pdf != null && (new String(pdf).contains("errors") || pdfAsText == null)) {
+			// pdf bytes are actually a JSON error body here, not a PDF - surface it instead of "null"
 			GlobalMethods.reportResponse(null, ApplnURI + testCaseDTO.getEndPoint(),
-					"Not able to download issuer credential");
+					"Not able to download issuer credential. Raw response: " + new String(pdf));
 			if (!testCaseName.contains("_Neg")) {
 				throw new AdminTestException("Not able to download issuer credential");
 			}

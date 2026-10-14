@@ -32,3 +32,71 @@ AuthenticateUser:
         "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult"
     }
 }'
+
+   Mimoto_ESignet_AuthenticateUserIDP_ForNeg_Issuer:
+      endPoint: /v1/esignet/authorization/authenticate
+      description: Authenticate the user for the fresh transaction minted for the Invalid_Issuer_Neg credential download negative test case
+      uniqueIdentifier: TC_Mimoto_AuthenticateUser_02
+      role: resident
+      restMethod: post
+      checkErrorsOnlyInResponse: true
+      validityCheckRequired: true
+      inputTemplate: mimoto/AuthenticateUser/AuthenticateUser
+      outputTemplate: mimoto/AuthenticateUser/AuthenticateUserResult
+      input: '{
+        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Issuer_sid_encodedResp$",
+      	"requestTime": "$TIMESTAMP$",
+      	"transactionId": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Issuer_sid_transactionId$",
+      	"individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+      	"authFactorType" : "OTP",
+      	"challenge" : "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_EMAIL$",
+        "sendOtp":{
+    "encodedHash": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Issuer_sid_encodedResp$",
+    "requestTime": "$TIMESTAMP$",
+    "transactionId": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Issuer_sid_transactionId$",
+	"individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+    "otpChannels": [{channel: "email"},{channel: "phone"}],
+    "sendOtpReqTemplate": "mimoto/SendOtpEsignet/SendOtp",
+    "sendOtpEndPoint": "/v1/esignet/authorization/send-otp"
+    }
+    }'
+      output: '{
+        "transactionId": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Issuer_sid_transactionId$",
+  "sendOtpResp":{
+        "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult"
+    }
+}'
+
+   Mimoto_ESignet_AuthenticateUserIDP_ForNeg_Credential:
+      endPoint: /v1/esignet/authorization/authenticate
+      description: Authenticate the user for the fresh transaction minted for the Invalid_Credential_Neg credential download negative test case
+      uniqueIdentifier: TC_Mimoto_AuthenticateUser_03
+      role: resident
+      restMethod: post
+      checkErrorsOnlyInResponse: true
+      validityCheckRequired: true
+      inputTemplate: mimoto/AuthenticateUser/AuthenticateUser
+      outputTemplate: mimoto/AuthenticateUser/AuthenticateUserResult
+      input: '{
+        "encodedHash": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Credential_sid_encodedResp$",
+      	"requestTime": "$TIMESTAMP$",
+      	"transactionId": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Credential_sid_transactionId$",
+      	"individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+      	"authFactorType" : "OTP",
+      	"challenge" : "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_EMAIL$",
+        "sendOtp":{
+    "encodedHash": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Credential_sid_encodedResp$",
+    "requestTime": "$TIMESTAMP$",
+    "transactionId": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Credential_sid_transactionId$",
+	"individualId": "$ID:AddIdentity_downloadIssuerCredential_smoke_Pos_UIN$",
+    "otpChannels": [{channel: "email"},{channel: "phone"}],
+    "sendOtpReqTemplate": "mimoto/SendOtpEsignet/SendOtp",
+    "sendOtpEndPoint": "/v1/esignet/authorization/send-otp"
+    }
+    }'
+      output: '{
+        "transactionId": "$ID:ESignet_OAuthDetailsRequest_ForNeg_Credential_sid_transactionId$",
+  "sendOtpResp":{
+        "sendOtpResTemplate":"esignet/SendOtp/SendOtpResult"
+    }
+}'
