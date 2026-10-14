@@ -6,7 +6,8 @@
         "openId4VCIDownloadVCTimeout": "30000",
         "vcDownloadMaxRetry": "10",
         "vcDownloadPoolInterval": "6000",
-        "issuer": "residentapp"
+        "issuer": "residentapp",
+        "keyPriorityOrder": "Ed25519,ES256K,ES256,RS256"
     },
     "errors": []
 }
