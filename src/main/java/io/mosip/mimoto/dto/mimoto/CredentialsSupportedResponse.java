@@ -29,7 +29,6 @@ public class CredentialsSupportedResponse {
     @Schema(description = "document Type of the Credential")
     private String doctype;
 
-    @NotEmpty(message = "Proof types supported must not be empty")
     @Valid
     @SerializedName("proof_types_supported")
     @JsonProperty("proof_types_supported")
@@ -58,5 +57,11 @@ public class CredentialsSupportedResponse {
 
     @Schema(description = "Identify the type or schema of the claims included")
     private String vct;
+
+    @JsonInclude(NON_NULL)
+    @SerializedName("cryptographic_binding_methods_supported")
+    @JsonProperty("cryptographic_binding_methods_supported")
+    @Schema(description = "List of cryptographic binding methods supported")
+    private List<String> cryptographicBindingMethodsSupported;
 
 }

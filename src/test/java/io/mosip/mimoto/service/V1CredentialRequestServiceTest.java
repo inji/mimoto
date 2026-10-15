@@ -26,6 +26,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class V1CredentialRequestServiceTest {
@@ -64,6 +65,7 @@ class V1CredentialRequestServiceTest {
         credentialsSupportedResponse = new CredentialsSupportedResponse();
         credentialsSupportedResponse.setFormat("vc+sd-jwt");
         credentialsSupportedResponse.setProofTypesSupported(new HashMap<>(Map.of("jwt", proofTypesSupported)));
+        credentialsSupportedResponse.setCryptographicBindingMethodsSupported(List.of("did:jwk"));
 
         wellKnownResponse = new CredentialIssuerWellKnownResponse();
         wellKnownResponse.setCredentialIssuer(CREDENTIAL_ISSUER);
@@ -224,5 +226,47 @@ class V1CredentialRequestServiceTest {
     void shouldReturnCorrectSigningAlgorithmsPriorityOrder() {
         assertEquals(4, service.getSigningAlgorithmsPriorityOrder().size());
         assertTrue(service.getSigningAlgorithmsPriorityOrder().contains("ED25519"));
+    }
+
+    @Test
+    void shouldBuildRequestWithoutProofWhenCryptographicBindingMethodsAreAbsent() throws Exception {
+        credentialsSupportedResponse.setCryptographicBindingMethodsSupported(null);
+
+        V1VCCredentialRequest result = service.buildRequest(issuerDTO, CREDENTIAL_CONFIG_ID, wellKnownResponse, null, null, false);
+
+        assertNotNull(result);
+        assertEquals(CREDENTIAL_CONFIG_ID, result.getCredentialConfigurationId());
+        assertNull(result.getProofs());
+        signingKeyUtilMock.verifyNoInteractions();
+        verifyNoInteractions(restApiClient); // nonce should never be fetched
+    }
+
+    @Test
+    void shouldBuildRequestWithoutProofWhenProofTypesSupportedIsAbsent() throws Exception {
+        credentialsSupportedResponse.setProofTypesSupported(null);
+
+        V1VCCredentialRequest result = service.buildRequest(issuerDTO, CREDENTIAL_CONFIG_ID, wellKnownResponse, null, null, false);
+
+        assertNotNull(result);
+        assertNull(result.getProofs());
+        verifyNoInteractions(restApiClient);
+    }
+
+    @Test
+    void shouldBuildRequestWithoutProofWhenCryptographicBindingMethodsAreEmpty() throws Exception {
+        credentialsSupportedResponse.setCryptographicBindingMethodsSupported(Collections.emptyList());
+
+        V1VCCredentialRequest result = service.buildRequest(issuerDTO, CREDENTIAL_CONFIG_ID, wellKnownResponse, null, null, false);
+
+        assertNull(result.getProofs());
+    }
+
+    @Test
+    void shouldBuildRequestWithoutProofWhenProofTypesSupportedIsEmpty() throws Exception {
+        credentialsSupportedResponse.setProofTypesSupported(new HashMap<>());
+
+        V1VCCredentialRequest result = service.buildRequest(issuerDTO, CREDENTIAL_CONFIG_ID, wellKnownResponse, null, null, false);
+
+        assertNull(result.getProofs());
     }
 }

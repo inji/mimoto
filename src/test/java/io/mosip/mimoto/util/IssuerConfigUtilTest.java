@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.VCSpecificationVersion;
 import io.mosip.mimoto.dto.mimoto.AuthorizationServerWellKnownResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
+import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.AuthorizationServerWellknownResponseException;
 import io.mosip.mimoto.exception.InvalidWellknownResponseException;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import static io.mosip.mimoto.util.TestUtilities.*;
@@ -200,6 +202,35 @@ public class IssuerConfigUtilTest {
     public void testCamelToTitleCaseMixedCase() {
         String result = issuersConfigUtil.camelToTitleCase("pinFor");
         assertEquals("Pin For", result);
+    }
+
+    @Test
+    public void shouldRequireProofWhenBindingMethodsAndProofTypesArePresent() {
+        CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("CredentialType1");
+
+        assertTrue(IssuerConfigUtil.requiresProof(credentialsSupportedResponse));
+    }
+
+    @Test
+    public void shouldNotRequireProofWhenBindingMethodsAreAbsentOrEmpty() {
+        CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("CredentialType1");
+
+        credentialsSupportedResponse.setCryptographicBindingMethodsSupported(null);
+        assertFalse(IssuerConfigUtil.requiresProof(credentialsSupportedResponse));
+
+        credentialsSupportedResponse.setCryptographicBindingMethodsSupported(List.of());
+        assertFalse(IssuerConfigUtil.requiresProof(credentialsSupportedResponse));
+    }
+
+    @Test
+    public void shouldNotRequireProofWhenProofTypesAreAbsentOrEmpty() {
+        CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("CredentialType1");
+
+        credentialsSupportedResponse.setProofTypesSupported(null);
+        assertFalse(IssuerConfigUtil.requiresProof(credentialsSupportedResponse));
+
+        credentialsSupportedResponse.setProofTypesSupported(new HashMap<>());
+        assertFalse(IssuerConfigUtil.requiresProof(credentialsSupportedResponse));
     }
 
 }

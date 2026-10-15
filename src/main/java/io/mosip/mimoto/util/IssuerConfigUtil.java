@@ -16,6 +16,7 @@ import jakarta.validation.ValidatorFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
@@ -38,6 +39,11 @@ public class IssuerConfigUtil {
         this.parserFactory = parserFactory;
         this.objectMapper = objectMapper;
         this.validator = validator;
+    }
+
+    public static boolean requiresProof(CredentialsSupportedResponse credentialsSupportedResponse) {
+        return !CollectionUtils.isEmpty(credentialsSupportedResponse.getCryptographicBindingMethodsSupported())
+                && !CollectionUtils.isEmpty(credentialsSupportedResponse.getProofTypesSupported());
     }
 
     public static String camelToTitleCase(String input) {

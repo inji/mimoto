@@ -95,6 +95,7 @@ public class TestUtilities {
         proofTypesSupported.setProofSigningAlgValuesSupported(List.of("RS256"));
         proofTypesSupportedHashMap.put("jwt", proofTypesSupported);
         credentialsSupportedResponse.setProofTypesSupported(proofTypesSupportedHashMap);
+        credentialsSupportedResponse.setCryptographicBindingMethodsSupported(List.of("did:jwk"));
         credentialsSupportedResponse.setCredentialDefinition(credentialDefinitionResponseDto);
         return credentialsSupportedResponse;
     }
@@ -135,6 +136,7 @@ public class TestUtilities {
         proofTypesSupported.setProofSigningAlgValuesSupported(List.of("RS256"));
         proofTypesSupportedHashMap.put("jwt", proofTypesSupported);
         credentialsSupportedResponse.setProofTypesSupported(proofTypesSupportedHashMap);
+        credentialsSupportedResponse.setCryptographicBindingMethodsSupported(List.of("did:jwk"));
         credentialsSupportedResponse.setDoctype("org.iso.18018");
         credentialsSupportedResponse.setClaims(Map.of("org.iso.18018", Map.of("given_name", Map.of("display", List.of(Map.of("name", "Given Name", "locale", "en"))))));
         return credentialsSupportedResponse;

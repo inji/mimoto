@@ -70,6 +70,33 @@ public class CredentialRequestServiceTest {
     }
 
     @Test
+    public void shouldBuildRequestWithoutProofWhenProofIsNotRequired() throws Exception {
+        CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("CredentialType1");
+        credentialsSupportedResponse.setCryptographicBindingMethodsSupported(null);
+
+        CredentialIssuerWellKnownResponse issuerWellKnownResponse = new CredentialIssuerWellKnownResponse();
+        issuerWellKnownResponse.setCredentialIssuer("https://example-issuer.com");
+        issuerWellKnownResponse.setCredentialConfigurationsSupported(
+                Map.of("CredentialType1", credentialsSupportedResponse)
+        );
+
+        Draft13VCCredentialRequest result = credentialRequestServiceImpl.buildRequest(
+                issuerDTO,
+                "CredentialType1",
+                issuerWellKnownResponse,
+                "test-cnonce",
+                "walletId",
+                "walletKey",
+                false
+        );
+
+        assertEquals("ldp_vc", result.getFormat());
+        assertNotNull(result.getCredentialDefinition());
+        assertNull(result.getProof());
+        keyGenerationUtilMockedStatic.verify(() -> SigningKeyUtil.generateKeyPair(Mockito.any()), Mockito.never());
+    }
+
+    @Test
     public void shouldHandleNullContextInCredentialSupportedResponse() throws Exception {
         CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("CredentialType1");
         credentialsSupportedResponse.getCredentialDefinition().setContext(null);
