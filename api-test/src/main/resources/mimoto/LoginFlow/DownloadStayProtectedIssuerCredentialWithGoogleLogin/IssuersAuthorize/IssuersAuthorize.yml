@@ -1,0 +1,129 @@
+IssuersAuthorize:
+   Mimoto_IssuersAuthorize_StayProtectedForGoogleLogin_All_Valid_Smoke_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that an OpenID4VCI authorization URL and DPoP/PKCE session state are created for the logged-in Google user before downloading the StayProtected credential
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_01
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "StayProtected",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "InsuranceCredential",
+      "uiLocales": "en",
+      "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+      "cookieName": "SESSION"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_InvalidIssuerId_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that building the authorization URL fails with a bad request when an invalid issuerId is provided for the logged-in Google user
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_03
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "InvalidIssuer",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "InsuranceCredential",
+      "uiLocales": "en",
+      "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+      "cookieName": "SESSION"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_MissingRedirectUri_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that building the authorization URL fails with a bad request when redirectUri is missing for the logged-in Google user
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_04
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "StayProtected",
+      "credentialConfigurationId": "InsuranceCredential",
+      "uiLocales": "en",
+      "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+      "cookieName": "SESSION"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_MissingCredentialConfigurationId_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that building the authorization URL fails with a bad request when credentialConfigurationId is missing for the logged-in Google user
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_05
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "StayProtected",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "uiLocales": "en",
+      "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+      "cookieName": "SESSION"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_MissingUiLocales_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that building the authorization URL fails with a bad request when uiLocales is missing for the logged-in Google user
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_06
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "StayProtected",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "InsuranceCredential",
+      "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+      "cookieName": "SESSION"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorize_StayProtectedForGoogleLogin_MultipleVC_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh DPoP/PKCE session state for the logged-in Google user, used by the download-multiple-credentials StayProtected flow
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_02
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "StayProtected",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "InsuranceCredential",
+      "uiLocales": "en",
+      "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+      "cookieName": "SESSION"
+}'
+      output: '{
+      "responseCode": "200"
+}'

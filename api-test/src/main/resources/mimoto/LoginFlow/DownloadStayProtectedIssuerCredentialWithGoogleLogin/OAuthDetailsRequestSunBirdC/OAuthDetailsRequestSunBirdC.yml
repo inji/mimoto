@@ -5,6 +5,7 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestSunBirdCForGoogleLogin_01
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_01
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/OAuthDetailsRequestSunBirdC/OAuthDetailsRequestSunBirdC
       outputTemplate: mimoto/responseCode
@@ -18,9 +19,9 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
       	"prompt": "login",
       	"acrValues": "mosip:idp:acr:knowledge",
       	"nonce": "$UNIQUENONCEVALUEFORESIGNET$",
-      	"state": "eree2311",
+      	"state": "$ID:IssuersAuthorize_StayProtectedForGoogleLogin_All_Valid_Smoke_sid_state$",
       	"claimsLocales": "en",
-      	"codeChallenge": "$CODECHALLENGE$",
+      	"codeChallenge": "$ID:IssuersAuthorize_StayProtectedForGoogleLogin_All_Valid_Smoke_sid_authorizationUrl$",
         "codeChallengeMethod": "S256"
 }'
       output: '{
@@ -33,6 +34,7 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
       uniqueIdentifier: TC_Mimoto_OAuthDetailsRequestSunBirdCForGoogleLogin_02
       role: resident
       restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_02
       checkOnlyStatusCodeInResponse: true
       inputTemplate: mimoto/LoginFlow/DownloadStayProtectedIssuerCredentialWithGoogleLogin/OAuthDetailsRequestSunBirdC/OAuthDetailsRequestSunBirdC
       outputTemplate: mimoto/responseCode
@@ -46,9 +48,9 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
       	"prompt": "login",
       	"acrValues": "mosip:idp:acr:knowledge",
       	"nonce": "$UNIQUENONCEVALUEFORESIGNET$",
-      	"state": "eree2311",
+      	"state": "$ID:IssuersAuthorize_StayProtectedForGoogleLogin_MultipleVC_sid_state$",
       	"claimsLocales": "en",
-      	"codeChallenge": "$CODECHALLENGE$",
+      	"codeChallenge": "$ID:IssuersAuthorize_StayProtectedForGoogleLogin_MultipleVC_sid_authorizationUrl$",
         "codeChallengeMethod": "S256"
 }'
       output: '{
