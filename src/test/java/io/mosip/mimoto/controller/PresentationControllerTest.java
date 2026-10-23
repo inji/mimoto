@@ -68,10 +68,18 @@ public class PresentationControllerTest {
     private static final String PRESENTATION_DEFINITION_JSON = "{\"id\":\"test\",\"input_descriptors\":[]}";
     private static final String SUCCESS_REDIRECT_URL = "https://success.redirect.url";
     private static final String RESPONSE_URI = "https://example.com/v0/verify/vp-submission/direct-post?session=abc";
+    private static final String VERIFIER_ERROR_REDIRECT = "https://verifier.example.com/after-error";
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
+        lenient().when(verifierService.verifyRedirectUri(eq(CLIENT_ID), anyString())).thenAnswer(invocation -> {
+            String redirectUri = invocation.getArgument(1);
+            if (REDIRECT_URI.equals(redirectUri) || VERIFIER_ERROR_REDIRECT.equals(redirectUri)) {
+                return redirectUri;
+            }
+            return null;
+        });
     }
 
     private VerifierDTO createVerifierDTO(SpecVersion specVersion) {
@@ -557,6 +565,68 @@ public class PresentationControllerTest {
                         .param("redirect_uri", REDIRECT_URI)
                         .param("response_uri", RESPONSE_URI)
                         .param("state", "session-state"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedRedirectUrl));
+    }
+
+    @Test
+    public void should_fallBackToRegisteredRedirectUri_when_verifierErrorRedirectIsUntrusted() throws Exception {
+        String errorCode = "VP_NOT_CREATED";
+        String errorMessage = "VP creation failed";
+        when(objectMapper.readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class))
+                .thenReturn(new PresentationDefinitionDTO());
+        when(verifierService.validateVerifier(CLIENT_ID, RESPONSE_URI, REDIRECT_URI))
+                .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
+        when(presentationService.processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class)))
+                .thenThrow(new VPNotCreatedException(errorCode, errorMessage));
+        when(presentationService.submitErrorToResponseUri(RESPONSE_URI, REDIRECT_URI, null, errorCode, errorMessage))
+                .thenReturn("https://evil.example/phish");
+
+        String expectedRedirectUrl = String.format(
+                "%s?error_code=%s&error_message=%s",
+                REDIRECT_URI,
+                errorCode,
+                URLEncoder.encode(errorMessage, StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/authorize")
+                        .param("response_type", RESPONSE_TYPE)
+                        .param("resource", RESOURCE)
+                        .param("presentation_definition", PRESENTATION_DEFINITION_JSON)
+                        .param("client_id", CLIENT_ID)
+                        .param("redirect_uri", REDIRECT_URI)
+                        .param("response_uri", RESPONSE_URI))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedRedirectUrl));
+    }
+
+    @Test
+    public void should_fallBackToInjiWeb_whenResponseUriIsValidAndRedirectUriIsNotRegistered() throws Exception {
+        String errorCode = "VP_NOT_CREATED";
+        String errorMessage = "VP creation failed";
+        String untrustedRedirectUri = "https://evil.example/phish";
+        when(objectMapper.readValue(PRESENTATION_DEFINITION_JSON, PresentationDefinitionDTO.class))
+                .thenReturn(new PresentationDefinitionDTO());
+        when(verifierService.validateVerifier(CLIENT_ID, RESPONSE_URI, untrustedRedirectUri))
+                .thenReturn(createVerifierDTO(SpecVersion.DRAFT_23));
+        when(presentationService.processVPRequest(any(PresentationRequestDTO.class), any(SpecVersion.class)))
+                .thenThrow(new VPNotCreatedException(errorCode, errorMessage));
+        when(presentationService.submitErrorToResponseUri(RESPONSE_URI, untrustedRedirectUri, null, errorCode, errorMessage))
+                .thenReturn(untrustedRedirectUri);
+
+        String expectedRedirectUrl = String.format(
+                "https://inji.web.redirect.url?error_code=%s&error_message=%s",
+                errorCode,
+                URLEncoder.encode(errorMessage, StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/authorize")
+                        .param("response_type", RESPONSE_TYPE)
+                        .param("resource", RESOURCE)
+                        .param("presentation_definition", PRESENTATION_DEFINITION_JSON)
+                        .param("client_id", CLIENT_ID)
+                        .param("redirect_uri", untrustedRedirectUri)
+                        .param("response_uri", RESPONSE_URI))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirectUrl));
     }

@@ -99,6 +99,27 @@ public class VerifierServiceImpl implements VerifierService {
         return verifierDTO;
     }
 
+    @Override
+    public String verifyRedirectUri(String clientId, String redirectUri) {
+        if (redirectUri == null || redirectUri.isBlank()) {
+            return null;
+        }
+        try {
+            Optional<VerifierDTO> verifier = getVerifierByClientId(clientId);
+            if (verifier.isEmpty()) {
+                return null;
+            }
+            List<String> registeredRedirectUris = Optional.ofNullable(verifier.get().getRedirectUris())
+                    .orElseGet(Collections::emptyList);
+            boolean matches = registeredRedirectUris.stream()
+                    .anyMatch(registeredRedirectUri -> matchesRegisteredUri(registeredRedirectUri, redirectUri));
+            return matches ? redirectUri : null;
+        } catch (Exception lookupFailure) {
+            log.error("Failed to load trusted verifier redirect URIs for client {}", clientId, lookupFailure);
+            return null;
+        }
+    }
+
     private boolean matchesRegisteredUri(String registeredUri, String requestUri) {
         return urlValidator.isValid(registeredUri)
                 && urlValidator.isValid(requestUri)

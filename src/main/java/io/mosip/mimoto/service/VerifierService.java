@@ -14,6 +14,12 @@ import java.util.Optional;
 public interface VerifierService {
     Optional<VerifierDTO> getVerifierByClientId(String clientId) throws ApiNotAccessibleException, IOException;
     VerifierDTO validateVerifier(String clientId, String responseUri, String redirectUri) throws ApiNotAccessibleException, IOException;
+
+    /**
+     * Returns {@code redirectUri} when it matches a redirect URI registered for {@code clientId}.
+     * Returns null when the redirect URI is blank, the client is unknown, or no registered URI matches.
+     */
+    String verifyRedirectUri(String clientId, String redirectUri);
     VerifiersDTO getTrustedVerifiers() throws ApiNotAccessibleException, IOException;
     boolean isVerifierTrustedByWallet(String verifierId, String walletId);
     boolean isVerifierClientPreregistered(List<Verifier> preRegisteredVerifiers, String urlEncodedVPAuthorizationRequest) throws URISyntaxException;

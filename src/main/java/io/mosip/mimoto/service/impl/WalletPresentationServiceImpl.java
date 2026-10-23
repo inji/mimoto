@@ -832,7 +832,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
      */
     private VerifiablePresentationVerifierDTO createVPResponseVerifierDTO(
             List<Verifier> preRegisteredVerifiers, AuthorizationRequest authorizationRequest, String walletId) {
-        boolean preRegistered = preRegisteredVerifiers.stream()
+        boolean preRegistered = preRegisteredVerifiers != null && preRegisteredVerifiers.stream()
                 .map(Verifier::getClientId).anyMatch(id -> Objects.equals(id, authorizationRequest.getClientId()));
         boolean trusted = verifierService.isVerifierTrustedByWallet(authorizationRequest.getClientId(), walletId);
         String clientName = resolveClientName(authorizationRequest);
