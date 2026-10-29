@@ -1,6 +1,5 @@
 package io.inji.testrig.apirig.mimoto.testscripts;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import org.apache.log4j.Level;
@@ -15,8 +14,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.parser.PdfTextExtractor;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 
 import io.inji.testrig.apirig.mimoto.utils.MimotoConfigManager;
 import io.inji.testrig.apirig.mimoto.utils.MimotoUtil;
@@ -24,7 +24,6 @@ import io.mosip.testrig.apirig.dto.TestCaseDTO;
 import io.mosip.testrig.apirig.testrunner.BaseTestCase;
 import io.mosip.testrig.apirig.testrunner.HealthChecker;
 import io.mosip.testrig.apirig.utils.AdminTestException;
-import io.mosip.testrig.apirig.utils.AdminTestUtil;
 import io.mosip.testrig.apirig.utils.AuthenticationTestException;
 import io.mosip.testrig.apirig.utils.GlobalConstants;
 import io.mosip.testrig.apirig.utils.GlobalMethods;
@@ -96,18 +95,24 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 		inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
 
 		pdf = postWithFormDataBodyForPdfWithStateHeaderAndCookie(ApplnURI + testCaseDTO.getEndPoint(), inputJson);
-		PdfReader pdfReader = null;
-		ByteArrayInputStream bIS = null;
+		PDDocument pdfReader = null;
 		
 		try {
-			bIS = new ByteArrayInputStream(pdf);
-			pdfReader = new PdfReader(bIS);
-			pdfAsText = PdfTextExtractor.getTextFromPage(pdfReader, 1);
+			pdfReader = Loader.loadPDF(pdf);
+			PDFTextStripper stripper = new PDFTextStripper();
+			stripper.setStartPage(1);
+			stripper.setEndPage(1);
+			pdfAsText = stripper.getText(pdfReader);
 		} catch (IOException e) {
 			Reporter.log("Exception : " + e.getMessage());
 		} finally {
-			AdminTestUtil.closeByteArrayInputStream(bIS);
-			AdminTestUtil.closePdfReader(pdfReader);
+			if (pdfReader != null) {
+				try {
+					pdfReader.close();
+				} catch (IOException e) {
+					Reporter.log("Exception while closing PDF document : " + e.getMessage());
+				}
+			}
 		}
 		 
 		if (pdf != null && (new String(pdf).contains("errors") || pdfAsText == null)) {

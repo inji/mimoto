@@ -1,6 +1,5 @@
 package io.inji.testrig.apirig.mimoto.testscripts;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,8 +18,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.parser.PdfTextExtractor;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 
 import io.inji.testrig.apirig.mimoto.utils.MimotoConfigManager;
 import io.inji.testrig.apirig.mimoto.utils.MimotoUtil;
@@ -131,18 +131,24 @@ public class GetWithParamAndHeader extends MimotoUtil implements ITest {
 			if (contentType != null && contentType.contains("application/pdf")) {
 				pdf = response.asByteArray();
 
-				PdfReader pdfReader = null;
-				ByteArrayInputStream bIS = null;
+				PDDocument pdfReader = null;
 
 				try {
-					bIS = new ByteArrayInputStream(pdf);
-					pdfReader = new PdfReader(bIS);
-					pdfAsText = PdfTextExtractor.getTextFromPage(pdfReader, 1);
+					pdfReader = Loader.loadPDF(pdf);
+					PDFTextStripper stripper = new PDFTextStripper();
+					stripper.setStartPage(1);
+					stripper.setEndPage(1);
+					pdfAsText = stripper.getText(pdfReader);
 				} catch (IOException e) {
 					Reporter.log("Exception : " + e.getMessage());
 				} finally {
-					AdminTestUtil.closeByteArrayInputStream(bIS);
-					AdminTestUtil.closePdfReader(pdfReader);
+					if (pdfReader != null) {
+						try {
+							pdfReader.close();
+						} catch (IOException e) {
+							Reporter.log("Exception while closing PDF document : " + e.getMessage());
+						}
+					}
 				}
 
 				if (pdf != null && (new String(pdf).contains("errors") || pdfAsText == null)) {
