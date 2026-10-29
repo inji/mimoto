@@ -194,6 +194,11 @@ To bind an Android or iOS wallet using the e-signet service via Mimoto, ensure t
     mosip.esignet.host=<Host url of e-signet service> (E.g. https://esignet.env.mosip.net)
 ```
 
+To configure the default priority order of key types used by the wallet for credential binding, update the following property (comma separated, supported values: `Ed25519`, `ES256K`, `ES256`, `RS256`). The wallet applies this order only on a fresh install, and users can still change it from Settings → Key Management.
+```properties
+    mosip.inji.keyPriorityOrder=Ed25519,ES256K,ES256,RS256
+```
+
 Note:
 - Replace mosipbox.public.url, mosip.api.public.url with your public accessible domain. For dev or local env [ngrok](https://ngrok.com/docs/getting-started/) is recommended.
 
