@@ -9,9 +9,11 @@ import io.mosip.mimoto.dto.mimoto.VCCredentialProperties;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponseProof;
 import io.mosip.mimoto.dto.openid.presentation.*;
+import io.mosip.mimoto.dto.openid.VerifierDTO;
 import io.mosip.mimoto.exception.ErrorConstants;
 import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.PresentationService;
+import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.openID4VP.constants.SpecVersion;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,8 @@ public class PresentationServiceImpl implements PresentationService {
 
     private final RestApiClient restApiClient;
 
+    private final VerifierService verifierService;
+
     private final String injiOvpRedirectURLPattern;
 
     private final Integer maximumResponseHeaderSize;
@@ -49,6 +53,7 @@ public class PresentationServiceImpl implements PresentationService {
             DataShareServiceImpl dataShareService,
             ObjectMapper objectMapper,
             RestApiClient restApiClient,
+            VerifierService verifierService,
             @Value("${mosip.inji.ovp.redirect.url.pattern}") String injiOvpRedirectURLPattern,
             @Value("${mosip.inji.ovp.dcql.redirect.url.pattern:%s#vp_token=%s}") String dcqlRedirectURLPattern,
             @Value("${server.tomcat.max-http-response-header-size:65536}") Integer maximumResponseHeaderSize
@@ -56,6 +61,7 @@ public class PresentationServiceImpl implements PresentationService {
         this.dataShareService = dataShareService;
         this.objectMapper = objectMapper;
         this.restApiClient = restApiClient;
+        this.verifierService = verifierService;
         this.injiOvpRedirectURLPattern = injiOvpRedirectURLPattern;
         this.dcqlRedirectURLPattern = dcqlRedirectURLPattern;
         this.maximumResponseHeaderSize = maximumResponseHeaderSize;
@@ -163,6 +169,7 @@ public class PresentationServiceImpl implements PresentationService {
         if (presentationRequestDTO.getResponseMode() != null
                 && "direct_post".equals(presentationRequestDTO.getResponseMode())) {
             return postVpToResponseUri(
+                    presentationRequestDTO.getClientId(),
                     presentationRequestDTO.getResponseUri(),
                     presentationRequestDTO.getRedirectUri(),
                     vpToken,
@@ -377,6 +384,7 @@ public class PresentationServiceImpl implements PresentationService {
         // If response_uri is present, POST the response
         if (presentationRequestDTO.getResponseMode() != null && "direct_post".equals(presentationRequestDTO.getResponseMode())) {
             return postVpToResponseUri(
+                    presentationRequestDTO.getClientId(),
                     presentationRequestDTO.getResponseUri(),
                     presentationRequestDTO.getRedirectUri(),
                     vpToken,
@@ -411,7 +419,7 @@ public class PresentationServiceImpl implements PresentationService {
         return objectMapper.writeValueAsString(vpDTO);
     }
 
-    private String postVpToResponseUri(String responseUri, String redirectUri, String vpToken,
+    private String postVpToResponseUri(String clientId, String responseUri, String redirectUri, String vpToken,
                                        String presentationSubmission, String state, SpecVersion specVersion) {
         MultiValueMap<String, String> postRequest = new LinkedMultiValueMap<>();
         switch (specVersion) {
@@ -441,8 +449,8 @@ public class PresentationServiceImpl implements PresentationService {
                     Map.class
             );
 
-            log.info("Response from verifier after POST: {}", postResponse);
-            return resolveVerifierRedirect(postResponse, redirectUri, responseUri);
+            log.info("Received verifier response after POST");
+            return resolveVerifierRedirect(clientId, postResponse, redirectUri);
 
         } catch (VPNotCreatedException e) {
             throw e;
@@ -453,7 +461,28 @@ public class PresentationServiceImpl implements PresentationService {
     }
 
     @Override
-    public String submitErrorToResponseUri(String responseUri, String redirectUri, String state,
+    public String validateRedirectUri(String clientId, String redirectUri) {
+        if (redirectUri == null || redirectUri.isBlank()) {
+            return null;
+        }
+        String receivedUriPath = redirectUri.split("[?#]", 2)[0];
+        try {
+            boolean isRegistered = verifierService.getVerifierByClientId(clientId)
+                    .map(VerifierDTO::getRedirectUris)
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .anyMatch(registeredRedirectUri ->
+                            receivedUriPath.equals(registeredRedirectUri)
+                                    || (receivedUriPath + "/").equals(registeredRedirectUri));
+            return isRegistered ? redirectUri : null;
+        } catch (Exception exception) {
+            log.error("Failed to load registered redirect URIs", exception);
+            return null;
+        }
+    }
+
+    @Override
+    public String submitErrorToResponseUri(String clientId, String responseUri, String redirectUri, String state,
                                             String errorCode, String errorDescription) {
         MultiValueMap<String, String> postRequest = new LinkedMultiValueMap<>();
         postRequest.add("error", errorCode);
@@ -472,8 +501,8 @@ public class PresentationServiceImpl implements PresentationService {
                     postRequest,
                     Map.class
             );
-            log.info("Response from verifier after error POST: {}", postResponse);
-            return resolveVerifierRedirect(postResponse, redirectUri, responseUri);
+            log.info("Received verifier response after error POST");
+            return resolveVerifierRedirect(clientId, postResponse, redirectUri);
         } catch (VPNotCreatedException e) {
             throw e;
         } catch (Exception e) {
@@ -482,18 +511,19 @@ public class PresentationServiceImpl implements PresentationService {
         }
     }
 
-    private String resolveVerifierRedirect(Map<String, Object> postResponse, String redirectUri, String responseUri) {
-        log.info("response_uri returned body: {}", postResponse);
+    private String resolveVerifierRedirect(String clientId, Map<String, Object> postResponse, String redirectUri) {
         if (postResponse != null && postResponse.get("redirect_uri") instanceof String responseRedirectUri
                 && !responseRedirectUri.isEmpty()) {
-            log.info("response_uri returned redirect_uri: {}", responseRedirectUri);
-            return responseRedirectUri;
+            log.info("response_uri returned a redirect_uri");
+            String verifiedResponseRedirect = validateRedirectUri(clientId, responseRedirectUri);
+            if (verifiedResponseRedirect != null) {
+                return verifiedResponseRedirect;
+            }
         }
         if (redirectUri != null && !redirectUri.isBlank()) {
-            log.info("Using redirectUri from request: {}", redirectUri);
-            return redirectUri;
+            log.info("Using redirect_uri from request");
+            return validateRedirectUri(clientId, redirectUri);
         }
-
         return null;
     }
 
