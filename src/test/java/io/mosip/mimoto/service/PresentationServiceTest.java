@@ -18,6 +18,7 @@ import io.mosip.mimoto.exception.ErrorConstants;
 import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.service.impl.DataShareServiceImpl;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
+import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.TestUtilities;
@@ -57,6 +58,9 @@ public class PresentationServiceTest {
     @Mock
     RestApiClient restApiClient;
 
+    @Mock
+    VerifierService verifierService;
+
     PresentationServiceImpl presentationService;
 
     String walletId, clientId, urlEncodedVPAuthorizationRequest;
@@ -67,9 +71,18 @@ public class PresentationServiceTest {
     Instant fixedInstant;
 
     @Before
-    public void setup() throws JsonProcessingException {
-        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, "%s#vp_token=%s&presentation_submission=%s", "%s#vp_token=%s", 65536);
+    public void setup() throws Exception {
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, verifierService, "%s#vp_token=%s&presentation_submission=%s", "%s#vp_token=%s", 65536);
         when(objectMapper.writeValueAsString(any())).thenReturn("test-data");
+        lenient().when(verifierService.getVerifierByClientId(any())).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .redirectUris(List.of(
+                                "https://verifier.example.com/",
+                                "https://verifier.example.com/success",
+                                "https://verifier.example.com/callback",
+                                "https://verifier.example.com/error-page",
+                                "https://verifier.example.com/redirect"))
+                        .build()));
 
         // Setup for Wallet presentation tests
         walletId = "wallet-123";
@@ -146,6 +159,7 @@ public class PresentationServiceTest {
                 dataShareService,
                 objectMapper,
                 restApiClient,
+                verifierService,
                 "%s#vp_token=%s&presentation_submission=%s",
                 "%s#vp_token=%s",
                 200
@@ -402,6 +416,7 @@ public class PresentationServiceTest {
                 dataShareService,
                 objectMapper,
                 restApiClient,
+                verifierService,
                 "%s#vp_token=%s&presentation_submission=%s",
                 "%s#vp_token=%s",
                 50
@@ -746,6 +761,7 @@ public class PresentationServiceTest {
         PresentationRequestDTO presentationRequestDTO = TestUtilities.getPresentationRequestDTO();
         presentationRequestDTO.setResponseMode("direct_post");
         presentationRequestDTO.setResponseUri("https://verifier.example.com/response");
+        presentationRequestDTO.setRedirectUri("https://verifier.example.com/callback");
         presentationRequestDTO.setState("test-state");
         presentationRequestDTO.setNonce("test-nonce");
 
@@ -759,7 +775,7 @@ public class PresentationServiceTest {
 
         String result = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.DRAFT_23);
 
-        assertEquals("test_redirect_uri", result);
+        assertEquals("https://verifier.example.com/callback", result);
         verify(restApiClient).postApi(eq("https://verifier.example.com/response"), any(), any(), eq(Map.class));
     }
 
@@ -770,6 +786,7 @@ public class PresentationServiceTest {
                 .thenReturn(mockResponse);
 
         String result = presentationService.submitErrorToResponseUri(
+                "test-clientId",
                 "https://verifier.example.com/response",
                 "https://verifier.example.com/callback",
                 "test-state",
@@ -791,6 +808,7 @@ public class PresentationServiceTest {
         when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(Map.of("status", "error"));
 
         String result = presentationService.submitErrorToResponseUri(
+                "test-clientId",
                 "https://verifier.example.com/response",
                 "https://verifier.example.com/callback",
                 null,
@@ -798,6 +816,154 @@ public class PresentationServiceTest {
                 ErrorConstants.RESOURCE_EXPIRED.getErrorMessage());
 
         assertEquals("https://verifier.example.com/callback", result);
+    }
+
+    @Test
+    public void should_fallBackToRequestRedirectUri_when_verifierRedirectIsUntrusted() throws Exception {
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class)))
+                .thenReturn(Map.of("redirect_uri", "https://evil.example/phish"));
+
+        assertEquals("https://verifier.example.com/callback",
+                presentationService.submitErrorToResponseUri(
+                        "test-clientId",
+                        "https://verifier.example.com/response",
+                        "https://verifier.example.com/callback",
+                        null,
+                        ErrorConstants.URI_TOO_LONG.getErrorCode(),
+                        ErrorConstants.URI_TOO_LONG.getErrorMessage()));
+    }
+
+    @Test
+    public void should_returnNull_when_verifierAndRequestRedirectAreUntrusted() throws Exception {
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class)))
+                .thenReturn(Map.of("redirect_uri", "https://evil.example/phish"));
+
+        assertNull(presentationService.submitErrorToResponseUri(
+                "test-clientId",
+                "https://verifier.example.com/response",
+                "https://evil.example/callback",
+                null,
+                ErrorConstants.URI_TOO_LONG.getErrorCode(),
+                ErrorConstants.URI_TOO_LONG.getErrorMessage()));
+    }
+
+    @Test
+    public void should_returnRedirectUri_when_receivedUriPathMatchesRegisteredUri() throws Exception {
+        String receivedUriPath = "https://test-redirectUri";
+        when(verifierService.getVerifierByClientId("test-clientId")).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .clientId("test-clientId")
+                        .redirectUris(List.of(receivedUriPath))
+                        .build()));
+
+        assertEquals(receivedUriPath,
+                presentationService.validateRedirectUri("test-clientId", receivedUriPath));
+    }
+
+    @Test
+    public void should_returnRedirectUri_when_receivedUriPathEqualsRegisteredUriIgnoringFragment() throws Exception {
+        String receivedUriPath = "https://injiverify.dev.mosip.net/v1/verify";
+        String redirectUri = receivedUriPath + "#response_code=091535f699ea575c7937fa5f0f454aee";
+        when(verifierService.getVerifierByClientId("injiverify.dev.mosip.net")).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .clientId("injiverify.dev.mosip.net")
+                        .redirectUris(List.of(receivedUriPath))
+                        .build()));
+
+        assertEquals(redirectUri,
+                presentationService.validateRedirectUri("injiverify.dev.mosip.net", redirectUri));
+    }
+
+    @Test
+    public void should_returnRedirectUri_when_receivedUriPathEqualsRegisteredUriIgnoringQueryAndFragment() throws Exception {
+        String receivedUriPath = "https://injiverify.collab.mosip.net/v1/verify";
+        String redirectUri = receivedUriPath + "?state=abc#response_code=798789jkh89y867";
+        when(verifierService.getVerifierByClientId("injiverify.collab.mosip.net")).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .clientId("injiverify.collab.mosip.net")
+                        .redirectUris(List.of(receivedUriPath))
+                        .build()));
+
+        assertEquals(redirectUri,
+                presentationService.validateRedirectUri("injiverify.collab.mosip.net", redirectUri));
+    }
+
+    @Test
+    public void should_returnRedirectUri_when_receivedUriPathOmitsRegisteredTrailingSlash() throws Exception {
+        String registeredRedirectUri = "https://injiverify.dev-int-inji.mosip.net/";
+        String redirectUri = "https://injiverify.dev-int-inji.mosip.net";
+        when(verifierService.getVerifierByClientId("injiverify.dev-int-inji.mosip.net")).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .clientId("injiverify.dev-int-inji.mosip.net")
+                        .redirectUris(List.of(registeredRedirectUri))
+                        .build()));
+
+        assertEquals(redirectUri,
+                presentationService.validateRedirectUri("injiverify.dev-int-inji.mosip.net", redirectUri));
+    }
+
+    @Test
+    public void should_returnNull_when_receivedUriPathDoesNotMatchRegisteredUri() throws Exception {
+        when(verifierService.getVerifierByClientId("test-clientId")).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .clientId("test-clientId")
+                        .redirectUris(List.of("https://test-redirectUri"))
+                        .build()));
+        when(verifierService.getVerifierByClientId("callback-client")).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .clientId("callback-client")
+                        .redirectUris(List.of("https://verifier.example/app/callback"))
+                        .build()));
+
+        assertNull(presentationService.validateRedirectUri("test-clientId", "http://test-redirectUri/callback"));
+        assertNull(presentationService.validateRedirectUri("test-clientId", "https://evil.example/phish"));
+        assertNull(presentationService.validateRedirectUri("callback-client",
+                "https://verifier.example/other#response_code=abc"));
+    }
+
+    @Test
+    public void should_returnRedirectUri_when_receivedUriPathContainsDotDotAndMatchesRegisteredUri() throws Exception {
+        String receivedUriPath = "https://verifier.example/app/../admin";
+        when(verifierService.getVerifierByClientId("callback-client")).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .clientId("callback-client")
+                        .redirectUris(List.of(receivedUriPath))
+                        .build()));
+
+        assertEquals(receivedUriPath, presentationService.validateRedirectUri("callback-client", receivedUriPath));
+    }
+
+    @Test
+    public void should_returnNull_when_redirectUriIsBlank() {
+        assertNull(presentationService.validateRedirectUri("test-clientId", "  "));
+        assertNull(presentationService.validateRedirectUri("test-clientId", null));
+    }
+
+    @Test
+    public void should_returnRedirectUri_when_aLaterRegisteredUriMatches() throws Exception {
+        String receivedUriPath = "https://test-redirectUri";
+        when(verifierService.getVerifierByClientId("test-clientId")).thenReturn(Optional.of(
+                VerifierDTO.builder()
+                        .clientId("test-clientId")
+                        .redirectUris(List.of("//other.example/", receivedUriPath))
+                        .build()));
+
+        assertEquals(receivedUriPath,
+                presentationService.validateRedirectUri("test-clientId", receivedUriPath));
+    }
+
+    @Test
+    public void should_returnNull_when_clientIsUnknown() throws Exception {
+        when(verifierService.getVerifierByClientId("unknown-client")).thenReturn(Optional.empty());
+
+        assertNull(presentationService.validateRedirectUri("unknown-client", "https://test-redirectUri"));
+    }
+
+    @Test
+    public void should_returnNull_when_trustedVerifiersCannotBeLoaded() throws Exception {
+        when(verifierService.getVerifierByClientId("test-clientId")).thenThrow(new RuntimeException("load failed"));
+
+        assertNull(presentationService.validateRedirectUri("test-clientId", "https://test-redirectUri"));
     }
 
     @Test(expected = VPNotCreatedException.class)
