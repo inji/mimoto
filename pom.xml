@@ -451,12 +451,12 @@
         <dependency>
             <groupId>io.inji</groupId>
             <artifactId>pixelpass-jar</artifactId>
-            <version>0.8.0</version>
+            <version>1.0.0-rc.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.inji</groupId>
             <artifactId>injivcrenderer-jar</artifactId>
-            <version>0.2.0</version>
+            <version>1.0.0-rc.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
