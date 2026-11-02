@@ -121,20 +121,19 @@ public class PresentationController {
                                             String state, String code, String message, Exception exception) throws IOException {
         if (responseUri != null && !responseUri.isBlank()) {
             try {
-                String redirectString = presentationService.submitErrorToResponseUri(responseUri, redirectUri, state, code, message);
-                String trustedRedirect = verifierService.verifyRedirectUri(clientId, redirectString);
-                if (trustedRedirect != null) {
-                    log.info("Authorization error posted to response_uri. Verifier redirect target: {}. code - {}", trustedRedirect, code);
-                    response.sendRedirect(trustedRedirect);
+                String redirectString = presentationService.submitErrorToResponseUri(clientId, responseUri, redirectUri, state, code, message);
+                if (redirectString != null) {
+                    log.info("Authorization error posted to response_uri. code - {}", code);
+                    response.sendRedirect(redirectString);
                     return;
                 }
-                log.info("Verifier redirect target is not registered in mimoto-trusted-verifiers. Falling back to error redirect.");
+                log.info("redirect URI is not registered in mimoto-trusted-verifiers. Falling back to error redirect.");
             } catch (Exception postFailure) {
                 log.error("Failed to post authorization error to response_uri. Falling back to error redirect.", postFailure);
             }
         }
-        String trustedFallback = verifierService.verifyRedirectUri(clientId, redirectUri);
-        sendRedirect(response, trustedFallback != null ? trustedFallback : injiWebRedirectUrl, code, message, exception);
+        String fallbackRedirectUri = presentationService.validateRedirectUri(clientId, redirectUri);
+        sendRedirect(response, fallbackRedirectUri != null ? fallbackRedirectUri : injiWebRedirectUrl, code, message, exception);
     }
 
     private void sendRedirect(HttpServletResponse response, String domain, String code, String message, Exception exception) throws IOException {
