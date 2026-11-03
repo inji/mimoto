@@ -157,6 +157,11 @@ public class CredentialShareController {
                 .postApi(ApiName.RESIDENT_CREDENTIAL_REQUEST, "", "", mosipCredentialRequestPayload,
                 CredentialRequestResponseDTO.class, MediaType.APPLICATION_JSON);
 
+        // postApi returns null when the resident endpoint is not configured or the HTTP call fails.
+        if (response == null) {
+            throw new ApisResourceAccessException("Resident credential request returned an empty response");
+        }
+
         // Create request id file for later event.
         if (response.getErrors() == null || response.getErrors().isEmpty()) {
             Path vcRequestIdPath = Path.of(

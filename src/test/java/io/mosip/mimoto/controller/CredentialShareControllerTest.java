@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.mosip.kernel.core.util.JsonUtils;
 import io.mosip.mimoto.core.http.ResponseWrapper;
+import io.mosip.mimoto.exception.ApisResourceAccessException;
 import io.mosip.mimoto.dto.mimoto.AppCredentialRequestDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialDownloadRequestDTO;
 import io.mosip.mimoto.dto.resident.CredentialRequestResponseDTO;
@@ -17,6 +18,7 @@ import io.mosip.mimoto.service.impl.CredentialShareServiceImpl;
 import io.mosip.mimoto.util.RequestValidator;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.Utilities;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,6 +32,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -114,6 +117,27 @@ public class CredentialShareControllerTest {
         this.mockMvc.perform(post("/credentialshare/request").contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(JsonUtils.javaObjectToJsonString(requestDTO)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    public void should_throwApisResourceAccessException_when_residentResponseIsNull() throws Exception {
+        AppCredentialRequestDTO requestDTO = new AppCredentialRequestDTO();
+        requestDTO.setUser("mono");
+        requestDTO.setTransactionID("transactionId");
+        requestDTO.setOtp("123456");
+        requestDTO.setIndividualId("123456");
+        requestDTO.setCredentialType("VERCRED");
+
+        Mockito.when(restClientService.postApi(Mockito.any(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(null);
+
+        try {
+            this.mockMvc.perform(post("/credentialshare/request").contentType(MediaType.APPLICATION_JSON_VALUE)
+                    .content(JsonUtils.javaObjectToJsonString(requestDTO)));
+            Assert.fail("Expected resident credential request to fail when the response is null");
+        } catch (ServletException exception) {
+            Assert.assertTrue(exception.getCause() instanceof ApisResourceAccessException);
+        }
     }
 
     @Test
