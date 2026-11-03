@@ -839,7 +839,7 @@ public class WalletPresentationServiceImpl implements WalletPresentationService 
         String logo = resolveLogoUri(authorizationRequest);
         return new VerifiablePresentationVerifierDTO(
                 authorizationRequest.getClientId(), clientName, logo, trusted, preRegistered,
-                authorizationRequest.getRedirectUri());
+                authorizationRequest.getRedirectUri(), null, null, null, null);
     }
 
     private String resolveClientName(AuthorizationRequest authorizationRequest) {
