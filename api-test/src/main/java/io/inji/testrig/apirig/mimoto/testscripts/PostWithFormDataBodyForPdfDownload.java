@@ -98,7 +98,11 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 		PDDocument pdfReader = null;
 		
 		try {
+			pdfAsText = null;
 			pdfReader = Loader.loadPDF(pdf);
+			if (pdfReader.getNumberOfPages() == 0) {
+				throw new IOException("PDF has no pages");
+			}
 			PDFTextStripper stripper = new PDFTextStripper();
 			stripper.setStartPage(1);
 			stripper.setEndPage(1);

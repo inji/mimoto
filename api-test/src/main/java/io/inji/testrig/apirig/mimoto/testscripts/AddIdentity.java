@@ -10,6 +10,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.testng.ITest;
 import org.testng.ITestContext;
@@ -130,7 +131,16 @@ public class AddIdentity extends MimotoUtil implements ITest {
 			JSONObject requestJson = new JSONObject(inputJson);
 			JSONObject identityRequest = requestJson.optJSONObject("request");
 			JSONObject identity = identityRequest != null ? identityRequest.optJSONObject("identity") : null;
-			String requestEmail = identity != null ? identity.optString("email", "") : "";
+			Object emailField = identity != null ? identity.opt("email") : null;
+			String requestEmail = "";
+			if (emailField instanceof String) {
+				requestEmail = (String) emailField;
+			} else if (emailField instanceof JSONArray) {
+				JSONObject entry = ((JSONArray) emailField).optJSONObject(0);
+				if (entry != null) {
+					requestEmail = entry.optString("value", "");
+				}
+			}
 			if (!requestEmail.isBlank()) {
 				email = requestEmail;
 			}
