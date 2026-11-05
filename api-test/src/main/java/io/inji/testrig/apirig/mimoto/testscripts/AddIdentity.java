@@ -10,6 +10,8 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.testng.ITest;
 import org.testng.ITestContext;
 import org.testng.ITestResult;
@@ -124,6 +126,28 @@ public class AddIdentity extends MimotoUtil implements ITest {
 			inputJson = replaceKeywordWithValue(inputJson, "$EMAILVALUE$", email);
 		}
 		inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
+
+		try {
+			JSONObject requestJson = new JSONObject(inputJson);
+			JSONObject identityRequest = requestJson.optJSONObject("request");
+			JSONObject identity = identityRequest != null ? identityRequest.optJSONObject("identity") : null;
+			Object emailField = identity != null ? identity.opt("email") : null;
+			String requestEmail = "";
+			if (emailField instanceof String) {
+				requestEmail = (String) emailField;
+			} else if (emailField instanceof JSONArray) {
+				JSONObject entry = ((JSONArray) emailField).optJSONObject(0);
+				if (entry != null) {
+					requestEmail = entry.optString("value", "");
+				}
+			}
+			if (!requestEmail.isBlank()) {
+				email = requestEmail;
+			}
+		} catch (Exception e) {
+			logger.warn("Could not extract email from AddIdentity request JSON, falling back to computed value: "
+					+ e.getMessage());
+		}
 
 		response = postWithBodyAndCookie(ApplnURI + testCaseDTO.getEndPoint(), inputJson, COOKIENAME,
 				testCaseDTO.getRole(), testCaseDTO.getTestCaseName());
