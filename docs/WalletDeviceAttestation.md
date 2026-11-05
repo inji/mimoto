@@ -9,7 +9,7 @@
 
 The flow is sessionless. Nonces live in a single-use bucket (Redis, or memory for single-instance setups), and the device public key is stored once, at registration.
 
-Android (Play Integrity) is supported today. The registration API takes a `platform` so iOS App Attest can be added later.
+Android uses Google Play Integrity and iOS uses Apple App Attest. Both register the same device key and send the same device proof on get-token; only the registration attestation differs.
 
 ## Key Features
 
@@ -55,6 +55,25 @@ Mimoto-->>Wallet: 201 Created
 | `deviceIntegrity.deviceRecognitionVerdict` | Contains one of `android.required-device-verdicts` |
 
 Re-registering an active key refreshes its stored verdict. A `REVOKED` key stays revoked.
+
+### iOS (App Attest)
+
+The wallet generates an App Attest key (`DCAppAttestService.generateKey`) and calls `attestKey(keyId, clientDataHash)` with `clientDataHash = SHA-256(UTF-8(integrityNonce))`, where `integrityNonce` is the same value as above. It sends `platform: IOS` and the attestation object, base64-encoded, as `integrity_token`. The App Attest key only attests the app instance; get-token proofs are still signed with the registered device key.
+
+mimoto verifies the attestation offline, following Apple's [Validating apps that connect to your server](https://developer.apple.com/documentation/devicecheck/validating-apps-that-connect-to-your-server):
+
+| Check | Requirement |
+|---|---|
+| `fmt` | `apple-appattest` |
+| `attStmt.x5c` | Credential and intermediate certificates chain to the Apple App Attestation Root CA (bundled; override with `ios.root-ca-path`), valid now |
+| Certificate extension `1.2.840.113635.100.8.2` | Equals `SHA-256(authData ‖ SHA-256(integrityNonce))` |
+| `authData` RP ID hash | Equals `SHA-256(ios.team-id + "." + ios.bundle-id)` |
+| `authData` counter | `0` |
+| `authData` aaguid | `appattest` + seven `0x00` bytes in `production`; `appattestdevelop` (or `appattestsandbox`) in `development` |
+| `authData` credentialId | Equals the key identifier, `SHA-256` of the credential certificate's X9.62 public key |
+| `apple_validation_category_01` extension | One of `ios.allowed-validation-categories`, when present (older iOS versions omit the extensions) |
+
+The verdict summary stores the key identifier, environment, validation category, bundle version and the attestation receipt, which can later be exchanged with Apple for a fraud risk metric.
 
 ## Calling get-token
 
@@ -117,6 +136,11 @@ Settings use the `wallet.device-attestation.*` prefix, not `mosip.inji.*`, becau
 | `android.required-device-verdicts` | `MEETS_DEVICE_INTEGRITY` | Accepted device verdicts |
 | `android.max-token-age-seconds` | `300` | Maximum integrity token age at registration |
 | `google.service-account-key-path` | | Service account key (JSON) for the Play Integrity decode API |
+| `ios.team-id` | | Apple Developer Team ID (App ID prefix) |
+| `ios.bundle-id` | | Wallet bundle identifier |
+| `ios.environment` | `production` | `development` for Xcode debug builds, `production` for TestFlight and App Store builds |
+| `ios.allowed-validation-categories` | `4` | Accepted launch validation categories: `2` TestFlight, `3` development signing, `4` App Store |
+| `ios.root-ca-path` | | Optional PEM overriding the bundled Apple App Attestation Root CA |
 
 `/device/**` must be in `mosip.security.ignore-auth-urls` and `mosip.security.csrf-ignore-urls`.
 
@@ -128,12 +152,14 @@ Settings use the `wallet.device-attestation.*` prefix, not `mosip.inji.*`, becau
 2. In that Cloud project, create a service account, give mimoto its key file through a secret, and set `google.service-account-key-path`. Never commit the key.
 3. Set `android.package-name` and `android.cert-sha256-digests`.
 4. Rate-limit `/device/nonce` and `/device/register` at the ingress. Each registration calls Google, and classic requests are limited to 10,000 per app per day by default.
-5. Roll out with `mode=monitor`, watch the `mimoto.device.proof` metric (tags `mode`, `outcome`), then switch to `enforce` once wallet builds that send proofs are adopted.
+5. For iOS, enable the App Attest capability on the App ID, set `ios.team-id`, `ios.bundle-id` and `ios.environment`, and widen `ios.allowed-validation-categories` (e.g. `2,3,4`) while testing. App Attest needs no Apple API credentials and makes no server-side calls; only the device calls Apple, once per install. Apple recommends staying under about 100 `attestKey` calls per second across all installs, so ramp up gradually.
+6. Roll out with `mode=monitor`, watch the `mimoto.device.proof` metric (tags `mode`, `outcome`), then switch to `enforce` once wallet builds that send proofs are adopted.
 
 ## Limitations
 
 - **No key attestation.** The device key is not proven to be hardware-backed, so a key registered from one genuine device could be copied elsewhere. Revocation and rate limits are the mitigation.
 - **Revocation is per key.** Reinstalling the app creates a new key and a new registration. Play Integrity device recall could carry a block across reinstalls in future.
-- **iOS** is not supported yet; `enforce` blocks iOS wallets until App Attest is added.
+- **iOS devices without App Attest** (simulator, some older devices) cannot register, so `enforce` blocks them.
+- **iOS fraud metric.** The attestation receipt is stored but not yet exchanged with Apple for the risk metric.
 - **Builds outside Play.** Only Play-distributed builds are `PLAY_RECOGNIZED`, so testing needs a Play testing track.
 - **Orphaned rows.** Reinstalls leave unused rows; a cleanup by `last_seen_at` is planned.

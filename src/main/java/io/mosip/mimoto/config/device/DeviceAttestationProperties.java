@@ -28,6 +28,8 @@ public class DeviceAttestationProperties {
 
     private Android android = new Android();
 
+    private Ios ios = new Ios();
+
     private Google google = new Google();
 
     public enum Mode {
@@ -47,6 +49,28 @@ public class DeviceAttestationProperties {
         private List<String> requiredDeviceVerdicts = new ArrayList<>(List.of("MEETS_DEVICE_INTEGRITY"));
         /** Maximum age of the integrity token, measured from its requestDetails.timestampMillis. */
         private long maxTokenAgeSeconds = 300;
+    }
+
+    @Getter
+    @Setter
+    public static class Ios {
+        /** Apple Developer Team ID (App ID prefix), e.g. ABCDE12345. */
+        private String teamId;
+        /** CFBundleIdentifier of the wallet app. */
+        private String bundleId;
+        /** App Attest environment keys must come from: development (debug builds) or production (TestFlight, App Store). */
+        private Environment environment = Environment.PRODUCTION;
+        /**
+         * Accepted launch validation categories (apple_validation_category_01): 2 TestFlight, 3 development signing,
+         * 4 App Store. Only checked when the attestation carries the extension; older iOS versions omit it.
+         */
+        private List<Integer> allowedValidationCategories = new ArrayList<>(List.of(4));
+        /** Optional PEM file overriding the bundled Apple App Attestation Root CA. */
+        private String rootCaPath;
+
+        public enum Environment {
+            DEVELOPMENT, PRODUCTION
+        }
     }
 
     @Getter
