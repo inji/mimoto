@@ -163,6 +163,8 @@ public class PresentationServiceImpl implements PresentationService {
         } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)
                 || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
             presentation = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
+        } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(format)) {
+            presentation = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
         } else {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
