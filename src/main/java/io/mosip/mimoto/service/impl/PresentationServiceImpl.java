@@ -357,18 +357,34 @@ public class PresentationServiceImpl implements PresentationService {
             Object json = pixelPass.toJson(base64urlCbor.trim());
             if (json == null) return null;
             Map<String, Object> root = objectMapper.readValue(json.toString(), new TypeReference<>() {});
-            // docType is inside issuerAuth (COSE_Sign1 array): search each element for the MSO map
+
+            // Latest (OpenID4VCI V1.0): flat structure — docType inside issuerAuth COSE_Sign1 array at root
             Object issuerAuth = root.get("issuerAuth");
-            if (!(issuerAuth instanceof List<?>)) return null;
-            for (Object element : (List<?>) issuerAuth) {
-                if (element instanceof Map<?, ?> map) {
-                    Object docType = map.get("docType");
-                    if (docType != null) return docType.toString();
+            if (issuerAuth instanceof List<?>) {
+                for (Object element : (List<?>) issuerAuth) {
+                    if (element instanceof Map<?, ?> map && map.get("docType") != null) {
+                        return map.get("docType").toString();
+                    }
                 }
             }
+
+            // Legacy variant 1: docType is a direct top-level field
+            Object docType = root.get("docType");
+            if (docType != null) return docType.toString();
+
+            // Legacy variant 2: wrapped in a documents array
+            Object documents = root.get("documents");
+            if (documents instanceof List<?>) {
+                for (Object doc : (List<?>) documents) {
+                    if (doc instanceof Map<?, ?> docMap && docMap.get("docType") != null) {
+                        return docMap.get("docType").toString();
+                    }
+                }
+            }
+
             return null;
         } catch (Exception e) {
-            log.warn("Could not extract docType from mso_mdoc credential: {}", e.getMessage());
+            log.warn("Could not extract docType from mso_mdoc credential: {}", e.getClass().getSimpleName());
             return null;
         }
     }
