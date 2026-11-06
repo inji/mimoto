@@ -21,6 +21,7 @@ import io.mosip.mimoto.service.impl.PresentationServiceImpl;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.mimoto.util.RestApiClient;
+import io.mosip.pixelpass.PixelPass;
 import io.mosip.mimoto.util.TestUtilities;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
 import org.junit.Before;
@@ -61,6 +62,9 @@ public class PresentationServiceTest {
     @Mock
     VerifierService verifierService;
 
+    @Mock
+    PixelPass pixelPass;
+
     PresentationServiceImpl presentationService;
 
     String walletId, clientId, urlEncodedVPAuthorizationRequest;
@@ -72,7 +76,7 @@ public class PresentationServiceTest {
 
     @Before
     public void setup() throws Exception {
-        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, verifierService, "%s#vp_token=%s&presentation_submission=%s", "%s#vp_token=%s", 65536);
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, verifierService, pixelPass, "%s#vp_token=%s&presentation_submission=%s", "%s#vp_token=%s", 65536);
         when(objectMapper.writeValueAsString(any())).thenReturn("test-data");
         lenient().when(verifierService.getVerifierByClientId(any())).thenReturn(Optional.of(
                 VerifierDTO.builder()
@@ -160,6 +164,7 @@ public class PresentationServiceTest {
                 objectMapper,
                 restApiClient,
                 verifierService,
+                pixelPass,
                 "%s#vp_token=%s&presentation_submission=%s",
                 "%s#vp_token=%s",
                 200
@@ -318,6 +323,129 @@ public class PresentationServiceTest {
     }
 
     @Test
+    public void should_includeDocTypeValueInMeta_when_msoMdocDocTypeIsExtracted() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        String msoJson = "{\"nameSpaces\":{},\"issuerAuth\":[{\"1\":-7},{},{\"docType\":\"org.iso.18013.5.1.mDL\"},\"sig\"]}";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(msoJson);
+        when(objectMapper.readValue(eq(msoJson), any(TypeReference.class)))
+                .thenReturn(Map.of("nameSpaces", Map.of(), "issuerAuth",
+                        List.of(Map.of("1", -7), Map.of(), Map.of("docType", "org.iso.18013.5.1.mDL"), "sig")));
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        assertEquals(CredentialFormat.MSO_MDOC.getFormat(), credentials.get(0).get("format"));
+        assertEquals(false, credentials.get(0).get("require_cryptographic_holder_binding"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> meta = (Map<String, Object>) credentials.get(0).get("meta");
+        assertNotNull(meta);
+        assertEquals("org.iso.18013.5.1.mDL", meta.get("doctype_value"));
+    }
+
+    @Test
+    public void should_includeDocTypeValueInMeta_when_msoMdocLegacyVariant1WithTopLevelDocType() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        String msoJson = "{\"docType\":\"org.iso.18013.5.1.mDL\",\"issuerSigned\":{\"issuerAuth\":[],\"nameSpaces\":{}}}";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(msoJson);
+        Map<String, Object> issuerSigned = new HashMap<>();
+        issuerSigned.put("issuerAuth", List.of());
+        issuerSigned.put("nameSpaces", Map.of());
+        Map<String, Object> rootMap = new HashMap<>();
+        rootMap.put("docType", "org.iso.18013.5.1.mDL");
+        rootMap.put("issuerSigned", issuerSigned);
+        when(objectMapper.readValue(eq(msoJson), any(TypeReference.class))).thenReturn(rootMap);
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> meta = (Map<String, Object>) credentials.get(0).get("meta");
+        assertNotNull(meta);
+        assertEquals("org.iso.18013.5.1.mDL", meta.get("doctype_value"));
+    }
+
+    @Test
+    public void should_includeDocTypeValueInMeta_when_msoMdocLegacyVariant2WithDocumentsArray() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        String msoJson = "{\"documents\":[{\"docType\":\"org.iso.18013.5.1.mDL\",\"issuerSigned\":{}}]}";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(msoJson);
+        Map<String, Object> docEntry = new HashMap<>();
+        docEntry.put("docType", "org.iso.18013.5.1.mDL");
+        docEntry.put("issuerSigned", Map.of());
+        Map<String, Object> rootMap = new HashMap<>();
+        rootMap.put("documents", List.of(docEntry));
+        when(objectMapper.readValue(eq(msoJson), any(TypeReference.class))).thenReturn(rootMap);
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> meta = (Map<String, Object>) credentials.get(0).get("meta");
+        assertNotNull(meta);
+        assertEquals("org.iso.18013.5.1.mDL", meta.get("doctype_value"));
+    }
+
+    @Test
+    public void should_omitMetaFromDcqlQuery_when_pixelPassReturnsNull() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(null);
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        assertNull(credentials.get(0).get("meta"));
+    }
+
+    @Test
+    public void should_omitMetaFromDcqlQuery_when_pixelPassThrowsException() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        when(pixelPass.toJson("o2RkYXRh")).thenThrow(new RuntimeException("decode error"));
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        assertNull(credentials.get(0).get("meta"));
+    }
+
+    @Test
+    public void should_omitMetaFromDcqlQuery_when_pixelPassReturnsMalformedJson() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        String malformedJson = "[not-a-map]";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(malformedJson);
+        when(objectMapper.readValue(eq(malformedJson), any(TypeReference.class)))
+                .thenThrow(new JsonProcessingException("parse error") {});
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        assertNull(credentials.get(0).get("meta"));
+    }
+
+    @Test
     public void should_postRawJsonVpTokenWithoutPresentationSubmission_when_dcqlDirectPost() throws Exception {
         VCCredentialResponse vcCredentialResponse = createLdpVcCredentialResponse();
         VCCredentialProperties credential = (VCCredentialProperties) vcCredentialResponse.getCredential();
@@ -417,6 +545,7 @@ public class PresentationServiceTest {
                 objectMapper,
                 restApiClient,
                 verifierService,
+                pixelPass,
                 "%s#vp_token=%s&presentation_submission=%s",
                 "%s#vp_token=%s",
                 50
@@ -558,6 +687,129 @@ public class PresentationServiceTest {
     }
 
     // Tests for handleVPAuthorizationRequest removed - method moved to WalletPresentationService
+
+    @Test
+    public void should_submitRawMsoMdocStringAsVpToken_when_dcqlDirectPost() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2d2ZXJzaW9uYzEuMA==");
+
+        String queryId = "mdoc-query-1";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"mso_mdoc\",\"require_cryptographic_holder_binding\":false}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", queryId, "format", "mso_mdoc", "require_cryptographic_holder_binding", false)));
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .clientId("test-client")
+                .responseMode("direct_post")
+                .responseUri("https://verifier.example.com/vp-submission")
+                .redirectUri("https://verifier.example.com/redirect")
+                .state("session-state")
+                .build();
+
+        Map<String, Object> mockPostResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(String.class)))
+                .thenReturn("o2d2ZXJzaW9uYzEuMA==");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"" + queryId + "\":[\"o2d2ZXJzaW9uYzEuMA==\"]}");
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockPostResponse);
+
+        String redirect = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1);
+
+        assertEquals("https://verifier.example.com/success", redirect);
+
+        ArgumentCaptor<MultiValueMap> bodyCaptor = ArgumentCaptor.forClass(MultiValueMap.class);
+        verify(restApiClient).postApi(
+                eq("https://verifier.example.com/vp-submission"),
+                eq(MediaType.APPLICATION_FORM_URLENCODED),
+                bodyCaptor.capture(),
+                eq(Map.class));
+        MultiValueMap<String, String> body = bodyCaptor.getValue();
+        assertEquals("{\"" + queryId + "\":[\"o2d2ZXJzaW9uYzEuMA==\"]}", body.getFirst("vp_token"));
+        assertNull(body.getFirst("presentation_submission"));
+        assertEquals("session-state", body.getFirst("state"));
+    }
+
+    @Test
+    public void should_returnUrlEncodedMsoMdocVpToken_when_dcqlFragmentRedirect() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2d2ZXJzaW9uYzEuMA==");
+
+        String queryId = "mdoc-query-1";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"mso_mdoc\"}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", queryId, "format", "mso_mdoc")));
+        String vpTokenJson = "{\"" + queryId + "\":[\"o2d2ZXJzaW9uYzEuMA==\"]}";
+        String redirectUri = "https://verifier.example.com/redirect";
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .clientId("test-client")
+                .redirectUri(redirectUri)
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(String.class)))
+                .thenReturn("o2d2ZXJzaW9uYzEuMA==");
+        when(objectMapper.writeValueAsString(any())).thenReturn(vpTokenJson);
+
+        String actual = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1);
+
+        String expected = String.format("%s#vp_token=%s", redirectUri, URLEncoder.encode(vpTokenJson, StandardCharsets.UTF_8));
+        assertEquals(expected, actual);
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
+    }
+
+    @Test
+    public void should_includeLimitDisclosureAndDocTypeField_when_msoMdocDocTypeIsExtracted() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        String msoJson = "{\"issuerAuth\":[{\"docType\":\"org.iso.18013.5.1.mDL\"}]}";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(msoJson);
+        when(objectMapper.readValue(eq(msoJson), any(TypeReference.class)))
+                .thenReturn(Map.of("issuerAuth", List.of(Map.of("docType", "org.iso.18013.5.1.mDL"))));
+
+        PresentationDefinitionDTO result = presentationService.constructPresentationDefinition(vcCredentialResponse);
+
+        assertNotNull(result);
+        assertEquals(1, result.getInputDescriptors().size());
+        InputDescriptorDTO inputDescriptor = result.getInputDescriptors().get(0);
+        assertTrue(inputDescriptor.getFormat().containsKey("mso_mdoc"));
+        assertEquals("required", inputDescriptor.getConstraints().getLimitDisclosure());
+        assertNotNull(inputDescriptor.getConstraints().getFields());
+        assertEquals(1, inputDescriptor.getConstraints().getFields().length);
+        FieldDTO field = inputDescriptor.getConstraints().getFields()[0];
+        assertArrayEquals(new String[]{"$.docType"}, field.getPath());
+        assertEquals("org.iso.18013.5.1.mDL", field.getFilter().getPattern());
+        assertEquals("string", field.getFilter().getType());
+    }
+
+    @Test
+    public void should_includeLimitDisclosureWithoutFields_when_pixelPassReturnsNull() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(null);
+
+        PresentationDefinitionDTO result = presentationService.constructPresentationDefinition(vcCredentialResponse);
+
+        assertNotNull(result);
+        assertEquals(1, result.getInputDescriptors().size());
+        InputDescriptorDTO inputDescriptor = result.getInputDescriptors().get(0);
+        assertTrue(inputDescriptor.getFormat().containsKey("mso_mdoc"));
+        assertEquals("required", inputDescriptor.getConstraints().getLimitDisclosure());
+        assertNull(inputDescriptor.getConstraints().getFields());
+    }
 
     // Helper methods
     private VCCredentialResponse createSDJwtCredentialResponse(String format) {

@@ -16,6 +16,7 @@ import io.mosip.mimoto.service.PresentationService;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.openID4VP.constants.SpecVersion;
+import io.mosip.pixelpass.PixelPass;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -49,11 +50,14 @@ public class PresentationServiceImpl implements PresentationService {
 
     private final String dcqlRedirectURLPattern;
 
+    private final PixelPass pixelPass;
+
     public PresentationServiceImpl(
             DataShareServiceImpl dataShareService,
             ObjectMapper objectMapper,
             RestApiClient restApiClient,
             VerifierService verifierService,
+            PixelPass pixelPass,
             @Value("${mosip.inji.ovp.redirect.url.pattern}") String injiOvpRedirectURLPattern,
             @Value("${mosip.inji.ovp.dcql.redirect.url.pattern:%s#vp_token=%s}") String dcqlRedirectURLPattern,
             @Value("${server.tomcat.max-http-response-header-size:65536}") Integer maximumResponseHeaderSize
@@ -62,6 +66,7 @@ public class PresentationServiceImpl implements PresentationService {
         this.objectMapper = objectMapper;
         this.restApiClient = restApiClient;
         this.verifierService = verifierService;
+        this.pixelPass = pixelPass;
         this.injiOvpRedirectURLPattern = injiOvpRedirectURLPattern;
         this.dcqlRedirectURLPattern = dcqlRedirectURLPattern;
         this.maximumResponseHeaderSize = maximumResponseHeaderSize;
@@ -157,6 +162,8 @@ public class PresentationServiceImpl implements PresentationService {
                     vcCredentialResponse.getCredential(), VCCredentialProperties.class);
         } else if (CredentialFormat.VC_SD_JWT.getFormat().equalsIgnoreCase(format)
                 || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
+            presentation = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
+        } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(format)) {
             presentation = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
         } else {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
@@ -283,6 +290,23 @@ public class PresentationServiceImpl implements PresentationService {
                     .format(format)
                     .build());
 
+        } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(vcFormat)) {
+            String docType = extractMdocDocType((String) vcRes.getCredential());
+            Map<String, Map<String, List<String>>> format = Map.of("mso_mdoc", Map.of());
+            ConstraintsDTO.ConstraintsDTOBuilder constraintsBuilder = ConstraintsDTO.builder()
+                    .limitDisclosure("required");
+            if (docType != null) {
+                FieldDTO field = FieldDTO.builder()
+                        .path(new String[]{"$.docType"})
+                        .filter(FilterDTO.builder().type("string").pattern(docType).build())
+                        .build();
+                constraintsBuilder.fields(new FieldDTO[]{field});
+            }
+            inputDescriptors.add(InputDescriptorDTO.builder()
+                    .id(UUID.randomUUID().toString())
+                    .constraints(constraintsBuilder.build())
+                    .format(format)
+                    .build());
         }
         return PresentationDefinitionDTO.builder()
                 .id(UUID.randomUUID().toString())
@@ -313,6 +337,11 @@ public class PresentationServiceImpl implements PresentationService {
                 || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(vcFormat)) {
             Map<String, Object> jwtPayload = extractJwtPayloadFromSdJwt((String) vcRes.getCredential());
             buildSdJwtMetaFromPayload(jwtPayload, meta);
+        } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(vcFormat)) {
+            String docType = extractMdocDocType((String) vcRes.getCredential());
+            if (docType != null) {
+                meta.put("doctype_value", docType);
+            }
         }
         if (!meta.isEmpty()) {
             credentialQuery.put("meta", meta);
@@ -321,6 +350,43 @@ public class PresentationServiceImpl implements PresentationService {
         Map<String, Object> dcqlQuery = new LinkedHashMap<>();
         dcqlQuery.put("credentials", List.of(credentialQuery));
         return dcqlQuery;
+    }
+
+    private String extractMdocDocType(String base64urlCbor) {
+        try {
+            Object json = pixelPass.toJson(base64urlCbor.trim());
+            if (json == null) return null;
+            Map<String, Object> root = objectMapper.readValue(json.toString(), new TypeReference<>() {});
+
+            // Latest (OpenID4VCI V1.0): flat structure — docType inside issuerAuth COSE_Sign1 array at root
+            Object issuerAuth = root.get("issuerAuth");
+            if (issuerAuth instanceof List<?>) {
+                for (Object element : (List<?>) issuerAuth) {
+                    if (element instanceof Map<?, ?> map && map.get("docType") != null) {
+                        return map.get("docType").toString();
+                    }
+                }
+            }
+
+            // Legacy variant 1: docType is a direct top-level field
+            Object docType = root.get("docType");
+            if (docType != null) return docType.toString();
+
+            // Legacy variant 2: wrapped in a documents array
+            Object documents = root.get("documents");
+            if (documents instanceof List<?>) {
+                for (Object doc : (List<?>) documents) {
+                    if (doc instanceof Map<?, ?> docMap && docMap.get("docType") != null) {
+                        return docMap.get("docType").toString();
+                    }
+                }
+            }
+
+            return null;
+        } catch (Exception e) {
+            log.warn("Could not extract docType from mso_mdoc credential: {}", e.getClass().getSimpleName());
+            return null;
+        }
     }
 
     private void buildSdJwtMetaFromPayload(Map<String, Object> jwtPayload, Map<String, Object> meta) {
