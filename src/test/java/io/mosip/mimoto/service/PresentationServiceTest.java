@@ -164,6 +164,7 @@ public class PresentationServiceTest {
                 objectMapper,
                 restApiClient,
                 verifierService,
+                pixelPass,
                 "%s#vp_token=%s&presentation_submission=%s",
                 "%s#vp_token=%s",
                 200
@@ -460,6 +461,7 @@ public class PresentationServiceTest {
                 objectMapper,
                 restApiClient,
                 verifierService,
+                pixelPass,
                 "%s#vp_token=%s&presentation_submission=%s",
                 "%s#vp_token=%s",
                 50
