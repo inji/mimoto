@@ -603,6 +603,85 @@ public class PresentationServiceTest {
     // Tests for handleVPAuthorizationRequest removed - method moved to WalletPresentationService
 
     @Test
+    public void dcqlMsoMdocDirectPost_submitsRawCredentialStringAsVpToken() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2d2ZXJzaW9uYzEuMA==");
+
+        String queryId = "mdoc-query-1";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"mso_mdoc\",\"require_cryptographic_holder_binding\":false}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", queryId, "format", "mso_mdoc", "require_cryptographic_holder_binding", false)));
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .clientId("test-client")
+                .responseMode("direct_post")
+                .responseUri("https://verifier.example.com/vp-submission")
+                .redirectUri("https://verifier.example.com/redirect")
+                .state("session-state")
+                .build();
+
+        Map<String, Object> mockPostResponse = Map.of("redirect_uri", "https://verifier.example.com/success");
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(String.class)))
+                .thenReturn("o2d2ZXJzaW9uYzEuMA==");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"" + queryId + "\":[\"o2d2ZXJzaW9uYzEuMA==\"]}");
+        when(restApiClient.postApi(anyString(), any(), any(), eq(Map.class))).thenReturn(mockPostResponse);
+
+        String redirect = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1);
+
+        assertEquals("https://verifier.example.com/success", redirect);
+
+        ArgumentCaptor<MultiValueMap> bodyCaptor = ArgumentCaptor.forClass(MultiValueMap.class);
+        verify(restApiClient).postApi(
+                eq("https://verifier.example.com/vp-submission"),
+                eq(MediaType.APPLICATION_FORM_URLENCODED),
+                bodyCaptor.capture(),
+                eq(Map.class));
+        MultiValueMap<String, String> body = bodyCaptor.getValue();
+        assertEquals("{\"" + queryId + "\":[\"o2d2ZXJzaW9uYzEuMA==\"]}", body.getFirst("vp_token"));
+        assertNull(body.getFirst("presentation_submission"));
+        assertEquals("session-state", body.getFirst("state"));
+    }
+
+    @Test
+    public void dcqlMsoMdocFragmentRedirect_returnsUrlEncodedVpToken() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2d2ZXJzaW9uYzEuMA==");
+
+        String queryId = "mdoc-query-1";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"mso_mdoc\"}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of("id", queryId, "format", "mso_mdoc")));
+        String vpTokenJson = "{\"" + queryId + "\":[\"o2d2ZXJzaW9uYzEuMA==\"]}";
+        String redirectUri = "https://verifier.example.com/redirect";
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .clientId("test-client")
+                .redirectUri(redirectUri)
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+        when(objectMapper.convertValue(eq(vcCredentialResponse.getCredential()), eq(String.class)))
+                .thenReturn("o2d2ZXJzaW9uYzEuMA==");
+        when(objectMapper.writeValueAsString(any())).thenReturn(vpTokenJson);
+
+        String actual = presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1);
+
+        String expected = String.format("%s#vp_token=%s", redirectUri, URLEncoder.encode(vpTokenJson, StandardCharsets.UTF_8));
+        assertEquals(expected, actual);
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
+    }
+
+    @Test
     public void constructPresentationDefinitionForMsoMdocWithDocType() throws Exception {
         VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
