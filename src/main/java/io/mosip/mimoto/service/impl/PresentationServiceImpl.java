@@ -288,6 +288,23 @@ public class PresentationServiceImpl implements PresentationService {
                     .format(format)
                     .build());
 
+        } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(vcFormat)) {
+            String docType = extractMdocDocType((String) vcRes.getCredential());
+            Map<String, Map<String, List<String>>> format = Map.of("mso_mdoc", Map.of());
+            ConstraintsDTO.ConstraintsDTOBuilder constraintsBuilder = ConstraintsDTO.builder()
+                    .limitDisclosure("required");
+            if (docType != null) {
+                FieldDTO field = FieldDTO.builder()
+                        .path(new String[]{"$.docType"})
+                        .filter(FilterDTO.builder().type("string").pattern(docType).build())
+                        .build();
+                constraintsBuilder.fields(new FieldDTO[]{field});
+            }
+            inputDescriptors.add(InputDescriptorDTO.builder()
+                    .id(UUID.randomUUID().toString())
+                    .constraints(constraintsBuilder.build())
+                    .format(format)
+                    .build());
         }
         return PresentationDefinitionDTO.builder()
                 .id(UUID.randomUUID().toString())

@@ -602,6 +602,50 @@ public class PresentationServiceTest {
 
     // Tests for handleVPAuthorizationRequest removed - method moved to WalletPresentationService
 
+    @Test
+    public void constructPresentationDefinitionForMsoMdocWithDocType() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        String msoJson = "{\"issuerAuth\":[{\"docType\":\"org.iso.18013.5.1.mDL\"}]}";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(msoJson);
+        when(objectMapper.readValue(eq(msoJson), any(TypeReference.class)))
+                .thenReturn(Map.of("issuerAuth", List.of(Map.of("docType", "org.iso.18013.5.1.mDL"))));
+
+        PresentationDefinitionDTO result = presentationService.constructPresentationDefinition(vcCredentialResponse);
+
+        assertNotNull(result);
+        assertEquals(1, result.getInputDescriptors().size());
+        InputDescriptorDTO inputDescriptor = result.getInputDescriptors().get(0);
+        assertTrue(inputDescriptor.getFormat().containsKey("mso_mdoc"));
+        assertEquals("required", inputDescriptor.getConstraints().getLimitDisclosure());
+        assertNotNull(inputDescriptor.getConstraints().getFields());
+        assertEquals(1, inputDescriptor.getConstraints().getFields().length);
+        FieldDTO field = inputDescriptor.getConstraints().getFields()[0];
+        assertArrayEquals(new String[]{"$.docType"}, field.getPath());
+        assertEquals("org.iso.18013.5.1.mDL", field.getFilter().getPattern());
+        assertEquals("string", field.getFilter().getType());
+    }
+
+    @Test
+    public void constructPresentationDefinitionForMsoMdocWithNullDocType() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(null);
+
+        PresentationDefinitionDTO result = presentationService.constructPresentationDefinition(vcCredentialResponse);
+
+        assertNotNull(result);
+        assertEquals(1, result.getInputDescriptors().size());
+        InputDescriptorDTO inputDescriptor = result.getInputDescriptors().get(0);
+        assertTrue(inputDescriptor.getFormat().containsKey("mso_mdoc"));
+        assertEquals("required", inputDescriptor.getConstraints().getLimitDisclosure());
+        assertNull(inputDescriptor.getConstraints().getFields());
+    }
+
     // Helper methods
     private VCCredentialResponse createSDJwtCredentialResponse(String format) {
         VCCredentialResponse response = new VCCredentialResponse();
