@@ -338,8 +338,16 @@ public class PresentationServiceImpl implements PresentationService {
             Object json = pixelPass.toJson(base64urlCbor.trim());
             if (json == null) return null;
             Map<String, Object> root = objectMapper.readValue(json.toString(), new TypeReference<>() {});
-            Object docType = root.get("docType");
-            return docType != null ? docType.toString() : null;
+            // docType is inside issuerAuth (COSE_Sign1 array): search each element for the MSO map
+            Object issuerAuth = root.get("issuerAuth");
+            if (!(issuerAuth instanceof List<?>)) return null;
+            for (Object element : (List<?>) issuerAuth) {
+                if (element instanceof Map<?, ?> map) {
+                    Object docType = map.get("docType");
+                    if (docType != null) return docType.toString();
+                }
+            }
+            return null;
         } catch (Exception e) {
             log.warn("Could not extract docType from mso_mdoc credential: {}", e.getMessage());
             return null;

@@ -327,9 +327,11 @@ public class PresentationServiceTest {
         vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
         vcCredentialResponse.setCredential("o2RkYXRh");
 
-        when(pixelPass.toJson("o2RkYXRh")).thenReturn("{\"docType\":\"org.iso.18013.5.1.mDL\"}");
-        when(objectMapper.readValue(eq("{\"docType\":\"org.iso.18013.5.1.mDL\"}"), any(TypeReference.class)))
-                .thenReturn(Map.of("docType", "org.iso.18013.5.1.mDL"));
+        String msoJson = "{\"nameSpaces\":{},\"issuerAuth\":[{\"1\":-7},{},{\"docType\":\"org.iso.18013.5.1.mDL\"},\"sig\"]}";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(msoJson);
+        when(objectMapper.readValue(eq(msoJson), any(TypeReference.class)))
+                .thenReturn(Map.of("nameSpaces", Map.of(), "issuerAuth",
+                        List.of(Map.of("1", -7), Map.of(), Map.of("docType", "org.iso.18013.5.1.mDL"), "sig")));
 
         Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
 
