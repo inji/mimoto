@@ -21,6 +21,7 @@ import io.mosip.mimoto.service.impl.PresentationServiceImpl;
 import io.mosip.mimoto.service.VerifierService;
 import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.mimoto.util.RestApiClient;
+import io.mosip.pixelpass.PixelPass;
 import io.mosip.mimoto.util.TestUtilities;
 import io.mosip.openID4VP.authorizationRequest.Verifier;
 import org.junit.Before;
@@ -61,6 +62,9 @@ public class PresentationServiceTest {
     @Mock
     VerifierService verifierService;
 
+    @Mock
+    PixelPass pixelPass;
+
     PresentationServiceImpl presentationService;
 
     String walletId, clientId, urlEncodedVPAuthorizationRequest;
@@ -72,7 +76,7 @@ public class PresentationServiceTest {
 
     @Before
     public void setup() throws Exception {
-        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, verifierService, "%s#vp_token=%s&presentation_submission=%s", "%s#vp_token=%s", 65536);
+        presentationService = new PresentationServiceImpl(dataShareService, objectMapper, restApiClient, verifierService, pixelPass, "%s#vp_token=%s&presentation_submission=%s", "%s#vp_token=%s", 65536);
         when(objectMapper.writeValueAsString(any())).thenReturn("test-data");
         lenient().when(verifierService.getVerifierByClientId(any())).thenReturn(Optional.of(
                 VerifierDTO.builder()
@@ -315,6 +319,43 @@ public class PresentationServiceTest {
             Map<String, Object> meta = (Map<String, Object>) credentials.get(0).get("meta");
             assertEquals(List.of("https://example.com/TestCredential"), meta.get("vct_values"));
         }
+    }
+
+    @Test
+    public void constructDcqlQueryForMsoMdoc_includesDocTypeValueInMeta() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn("{\"docType\":\"org.iso.18013.5.1.mDL\"}");
+        when(objectMapper.readValue(eq("{\"docType\":\"org.iso.18013.5.1.mDL\"}"), any(TypeReference.class)))
+                .thenReturn(Map.of("docType", "org.iso.18013.5.1.mDL"));
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        assertEquals(CredentialFormat.MSO_MDOC.getFormat(), credentials.get(0).get("format"));
+        assertEquals(false, credentials.get(0).get("require_cryptographic_holder_binding"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> meta = (Map<String, Object>) credentials.get(0).get("meta");
+        assertNotNull(meta);
+        assertEquals("org.iso.18013.5.1.mDL", meta.get("doctype_value"));
+    }
+
+    @Test
+    public void constructDcqlQueryForMsoMdoc_omitsMetaWhenPixelPassReturnsNull() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(null);
+
+        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
+        assertNull(credentials.get(0).get("meta"));
     }
 
     @Test
