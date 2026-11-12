@@ -20,9 +20,7 @@ OAuthDetailsRequest:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_Mosip_All_Valid_Smoke_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_Mosip_All_Valid_Smoke_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
@@ -49,9 +47,7 @@ OAuthDetailsRequest:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_Mosip_ForNeg_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_Mosip_ForNeg_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
@@ -78,9 +74,7 @@ OAuthDetailsRequest:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_Mosip_ForNeg_Credential_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_Mosip_ForNeg_Credential_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"

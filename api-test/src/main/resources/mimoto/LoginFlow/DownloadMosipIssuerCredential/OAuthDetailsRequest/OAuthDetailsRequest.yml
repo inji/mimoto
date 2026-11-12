@@ -20,9 +20,7 @@ OAuthDetailsRequestForGoogleLogin:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_MosipForGoogleLogin_All_Valid_Smoke_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_All_Valid_Smoke_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
@@ -49,9 +47,7 @@ OAuthDetailsRequestForGoogleLogin:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
@@ -78,9 +74,7 @@ OAuthDetailsRequestForGoogleLogin:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_InvalidIssuer_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_InvalidIssuer_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
@@ -107,9 +101,7 @@ OAuthDetailsRequestForGoogleLogin:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_NumericInIssuer_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_NumericInIssuer_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
@@ -136,9 +128,7 @@ OAuthDetailsRequestForGoogleLogin:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_InvalidCredential_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_InvalidCredential_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
@@ -165,9 +155,7 @@ OAuthDetailsRequestForGoogleLogin:
 	    "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_NumericInCredential_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_MosipForGoogleLogin_ForNeg_NumericInCredential_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
