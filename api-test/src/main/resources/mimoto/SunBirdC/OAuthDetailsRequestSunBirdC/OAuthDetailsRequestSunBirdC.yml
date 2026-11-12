@@ -20,9 +20,7 @@ OAuthDetailsRequestSunBirdC:
 	    "acrValues": "mosip:idp:acr:knowledge",
 	    "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
 	    "state": "$ID:IssuersAuthorize_StayProtected_All_Valid_Smoke_sid_state$",
-	    "claimsLocales": "en",
-	    "codeChallenge": "$ID:IssuersAuthorize_StayProtected_All_Valid_Smoke_sid_authorizationUrl$",
-        "codeChallengeMethod": "S256"
+	    "claimsLocales": "en"
 }'
       output: '{
       "responseCode": "200"
