@@ -23,6 +23,7 @@ import io.mosip.openID4VP.dcql.query.DCQLQuery;
 import io.mosip.openID4VP.exceptions.OpenID4VPExceptions;
 import io.mosip.openID4VP.verifier.VerifierResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -43,6 +44,11 @@ public class OpenID4VPService {
 
     private static final String ES256 = "ES256";
     private static final String ED_DSA = "EdDSA";
+
+    // Dev/test bypass — skip SAN dNSName match during x509_san_dns validation.
+    // MUST be false in production. Wired into WalletConfig in task #13.
+    @Value("${mimoto.x509.skip-san-dns-match:false}")
+    private boolean skipSanDnsMatch;
 
     private final VerifierService verifierService;
 
@@ -72,7 +78,8 @@ public class OpenID4VPService {
                 getDefaultResponseTypeSupported(),
                 defaultConfig.isPresentationDefinitionUriSupported(),
                 trustedVerifiers != null ? trustedVerifiers : List.of(),
-                validateTrustedVerifier
+                validateTrustedVerifier,
+                skipSanDnsMatch
         );
     }
 
