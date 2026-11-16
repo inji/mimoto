@@ -85,3 +85,30 @@ OAuthDetailsRequest:
       output: '{
       "responseCode": "200"
 }'
+
+   Mimoto_ESignet_OAuthDetailsRequest_MockMdl_All_Valid_Smoke_sid:
+      endPoint: /v1/esignet/authorization/v2/oauth-details
+      description: Retrieve authentication details for the MockMdl mso_mdoc credential
+      uniqueIdentifier: TC_Mimoto_OAuthDetailsRequest_MockMdl_01
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorize_MockMdl_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/OAuthDetailsRequest/OAuthDetailsRequest
+      outputTemplate: mimoto/responseCode
+      input: '{
+  "requestTime": "$TIMESTAMP$",
+  "clientId": "$GETCLIENTIDFORMDLFROMMIMOTOACTUATOR$",
+  "scope": "sample_vc_mdoc",
+  "responseType": "code",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "display": "popup",
+  "prompt": "login",
+  "acrValues": "mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet mosip:idp:acr:biometrics",
+  "nonce": "$UNIQUENONCEVALUEFORESIGNET$",
+  "state": "$ID:IssuersAuthorize_MockMdl_All_Valid_Smoke_sid_state$",
+  "claimsLocales": "en"
+}'
+      output: '{
+  "responseCode": "200"
+}'

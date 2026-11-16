@@ -387,6 +387,57 @@
 					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
 		</classes>
 	</test>
+	<test name="IssuersAuthorizeMockCredentialGoogleLogin">
+		<parameter name="ymlFile"
+				   value="mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorize.yml" />
+		<parameter name="pathParams" value="issuerId" />
+		<parameter name="headers" value="" />
+		<parameter name="idKeyName" value="state,authorizationUrl" />
+		<classes>
+			<class
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+		</classes>
+	</test>
+	<test name="OAuthDetailsMockCredentialGoogleLogin">
+		<parameter name="ymlFile"
+				   value="mimoto/LoginFlow/DownloadMockCredential/OAuthDetailsRequest/OAuthDetailsRequest.yml" />
+		<parameter name="idKeyName" value="transactionId,encodedResp" />
+		<parameter name="prerequisite" value="Yes" />
+		<classes>
+			<class
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+		</classes>
+	</test>
+	<test name="AuthenticateMockCredentialGoogleLogin">
+		<parameter name="ymlFile"
+				   value="mimoto/LoginFlow/DownloadMockCredential/AuthenticateUser/AuthenticateUser.yml" />
+		<parameter name="prerequisite" value="Yes" />
+		<classes>
+			<class
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithAutogenIdWithOtpGenerate" />
+		</classes>
+	</test>
+	<test name="AuthorizationCodeMockCredentialGoogleLogin">
+		<parameter name="ymlFile"
+				   value="mimoto/LoginFlow/DownloadMockCredential/AuthorizationCode/AuthorizationCode.yml" />
+		<parameter name="idKeyName" value="code" />
+		<parameter name="prerequisite" value="Yes" />
+		<classes>
+			<class
+					name="io.inji.testrig.apirig.mimoto.testscripts.SimplePostForAutoGenId" />
+		</classes>
+	</test>
+	<test name="DownloadMockCredentialGoogleLogin">
+		<parameter name="pathParams" value="walletId" />
+		<parameter name="headers" value="Accept-Language,state" />
+		<parameter name="idKeyName" value="credentialId" />
+		<parameter name="ymlFile"
+				   value="mimoto/LoginFlow/DownloadMockCredential/DownloadIssuerCredential/DownloadIssuerCredential.yml" />
+		<classes>
+			<class
+					name="io.inji.testrig.apirig.mimoto.testscripts.PostWithPathParamsHeadersAndCookieForAutoGenId" />
+		</classes>
+	</test>
 	<test name="FetchAllCredentials">
 		<parameter name="pathParams" value="walletId" />
 		<parameter name="headers" value="Accept-Language" />

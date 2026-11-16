@@ -11,7 +11,7 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
       outputTemplate: mimoto/responseCode
       input: '{
       	"requestTime": "$TIMESTAMP$",
-      	"clientId": "$GETCLIENTIDFORINSURANCEFROMMIMOTOACTUATOR$",
+        "clientId": "$GETCLIENTIDFORINSURANCEFROMMIMOTOISSUERS$",
       	"scope": "sunbird_rc_insurance_vc_ldp",
       	"responseType": "code",
       	"redirectUri": "$INJIREDIRECTURI$",
@@ -40,7 +40,7 @@ OAuthDetailsRequestSunBirdCForGoogleLogin:
       outputTemplate: mimoto/responseCode
       input: '{
       	"requestTime": "$TIMESTAMP$",
-      	"clientId": "$GETCLIENTIDFORINSURANCEFROMMIMOTOACTUATOR$",
+        "clientId": "$GETCLIENTIDFORINSURANCEFROMMIMOTOISSUERS$",
       	"scope": "sunbird_rc_insurance_vc_ldp",
       	"responseType": "code",
       	"redirectUri": "$INJIREDIRECTURI$",
