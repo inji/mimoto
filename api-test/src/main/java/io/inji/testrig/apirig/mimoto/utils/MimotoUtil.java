@@ -45,6 +45,12 @@ import io.restassured.specification.RequestSpecification;
 public class MimotoUtil extends AdminTestUtil {
 
 	private static final Logger logger = Logger.getLogger(MimotoUtil.class);
+	private static final String MIMOTO_ACTUATOR_OVERRIDES = "overrides";
+	private static final String MOSIP_PARTNER_CLIENT_ID = "mimoto.oidc.mosipid.partner.clientid";
+	private static final String MDL_PARTNER_CLIENT_ID = "mimoto.oidc.mdl.partner.clientid";
+	private static final String STAY_PROTECTED_ISSUER_ID = "StayProtected";
+	private static final String MIMOTO_ISSUERS_ENDPOINT = "/v1/mimoto/v2/issuers";
+	private static String stayProtectedClientId;
 	private static String otpEnabled = "true";
 	private static Faker faker = new Faker();
 	private static String fullNameForSunBirdR = generateFullNameForSunBirdR();
@@ -280,13 +286,19 @@ public class MimotoUtil extends AdminTestUtil {
 			jsonString = replaceKeywordValue(jsonString, "$CLIENT_ID_INJI_VERIFY$", getClientIdForInjiVerify());
 		}
 		if (jsonString.contains("$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$")) {
-			String clientIdSection = MimotoConfigManager.getproperty("mimoto-oidc-mosipid-partner-clientid");
 			jsonString = replaceKeywordWithValue(jsonString, "$GETCLIENTIDFORMOSIPIDFROMMIMOTOACTUATOR$",
-					getValueFromMimotoActuator("overrides", clientIdSection));
-		} else if (jsonString.contains("$GETCLIENTIDFORINSURANCEFROMMIMOTOACTUATOR$")) {
-			String clientIdSection = MimotoConfigManager.getproperty("mimoto-oidc-sunbird-partner-clientid");
-			jsonString = replaceKeywordWithValue(jsonString, "$GETCLIENTIDFORINSURANCEFROMMIMOTOACTUATOR$",
-					getValueFromMimotoActuator("overrides", clientIdSection));
+					getMosipClientIdFromMimotoActuator());
+		} else if (jsonString.contains("$GETCLIENTIDFORINSURANCEFROMMIMOTOISSUERS$")) {
+			jsonString = replaceKeywordWithValue(jsonString, "$GETCLIENTIDFORINSURANCEFROMMIMOTOISSUERS$",
+					getInsuranceClientIdFromMimotoIssuers());
+		}
+		if (jsonString.contains("$GETCLIENTIDFORMOCKFROMMIMOTOACTUATOR$")) {
+			jsonString = replaceKeywordWithValue(jsonString, "$GETCLIENTIDFORMOCKFROMMIMOTOACTUATOR$",
+					getMdlClientIdFromMimotoActuator());
+		}
+		if (jsonString.contains("$GETCLIENTIDFORMDLFROMMIMOTOACTUATOR$")) {
+			jsonString = replaceKeywordWithValue(jsonString, "$GETCLIENTIDFORMDLFROMMIMOTOACTUATOR$",
+					getMdlClientIdFromMimotoActuator());
 		}
 
 		return jsonString;
@@ -378,6 +390,50 @@ public class MimotoUtil extends AdminTestUtil {
 	}
 
 	public static JSONArray mimotoActuatorResponseArray = null;
+
+	public static String getMosipClientIdFromMimotoActuator() {
+		return getClientIdFromMimotoActuator(MOSIP_PARTNER_CLIENT_ID);
+	}
+
+	public static String getInsuranceClientIdFromMimotoIssuers() {
+		if (stayProtectedClientId != null && !stayProtectedClientId.isBlank()) {
+			return stayProtectedClientId;
+		}
+
+		String url = ApplnURI + MIMOTO_ISSUERS_ENDPOINT;
+		try {
+			Response response = RestClient.getRequest(url, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON);
+			JSONArray issuers = new JSONObject(response.asString()).getJSONObject("response").getJSONArray("issuers");
+			for (int i = 0; i < issuers.length(); i++) {
+				JSONObject issuer = issuers.getJSONObject(i);
+				if (STAY_PROTECTED_ISSUER_ID.equals(issuer.optString("issuer_id"))) {
+					stayProtectedClientId = issuer.optString("client_id");
+					break;
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Unable to fetch the StayProtected client ID from Mimoto issuers endpoint: " + url, e);
+		}
+
+		if (stayProtectedClientId == null || stayProtectedClientId.isBlank()) {
+			throw new IllegalStateException(
+					"Client ID is not available for issuer: " + STAY_PROTECTED_ISSUER_ID);
+		}
+		return stayProtectedClientId;
+	}
+
+	public static String getMdlClientIdFromMimotoActuator() {
+		return getClientIdFromMimotoActuator(MDL_PARTNER_CLIENT_ID);
+	}
+
+	private static String getClientIdFromMimotoActuator(String clientIdProperty) {
+		String clientId = getValueFromMimotoActuator(MIMOTO_ACTUATOR_OVERRIDES, clientIdProperty);
+		if (clientId == null || clientId.isBlank()) {
+			throw new IllegalStateException(
+					"Client ID is not available in Mimoto actuator property: " + clientIdProperty);
+		}
+		return clientId;
+	}
 
 	public static String getValueFromMimotoActuator(String section, String key) {
 		String url = ApplnURI + ConfigManager.getproperty("actuatorMimotoEndpoint");
@@ -663,10 +719,13 @@ public class MimotoUtil extends AdminTestUtil {
 		Response response = request.post(url);
 		GlobalMethods.reportResponse(response.getHeaders().asList().toString(), url, response);
 
-		// Mirror the closed-source auto-gen capture: only write when the test case name has _sid
-		if (idKeyName != null && currentTestCaseName != null
-				&& currentTestCaseName.toLowerCase().contains("_sid")) {
-			JSONObject respBody = new JSONObject(response.asString());
+		// Capture the configured response fields for this manual path. Google-login test cases
+		// can use a real SESSION cookie without the legacy `_sid` suffix, but their dependent
+		// cases still need values such as state and authorizationUrl.
+		String responseBody = response.asString();
+		if (idKeyName != null && currentTestCaseName != null && responseBody != null
+				&& responseBody.trim().startsWith("{")) {
+			JSONObject respBody = new JSONObject(responseBody);
 			for (String key : idKeyName.split(",")) {
 				String field = key.trim();
 				if ("sessionCookie".equals(field) || field.isEmpty()) {

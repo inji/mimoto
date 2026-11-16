@@ -913,5 +913,100 @@
         "TC_Mimoto_UnlockWallet_01",
         "TC_Mimoto_CreateWallet_01",
         "TC_Mimoto_DownloadIssuerCredentialWithGoogleLogin_01"
+    ],
+    "TC_Mimoto_OAuthDetailsRequest_MockMdl_01": [
+        "TC_Mimoto_IssuersAuthorize_MockMdl_01"
+    ],
+    "TC_Mimoto_AuthenticateUser_MockMdl_01": [
+        "TC_Mimoto_OAuthDetailsRequest_MockMdl_01"
+    ],
+    "TC_Mimoto_AuthorizationCode_MockMdl_01": [
+        "TC_Mimoto_AuthenticateUser_MockMdl_01",
+        "TC_Mimoto_OAuthDetailsRequest_MockMdl_01"
+    ],
+    "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_01": [
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01"
+    ],
+    "TC_Mimoto_OAuthDetailsRequest_GoogleLogin_MockMdl_01": [
+        "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_01"
+    ],
+    "TC_Mimoto_AuthenticateUser_GoogleLogin_MockMdl_01": [
+        "TC_Mimoto_OAuthDetailsRequest_GoogleLogin_MockMdl_01"
+    ],
+    "TC_Mimoto_AuthorizationCode_GoogleLogin_MockMdl_01": [
+        "TC_Mimoto_AuthenticateUser_GoogleLogin_MockMdl_01",
+        "TC_Mimoto_OAuthDetailsRequest_GoogleLogin_MockMdl_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_GoogleLogin_MockMdl_01": [
+        "TC_Mimoto_AuthorizationCode_GoogleLogin_MockMdl_01",
+        "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_01",
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01",
+        "TC_Mimoto_CreateWallet_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_MockMdl_07": [
+        "TC_Mimoto_AuthorizationCode_MockMdl_01",
+        "TC_Mimoto_IssuersAuthorize_MockMdl_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_MockMdl_08": [
+        "TC_Mimoto_AuthorizationCode_MockMdl_01",
+        "TC_Mimoto_IssuersAuthorize_MockMdl_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_MockMdl_09": [
+        "TC_Mimoto_IssuersAuthorize_MockMdl_02"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_MockMdl_10": [
+        "TC_Mimoto_IssuersAuthorize_MockMdl_03"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_MockMdl_11": [
+        "TC_Mimoto_AuthorizationCode_MockMdl_01",
+        "TC_Mimoto_IssuersAuthorize_MockMdl_04",
+        "TC_Mimoto_DownloadIssuerCredential_MockMdl_07"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_MockMdl_12": [
+        "TC_Mimoto_IssuersAuthorize_MockMdl_05"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_GoogleLogin_MockMdl_02": [
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_GoogleLogin_MockMdl_03": [
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01",
+        "TC_Mimoto_CreateWallet_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_GoogleLogin_MockMdl_04": [
+        "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_02",
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01",
+        "TC_Mimoto_CreateWallet_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_GoogleLogin_MockMdl_05": [
+        "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_03",
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01",
+        "TC_Mimoto_CreateWallet_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_GoogleLogin_MockMdl_06": [
+        "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_04",
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01",
+        "TC_Mimoto_CreateWallet_01"
+    ],
+    "TC_Mimoto_DownloadIssuerCredential_GoogleLogin_MockMdl_07": [
+        "TC_Mimoto_CreateWallet_01"
+    ],
+    "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_02": [
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01"
+    ],
+    "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_03": [
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01"
+    ],
+    "TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_04": [
+        "TC_Mimoto_GoogleLoginToken_01",
+        "TC_Mimoto_UnlockWallet_01"
     ]
 }

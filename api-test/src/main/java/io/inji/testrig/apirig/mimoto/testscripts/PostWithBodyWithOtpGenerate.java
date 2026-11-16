@@ -93,7 +93,7 @@ public class PostWithBodyWithOtpGenerate extends MimotoUtil implements ITest {
 		testCaseDTO = MimotoUtil.isTestCaseValidForTheExecution(testCaseDTO);
 		testCaseDTO = MimotoUtil.changeContextURLByFlag(testCaseDTO);
 		auditLogCheck = testCaseDTO.isAuditLogCheck();
-		String tempUrl = MimotoConfigManager.getEsignetBaseUrl();
+		String tempUrl = MimotoConfigManager.getEsignetBaseUrl(testCaseName);
 		JSONObject req = new JSONObject(testCaseDTO.getInput());
 		String otpRequest = null;
 		String sendOtpReqTemplate = null;

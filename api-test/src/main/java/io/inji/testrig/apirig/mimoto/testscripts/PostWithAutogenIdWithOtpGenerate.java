@@ -124,7 +124,7 @@ public class PostWithAutogenIdWithOtpGenerate extends MimotoUtil implements ITes
 				if (MimotoConfigManager.isInServiceNotDeployedList(GlobalConstants.ESIGNET)) {
 					throw new SkipException("esignet is not deployed hence skipping the testcase");
 				}
-				String tempUrl = MimotoConfigManager.getEsignetBaseUrl();
+				String tempUrl = MimotoConfigManager.getEsignetBaseUrl(testCaseName);
 				otpResponse = postRequestWithCookieAuthHeaderAndXsrfToken(tempUrl + sendOtpEndPoint, input, COOKIENAME,
 						testCaseDTO.getTestCaseName());
 			} else {
@@ -185,7 +185,7 @@ public class PostWithAutogenIdWithOtpGenerate extends MimotoUtil implements ITes
 			if (MimotoConfigManager.isInServiceNotDeployedList(GlobalConstants.ESIGNET)) {
 				throw new SkipException("esignet is not deployed hence skipping the testcase");
 			}
-			String tempUrl = MimotoConfigManager.getEsignetBaseUrl();
+			String tempUrl = MimotoConfigManager.getEsignetBaseUrl(testCaseName);
 			inputJson = MimotoUtil.getOTPFromSMTP(inputJson, testCaseDTO);
 			response = postRequestWithCookieAuthHeaderAndXsrfTokenForAutoGenId(tempUrl + testCaseDTO.getEndPoint(),
 					inputJson, COOKIENAME, testCaseDTO.getTestCaseName(), idKeyName);

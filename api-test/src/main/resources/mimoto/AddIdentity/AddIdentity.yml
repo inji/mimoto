@@ -28,6 +28,35 @@ AddIdentity:
   "status":"ACTIVATED"
 }'
 
+   Mimoto_AddIdentity_MockMdl_smoke_Pos:
+      endPoint: /v1/mock-identity-system/identity
+      description: Create a mock identity for MockMdl credential download authentication
+      uniqueIdentifier: TC_Mimoto_AddIdentity_MockMdl_01
+      role: resident
+      restMethod: post
+      inputTemplate: mimoto/AddIdentity/addMockMdlIdentity
+      outputTemplate: mimoto/AddIdentity/addIdentityResult
+      input: '{
+  "requestTime": "$TIMESTAMP$",
+  "individualId": "$MOCKMDLINDIVIDUALID$",
+  "pin": "111111",
+  "fullName": "Mock MDL User",
+  "givenName": "Mock",
+  "familyName": "User",
+  "gender": "Male",
+  "dateOfBirth": "1992/04/15",
+  "streetAddress": "MG Road",
+  "locality": "Bengaluru",
+  "region": "Karnataka",
+  "postalCode": "560001",
+  "country": "India",
+  "email": "$EMAILVALUE$",
+  "phone": "$PHONENUMBERFORIDENTITY$"
+}'
+      output: '{
+  "status": "mock identity data created successfully"
+}'
+
    Mimoto_AddIdentity_Binding_smoke_Pos:
       endPoint: /idrepository/v1/identity/
       description: Validate that a new identity is successfully created using all valid parameters for Binding API workflows
