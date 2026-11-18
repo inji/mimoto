@@ -196,6 +196,14 @@ public class PostWithPathParamsHeadersAndCookieForAutoGenId extends MimotoUtil i
 
 		try {
 			URI uri = URI.create(authorizationUrl);
+			if (!uri.isAbsolute()
+					|| (!"https".equalsIgnoreCase(uri.getScheme())
+							&& !"http".equalsIgnoreCase(uri.getScheme()))
+					|| uri.getHost() == null
+					|| uri.getRawFragment() != null) {
+				throw new AdminTestException(
+						"PAR authorizationUrl must be an absolute HTTP(S) URL without a fragment");
+			}
 			if (uri.getRawQuery() == null || uri.getRawQuery().isBlank()) {
 				throw new AdminTestException("PAR authorizationUrl does not contain query parameters");
 			}
@@ -206,6 +214,10 @@ public class PostWithPathParamsHeadersAndCookieForAutoGenId extends MimotoUtil i
 				String name = URLDecoder.decode(nameAndValue[0], StandardCharsets.UTF_8);
 				String value = nameAndValue.length == 2
 						? URLDecoder.decode(nameAndValue[1], StandardCharsets.UTF_8) : "";
+				if (queryParameters.containsKey(name)) {
+					throw new AdminTestException(
+							"PAR authorizationUrl contains a duplicate query parameter");
+				}
 				queryParameters.put(name, value);
 			}
 
