@@ -184,9 +184,9 @@ public class PostWithPathParamsHeadersAndCookieForAutoGenId extends MimotoUtil i
 					+ ", but received " + actualFields);
 		}
 
-		String state = body.optString("state", "");
-		if (state.isBlank()) {
-			throw new AdminTestException("IssuersAuthorize response contains an empty state");
+		Object stateValue = body.opt("state");
+		if (!(stateValue instanceof String) || ((String) stateValue).isBlank()) {
+			throw new AdminTestException("IssuersAuthorize response state must be a non-empty JSON string");
 		}
 
 		String authorizationUrl = body.optString("authorizationUrl", "");
