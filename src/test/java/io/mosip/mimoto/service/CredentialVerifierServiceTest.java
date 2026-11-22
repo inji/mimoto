@@ -176,7 +176,7 @@ public class CredentialVerifierServiceTest {
 
     @Test
     public void testStatusListFailureThrowsUnavailable() throws Exception {
-        StatusCheckException error = new StatusCheckException("fetch failed", StatusCheckErrorCode.STATUS_LIST_FETCH_FAILED);
+        StatusCheckException error = new StatusCheckException("fetch failed", StatusCheckErrorCode.STATUS_RETRIEVAL_ERROR);
         mockMdocStatus(Map.of(
                 "revocation", new CredentialStatusResult(false, error),
                 "suspension", new CredentialStatusResult(false, error)));
