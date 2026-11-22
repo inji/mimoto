@@ -5,6 +5,7 @@ import io.mosip.mimoto.constant.SwaggerExampleConstants;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
+import io.mosip.mimoto.dto.mimoto.CredentialStatusResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
@@ -85,7 +86,7 @@ public class WalletCredentialsController {
             @Parameter(name = DPoPConstants.OAUTH_STATE_HEADER, in = ParameterIn.HEADER, required = true, description = "OAuth state that identifies the DPoP session created by POST /issuers/{issuer-id}/authorize", schema = @Schema(type = "string"))},
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
-                    description = "Request body with issuer, credentialConfigurationId, and authorization code.",
+                    description = "Request body with issuer, credentialConfigurationId, authorization code, and optional statusPurposeList.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = VerifiableCredentialRequestDTO.class),
@@ -135,7 +136,8 @@ public class WalletCredentialsController {
 
             VerifiableCredentialResponseDTO credentialResponseDTO = walletCredentialService.downloadVCAndStoreInDB(
                     issuerId, credentialConfigurationId, locale, walletId, base64EncodedWalletKey,
-                    verifiableCredentialRequest.getCode(), state, httpSession);
+                    verifiableCredentialRequest.getCode(), state, httpSession,
+                    verifiableCredentialRequest.getStatusPurposeList());
             return ResponseEntity.status(HttpStatus.OK).body(credentialResponseDTO);
         } finally {
             dPoPSessionService.remove(httpSession, state);
@@ -161,6 +163,13 @@ public class WalletCredentialsController {
         log.error("External service unavailable during wallet credential download", ex);
         return Utilities.getErrorResponseEntityWithoutWrapper(
                 ex, ex.getErrorCode(), HttpStatus.SERVICE_UNAVAILABLE, MediaType.APPLICATION_JSON);
+    }
+
+    @ExceptionHandler(CredentialStatusException.class)
+    public ResponseEntity<Object> handleCredentialStatusException(CredentialStatusException ex) {
+        log.error("Credential status check failed during wallet credential download", ex);
+        return Utilities.getErrorResponseEntityWithoutWrapper(
+                ex, ex.getErrorCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
     }
 
     @ExceptionHandler(CredentialProcessingException.class)
@@ -210,6 +219,34 @@ public class WalletCredentialsController {
                 walletId, base64EncodedWalletKey, locale);
         return ResponseEntity.status(HttpStatus.OK).body(credentials);
 
+    }
+
+    @Operation(summary = "Check the status of a stored credential", description = "Decrypts the stored credential, checks its status with the issuer status list, and stores the result. Revoked and suspended credentials are returned with valid=false. If the check fails, the stored status is left unchanged.", operationId = "checkCredentialStatus", security = @SecurityRequirement(name = "SessionAuth"), parameters = {
+            @Parameter(name = "walletId", in = ParameterIn.PATH, required = true, description = "Unique identifier of the wallet", schema = @Schema(type = "string")),
+            @Parameter(name = "credentialId", in = ParameterIn.PATH, required = true, description = "Unique identifier of the credential", schema = @Schema(type = "string")),
+            @Parameter(name = "statusPurposeList", in = ParameterIn.QUERY, description = "Status purposes to check. Defaults to revocation and suspension.", schema = @Schema(type = "array"))})
+    @ApiResponse(responseCode = "200", description = "Status checked and stored", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CredentialStatusResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "The credential could not be verified", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Credential not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class)))
+    @ApiResponse(responseCode = "424", description = "The issuer status list could not be checked", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class)))
+    @GetMapping("/{credentialId}/status")
+    public ResponseEntity<CredentialStatusResponseDTO> checkCredentialStatus(
+            @PathVariable("walletId") @NotBlank(message = "Wallet ID cannot be blank") String walletId,
+            @PathVariable("credentialId") @NotBlank(message = "Credential ID cannot be blank") String credentialId,
+            @RequestParam(name = "statusPurposeList", required = false) List<String> statusPurposeList,
+            HttpSession httpSession) throws InvalidRequestException, CredentialNotFoundException, CredentialProcessingException {
+        validateWalletId(httpSession, walletId);
+        String base64EncodedWalletKey = WalletUtil.getSessionWalletKey(httpSession);
+        try {
+            return ResponseEntity.ok(walletCredentialService.checkCredentialStatus(walletId, credentialId, base64EncodedWalletKey, statusPurposeList));
+        } catch (CredentialStatusException ex) {
+            HttpStatus status = ErrorConstants.CREDENTIAL_STATUS_UNAVAILABLE.getErrorCode().equals(ex.getErrorCode())
+                    ? HttpStatus.FAILED_DEPENDENCY
+                    : HttpStatus.BAD_REQUEST;
+            return Utilities.getErrorResponseEntityWithoutWrapper(ex, ex.getErrorCode(), status, MediaType.APPLICATION_JSON);
+        } catch (VCVerificationException ex) {
+            return Utilities.getErrorResponseEntityWithoutWrapper(ex, ex.getErrorCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
+        }
     }
 
     /**

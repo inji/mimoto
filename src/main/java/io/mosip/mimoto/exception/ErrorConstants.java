@@ -23,6 +23,7 @@ public enum ErrorConstants {
 
     PROOF_TYPE_NOT_SUPPORTED_EXCEPTION("proof_type_not_supported", "Proof Type available in received credentials is not matching with supported proof terms"),
     SIGNATURE_VERIFICATION_EXCEPTION("signature_verification_failed", "Error while doing signature verification"),
+    CREDENTIAL_STATUS_UNAVAILABLE("credential_status_unavailable", "Could not confirm the credential status. Please try again."),
     JSON_PARSING_EXCEPTION("json_parsing_failed", "Given data couldn't be parsed to JSON string"),
     UNKNOWN_EXCEPTION("unknown_exception", "Error while doing verification of verifiable credential"),
     PROOF_DOCUMENT_NOT_FOUND_EXCEPTION("proof_document_not_found", "Proof document is not available in the received credentials"),

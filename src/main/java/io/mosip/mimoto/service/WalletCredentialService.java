@@ -1,6 +1,7 @@
 package io.mosip.mimoto.service;
 
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
+import io.mosip.mimoto.dto.mimoto.CredentialStatusResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
@@ -25,11 +26,13 @@ public interface WalletCredentialService {
      * @param code                      The authorization code.
      * @param state                     OAuth state identifying the DPoP session.
      * @param httpSession               The HTTP session that holds the DPoP session.
+     * @param statusPurposeList         Optional purposes to check. Null or empty uses revocation and suspension.
      * @return The stored credential response.
      */
     VerifiableCredentialResponseDTO downloadVCAndStoreInDB(String issuerId, String credentialConfigurationId,
                                                            String locale, String walletId, String base64Key,
-                                                           String code, String state, HttpSession httpSession)
+                                                           String code, String state, HttpSession httpSession,
+                                                           List<String> statusPurposeList)
             throws CredentialProcessingException, ExternalServiceUnavailableException, ApiNotAccessibleException,
             IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException,
             IssuerOnboardingException;
@@ -60,6 +63,16 @@ public interface WalletCredentialService {
             throws CredentialNotFoundException, CredentialProcessingException;
 
     void deleteCredential(String credentialId, String walletId) throws CredentialNotFoundException;
+
+    /**
+     * Checks a stored credential against the issuer status list and saves the result.
+     * A failed check leaves the stored status unchanged.
+     *
+     * @param statusPurposeList optional; null uses revocation and suspension.
+     */
+    CredentialStatusResponseDTO checkCredentialStatus(String walletId, String credentialId, String base64Key,
+                                                      List<String> statusPurposeList)
+            throws CredentialNotFoundException, CredentialProcessingException, VCVerificationException;
 
     List<DecryptedCredentialDTO> getDecryptedCredentials(String walletId, String base64Key);
 
