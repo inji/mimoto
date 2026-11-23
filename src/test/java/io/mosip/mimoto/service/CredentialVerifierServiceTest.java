@@ -107,7 +107,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testLdpVcStoresReturnedStatusPurposes() throws Exception {
+    public void should_returnStatusPurposes_when_ldpVcVerificationSucceeds() throws Exception {
         when(verificationResult.getVerificationStatus()).thenReturn(true);
         when(credentialsVerifier.verifyAndGetCredentialStatus(eq(credentialJson), eq(CredentialFormat.LDP_VC), eq(STATUS_PURPOSE_LIST)))
                 .thenReturn(new CredentialVerificationSummary(verificationResult,
@@ -123,14 +123,14 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testMdocWithoutStatusReferenceIsAccepted() throws Exception {
+    public void should_returnEmptyStatusChecks_when_mdocHasNoStatusReference() throws Exception {
         mockMdocStatus(Map.of());
 
         assertTrue(credentialVerifier.verify(mdocResponse(), null).getStatusChecks().isEmpty());
     }
 
     @Test
-    public void testMdocBits1ValidStoresRevocationOnly() throws Exception {
+    public void should_storeRevocationOnly_when_mdocBits1IsValid() throws Exception {
         mockMdocStatus(Map.of("revocation", new CredentialStatusResult(true, null)));
 
         CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse(), null);
@@ -141,7 +141,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testMdocBits2ValidStoresBothPurposes() throws Exception {
+    public void should_storeBothPurposes_when_mdocBits2IsValid() throws Exception {
         mockMdocStatus(Map.of(
                 "revocation", new CredentialStatusResult(true, null),
                 "suspension", new CredentialStatusResult(true, null)));
@@ -153,7 +153,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testRevokedMdocIsReturnedForStorage() throws Exception {
+    public void should_returnInvalidRevocation_when_mdocIsRevoked() throws Exception {
         mockMdocStatus(Map.of("revocation", new CredentialStatusResult(false, null)));
 
         CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse(), null);
@@ -164,7 +164,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testSuspendedMdocIsReturnedForStorage() throws Exception {
+    public void should_returnInvalidSuspension_when_mdocIsSuspended() throws Exception {
         mockMdocStatus(Map.of("suspension", new CredentialStatusResult(false, null)));
 
         CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse(), null);
@@ -175,7 +175,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testStatusListFailureThrowsUnavailable() throws Exception {
+    public void should_throwUnavailable_when_statusListCheckFails() throws Exception {
         StatusCheckException error = new StatusCheckException("fetch failed", StatusCheckErrorCode.STATUS_RETRIEVAL_ERROR);
         mockMdocStatus(Map.of(
                 "revocation", new CredentialStatusResult(false, error),
@@ -187,7 +187,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testExpiredVcWithPassingCryptoSetsExpiredTrue() throws Exception {
+    public void should_setExpiredTrue_when_cryptoPassesAndVcIsExpired() throws Exception {
         when(verificationResult.getVerificationStatus()).thenReturn(true);
         when(verificationResult.getVerificationErrorCode()).thenReturn("ERR_VC_EXPIRED");
         when(credentialsVerifier.verifyAndGetCredentialStatus(eq(MDOC), eq(CredentialFormat.MSO_MDOC), eq(STATUS_PURPOSE_LIST)))
@@ -202,7 +202,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testExpiredMdocWithFailedCryptoThrows() throws Exception {
+    public void should_throwVcVerificationException_when_cryptoFailsForExpiredMdoc() throws Exception {
         when(verificationResult.getVerificationStatus()).thenReturn(false);
         when(verificationResult.getVerificationErrorCode()).thenReturn("ERR_VC_EXPIRED");
         when(verificationResult.getVerificationMessage()).thenReturn("Credential has expired");
@@ -215,7 +215,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testMdocSignatureFailureIsNotAStatusError() throws Exception {
+    public void should_throwVcVerificationException_when_mdocSignatureFails() throws Exception {
         when(verificationResult.getVerificationStatus()).thenReturn(false);
         when(verificationResult.getVerificationErrorCode()).thenReturn("ERR_SIGNATURE_VERIFICATION_FAILED");
         when(verificationResult.getVerificationMessage()).thenReturn("Verification failed");
@@ -245,7 +245,7 @@ public class CredentialVerifierServiceTest {
     }
 
     @Test
-    public void testRequestedStatusPurposeListIsPassedToLibrary() throws Exception {
+    public void should_passRequestedPurposes_when_statusPurposeListIsProvided() throws Exception {
         when(verificationResult.getVerificationStatus()).thenReturn(true);
         List<String> purposes = List.of("revocation");
         when(credentialsVerifier.verifyAndGetCredentialStatus(eq(credentialJson), eq(CredentialFormat.LDP_VC), eq(purposes)))

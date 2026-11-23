@@ -354,7 +354,7 @@ public class CredentialServiceTest {
     }
 
     @Test
-    public void shouldPreserveVerifierErrorCodeWhenDownloadVerificationFails() throws Exception {
+    public void should_preserveVerifierErrorCode_when_downloadVerificationFails() throws Exception {
         TokenResponseDTO tokenResponse = getTokenResponseDTO();
         String credentialConfigurationId = "CredentialType1";
         String walletId = "wallet123";
@@ -570,7 +570,7 @@ public class CredentialServiceTest {
     }
 
     @Test
-    public void shouldStoreRevokedCredentialWithStatus() throws Exception {
+    public void should_storeRevokedCredential_when_statusIsInvalid() throws Exception {
         TokenResponseDTO tokenResponse = getTokenResponseDTO();
         String credentialConfigurationId = "CredentialType1";
         String localIssuerId = "issuer1";
