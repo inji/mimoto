@@ -68,7 +68,7 @@ public interface WalletCredentialService {
      * Checks a stored credential against the issuer status list and saves the result.
      * A failed check leaves the stored status unchanged.
      *
-     * @param statusPurposeList optional; null uses revocation and suspension.
+     * @param statusPurposeList optional; null or empty uses revocation and suspension.
      */
     CredentialStatusResponseDTO checkCredentialStatus(String walletId, String credentialId, String base64Key,
                                                       List<String> statusPurposeList)

@@ -202,7 +202,7 @@ public class WalletCredentialsControllerTest {
     }
 
     @Test
-    public void shouldPassStatusPurposeListFromRequestBody() throws Exception {
+    public void should_passStatusPurposeList_when_presentInRequestBody() throws Exception {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         verifiableCredentialRequest.setStatusPurposeList(List.of("revocation"));
         when(walletCredentialService.downloadVCAndStoreInDB(
@@ -633,7 +633,7 @@ public class WalletCredentialsControllerTest {
     }
 
     @Test
-    public void shouldReturnStoredStatusWhenCheckSucceeds() throws Exception {
+    public void should_returnStoredStatus_when_checkSucceeds() throws Exception {
         Instant checkedAt = Instant.parse("2026-11-13T12:00:00Z");
         CredentialStatusResponseDTO statusResponse = CredentialStatusResponseDTO.builder()
                 .credentialId(credentialId)
@@ -658,7 +658,7 @@ public class WalletCredentialsControllerTest {
     }
 
     @Test
-    public void shouldReturnNotFoundWhenCredentialStatusCannotBeChecked() throws Exception {
+    public void should_returnNotFound_when_credentialStatusCannotBeChecked() throws Exception {
         when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey), any()))
                 .thenThrow(new CredentialNotFoundException(RESOURCE_NOT_FOUND.getErrorCode(), RESOURCE_NOT_FOUND.getErrorMessage()));
 
@@ -671,7 +671,7 @@ public class WalletCredentialsControllerTest {
     }
 
     @Test
-    public void shouldReturnFailedDependencyWhenStatusListCannotBeReached() throws Exception {
+    public void should_returnFailedDependency_when_statusListCannotBeReached() throws Exception {
         when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey), any()))
                 .thenThrow(new CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE));
 

@@ -259,6 +259,17 @@ public class CredentialVerifierServiceTest {
         verify(credentialsVerifier).verifyAndGetCredentialStatus(credentialJson, CredentialFormat.LDP_VC, purposes);
     }
 
+    @Test
+    public void should_useDefaultPurposes_when_statusPurposeListIsEmpty() throws Exception {
+        when(verificationResult.getVerificationStatus()).thenReturn(true);
+        when(credentialsVerifier.verifyAndGetCredentialStatus(eq(credentialJson), eq(CredentialFormat.LDP_VC), eq(STATUS_PURPOSE_LIST)))
+                .thenReturn(new CredentialVerificationSummary(verificationResult, Map.of()));
+
+        credentialVerifier.verify(vcCredentialResponse, List.of());
+
+        verify(credentialsVerifier).verifyAndGetCredentialStatus(credentialJson, CredentialFormat.LDP_VC, STATUS_PURPOSE_LIST);
+    }
+
     @Test(expected = NullPointerException.class)
     public void testVerifyWithNullCredential() throws Exception {
         // Arrange

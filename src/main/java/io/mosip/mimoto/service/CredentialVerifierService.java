@@ -13,7 +13,7 @@ public interface CredentialVerifierService {
 
     /**
      * Verifies crypto and returns status-list checks plus expiry.
-     * {@code statusPurposeList} is optional; null uses {@link #STATUS_PURPOSE_LIST}.
+     * {@code statusPurposeList} is optional; null or empty uses {@link #STATUS_PURPOSE_LIST}.
      */
     CredentialVerificationResult verify(VCCredentialResponse credentialResponse, List<String> statusPurposeList)
             throws JsonProcessingException, VCVerificationException;

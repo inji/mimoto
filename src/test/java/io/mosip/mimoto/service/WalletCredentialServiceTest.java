@@ -227,7 +227,7 @@ public class WalletCredentialServiceTest {
     }
 
     @Test
-    public void shouldStoreRefreshedStatusWhenCheckSucceeds() throws Exception {
+    public void should_storeRefreshedStatus_when_checkSucceeds() throws Exception {
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().format("mso_mdoc").credential("mdoc").build();
         List<CredentialStatusCheck> statusChecks = List.of(new CredentialStatusCheck("revocation", false));
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
@@ -247,7 +247,7 @@ public class WalletCredentialServiceTest {
     }
 
     @Test
-    public void shouldStoreExpiredWhenVerifierReportsVcExpired() throws Exception {
+    public void should_storeExpired_when_verifierReportsVcExpired() throws Exception {
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().format("mso_mdoc").credential("mdoc").build();
         List<CredentialStatusCheck> statusChecks = List.of(new CredentialStatusCheck("revocation", true));
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
@@ -263,7 +263,7 @@ public class WalletCredentialServiceTest {
     }
 
     @Test
-    public void shouldLeaveStoredStatusUnchangedWhenStatusCheckFails() throws Exception {
+    public void should_leaveStoredStatusUnchanged_when_statusCheckFails() throws Exception {
         VCCredentialResponse vcResponse = VCCredentialResponse.builder().format("mso_mdoc").credential("mdoc").build();
         when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
         when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("stored-credential");

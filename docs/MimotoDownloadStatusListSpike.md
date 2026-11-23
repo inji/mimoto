@@ -133,7 +133,7 @@ One call:
 credentialsVerifier.verifyAndGetCredentialStatus(credential, format, statusPurposeList)
 ```
 
-`statusPurposeList` null in Mimoto becomes `[revocation, suspension]`. A non-null list (including a shorter one) is passed through.
+`statusPurposeList` null or empty in Mimoto becomes `[revocation, suspension]`. A non-empty list (including a shorter one) is passed through.
 
 Returns `CredentialVerificationSummary`: `verificationResult` plus `Map<purpose, CredentialStatusResult>`.
 

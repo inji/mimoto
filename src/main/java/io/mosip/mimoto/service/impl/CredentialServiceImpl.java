@@ -240,7 +240,7 @@ public class CredentialServiceImpl implements CredentialService {
 
     /**
      * Verifies the downloaded VC and returns status checks plus expiry.
-     * {@code statusPurposeList} is optional; null uses the default purposes.
+     * {@code statusPurposeList} is optional; null or empty uses the default purposes.
      */
     private CredentialVerificationResult verifyCredential(VCCredentialResponse vcCredentialResponse, String issuerId, String credentialConfigurationId,
                                                              List<String> statusPurposeList)
