@@ -14,6 +14,7 @@ import io.mosip.vercred.vcverifier.data.CredentialStatusResult;
 import io.mosip.vercred.vcverifier.data.CredentialVerificationSummary;
 import io.mosip.vercred.vcverifier.data.VerificationResult;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -31,9 +32,14 @@ public class CredentialVerifierServiceImpl implements CredentialVerifierService 
 
     private final CredentialsVerifier credentialsVerifier;
 
-    public CredentialVerifierServiceImpl(ObjectMapper objectMapper, CredentialsVerifier credentialsVerifier) {
+    private final List<String> defaultStatusPurposeList;
+
+    public CredentialVerifierServiceImpl(ObjectMapper objectMapper, CredentialsVerifier credentialsVerifier,
+                                         @Value("${mosip.inji.credential.status.purpose-list:revocation,suspension}")
+                                         List<String> defaultStatusPurposeList) {
         this.objectMapper = objectMapper;
         this.credentialsVerifier = credentialsVerifier;
+        this.defaultStatusPurposeList = defaultStatusPurposeList;
     }
 
     @Override
@@ -43,7 +49,7 @@ public class CredentialVerifierServiceImpl implements CredentialVerifierService 
         CredentialFormat format = Objects.requireNonNull(CredentialFormat.Companion.fromValue(response.getFormat()));
         CredentialVerificationSummary summary = credentialsVerifier.verifyAndGetCredentialStatus(
                 credentialString, format,
-                statusPurposeList != null && !statusPurposeList.isEmpty() ? statusPurposeList : STATUS_PURPOSE_LIST);
+                statusPurposeList != null && !statusPurposeList.isEmpty() ? statusPurposeList : defaultStatusPurposeList);
         VerificationResult result = summary.getVerificationResult();
         assertSignatureValid(result);
         return new CredentialVerificationResult(collectStatus(summary.getCredentialStatus()), isExpired(result));
@@ -70,7 +76,7 @@ public class CredentialVerifierServiceImpl implements CredentialVerifierService 
             log.info("Credential has no status list reference; skipping status check");
             return List.of();
         }
-        List<CredentialStatusCheck> checks = new ArrayList<>();
+        List<CredentialStatusCheck> statusChecks = new ArrayList<>();
         for (Map.Entry<String, CredentialStatusResult> entry : statuses.entrySet()) {
             CredentialStatusResult result = entry.getValue();
             if (result != null && result.getError() != null) {
@@ -78,8 +84,8 @@ public class CredentialVerifierServiceImpl implements CredentialVerifierService 
                 log.error("Credential status check failed: {}", detail);
                 throw new CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE, detail);
             }
-            checks.add(new CredentialStatusCheck(entry.getKey(), result.isValid()));
+            statusChecks.add(new CredentialStatusCheck(entry.getKey(), result.isValid()));
         }
-        return checks;
+        return statusChecks;
     }
 }

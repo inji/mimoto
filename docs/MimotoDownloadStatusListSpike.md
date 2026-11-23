@@ -133,7 +133,7 @@ One call:
 credentialsVerifier.verifyAndGetCredentialStatus(credential, format, statusPurposeList)
 ```
 
-`statusPurposeList` null or empty in Mimoto becomes `[revocation, suspension]`. A non-empty list (including a shorter one) is passed through.
+`statusPurposeList` null or empty in Mimoto becomes `mosip.inji.credential.status.purpose-list` (default `revocation,suspension`). A non-empty list (including a shorter one) is passed through.
 
 Returns `CredentialVerificationSummary`: `verificationResult` plus `Map<purpose, CredentialStatusResult>`.
 
@@ -164,7 +164,7 @@ These APIs take the credential string and format. They do not depend on OpenID4V
 
 For **any format**:
 
-1. `verifyAndGetCredentialStatus(credential, format, list == null ? STATUS_PURPOSE_LIST : list)`.
+1. `verifyAndGetCredentialStatus(credential, format, list == null or empty ? configured purposes : list)`.
 2. If `verificationStatus == false` → `VCVerificationException` with the library code and message.
 3. Copy the status map into `CredentialStatusCheck(purpose, valid)`. Any entry with `error != null` → `CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE)`.
 4. `isExpired` if `verificationErrorCode` contains `EXPIRED` (and crypto still passed).

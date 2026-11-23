@@ -40,7 +40,7 @@ public interface CredentialService {
      * @param code                      The authorization code
      * @param state                     OAuth state identifying the DPoP session
      * @param httpSession               The HTTP session that holds the DPoP session
-     * @param statusPurposeList         Optional purposes to check. Null or empty uses revocation and suspension.
+     * @param statusPurposeList         Optional purposes to check. Null or empty uses mosip.inji.credential.status.purpose-list.
      * @return The stored VerifiableCredential response
      */
     VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(

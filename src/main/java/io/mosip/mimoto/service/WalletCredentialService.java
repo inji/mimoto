@@ -26,7 +26,7 @@ public interface WalletCredentialService {
      * @param code                      The authorization code.
      * @param state                     OAuth state identifying the DPoP session.
      * @param httpSession               The HTTP session that holds the DPoP session.
-     * @param statusPurposeList         Optional purposes to check. Null or empty uses revocation and suspension.
+     * @param statusPurposeList         Optional purposes to check. Null or empty uses mosip.inji.credential.status.purpose-list.
      * @return The stored credential response.
      */
     VerifiableCredentialResponseDTO downloadVCAndStoreInDB(String issuerId, String credentialConfigurationId,
@@ -68,7 +68,7 @@ public interface WalletCredentialService {
      * Checks a stored credential against the issuer status list and saves the result.
      * A failed check leaves the stored status unchanged.
      *
-     * @param statusPurposeList optional; null or empty uses revocation and suspension.
+     * @param statusPurposeList optional; null or empty uses mosip.inji.credential.status.purpose-list.
      */
     CredentialStatusResponseDTO checkCredentialStatus(String walletId, String credentialId, String base64Key,
                                                       List<String> statusPurposeList)
