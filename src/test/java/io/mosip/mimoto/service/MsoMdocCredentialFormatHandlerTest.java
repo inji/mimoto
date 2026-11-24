@@ -209,6 +209,36 @@ class MsoMdocCredentialFormatHandlerTest {
         assertEquals("John", result.get("given_name"));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void extractAllCredentialPropertiesShouldKeySdClaimsByNamespaceAndElement() throws Exception {
+        vcCredentialResponse.setCredential("cborBase64");
+
+        Map<String, Object> isoGivenName = Map.of("elementIdentifier", "given_name", "elementValue", "John");
+        Map<String, Object> isoFamilyName = Map.of("elementIdentifier", "family_name", "elementValue", "Doe");
+        Map<String, Object> photoGivenName = Map.of("elementIdentifier", "given_name", "elementValue", "Johnny");
+        Map<String, Object> nameSpaces = new LinkedHashMap<>();
+        nameSpaces.put("org.iso.18013.5.1", List.of(isoGivenName, isoFamilyName));
+        nameSpaces.put("org.example.photoid.1", List.of(photoGivenName));
+        Map<String, Object> root = Map.of("issuerSigned", Map.of("nameSpaces", nameSpaces));
+
+        when(pixelPass.toJson("cborBase64")).thenReturn("{}");
+        when(objectMapper.readValue(anyString(), any(TypeReference.class))).thenReturn(root);
+
+        Map<String, ?> result = handler.extractAllCredentialProperties(vcCredentialResponse);
+
+        // sdClaims keys match the DCQL claim path built by DcqlClaimSetHelper.buildClaimPath
+        Map<String, Object> sdClaims = (Map<String, Object>) result.get("sdClaims");
+        assertEquals(Set.of("org.iso.18013.5.1.given_name", "org.iso.18013.5.1.family_name",
+                "org.example.photoid.1.given_name"), sdClaims.keySet());
+
+        // sdClaimValues keep both given_name claims, grouped by namespace
+        Map<String, Map<String, Object>> sdClaimValues = (Map<String, Map<String, Object>>) result.get("sdClaimValues");
+        assertEquals("John", sdClaimValues.get("org.iso.18013.5.1").get("given_name"));
+        assertEquals("Doe", sdClaimValues.get("org.iso.18013.5.1").get("family_name"));
+        assertEquals("Johnny", sdClaimValues.get("org.example.photoid.1").get("given_name"));
+    }
+
     // loadDisplayPropertiesFromWellknown
     @Test
     void loadDisplayPropertiesFromWellknownWithNullClaimsShouldUseFallbackWithSnakeCaseLabel() {

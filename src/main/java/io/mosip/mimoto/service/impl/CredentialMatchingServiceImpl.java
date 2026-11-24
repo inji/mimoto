@@ -28,6 +28,8 @@ import io.mosip.mimoto.util.JwtUtils;
 import io.mosip.mimoto.util.DcqlClaimSetHelper;
 import io.mosip.mimoto.util.DcqlCredentialSetHelper;
 import io.mosip.mimoto.util.DcqlMatchingHelper;
+import io.mosip.mimoto.util.MdocSelectiveDisclosureUtil;
+import io.mosip.mimoto.util.MdocSelectiveDisclosureUtil.MdocClaim;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import io.mosip.openID4VP.dcql.evaluator.MatchingCredential;
 import io.mosip.openID4VP.dcql.evaluator.MatchingCredentialsResult;
@@ -56,6 +58,7 @@ import java.util.stream.Stream;
 public class CredentialMatchingServiceImpl implements CredentialMatchingService {
 
     private static final String JSON_PATH_PREFIX = "$.";
+    private static final String JSON_PATH_BRACKET_PREFIX = "$[";
     private static final String LDP_VC_FORMAT = "ldp_vc";
     private static final String PROOF_TYPE_KEY = "proof_type";
     private static final String SD_JWT_ALG_VALUES_KEY = "sd-jwt_alg_values";
@@ -65,6 +68,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
     private static final String SD = "_sd";
     private static final String PUBLIC_CLAIMS = "publicClaims";
     private static final String SD_CLAIMS = "sdClaims";
+    private static final String SD_CLAIM_VALUES = "sdClaimValues";
 
     private final ObjectMapper objectMapper;
 
@@ -143,7 +147,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                             .toList();
 
                     List<CredentialDTO> matches = descriptorMatches.stream()
-                            .map(this::buildAvailableCredential)
+                            .map(match -> buildAvailableCredential(match, descriptor))
                             .toList();
 
                     if (!matches.isEmpty()) {
@@ -377,6 +381,11 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             return false;
         }
 
+        // ISO 18013-7: the input descriptor id of an mdoc request is the requested docType
+        if (CredentialFormat.isMdoc(vc.getFormat()) && !matchesMdocDocType(vc, inputDescriptor)) {
+            return false;
+        }
+
         if (inputDescriptor.getConstraints().getFields() != null) {
             return matchesConstraints(vc, inputDescriptor.getConstraints());
         }
@@ -396,7 +405,19 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         if (CredentialFormat.LDP_VC.getFormat().equalsIgnoreCase(vcFormat) && descriptorFormat.containsKey(LDP_VC_FORMAT)) {
             return matchesLdpVcFormat(vc, descriptorFormat);
         }
+        if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(vcFormat)
+                && descriptorFormat.containsKey(CredentialFormat.MSO_MDOC.getFormat().toLowerCase())) {
+            return true;
+        }
         return false;
+    }
+
+    private boolean matchesMdocDocType(VCCredentialResponse vc, InputDescriptor inputDescriptor) {
+        if (!(vc.getCredential() instanceof String mdoc)) {
+            return false;
+        }
+        String docType = MdocSelectiveDisclosureUtil.docType(mdoc);
+        return docType != null && docType.equals(inputDescriptor.getId());
     }
 
     private boolean matchesLdpVcFormat(VCCredentialResponse vc, Map<String, Map<String, List<String>>> descriptorFormat) {
@@ -493,6 +514,11 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 mergeClaimProperties(credentialClaimsMap, extractedMap.get(SD_CLAIMS));
             }
             return credentialClaimsMap;
+        } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(format)) {
+            // Claims grouped by namespace, so Presentation Exchange paths like
+            // $['org.iso.18013.5.1']['given_name'] resolve against the credential
+            Map<String, ?> extractedMap = credentialFormatHandler.extractAllCredentialProperties(vc);
+            return extractedMap == null ? Collections.emptyMap() : asStringObjectMap(extractedMap.get("sdClaimValues"));
         } else {
             throw new InvalidRequestException(UNSUPPORTED_FORMAT.getErrorCode(), "Unsupported credential format: " + format);
         }
@@ -531,7 +557,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
             return Collections.emptyList();
         }
 
-        if (!path.startsWith(JSON_PATH_PREFIX)) {
+        if (!path.startsWith(JSON_PATH_PREFIX) && !path.startsWith(JSON_PATH_BRACKET_PREFIX)) {
             return Collections.emptyList();
         }
 
@@ -570,7 +596,7 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         return tail;
     }
 
-    private CredentialDTO buildAvailableCredential(DecryptedCredentialDTO decryptedCredentialDTO) {
+    private CredentialDTO buildAvailableCredential(DecryptedCredentialDTO decryptedCredentialDTO, InputDescriptor descriptor) {
         String issuerId = decryptedCredentialDTO.getCredentialMetadata().getIssuerId();
         String credentialType = decryptedCredentialDTO.getCredentialMetadata().getCredentialType();
 
@@ -601,6 +627,9 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
             publicClaims = publicClaimsMap != null ? extractPublicClaimPaths(publicClaimsMap) : new ArrayList<>();
             sdClaims = sdClaimsMap != null ? extractSdClaimPaths(sdClaimsMap) : new ArrayList<>();
+        } else if (CredentialFormat.isMdoc(format)) {
+            publicClaims = new ArrayList<>();
+            sdClaims = extractRequestedMdocClaimPaths(decryptedCredentialDTO, extractInputDescriptorMdocClaims(descriptor));
         }
 
         return CredentialDTO.builder()
@@ -664,6 +693,9 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
 
             publicClaims = publicClaimsMap != null ? extractPublicClaimPaths(publicClaimsMap) : new ArrayList<>();
             sdClaims = sdClaimsMap != null ? extractDcqlFilteredSdClaimPaths(sdClaimsMap, matchedClaims) : new ArrayList<>();
+        } else if (CredentialFormat.isMdoc(format)) {
+            publicClaims = new ArrayList<>();
+            sdClaims = extractRequestedMdocClaimPaths(decryptedCredentialDTO, extractDcqlMdocClaims(matchedClaims));
         }
 
         return CredentialDTO.builder()
@@ -674,6 +706,70 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
                 .claims(publicClaims)
                 .sdClaims(sdClaims)
                 .build();
+    }
+
+    /**
+     * mso_mdoc: every data element is selectively disclosable, so the UI gets one {@code sdClaims}
+     * entry per requested element the credential holds, as {@code $['<namespace>']['<element>']}.
+     * Elements the verifier did not ask for are left out, so they are never offered for sharing.
+     */
+    private List<String> extractRequestedMdocClaimPaths(DecryptedCredentialDTO decryptedCredentialDTO,
+                                                        Set<MdocClaim> requestedClaims) {
+        if (requestedClaims.isEmpty()) {
+            return new ArrayList<>();
+        }
+        CredentialFormatHandler handler = credentialFormatHandlerFactory.getHandler(
+                decryptedCredentialDTO.getCredential().getFormat());
+        Map<String, ?> allProps = handler.extractAllCredentialProperties(decryptedCredentialDTO.getCredential());
+        if (allProps == null || !(allProps.get(SD_CLAIM_VALUES) instanceof Map<?, ?> claimsByNamespace)) {
+            return new ArrayList<>();
+        }
+        List<String> paths = new ArrayList<>();
+        for (Map.Entry<?, ?> nsEntry : claimsByNamespace.entrySet()) {
+            if (!(nsEntry.getValue() instanceof Map<?, ?> elements)) {
+                continue;
+            }
+            String namespace = String.valueOf(nsEntry.getKey());
+            for (Object element : elements.keySet()) {
+                String elementIdentifier = String.valueOf(element);
+                if (requestedClaims.contains(new MdocClaim(namespace, elementIdentifier))) {
+                    paths.add(MdocSelectiveDisclosureUtil.toJsonPath(namespace, elementIdentifier));
+                }
+            }
+        }
+        return paths;
+    }
+
+    /** DCQL: an mdoc claims query path is {@code [namespace, elementIdentifier]}. */
+    private Set<MdocClaim> extractDcqlMdocClaims(List<ClaimsQuery> matchedClaims) {
+        Set<MdocClaim> claims = new LinkedHashSet<>();
+        if (matchedClaims == null) {
+            return claims;
+        }
+        for (ClaimsQuery claimsQuery : matchedClaims) {
+            List<?> path = claimsQuery.getPath();
+            if (path != null && path.size() == 2
+                    && path.get(0) instanceof String namespace && path.get(1) instanceof String element) {
+                claims.add(new MdocClaim(namespace, element));
+            }
+        }
+        return claims;
+    }
+
+    /** Presentation Exchange: mdoc claims come from {@code constraints.fields[].path}, e.g. {@code $['org.iso.18013.5.1']['given_name']}. */
+    private Set<MdocClaim> extractInputDescriptorMdocClaims(InputDescriptor descriptor) {
+        Set<MdocClaim> claims = new LinkedHashSet<>();
+        if (descriptor == null || descriptor.getConstraints() == null || descriptor.getConstraints().getFields() == null) {
+            return claims;
+        }
+        descriptor.getConstraints().getFields().stream()
+                .filter(Objects::nonNull)
+                .filter(field -> field.getPath() != null)
+                .flatMap(field -> field.getPath().stream())
+                .map(MdocSelectiveDisclosureUtil::parse)
+                .filter(Objects::nonNull)
+                .forEach(claims::add);
+        return claims;
     }
 
     private List<String> extractPublicClaimPaths(Map<String, Object> publicClaimsMap) {

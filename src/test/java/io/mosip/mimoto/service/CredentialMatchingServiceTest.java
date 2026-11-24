@@ -12,6 +12,7 @@ import io.mosip.mimoto.exception.InvalidRequestException;
 import io.mosip.mimoto.model.CredentialMetadata;
 import io.mosip.mimoto.service.impl.CredentialMatchingServiceImpl;
 import io.mosip.mimoto.service.impl.OpenID4VPService;
+import io.mosip.mimoto.util.MdocTestData;
 import io.mosip.openID4VP.authorizationRequest.AuthorizationDcqlRequest;
 import io.mosip.openID4VP.authorizationRequest.presentationDefinition.*;
 import io.mosip.openID4VP.dcql.query.ClaimValue;
@@ -2826,5 +2827,164 @@ public class CredentialMatchingServiceTest {
         String header = encoder.encodeToString(mapper.writeValueAsBytes(Map.of("alg", "none")));
         String encodedPayload = encoder.encodeToString(mapper.writeValueAsBytes(payload));
         return header + "." + encodedPayload + ".signature";
+    }
+
+    private DecryptedCredentialDTO createMdocCredential() {
+        DecryptedCredentialDTO credential = new DecryptedCredentialDTO();
+        credential.setId("mdoc-cred-1");
+        credential.setWalletId(walletId);
+        credential.setCredential(VCCredentialResponse.builder()
+                .format(CredentialFormat.MSO_MDOC.getFormat())
+                .credential("mdoc-base64url")
+                .build());
+        CredentialMetadata metadata = new CredentialMetadata();
+        metadata.setIssuerId("mdl-issuer");
+        metadata.setCredentialType("mDL");
+        credential.setCredentialMetadata(metadata);
+
+        Map<String, Object> isoClaims = new LinkedHashMap<>();
+        isoClaims.put("given_name", "Sheldon");
+        isoClaims.put("family_name", "Cooper");
+        isoClaims.put("birth_date", "1990-01-01");
+        Map<String, Object> claimsByNamespace = new LinkedHashMap<>();
+        claimsByNamespace.put("org.iso.18013.5.1", isoClaims);
+        claimsByNamespace.put("org.example.photoid.1", Map.of("given_name", "Shelly"));
+        Map<String, Object> allProps = new LinkedHashMap<>();
+        allProps.put("sdClaimValues", claimsByNamespace);
+
+        when(credentialFormatHandlerFactory.getHandler(CredentialFormat.MSO_MDOC.getFormat()))
+                .thenReturn(credentialFormatHandler);
+        doReturn(allProps).when(credentialFormatHandler).extractAllCredentialProperties(any(VCCredentialResponse.class));
+        return credential;
+    }
+
+    @Test
+    public void testBuildAvailableCredentialForDcqlMdocReturnsOnlyRequestedClaimsAsSdClaims() throws Exception {
+        DecryptedCredentialDTO mdoc = createMdocCredential();
+        List<ClaimsQuery> matchedClaims = List.of(
+                new ClaimsQuery("family", List.of("org.iso.18013.5.1", "family_name"), null),
+                new ClaimsQuery("given", List.of("org.iso.18013.5.1", "given_name"), null));
+
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod(
+                "buildAvailableCredential", DecryptedCredentialDTO.class, List.class);
+        method.setAccessible(true);
+        CredentialDTO result = (CredentialDTO) method.invoke(credentialMatchingService, mdoc, matchedClaims);
+
+        assertEquals(CredentialFormat.MSO_MDOC.getFormat(), result.getFormat());
+        assertEquals(List.of("$['org.iso.18013.5.1']['given_name']", "$['org.iso.18013.5.1']['family_name']"),
+                result.getSdClaims());
+        assertTrue(result.getClaims().isEmpty());
+    }
+
+    @Test
+    public void testBuildAvailableCredentialForDcqlMdocWithoutRequestedClaimsReturnsNoSdClaims() throws Exception {
+        DecryptedCredentialDTO mdoc = createMdocCredential();
+
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod(
+                "buildAvailableCredential", DecryptedCredentialDTO.class, List.class);
+        method.setAccessible(true);
+        CredentialDTO result = (CredentialDTO) method.invoke(credentialMatchingService, mdoc, List.of());
+
+        assertTrue(result.getSdClaims().isEmpty());
+    }
+
+    @Test
+    public void testBuildAvailableCredentialForPresentationExchangeMdocReturnsOnlyDescriptorClaims() throws Exception {
+        DecryptedCredentialDTO mdoc = createMdocCredential();
+        Fields familyName = new Fields(List.of("$['org.iso.18013.5.1']['family_name']"), null, null, null, null, null);
+        Fields notInCredential = new Fields(List.of("$['org.iso.18013.5.1']['portrait']"), null, null, null, null, null);
+        InputDescriptor descriptor = new InputDescriptor("org.iso.18013.5.1.mDL", null, null, null,
+                new Constraints(List.of(familyName, notInCredential), null));
+
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod(
+                "buildAvailableCredential", DecryptedCredentialDTO.class, InputDescriptor.class);
+        method.setAccessible(true);
+        CredentialDTO result = (CredentialDTO) method.invoke(credentialMatchingService, mdoc, descriptor);
+
+        assertEquals(List.of("$['org.iso.18013.5.1']['family_name']"), result.getSdClaims());
+    }
+
+    @Test
+    public void testBuildAvailableCredentialForMdocDoesNotOfferSameElementFromAnotherNamespace() throws Exception {
+        DecryptedCredentialDTO mdoc = createMdocCredential();
+        List<ClaimsQuery> matchedClaims = List.of(
+                new ClaimsQuery("photo-given", List.of("org.example.photoid.1", "given_name"), null));
+
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod(
+                "buildAvailableCredential", DecryptedCredentialDTO.class, List.class);
+        method.setAccessible(true);
+        CredentialDTO result = (CredentialDTO) method.invoke(credentialMatchingService, mdoc, matchedClaims);
+
+        assertEquals(List.of("$['org.example.photoid.1']['given_name']"), result.getSdClaims());
+    }
+
+    private boolean invokeMatchesInputDescriptor(VCCredentialResponse vc, InputDescriptor descriptor) throws Exception {
+        Method method = CredentialMatchingServiceImpl.class.getDeclaredMethod(
+                "matchesInputDescriptor", VCCredentialResponse.class, InputDescriptor.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(credentialMatchingService, vc, descriptor);
+    }
+
+    private VCCredentialResponse mdocCredentialResponse(String docType) throws Exception {
+        String mdoc = MdocTestData.toBase64Url(MdocTestData.issuerSigned(docType,
+                MdocTestData.isoItems(MdocTestData.item(0, "given_name", "Alice"))));
+        return VCCredentialResponse.builder()
+                .format(CredentialFormat.MSO_MDOC.getFormat())
+                .credential(mdoc)
+                .build();
+    }
+
+    private InputDescriptor mdocDescriptor(String id) {
+        Fields givenName = new Fields(List.of("$['org.iso.18013.5.1']['given_name']"), null, null, null, null, null);
+        return new InputDescriptor(id, null, null, Map.of("mso_mdoc", Map.of("alg", List.of("ES256"))),
+                new Constraints(List.of(givenName), null));
+    }
+
+    @Test
+    public void testMatchesInputDescriptorForMdocWhenDescriptorIdIsTheDocType() throws Exception {
+        // The descriptor also has a bracket field path, resolved against the claims grouped by namespace
+        when(credentialFormatHandlerFactory.getHandler(CredentialFormat.MSO_MDOC.getFormat()))
+                .thenReturn(credentialFormatHandler);
+        doReturn(Map.of("sdClaimValues", Map.of(MdocTestData.ISO_NAMESPACE, Map.of("given_name", "Alice"))))
+                .when(credentialFormatHandler).extractAllCredentialProperties(any(VCCredentialResponse.class));
+
+        assertTrue(invokeMatchesInputDescriptor(mdocCredentialResponse(MdocTestData.MDL_DOC_TYPE),
+                mdocDescriptor(MdocTestData.MDL_DOC_TYPE)));
+    }
+
+    @Test
+    public void testMatchesInputDescriptorForMdocRejectsAnotherDocType() throws Exception {
+        assertFalse(invokeMatchesInputDescriptor(mdocCredentialResponse("org.example.photoid.1"),
+                mdocDescriptor(MdocTestData.MDL_DOC_TYPE)));
+    }
+
+    @Test
+    public void testMatchesInputDescriptorForMdocRejectsAnotherDocTypeWithoutFields() throws Exception {
+        InputDescriptor descriptor = new InputDescriptor(MdocTestData.MDL_DOC_TYPE, null, null,
+                Map.of("mso_mdoc", Map.of("alg", List.of("ES256"))), new Constraints(null, null));
+
+        assertTrue(invokeMatchesInputDescriptor(mdocCredentialResponse(MdocTestData.MDL_DOC_TYPE), descriptor));
+        assertFalse(invokeMatchesInputDescriptor(mdocCredentialResponse("org.example.photoid.1"), descriptor));
+    }
+
+    @Test
+    public void testMatchesInputDescriptorForMdocRejectsUnreadableCredential() throws Exception {
+        VCCredentialResponse vc = VCCredentialResponse.builder()
+                .format(CredentialFormat.MSO_MDOC.getFormat())
+                .credential("not-an-mdoc")
+                .build();
+
+        assertFalse(invokeMatchesInputDescriptor(vc, mdocDescriptor(MdocTestData.MDL_DOC_TYPE)));
+    }
+
+    @Test
+    public void testMatchesInputDescriptorForMdocRejectsFieldTheCredentialDoesNotHold() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler(CredentialFormat.MSO_MDOC.getFormat()))
+                .thenReturn(credentialFormatHandler);
+        doReturn(Map.of("sdClaimValues", Map.of(MdocTestData.ISO_NAMESPACE, Map.of("family_name", "Smith"))))
+                .when(credentialFormatHandler).extractAllCredentialProperties(any(VCCredentialResponse.class));
+
+        assertFalse(invokeMatchesInputDescriptor(mdocCredentialResponse(MdocTestData.MDL_DOC_TYPE),
+                mdocDescriptor(MdocTestData.MDL_DOC_TYPE)));
     }
 }
