@@ -92,6 +92,7 @@
         <jandex.version>3.6.0</jandex.version>
         <titanium-json-ld.version>1.7.0</titanium-json-ld.version>
         <jsonld-common-java.version>1.19.0</jsonld-common-java.version>
+        <cbor.version>0.9</cbor.version>
         <sonar.coverage.exclusions>
             **/constant/**,**/config/**,**/httpfilter/**,**/cache/**,**/dto/**,**/entity/**,**/dbentity/**,**/model/**,**/exception/**,**/repository/**,**/security/**,**/*Config.java,**/*BootApplication.java,**/*VertxApplication.java,**/cbeffutil/**,**/core/http/**,**/util/**
         </sonar.coverage.exclusions>
@@ -539,6 +540,11 @@
             <groupId>decentralized-identity</groupId>
             <artifactId>jsonld-common-java</artifactId>
             <version>${jsonld-common-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>co.nstant.in</groupId>
+            <artifactId>cbor</artifactId>
+            <version>${cbor.version}</version>
         </dependency>
     </dependencies>
 

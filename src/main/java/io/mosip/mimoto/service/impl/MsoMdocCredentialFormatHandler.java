@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.service.CredentialFormatHandler;
+import io.mosip.mimoto.util.DcqlClaimSetHelper;
 import io.mosip.mimoto.util.LocaleUtils;
 import io.mosip.pixelpass.PixelPass;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,8 @@ public class MsoMdocCredentialFormatHandler implements CredentialFormatHandler {
     private static final String NAME_SPACES = "nameSpaces";
     private static final String ELEMENT_IDENTIFIER = "elementIdentifier";
     private static final String ELEMENT_VALUE = "elementValue";
+    private static final String SD_CLAIMS = "sdClaims";
+    private static final String SD_CLAIM_VALUES = "sdClaimValues";
 
     private final ObjectMapper objectMapper;
     private final PixelPass pixelPass;
@@ -49,8 +52,19 @@ public class MsoMdocCredentialFormatHandler implements CredentialFormatHandler {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> extractCredentialClaims(VCCredentialResponse vcCredentialResponse) {
+        Map<String, Object> claims = new LinkedHashMap<>();
+        extractNamespacedClaims(vcCredentialResponse).values().forEach(claims::putAll);
+        return claims;
+    }
+
+    /**
+     * Decodes the mdoc and returns its claims grouped by namespace:
+     * {@code { "<namespace>": { "<elementIdentifier>": elementValue } }}.
+     * Keeping the namespace avoids one namespace's claim overwriting a same-named claim in another.
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Map<String, Object>> extractNamespacedClaims(VCCredentialResponse vcCredentialResponse) {
         Object credential = vcCredentialResponse.getCredential();
         if (!(credential instanceof String)) {
             log.warn("Unexpected credential type for mso_mdoc; expected base64url CBOR String");
@@ -76,22 +90,26 @@ public class MsoMdocCredentialFormatHandler implements CredentialFormatHandler {
             }
             Map<String, Object> nameSpaces = (Map<String, Object>) nameSpacesObj;
 
-            Map<String, Object> claims = new LinkedHashMap<>();
-            for (Object nsValue : nameSpaces.values()) {
-                if (!(nsValue instanceof List)) {
+            Map<String, Map<String, Object>> claimsByNamespace = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> nsEntry : nameSpaces.entrySet()) {
+                if (!(nsEntry.getValue() instanceof List)) {
                     continue;
                 }
-                for (Object itemObj : (List<?>) nsValue) {
+                Map<String, Object> nsClaims = new LinkedHashMap<>();
+                for (Object itemObj : (List<?>) nsEntry.getValue()) {
                     if (itemObj instanceof Map) {
                         Map<?, ?> item = (Map<?, ?>) itemObj;
                         Object id = item.get(ELEMENT_IDENTIFIER);
                         if (id != null) {
-                            claims.put(String.valueOf(id), item.get(ELEMENT_VALUE));
+                            nsClaims.put(String.valueOf(id), item.get(ELEMENT_VALUE));
                         }
                     }
                 }
+                if (!nsClaims.isEmpty()) {
+                    claimsByNamespace.put(nsEntry.getKey(), nsClaims);
+                }
             }
-            return claims;
+            return claimsByNamespace;
         } catch (Exception e) {
             log.error("Failed to decode mso_mdoc credential", e);
             return Collections.emptyMap();
@@ -181,9 +199,31 @@ public class MsoMdocCredentialFormatHandler implements CredentialFormatHandler {
         return displayProperties;
     }
 
+    /**
+     * Returns the flattened claims (used for display), plus:
+     * <ul>
+     *     <li>{@code sdClaims}: one entry per issuer-signed item, keyed by
+     *     {@code DcqlClaimSetHelper.buildClaimPath([namespace, elementIdentifier])} so DCQL claim paths
+     *     resolve to it (e.g. {@code org.iso.18013.5.1.family_name})</li>
+     *     <li>{@code sdClaimValues}: claims grouped by namespace, used for Presentation Exchange
+     *     path matching (e.g. {@code $['org.iso.18013.5.1']['family_name']})</li>
+     * </ul>
+     */
     @Override
     public Map<String, Object> extractAllCredentialProperties(VCCredentialResponse vcCredentialResponse) {
-        return extractCredentialClaims(vcCredentialResponse);
+        Map<String, Map<String, Object>> claimsByNamespace = extractNamespacedClaims(vcCredentialResponse);
+        Map<String, Object> allProps = new LinkedHashMap<>();
+        Map<String, Object> sdClaims = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<String, Object>> nsEntry : claimsByNamespace.entrySet()) {
+            allProps.putAll(nsEntry.getValue());
+            for (String elementIdentifier : nsEntry.getValue().keySet()) {
+                String claimPath = DcqlClaimSetHelper.buildClaimPath(List.of(nsEntry.getKey(), elementIdentifier));
+                sdClaims.put(claimPath, claimPath);
+            }
+        }
+        allProps.put(SD_CLAIMS, sdClaims);
+        allProps.put(SD_CLAIM_VALUES, claimsByNamespace);
+        return allProps;
     }
 
     private LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>> buildFallbackDisplayProperties(
