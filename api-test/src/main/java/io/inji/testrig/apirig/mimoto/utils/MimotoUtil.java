@@ -572,7 +572,7 @@ public class MimotoUtil extends AdminTestUtil {
 	 */
 	protected Response manualPostWithSessionAndXsrf(String endPoint, String inputJson, String currentTestCaseName,
 			String pathParams, String headers, String idKeyName) {
-		JSONObject json = new JSONObject(inputJson);
+		JSONObject json = new JSONObject(removeObject(new JSONObject(inputJson)));
 		NamedCookie cookie = extractAndRemoveCookie(json);
 		json.remove(XSRF_HEADERNAME);
 
