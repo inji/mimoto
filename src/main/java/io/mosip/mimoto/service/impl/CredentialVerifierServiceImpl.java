@@ -43,13 +43,12 @@ public class CredentialVerifierServiceImpl implements CredentialVerifierService 
     }
 
     @Override
-    public CredentialVerificationResult verify(VCCredentialResponse response, List<String> statusPurposeList)
+    public CredentialVerificationResult verify(VCCredentialResponse response)
             throws JsonProcessingException, VCVerificationException {
         String credentialString = response.getCredential() instanceof String ? (String) response.getCredential() : objectMapper.writeValueAsString(response.getCredential());
         CredentialFormat format = Objects.requireNonNull(CredentialFormat.Companion.fromValue(response.getFormat()));
         CredentialVerificationSummary summary = credentialsVerifier.verifyAndGetCredentialStatus(
-                credentialString, format,
-                statusPurposeList != null && !statusPurposeList.isEmpty() ? statusPurposeList : defaultStatusPurposeList);
+                credentialString, format, defaultStatusPurposeList);
         VerificationResult result = summary.getVerificationResult();
         assertSignatureValid(result);
         return new CredentialVerificationResult(collectStatus(summary.getCredentialStatus()), isExpired(result));

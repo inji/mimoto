@@ -146,7 +146,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandler.downloadCredential(any(IssuerDTO.class), any(String.class),
                 any(CredentialIssuerWellKnownResponse.class), any(TokenResponseDTO.class),
                 any(), any(), eq(false), any())).thenReturn(getVCCredentialResponseDTO("CredentialType1"));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any()))
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class)))
                 .thenThrow(new VCVerificationException(
                         SIGNATURE_VERIFICATION_EXCEPTION.getErrorCode(),
                         SIGNATURE_VERIFICATION_EXCEPTION.getErrorMessage()));
@@ -161,7 +161,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandler.downloadCredential(any(IssuerDTO.class), any(String.class),
                 any(CredentialIssuerWellKnownResponse.class), any(TokenResponseDTO.class),
                 any(), any(), eq(false), any())).thenReturn(getVCCredentialResponseDTO("CredentialType1"));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any())).thenReturn(acceptedCredential());
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(acceptedCredential());
         issuerDTO.setQr_code_type(QRCodeType.None);
 
         ByteArrayInputStream expectedPDFByteArray = generatePdfFromHTML();
@@ -190,7 +190,7 @@ public class CredentialServiceTest {
                 any(), any(), eq(false), any()))
                 .thenThrow(new DPoPChallengeException(HttpStatus.UNAUTHORIZED, challengeHeaders, "{}"))
                 .thenReturn(getVCCredentialResponseDTO("CredentialType1"));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any())).thenReturn(acceptedCredential());
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(acceptedCredential());
         issuerDTO.setQr_code_type(QRCodeType.None);
         ByteArrayInputStream expectedPDFByteArray = generatePdfFromHTML();
         Mockito.when(credentialUtilService.generatePdfForVerifiableCredential(
@@ -237,7 +237,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandler.downloadCredential(any(), eq(credentialConfigurationId), any(), any(), eq(walletId), eq(base64Key), eq(true), any()))
                 .thenThrow(new DPoPChallengeException(HttpStatus.UNAUTHORIZED, challengeHeaders, "{}"))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any())).thenReturn(acceptedCredential());
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(acceptedCredential());
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
         when(dataProtectionService.encryptCredential(any(), eq(base64Key))).thenReturn("encrypted-credential");
         when(walletCredentialsRepository.save(any(VerifiableCredential.class))).thenReturn(savedCredential);
@@ -303,7 +303,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13)).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), eq(credentialConfigurationId), any(), any(), eq(walletId), eq(base64Key), eq(true), any()))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any())).thenReturn(acceptedCredential());
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(acceptedCredential());
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
         when(dataProtectionService.encryptCredential(any(), eq(base64Key))).thenReturn("encrypted-credential");
         when(walletCredentialsRepository.save(any(VerifiableCredential.class))).thenReturn(savedCredential);
@@ -343,7 +343,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13)).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true), any()))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
-        when(credentialVerifierService.verify(any(), any())).thenThrow(new VCVerificationException(
+        when(credentialVerifierService.verify(any())).thenThrow(new VCVerificationException(
                 SIGNATURE_VERIFICATION_EXCEPTION.getErrorCode(), "Verification failed"));
 
         // Execute and verify exception
@@ -374,7 +374,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13)).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true), any()))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
-        when(credentialVerifierService.verify(any(), any()))
+        when(credentialVerifierService.verify(any()))
                 .thenThrow(new VCVerificationException("err_invalid_valid_until_mso", "Credential validUntil has passed"));
 
         VCVerificationException exception = assertThrows(VCVerificationException.class, () ->
@@ -394,7 +394,7 @@ public class CredentialServiceTest {
         InvalidRequestException exception = assertThrows(InvalidRequestException.class, () ->
                 credentialService.downloadCredentialAndStoreInDB(
                         issuerId, "CredentialType1", "wallet123", "testKey123", "en",
-                        "auth-code", "oauth-state", new MockHttpSession(), null));
+                        "auth-code", "oauth-state", new MockHttpSession()));
 
         assertEquals(INVALID_REQUEST.getErrorCode(), exception.getErrorCode());
         assertTrue(exception.getMessage().contains("DPoP session not found or token is not bound"));
@@ -558,7 +558,7 @@ public class CredentialServiceTest {
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
 
         // Mock credentialVerifierService to throw exception
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any()))
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class)))
                 .thenThrow(new JsonProcessingException("JSON processing failed") {});
 
         // Execute and verify exception
@@ -586,7 +586,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13)).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true), any()))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any()))
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class)))
                 .thenReturn(new CredentialVerificationResult(List.of(
                         new CredentialStatusCheck("revocation", false)), false));
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
@@ -633,7 +633,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13)).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true), any()))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any())).thenReturn(acceptedCredential());
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(acceptedCredential());
 
         // Mock objectMapper to throw JsonProcessingException
         when(objectMapper.writeValueAsString(any()))
@@ -669,7 +669,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13)).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true), any()))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any())).thenReturn(acceptedCredential());
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(acceptedCredential());
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
 
         // Mock dataProtectionService to throw exception
@@ -706,7 +706,7 @@ public class CredentialServiceTest {
         when(vcDownloadHandlerFactory.getHandler(VCSpecificationVersion.DRAFT_13)).thenReturn(vcDownloadHandler);
         when(vcDownloadHandler.downloadCredential(any(), any(), any(), any(), any(), any(), eq(true), any()))
                 .thenReturn(getVCCredentialResponseDTO(credentialConfigurationId));
-        when(credentialVerifierService.verify(any(VCCredentialResponse.class), any())).thenReturn(acceptedCredential());
+        when(credentialVerifierService.verify(any(VCCredentialResponse.class))).thenReturn(acceptedCredential());
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"credential\":\"data\"}");
         when(dataProtectionService.encryptCredential(any(), eq(base64Key))).thenReturn("encrypted-credential");
 
@@ -735,7 +735,7 @@ public class CredentialServiceTest {
         stubTokenExchange(tokenResponse);
         return credentialService.downloadCredentialAndStoreInDB(
                 issuerId, credentialConfigurationId, walletId, base64Key, locale,
-                "auth-code", "oauth-state", new MockHttpSession(), null);
+                "auth-code", "oauth-state", new MockHttpSession());
     }
 
     private void stubTokenExchange(TokenResponseDTO tokenResponse) throws Exception {

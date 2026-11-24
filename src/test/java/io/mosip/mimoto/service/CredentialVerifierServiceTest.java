@@ -76,7 +76,7 @@ public class CredentialVerifierServiceTest {
         when(credentialsVerifier.verifyAndGetCredentialStatus(eq(credentialJson), eq(CredentialFormat.LDP_VC), eq(DEFAULT_STATUS_PURPOSES)))
                 .thenReturn(new CredentialVerificationSummary(verificationResult, Map.of()));
 
-        CredentialVerificationResult result = credentialVerifier.verify(vcCredentialResponse, null);
+        CredentialVerificationResult result = credentialVerifier.verify(vcCredentialResponse);
 
         assertNotNull(result);
         verify(credentialsVerifier).verifyAndGetCredentialStatus(credentialJson, CredentialFormat.LDP_VC, DEFAULT_STATUS_PURPOSES);
@@ -94,7 +94,7 @@ public class CredentialVerifierServiceTest {
                 .thenReturn(new CredentialVerificationSummary(verificationResult, Map.of()));
 
         // Act
-        credentialVerifier.verify(vcCredentialResponse, null);
+        credentialVerifier.verify(vcCredentialResponse);
     }
 
     @Test(expected = JsonProcessingException.class)
@@ -103,7 +103,7 @@ public class CredentialVerifierServiceTest {
         when(objectMapper.writeValueAsString(any())).thenThrow(JsonProcessingException.class);
 
         // Act
-        credentialVerifier.verify(vcCredentialResponse, null);
+        credentialVerifier.verify(vcCredentialResponse);
     }
 
     @Test
@@ -114,7 +114,7 @@ public class CredentialVerifierServiceTest {
                         Map.of("revocation", new CredentialStatusResult(true, null),
                                 "suspension", new CredentialStatusResult(true, null))));
 
-        CredentialVerificationResult verification = credentialVerifier.verify(vcCredentialResponse, null);
+        CredentialVerificationResult verification = credentialVerifier.verify(vcCredentialResponse);
 
         assertEquals(2, verification.getStatusChecks().size());
         assertTrue(verification.getStatusChecks().stream().allMatch(CredentialStatusCheck::isValid));
@@ -126,14 +126,14 @@ public class CredentialVerifierServiceTest {
     public void should_returnEmptyStatusChecks_when_mdocHasNoStatusReference() throws Exception {
         mockMdocStatus(Map.of());
 
-        assertTrue(credentialVerifier.verify(mdocResponse(), null).getStatusChecks().isEmpty());
+        assertTrue(credentialVerifier.verify(mdocResponse()).getStatusChecks().isEmpty());
     }
 
     @Test
     public void should_storeRevocationOnly_when_mdocBits1IsValid() throws Exception {
         mockMdocStatus(Map.of("revocation", new CredentialStatusResult(true, null)));
 
-        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse(), null);
+        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse());
 
         assertEquals(1, verification.getStatusChecks().size());
         assertEquals("revocation", verification.getStatusChecks().get(0).getPurpose());
@@ -146,7 +146,7 @@ public class CredentialVerifierServiceTest {
                 "revocation", new CredentialStatusResult(true, null),
                 "suspension", new CredentialStatusResult(true, null)));
 
-        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse(), null);
+        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse());
 
         assertEquals(2, verification.getStatusChecks().size());
         assertTrue(verification.getStatusChecks().stream().allMatch(CredentialStatusCheck::isValid));
@@ -156,7 +156,7 @@ public class CredentialVerifierServiceTest {
     public void should_returnInvalidRevocation_when_mdocIsRevoked() throws Exception {
         mockMdocStatus(Map.of("revocation", new CredentialStatusResult(false, null)));
 
-        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse(), null);
+        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse());
 
         assertEquals(1, verification.getStatusChecks().size());
         assertEquals("revocation", verification.getStatusChecks().get(0).getPurpose());
@@ -167,7 +167,7 @@ public class CredentialVerifierServiceTest {
     public void should_returnInvalidSuspension_when_mdocIsSuspended() throws Exception {
         mockMdocStatus(Map.of("suspension", new CredentialStatusResult(false, null)));
 
-        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse(), null);
+        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse());
 
         assertEquals(1, verification.getStatusChecks().size());
         assertEquals("suspension", verification.getStatusChecks().get(0).getPurpose());
@@ -182,7 +182,7 @@ public class CredentialVerifierServiceTest {
                 "suspension", new CredentialStatusResult(false, error)));
 
         CredentialStatusException exception = assertThrows(CredentialStatusException.class,
-                () -> credentialVerifier.verify(mdocResponse(), null));
+                () -> credentialVerifier.verify(mdocResponse()));
         assertEquals(ErrorConstants.CREDENTIAL_STATUS_UNAVAILABLE.getErrorCode(), exception.getErrorCode());
     }
 
@@ -194,7 +194,7 @@ public class CredentialVerifierServiceTest {
                 .thenReturn(new CredentialVerificationSummary(verificationResult,
                         Map.of("revocation", new CredentialStatusResult(true, null))));
 
-        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse(), null);
+        CredentialVerificationResult verification = credentialVerifier.verify(mdocResponse());
 
         assertTrue(verification.isExpired());
         assertEquals(1, verification.getStatusChecks().size());
@@ -210,7 +210,7 @@ public class CredentialVerifierServiceTest {
                 .thenReturn(new CredentialVerificationSummary(verificationResult, Map.of()));
 
         VCVerificationException walletException = assertThrows(VCVerificationException.class,
-                () -> credentialVerifier.verify(mdocResponse(), null));
+                () -> credentialVerifier.verify(mdocResponse()));
         assertEquals("err_vc_expired", walletException.getErrorCode());
     }
 
@@ -223,7 +223,7 @@ public class CredentialVerifierServiceTest {
                 .thenReturn(new CredentialVerificationSummary(verificationResult, Map.of()));
 
         VCVerificationException exception = assertThrows(VCVerificationException.class,
-                () -> credentialVerifier.verify(mdocResponse(), null));
+                () -> credentialVerifier.verify(mdocResponse()));
         assertFalse(exception instanceof CredentialStatusException);
         verify(credentialsVerifier, never()).verify(anyString(), any());
         verify(credentialsVerifier, never()).getCredentialStatus(anyString(), any(), anyList());
@@ -244,32 +244,6 @@ public class CredentialVerifierServiceTest {
                 .thenReturn(new CredentialVerificationSummary(verificationResult, statuses));
     }
 
-    @Test
-    public void should_passRequestedPurposes_when_statusPurposeListIsProvided() throws Exception {
-        when(verificationResult.getVerificationStatus()).thenReturn(true);
-        List<String> purposes = List.of("revocation");
-        when(credentialsVerifier.verifyAndGetCredentialStatus(eq(credentialJson), eq(CredentialFormat.LDP_VC), eq(purposes)))
-                .thenReturn(new CredentialVerificationSummary(verificationResult,
-                        Map.of("revocation", new CredentialStatusResult(true, null))));
-
-        CredentialVerificationResult verification = credentialVerifier.verify(vcCredentialResponse, purposes);
-
-        assertEquals(1, verification.getStatusChecks().size());
-        assertEquals("revocation", verification.getStatusChecks().get(0).getPurpose());
-        verify(credentialsVerifier).verifyAndGetCredentialStatus(credentialJson, CredentialFormat.LDP_VC, purposes);
-    }
-
-    @Test
-    public void should_useDefaultPurposes_when_statusPurposeListIsEmpty() throws Exception {
-        when(verificationResult.getVerificationStatus()).thenReturn(true);
-        when(credentialsVerifier.verifyAndGetCredentialStatus(eq(credentialJson), eq(CredentialFormat.LDP_VC), eq(DEFAULT_STATUS_PURPOSES)))
-                .thenReturn(new CredentialVerificationSummary(verificationResult, Map.of()));
-
-        credentialVerifier.verify(vcCredentialResponse, List.of());
-
-        verify(credentialsVerifier).verifyAndGetCredentialStatus(credentialJson, CredentialFormat.LDP_VC, DEFAULT_STATUS_PURPOSES);
-    }
-
     @Test(expected = NullPointerException.class)
     public void testVerifyWithNullCredential() throws Exception {
         // Arrange
@@ -279,6 +253,6 @@ public class CredentialVerifierServiceTest {
                 .build();
 
         // Act
-        credentialVerifier.verify(nullCredentialResponse, null);
+        credentialVerifier.verify(nullCredentialResponse);
     }
 }

@@ -1088,7 +1088,7 @@
                     }
                 ],
                 "requestBody": {
-                    "description": "Request body with issuer, credentialConfigurationId, authorization code, and optional statusPurposeList.",
+                    "description": "Request body with issuer, credentialConfigurationId, and authorization code.",
                     "content": {
                         "application/json": {
                             "schema": {
@@ -3441,18 +3441,6 @@
                         "schema": {
                             "type": "string"
                         }
-                    },
-                    {
-                        "name": "statusPurposeList",
-                        "in": "query",
-                        "required": false,
-                        "description": "Status purposes to check. Defaults to revocation and suspension.",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
                     }
                 ],
                 "responses": {
@@ -3487,7 +3475,7 @@
                         }
                     },
                     "424": {
-                        "description": "The issuer status list could not be checked",
+                        "description": "Failed Dependency: the issuer status list could not be fetched or parsed. Stored status is left unchanged so the client can retry.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5190,13 +5178,6 @@
                         "type": "string",
                         "description": "The authorization code received from the authorization server",
                         "example": "authCode"
-                    },
-                    "statusPurposeList": {
-                        "type": "array",
-                        "description": "Optional. Status purposes to check for any credential format. Omit or null to default to revocation and suspension.",
-                        "items": {
-                            "type": "string"
-                        }
                     }
                 },
                 "description": "Credential download request used in the OpenID4VCI flow to exchange an authorization code for a credential."

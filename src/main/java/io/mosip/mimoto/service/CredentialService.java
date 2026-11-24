@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.List;
 
 public interface CredentialService {
 
@@ -40,12 +39,11 @@ public interface CredentialService {
      * @param code                      The authorization code
      * @param state                     OAuth state identifying the DPoP session
      * @param httpSession               The HTTP session that holds the DPoP session
-     * @param statusPurposeList         Optional purposes to check. Null or empty uses mosip.inji.credential.status.purpose-list.
      * @return The stored VerifiableCredential response
      */
     VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
             String issuerId, String credentialConfigurationId, String walletId, String base64Key,
-            String locale, String code, String state, HttpSession httpSession, List<String> statusPurposeList)
+            String locale, String code, String state, HttpSession httpSession)
             throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException,
             VCVerificationException, InvalidCredentialResourceException, ApiNotAccessibleException, IOException,
             AuthorizationServerWellknownResponseException, InvalidWellknownResponseException, IssuerOnboardingException;

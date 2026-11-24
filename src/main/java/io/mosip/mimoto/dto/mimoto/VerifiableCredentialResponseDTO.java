@@ -55,7 +55,8 @@ public class VerifiableCredentialResponseDTO {
     private Boolean expired;
 
     public static VerifiableCredentialResponseDTO fromIssuerConfig(
-            IssuerConfig issuerConfig, String locale, String credentialId) {
+            IssuerConfig issuerConfig, String locale, String credentialId,
+            List<CredentialStatusCheck> statusChecks, Instant lastCheckedAt, Boolean expired) {
         String issuerName = "";
         String issuerLogo = "";
         String credentialType = "";
@@ -84,6 +85,9 @@ public class VerifiableCredentialResponseDTO {
                 .credentialTypeDisplayName(credentialType)
                 .credentialTypeLogo(credentialTypeLogo)
                 .credentialId(credentialId)
+                .statusChecks(statusChecks)
+                .lastCheckedAt(lastCheckedAt)
+                .expired(expired)
                 .build();
     }
 }

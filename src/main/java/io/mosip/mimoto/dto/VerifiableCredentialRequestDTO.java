@@ -4,8 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 @Schema(description = "Credential download request used in the OpenID4VCI flow to exchange an authorization code for a credential.")
 public class VerifiableCredentialRequestDTO {
@@ -23,8 +21,4 @@ public class VerifiableCredentialRequestDTO {
             example = "authCode")
     @NotBlank(message = "code cannot be blank")
     String code;
-
-    @Schema(description = "Optional. Status purposes to check for any credential format. Omit or null to default to revocation and suspension.",
-            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-    List<String> statusPurposeList;
 }

@@ -1389,21 +1389,9 @@
 								"credentials",
 								"{{credentialId}}",
 								"status"
-							],
-							"query": [
-								{
-									"key": "statusPurposeList",
-									"value": "revocation",
-									"disabled": true
-								},
-								{
-									"key": "statusPurposeList",
-									"value": "suspension",
-									"disabled": true
-								}
 							]
 						},
-						"description": "Decrypts the stored credential, checks issuer status list, and stores the result. Revoked and suspended are returned with valid=false. Status list fetch failure returns 424 and leaves stored status unchanged. Omit statusPurposeList to default to revocation and suspension."
+						"description": "Decrypts the stored credential, checks issuer status list using mosip.inji.credential.status.purpose-list, and stores the result. Revoked and suspended are returned with valid=false. Status list fetch failure returns 424 and leaves stored status unchanged."
 					},
 					"response": []
 				},

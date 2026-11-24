@@ -5,15 +5,12 @@ import io.mosip.mimoto.dto.mimoto.CredentialVerificationResult;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.exception.VCVerificationException;
 
-import java.util.List;
-
 public interface CredentialVerifierService {
 
     /**
      * Verifies crypto and returns status-list checks plus expiry.
-     * {@code statusPurposeList} is optional; null or empty uses
-     * {@code mosip.inji.credential.status.purpose-list}.
+     * Status purposes come from {@code mosip.inji.credential.status.purpose-list}.
      */
-    CredentialVerificationResult verify(VCCredentialResponse credentialResponse, List<String> statusPurposeList)
+    CredentialVerificationResult verify(VCCredentialResponse credentialResponse)
             throws JsonProcessingException, VCVerificationException;
 }

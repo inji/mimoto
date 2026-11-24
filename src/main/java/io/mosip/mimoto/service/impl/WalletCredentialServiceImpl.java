@@ -86,8 +86,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
     @Override
     public VerifiableCredentialResponseDTO downloadVCAndStoreInDB(String issuerId, String credentialConfigurationId,
                                                                   String locale, String walletId, String base64Key,
-                                                                  String code, String state, HttpSession httpSession,
-                                                                  List<String> statusPurposeList)
+                                                                  String code, String state, HttpSession httpSession)
             throws CredentialProcessingException, ExternalServiceUnavailableException, ApiNotAccessibleException,
             IOException, AuthorizationServerWellknownResponseException, InvalidWellknownResponseException,
             IssuerOnboardingException {
@@ -102,7 +101,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
         }
 
         VerifiableCredentialResponseDTO credential = credentialService.downloadCredentialAndStoreInDB(
-                issuerId, credentialConfigurationId, walletId, base64Key, locale, code, state, httpSession, statusPurposeList);
+                issuerId, credentialConfigurationId, walletId, base64Key, locale, code, state, httpSession);
 
         log.debug("Credential stored successfully: {}", credential.getCredentialId());
         return credential;
@@ -122,11 +121,9 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
             } catch (InvalidIssuerIdException | ApiNotAccessibleException  e) {
                 log.error("Failed to fetch issuer details for issuerId: {}", issuerId, e);
             }
-            VerifiableCredentialResponseDTO response = VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, locale, credential.getId());
-            response.setStatusChecks(credential.getStatusChecks());
-            response.setLastCheckedAt(credential.getStatusLastCheckedAt());
-            response.setExpired(credential.getExpired());
-            return response;
+            return VerifiableCredentialResponseDTO.fromIssuerConfig(
+                    issuerConfig, locale, credential.getId(),
+                    credential.getStatusChecks(), credential.getStatusLastCheckedAt(), credential.getExpired());
         }).toList();
 
     }
@@ -152,19 +149,18 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
     }
 
     @Override
-    public CredentialStatusResponseDTO checkCredentialStatus(String walletId, String credentialId, String base64Key,
-                                                             List<String> statusPurposeList)
+    public CredentialStatusResponseDTO checkCredentialStatus(String walletId, String credentialId, String base64Key)
             throws CredentialNotFoundException, CredentialProcessingException, VCVerificationException {
         VerifiableCredential credential = repository.findByIdAndWalletId(credentialId, walletId)
                 .orElseThrow(getCredentialNotFoundExceptionSupplier(walletId, credentialId));
         try {
             String decryptedCredential = dataProtectionService.decryptCredential(credential.getCredential(), base64Key);
             VCCredentialResponse credentialResponse = objectMapper.readValue(decryptedCredential, VCCredentialResponse.class);
-            CredentialVerificationResult verification = credentialVerifierService.verify(credentialResponse, statusPurposeList);
-            List<CredentialStatusCheck> statusChecks = verification.getStatusChecks();
+            CredentialVerificationResult verificationResult = credentialVerifierService.verify(credentialResponse);
+            List<CredentialStatusCheck> statusChecks = verificationResult.getStatusChecks();
             credential.setStatusChecks(statusChecks == null || statusChecks.isEmpty() ? null : statusChecks);
             credential.setStatusLastCheckedAt(Instant.now());
-            credential.setExpired(verification.isExpired());
+            credential.setExpired(verificationResult.isExpired());
             repository.save(credential);
             return CredentialStatusResponseDTO.builder()
                     .credentialId(credential.getId())

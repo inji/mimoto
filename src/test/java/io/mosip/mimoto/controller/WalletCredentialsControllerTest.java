@@ -101,7 +101,7 @@ public class WalletCredentialsControllerTest {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         when(walletCredentialService.downloadVCAndStoreInDB(
                 eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), any()))
+                eq(code), eq(state), any()))
                 .thenReturn(verifiableCredentialResponseDTO);
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
@@ -125,7 +125,7 @@ public class WalletCredentialsControllerTest {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         when(walletCredentialService.downloadVCAndStoreInDB(
                 eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), any()))
+                eq(code), eq(state), any()))
                 .thenReturn(verifiableCredentialResponseDTO);
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
@@ -141,7 +141,7 @@ public class WalletCredentialsControllerTest {
 
         verify(walletCredentialService).downloadVCAndStoreInDB(
                 eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), any());
+                eq(code), eq(state), any());
         verify(dPoPSessionService).remove(any(), eq("oauth-state"));
         verify(pkceSessionManager).remove(any(), eq("oauth-state"));
     }
@@ -151,7 +151,7 @@ public class WalletCredentialsControllerTest {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         when(walletCredentialService.downloadVCAndStoreInDB(
                 eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), any()))
+                eq(code), eq(state), any()))
                 .thenThrow(new InvalidRequestException(CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(), "Duplicate credential for issuer and type"));
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
@@ -198,31 +198,7 @@ public class WalletCredentialsControllerTest {
 
         verify(walletCredentialService).downloadVCAndStoreInDB(
                 eq(issuer), eq(credentialConfigurationId), eq("fr"), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), isNull());
-    }
-
-    @Test
-    public void should_passStatusPurposeList_when_presentInRequestBody() throws Exception {
-        buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
-        verifiableCredentialRequest.setStatusPurposeList(List.of("revocation"));
-        when(walletCredentialService.downloadVCAndStoreInDB(
-                eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), eq(List.of("revocation"))))
-                .thenReturn(verifiableCredentialResponseDTO);
-
-        mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .header("Accept-Language", locale)
-                        .header("state", state)
-                        .content(createRequestBody(verifiableCredentialRequest))
-                        .sessionAttr("wallet_id", walletId)
-                        .sessionAttr("wallet_key", walletKey))
-                .andExpect(status().isOk());
-
-        verify(walletCredentialService).downloadVCAndStoreInDB(
-                eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), eq(List.of("revocation")));
+                eq(code), eq(state), any());
     }
 
     @Test
@@ -238,7 +214,7 @@ public class WalletCredentialsControllerTest {
 
         // Default value for vcStorageExpiryLimit is -1 and locale is "en"
         verify(walletCredentialService).downloadVCAndStoreInDB(
-                any(), any(), eq("en"), eq(walletId), eq(walletKey), eq(code), eq(state), any(), any());
+                any(), any(), eq("en"), eq(walletId), eq(walletKey), eq(code), eq(state), any());
     }
 
     @Test
@@ -371,7 +347,7 @@ public class WalletCredentialsControllerTest {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         when(walletCredentialService.downloadVCAndStoreInDB(
                 eq(issuer), eq(credentialConfigurationId), anyString(), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), any()))
+                eq(code), eq(state), any()))
                 .thenThrow(new ApiNotAccessibleException("API not accessible"));
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
@@ -389,7 +365,7 @@ public class WalletCredentialsControllerTest {
     @Test
     public void shouldThrowServiceUnavailableForExternalServiceFailure() throws Exception {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
-        when(walletCredentialService.downloadVCAndStoreInDB(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(), any()))
+        when(walletCredentialService.downloadVCAndStoreInDB(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any()))
                 .thenThrow(new ExternalServiceUnavailableException("Service unavailable", "Service unavailable"));
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)
@@ -410,7 +386,7 @@ public class WalletCredentialsControllerTest {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         when(walletCredentialService.downloadVCAndStoreInDB(
                 eq(issuer), eq(credentialConfigurationId), anyString(), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), any()))
+                eq(code), eq(state), any()))
                 .thenThrow(new CredentialProcessingException(CREDENTIAL_DOWNLOAD_EXCEPTION.getErrorCode(),
                         "Unable to process credential"));
 
@@ -642,7 +618,7 @@ public class WalletCredentialsControllerTest {
                         new CredentialStatusCheck("suspension", true)))
                 .lastCheckedAt(checkedAt)
                 .build();
-        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey), any())).thenReturn(statusResponse);
+        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey))).thenReturn(statusResponse);
 
         mockMvc.perform(get("/wallets/{walletId}/credentials/{credentialId}/status", walletId, credentialId)
                         .accept(MediaType.APPLICATION_JSON)
@@ -659,7 +635,7 @@ public class WalletCredentialsControllerTest {
 
     @Test
     public void should_returnNotFound_when_credentialStatusCannotBeChecked() throws Exception {
-        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey), any()))
+        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey)))
                 .thenThrow(new CredentialNotFoundException(RESOURCE_NOT_FOUND.getErrorCode(), RESOURCE_NOT_FOUND.getErrorMessage()));
 
         mockMvc.perform(get("/wallets/{walletId}/credentials/{credentialId}/status", walletId, credentialId)
@@ -672,7 +648,7 @@ public class WalletCredentialsControllerTest {
 
     @Test
     public void should_returnFailedDependency_when_statusListCannotBeReached() throws Exception {
-        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey), any()))
+        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey)))
                 .thenThrow(new CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE));
 
         mockMvc.perform(get("/wallets/{walletId}/credentials/{credentialId}/status", walletId, credentialId)
@@ -747,7 +723,7 @@ public class WalletCredentialsControllerTest {
                 .andExpect(jsonPath("$.errorCode").value("invalid_request"));
 
         verify(walletCredentialService, never()).downloadVCAndStoreInDB(
-                any(), any(), any(), any(), any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -755,7 +731,7 @@ public class WalletCredentialsControllerTest {
         buildVerifiableCredentialRequest(issuer, credentialConfigurationId, code);
         when(walletCredentialService.downloadVCAndStoreInDB(
                 eq(issuer), eq(credentialConfigurationId), eq(locale), eq(walletId), eq(walletKey),
-                eq(code), eq(state), any(), any()))
+                eq(code), eq(state), any()))
                 .thenReturn(verifiableCredentialResponseDTO);
 
         mockMvc.perform(post("/wallets/{walletId}/credentials", walletId)

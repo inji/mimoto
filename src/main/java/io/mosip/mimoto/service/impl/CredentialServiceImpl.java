@@ -133,9 +133,9 @@ public class CredentialServiceImpl implements CredentialService {
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false, dPoPProof);
 
         try {
-            verifyCredential(vcCredentialResponse, issuerDTO.getIssuer_id(), credentialConfigurationId, null);
+            verifyCredential(vcCredentialResponse, issuerDTO.getIssuer_id(), credentialConfigurationId);
         } catch (CredentialStatusException e) {
-            log.info("Guest PDF ignoring credential status for issuerId: {}, credentialConfigurationId: {}, errorCode: {}",
+            log.info("Guest PDF still generated when status list is unavailable for issuerId: {}, credentialConfigurationId: {}, errorCode: {}",
                     issuerDTO.getIssuer_id(), credentialConfigurationId, e.getErrorCode());
         } catch (VCVerificationException e) {
             if (e.getErrorCode() != null && e.getErrorCode().toUpperCase().contains("EXPIRED")) {
@@ -153,7 +153,7 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     public VerifiableCredentialResponseDTO downloadCredentialAndStoreInDB(
             String issuerId, String credentialConfigurationId, String walletId, String base64Key,
-            String locale, String code, String state, HttpSession httpSession, List<String> statusPurposeList)
+            String locale, String code, String state, HttpSession httpSession)
             throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException,
             VCVerificationException, InvalidCredentialResourceException, ApiNotAccessibleException, IOException,
             AuthorizationServerWellknownResponseException, InvalidWellknownResponseException, IssuerOnboardingException {
@@ -165,36 +165,32 @@ public class CredentialServiceImpl implements CredentialService {
         log.info("Credential DPoP proof for issuer {} endpoint {}: {}",
                 issuerId, credentialEndpoint, StringUtils.isNotBlank(proof) ? "present" : "absent");
         try {
-            return storeDownloadedCredential(tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId, locale, proof, issuerConfig, statusPurposeList);
+            return storeDownloadedCredential(tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId, locale, proof, issuerConfig);
         } catch (DPoPChallengeException exception) {
             log.info("Retrying wallet credential download after DPoP nonce challenge for issuer: {}", issuerId);
             String retryProof = dPoPSessionService.retryCredentialProof(
                     httpSession, state, tokenResponse, exception.getNonce(), credentialEndpoint);
-            return storeDownloadedCredential(tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId, locale, retryProof, issuerConfig, statusPurposeList);
+            return storeDownloadedCredential(tokenResponse, credentialConfigurationId, walletId, base64Key, issuerId, locale, retryProof, issuerConfig);
         }
     }
 
     private VerifiableCredentialResponseDTO storeDownloadedCredential(
             TokenResponseDTO tokenResponse, String credentialConfigurationId, String walletId,
-            String base64Key, String issuerId, String locale, String dPoPProof, IssuerConfig issuerConfig,
-            List<String> statusPurposeList)
+            String base64Key, String issuerId, String locale, String dPoPProof, IssuerConfig issuerConfig)
             throws InvalidRequestException, CredentialProcessingException, ExternalServiceUnavailableException,
             VCVerificationException, InvalidCredentialResourceException {
 
         VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(issuerConfig.getWellKnownResponse().getVersion());
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerConfig.getIssuerDTO(), credentialConfigurationId, issuerConfig.getWellKnownResponse(), tokenResponse, walletId, base64Key, true, dPoPProof);
 
-        // Verify credential
-        CredentialVerificationResult verification = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId, statusPurposeList);
+        CredentialVerificationResult verificationResult = verifyCredential(vcCredentialResponse, issuerId, credentialConfigurationId);
 
         String encryptedCredentialData = processAndEncryptCredential(vcCredentialResponse, base64Key, issuerId, credentialConfigurationId);
-        VerifiableCredential savedCredential = saveCredential(walletId, encryptedCredentialData, issuerId, credentialConfigurationId, verification);
+        VerifiableCredential savedCredential = saveCredential(walletId, encryptedCredentialData, issuerId, credentialConfigurationId, verificationResult);
 
-        VerifiableCredentialResponseDTO response = VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, locale, savedCredential.getId());
-        response.setStatusChecks(savedCredential.getStatusChecks());
-        response.setLastCheckedAt(savedCredential.getStatusLastCheckedAt());
-        response.setExpired(savedCredential.getExpired());
-        return response;
+        return VerifiableCredentialResponseDTO.fromIssuerConfig(
+                issuerConfig, locale, savedCredential.getId(),
+                savedCredential.getStatusChecks(), savedCredential.getStatusLastCheckedAt(), savedCredential.getExpired());
     }
 
     /**
@@ -240,13 +236,11 @@ public class CredentialServiceImpl implements CredentialService {
 
     /**
      * Verifies the downloaded VC and returns status checks plus expiry.
-     * {@code statusPurposeList} is optional; null or empty uses mosip.inji.credential.status.purpose-list.
      */
-    private CredentialVerificationResult verifyCredential(VCCredentialResponse vcCredentialResponse, String issuerId, String credentialConfigurationId,
-                                                             List<String> statusPurposeList)
+    private CredentialVerificationResult verifyCredential(VCCredentialResponse vcCredentialResponse, String issuerId, String credentialConfigurationId)
             throws VCVerificationException {
         try {
-            return credentialVerifierService.verify(vcCredentialResponse, statusPurposeList);
+            return credentialVerifierService.verify(vcCredentialResponse);
         } catch (JsonProcessingException e) {
             log.error("Credential verification failed for issuerId: {}, credentialConfigurationId: {}", issuerId, credentialConfigurationId, e);
             throw new VCVerificationException(
@@ -286,12 +280,12 @@ public class CredentialServiceImpl implements CredentialService {
      * @return The stored VerifiableCredential.
      */
     private VerifiableCredential saveCredential(String walletId, String encryptedCredential, String issuerId,
-                                                String credentialConfigurationId, CredentialVerificationResult verification) throws CredentialProcessingException {
+                                                String credentialConfigurationId, CredentialVerificationResult verificationResult) throws CredentialProcessingException {
         CredentialMetadata credentialMetadata = new CredentialMetadata();
         credentialMetadata.setIssuerId(issuerId);
         credentialMetadata.setCredentialType(credentialConfigurationId);
 
-        List<CredentialStatusCheck> statusChecks = verification.getStatusChecks();
+        List<CredentialStatusCheck> statusChecks = verificationResult.getStatusChecks();
         VerifiableCredential verifiableCredential = new VerifiableCredential();
         verifiableCredential.setId(UUID.randomUUID().toString());
         verifiableCredential.setWalletId(walletId);
@@ -299,7 +293,7 @@ public class CredentialServiceImpl implements CredentialService {
         verifiableCredential.setCredentialMetadata(credentialMetadata);
         verifiableCredential.setStatusChecks(statusChecks == null || statusChecks.isEmpty() ? null : statusChecks);
         verifiableCredential.setStatusLastCheckedAt(Instant.now());
-        verifiableCredential.setExpired(verification.isExpired());
+        verifiableCredential.setExpired(verificationResult.isExpired());
 
         try {
             return walletCredentialsRepository.save(verifiableCredential);
