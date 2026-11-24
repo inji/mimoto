@@ -579,7 +579,8 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         try {
             IssuerConfig issuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
             if (issuerConfig != null) {
-                VerifiableCredentialResponseDTO credentialResponse = VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, "en", decryptedCredentialDTO.getId());
+                VerifiableCredentialResponseDTO credentialResponse = VerifiableCredentialResponseDTO.fromIssuerConfig(
+                        issuerConfig, "en", decryptedCredentialDTO.getId(), null, null, null);
                 credentialTypeDisplayName = credentialResponse.getCredentialTypeDisplayName();
                 credentialTypeLogo = credentialResponse.getCredentialTypeLogo();
             }
@@ -642,7 +643,8 @@ public class CredentialMatchingServiceImpl implements CredentialMatchingService 
         try {
             IssuerConfig issuerConfig = issuersService.getIssuerConfig(issuerId, credentialType);
             if (issuerConfig != null) {
-                VerifiableCredentialResponseDTO credentialResponse = VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, "en", decryptedCredentialDTO.getId());
+                VerifiableCredentialResponseDTO credentialResponse = VerifiableCredentialResponseDTO.fromIssuerConfig(
+                        issuerConfig, "en", decryptedCredentialDTO.getId(), null, null, null);
                 credentialTypeDisplayName = credentialResponse.getCredentialTypeDisplayName();
                 credentialTypeLogo = credentialResponse.getCredentialTypeLogo();
             }
