@@ -1,4 +1,4 @@
-# mDoc status list at credential download — Mimoto spike
+# Credential status list at download — Mimoto design
 
 **Issue:** [inji-wallet#2606](https://github.com/inji/inji-wallet/issues/2606)  
 **Components:** Mimoto, `vc-verifier`  
@@ -8,12 +8,12 @@ Wallet checks the Attestation Status List (ASL) when a credential is downloaded,
 
 ## Scope
 
-| In this spike | Not in this spike |
+| In this design | Out of scope |
 |---|---|
 | Status check on wallet download (`storeDownloadedCredential`) | Caching / ttl reuse of the CWT |
 | Same library call on guest PDF (`generateCredentialPdf`) | ARL |
 | Persist `statusChecks` / `statusLastCheckedAt` / `isExpired` on the wallet row | Issuer publishing of status lists |
-| Optional `statusPurposeList` (default revocation + suspension) on any format | OpenID4VP / Share |
+| Status purposes from `mosip.inji.credential.status.purpose-list` | OpenID4VP / Share |
 | Refresh status for a stored credential (`GET .../credentials/{id}/status`) | |
 
 ## 1. Who does what
@@ -38,12 +38,12 @@ Issuer
         v
 Mimoto  CredentialServiceImpl.storeDownloadedCredential()
   processor.downloadCredential(...)
-  CredentialVerifierServiceImpl.verify(response, statusPurposeList)
+  CredentialVerifierServiceImpl.verify(response)
         |
         v
       CredentialsVerifier.verifyAndGetCredentialStatus(cred, format, purposes)
         // one call: crypto + status for any format
-        // purposes = request list, or [revocation, suspension] when null
+        // purposes from mosip.inji.credential.status.purpose-list
         |
         |  verificationStatus == false
         v
@@ -130,10 +130,10 @@ payload:    {
 One call:
 
 ```text
-credentialsVerifier.verifyAndGetCredentialStatus(credential, format, statusPurposeList)
+credentialsVerifier.verifyAndGetCredentialStatus(credential, format, configured purposes)
 ```
 
-`statusPurposeList` null or empty in Mimoto becomes `mosip.inji.credential.status.purpose-list` (default `revocation,suspension`). A non-empty list (including a shorter one) is passed through.
+Purposes always come from `mosip.inji.credential.status.purpose-list` (default `revocation,suspension`).
 
 Returns `CredentialVerificationSummary`: `verificationResult` plus `Map<purpose, CredentialStatusResult>`.
 
@@ -154,17 +154,17 @@ Never treat a failed fetch as VALID.
 
 Library checks: COSE_Sign1 tag 18; `typ` 16; signature; `x5chain` 33; `sub` 2 equals MSO `uri`; `iat` 6; now ≤ `exp` 4; `status_list` 65533; `"bits"` 1 or 2; inflate `"lst"`; read bits at `idx` LSB first.
 
-These APIs take the credential string and format. They do not depend on OpenID4VCI. The same call can be used later from OpenID4VP. This spike only wires download and the stored-credential status API.
+These APIs take the credential string and format. They do not depend on OpenID4VCI. The same call can be used later from OpenID4VP. This design only wires download and the stored-credential status API.
 
 ## 5. Mimoto changes
 
 `CredentialServiceImpl` already calls `credentialVerifierService.verify()` before encrypt/store.
 
-### `CredentialVerifierServiceImpl.verify(response, statusPurposeList)`
+### `CredentialVerifierServiceImpl.verify(response)`
 
 For **any format**:
 
-1. `verifyAndGetCredentialStatus(credential, format, list == null or empty ? configured purposes : list)`.
+1. `verifyAndGetCredentialStatus(credential, format, configured purposes)`.
 2. If `verificationStatus == false` → `VCVerificationException` with the library code and message.
 3. Copy the status map into `CredentialStatusCheck(purpose, valid)`. Any entry with `error != null` → `CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE)`.
 4. `isExpired` if `verificationErrorCode` contains `EXPIRED` (and crypto still passed).
@@ -177,7 +177,7 @@ For **any format**:
 | `generateCredentialPdf` | `signature_verification_failed` | ignore; still PDF | ignore; still PDF | ignore; still PDF |
 | `checkCredentialStatus` | 400; leave stored status unchanged | 424; leave stored status unchanged | save `valid=false` | save `isExpired=true` |
 
-Guest PDF always passes `statusPurposeList = null` (default purposes). It does not persist status.
+Guest PDF uses the same configured purposes. It does not persist status.
 
 ### Persistence
 
@@ -191,15 +191,15 @@ On `verifiable_credentials`:
 
 ### APIs
 
-`POST /wallets/{walletId}/credentials` — optional `statusPurposeList` in the request body.
+`POST /wallets/{walletId}/credentials`
 
 Response includes `statusChecks`, `lastCheckedAt`, `isExpired`.
 
-`GET /wallets/{walletId}/credentials/{credentialId}/status?statusPurposeList` optional.
+`GET /wallets/{walletId}/credentials/{credentialId}/status`
 
 Decrypts the stored VC, runs the same `verify()`, writes the new map. If verify throws, the previous row is left as-is.
 
-OpenAPI: `docs/api-documentation-openapi.json`. Postman: Check Credential Status (query) + optional `statusPurposeList` on Save Credential (body).
+OpenAPI: `docs/api-documentation-openapi.json`. Postman: Check Credential Status. Purposes come from `mosip.inji.credential.status.purpose-list`.
 
 ### Error codes
 
@@ -243,7 +243,7 @@ Inji Web does not fetch the list. It consumes the wallet APIs.
 ## 8. Out of scope
 
 - **Offline verification with cache.** Every check GETs a live CWT. Do not persist the list, reuse it by `ttl`, or check status when the wallet is offline.
-- **OVP verification.** Presentation-time status is not wired in this spike. When that work starts, reuse `verifyAndGetCredentialStatus`.
+- **OVP verification.** Presentation-time status is not wired here. When that work starts, reuse `verifyAndGetCredentialStatus`.
 
 ## 9. References
 
