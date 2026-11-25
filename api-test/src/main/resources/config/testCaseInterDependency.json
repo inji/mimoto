@@ -1,4 +1,7 @@
 {
+    "TC_Mimoto_ParOAuthDetailsRequest_01": ["TC_Mimoto_IssuersAuthorize_13"],
+    "TC_Mimoto_ParOAuthDetailsRequest_02": ["TC_Mimoto_IssuersAuthorize_13"],
+    "TC_Mimoto_ParOAuthDetailsRequest_03": ["TC_Mimoto_IssuersAuthorize_20"],
     "TC_Mimoto_OAuthDetailsRequest_01": ["TC_Mimoto_IssuersAuthorize_01"],
     "TC_Mimoto_OAuthDetailsRequestForGoogleLogin_01": ["TC_Mimoto_IssuersAuthorizeForGoogleLogin_01"],
     "TC_Mimoto_OAuthDetailsRequestSunBirdCForGoogleLogin_01": ["TC_Mimoto_IssuersAuthorizeForStayProtectedGoogleLogin_01"],

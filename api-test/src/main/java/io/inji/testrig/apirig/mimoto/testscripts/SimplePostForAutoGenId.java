@@ -113,6 +113,9 @@ public class SimplePostForAutoGenId extends MimotoUtil implements ITest {
 
 		inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
 
+		if (testCaseDTO.getOutput() != null && testCaseDTO.getOutput().contains("$INJIREDIRECTURI$")) {
+			testCaseDTO.setOutput(MimotoUtil.inputstringKeyWordHandeler(testCaseDTO.getOutput(), testCaseName));
+		}
 
 		if (testCaseDTO.getTemplateFields() != null && templateFields.length > 0) {
 			ArrayList<JSONObject> inputtestCases = AdminTestUtil.getInputTestCase(testCaseDTO);
