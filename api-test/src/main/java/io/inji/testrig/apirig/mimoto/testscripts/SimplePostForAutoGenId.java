@@ -100,6 +100,16 @@ public class SimplePostForAutoGenId extends MimotoUtil implements ITest {
 
 		testCaseDTO = MimotoUtil.isTestCaseValidForTheExecution(testCaseDTO);
 		testCaseDTO = MimotoUtil.changeContextURLByFlag(testCaseDTO);
+
+		if (testCaseName.contains("ParOAuthDetailsRequest") && testCaseDTO.getInput() != null) {
+			java.util.regex.Matcher parProducer = java.util.regex.Pattern
+					.compile("\\$ID:(\\w+?)_requestUri\\$").matcher(testCaseDTO.getInput());
+			if (parProducer.find()
+					&& !PostWithPathParamsHeadersAndCookieForAutoGenId.isParCaptured("Mimoto_" + parProducer.group(1))) {
+				throw new SkipException("Skipping: the authorization server does not advertise PAR, so no request_uri was "
+						+ "produced by " + parProducer.group(1));
+			}
+		}
 		String[] templateFields = testCaseDTO.getTemplateFields();
 		String inputJson = "";
 
