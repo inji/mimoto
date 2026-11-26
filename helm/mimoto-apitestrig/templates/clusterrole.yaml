@@ -1,10 +1,11 @@
+{{- if .Values.rbac.create }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ template "mimoto-apitestrig.serviceAccountName" . }}-{{ .Release.Namespace }}
-  namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups: [""]
     resources: ["pods"]
-    verbs: ["get","patch","list","watch"]
+    verbs: ["get","list"]
+{{- end }}

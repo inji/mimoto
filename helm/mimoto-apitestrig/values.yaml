@@ -89,11 +89,14 @@ additionalResources:
   javaOpts: "-Xms2600M -Xmx2600M"
 
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
-## apitest-mimoto container runs as 'inji' user
+## apitest-mimoto container runs as 'inji' user (UID/GID 1001, see api-test/Dockerfile)
 containerSecurityContext:
   enabled: false
-  runAsUser: inji
+  runAsUser: 1001
   runAsNonRoot: true
+
+## Username of the container user; used to locate scripts under /home/<containerUser>
+containerUser: inji
 
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
 ##
@@ -417,7 +420,7 @@ apitestrig:
   configmaps:
     s3:
       s3-host: 'http://minio.minio:9000'
-      s3-user-key: 'admin'
+      s3-user-key: ''   ## must be supplied at install time (install.sh sets it)
       s3-region: ''
     db:
       db-port: '5432'
@@ -448,9 +451,10 @@ apitestrig:
         sleep 5
         cd /home/${container_user}/
         bash ./entrypoint.sh
+  ## Secrets rendered by this chart as <name>-<release>. Every value must be set.
+  ## S3 credentials are read from the existing `s3` Secret listed in extraEnvVarsSecret
+  ## (copied into the namespace by deploy/mimoto-apitestrig/install.sh), so none are defaulted here.
   secrets:
-    s3:
-      s3-user-secret: 'password'
     apitestrig:
   volumes:
     configmaps:

@@ -1,6 +1,8 @@
 #!/bin/bash
 # Uninstalls apitestrig
-## Usage: ./delete.sh [kubeconfig]
+## Usage: [RELEASE_NAME=<release>] ./delete.sh [kubeconfig]
+## Installations made before the chart consolidation use the release name `apitestrig`:
+##   RELEASE_NAME=apitestrig ./delete.sh
 
 if [ $# -ge 1 ] ; then
   export KUBECONFIG=$1
@@ -8,7 +10,7 @@ fi
 
 function deleting_apitestrig() {
   NS=injiweb
-  RELEASE_NAME=mimoto-apitestrig
+  RELEASE_NAME=${RELEASE_NAME:-mimoto-apitestrig}
   while true; do
       read -p "Are you sure you want to delete apitestrig helm charts?(Y/n) " yn
       if [ $yn = "Y" ]

@@ -21,7 +21,11 @@ ApiTestRig will test the working of APIs of the MOSIP modules.
 ## Uninstall
 * To uninstall ApiTestRig, run `delete.sh` script.
 ```sh
-./delete.sh 
+./delete.sh
+```
+* Installations made before the chart consolidation used the release name `apitestrig`. To remove one of those, run:
+```sh
+RELEASE_NAME=apitestrig ./delete.sh
 ```
 
 ## Run apitestrig manually
