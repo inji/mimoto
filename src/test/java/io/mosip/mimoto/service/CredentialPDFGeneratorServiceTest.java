@@ -1821,7 +1821,8 @@ class CredentialPDFGeneratorServiceTest {
                 issuerDTO,
                 "",
                 "-1",
-                "en"
+                "en",
+                PdfCredentialStatus.of(List.of(), false)
         );
 
         assertNotNull(data);
@@ -1855,7 +1856,8 @@ class CredentialPDFGeneratorServiceTest {
                 issuerDTO,
                 "",
                 "-1",
-                "es"
+                "es",
+                PdfCredentialStatus.of(List.of(), false)
         );
 
         assertNotNull(data);
@@ -1881,7 +1883,8 @@ class CredentialPDFGeneratorServiceTest {
                 issuerDTO,
                 "",
                 "-1",
-                "en"
+                "en",
+                PdfCredentialStatus.of(List.of(), false)
         );
         assertNotNull(dataNull);
         assertNull(dataNull.get("titleName"));
@@ -1897,7 +1900,8 @@ class CredentialPDFGeneratorServiceTest {
                 issuerDTO,
                 "",
                 "-1",
-                "en"
+                "en",
+                PdfCredentialStatus.of(List.of(), false)
         );
         assertNotNull(dataEmpty);
         assertNull(dataEmpty.get("titleName"));
@@ -1920,13 +1924,15 @@ class CredentialPDFGeneratorServiceTest {
                 IssuerDTO.class,
                 String.class,
                 String.class,
-                String.class);
+                String.class,
+                PdfCredentialStatus.class);
         method.setAccessible(true);
         return (Map<String, Object>) method.invoke(
                 credentialPDFGeneratorService,
                 displayProperties, credentialsSupportedResponse,
                 vcCredentialResponse, issuerDTO,
-                dataShareUrl, credentialValidity, locale);
+                dataShareUrl, credentialValidity, locale,
+                PdfCredentialStatus.of(List.of(), false));
     }
 
     @Test
