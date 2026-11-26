@@ -1,0 +1,56 @@
+ParOAuthDetailsRequest:
+   Mimoto_ESignet_ParOAuthDetailsRequest_all_Valid_Smoke_sid:
+      endPoint: /v1/esignet/authorization/par-oauth-details
+      description: Verify that eSignet accepts the request_uri returned by the Mimoto PAR authorize call and resolves the pushed authorization request
+      uniqueIdentifier: TC_Mimoto_ParOAuthDetailsRequest_01
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorize_13
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/ParOAuthDetailsRequest/ParOAuthDetailsRequest
+      outputTemplate: mimoto/responseCode
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$ID:IssuersAuthorize_Mosip_ParResolve_sid_parClientId$",
+      	"requestUri": "$ID:IssuersAuthorize_Mosip_ParResolve_sid_requestUri$"
+}'
+      output: '{
+      	"responseCode": "200"
+}'
+
+   Mimoto_ESignet_ParOAuthDetailsRequest_TamperedRequestUri_Neg:
+      endPoint: /v1/esignet/authorization/par-oauth-details
+      description: Verify that eSignet rejects a request_uri it never issued
+      uniqueIdentifier: TC_Mimoto_ParOAuthDetailsRequest_02
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorize_13
+      checkErrorsOnlyInResponse: true
+      inputTemplate: mimoto/ParOAuthDetailsRequest/ParOAuthDetailsRequest
+      outputTemplate: mimoto/error
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$ID:IssuersAuthorize_Mosip_ParResolve_sid_parClientId$",
+      	"requestUri": "urn:ietf:params:oauth:request_uri:tamperedvalue0000000000000000000000000000"
+}'
+      output: '{
+      	"errors": [{"errorCode": "invalid_request"}]
+}'
+
+   Mimoto_ESignet_ParOAuthDetailsRequest_RedirectUriAndScope_Valid:
+      endPoint: /v1/esignet/authorization/par-oauth-details
+      description: Verify that the pushed authorization request holds the redirectUri sent by Mimoto
+      uniqueIdentifier: TC_Mimoto_ParOAuthDetailsRequest_03
+      role: resident
+      restMethod: post
+      additionalDependencies: TC_Mimoto_IssuersAuthorize_20
+      inputTemplate: mimoto/ParOAuthDetailsRequest/ParOAuthDetailsRequest
+      outputTemplate: mimoto/ParOAuthDetailsRequest/ParOAuthDetailsBodyResult
+      input: '{
+      	"requestTime": "$TIMESTAMP$",
+      	"clientId": "$ID:IssuersAuthorize_Mosip_ParResolveBody_sid_parClientId$",
+      	"requestUri": "$ID:IssuersAuthorize_Mosip_ParResolveBody_sid_requestUri$"
+}'
+      output: '{
+      	"redirectUri": "$INJIREDIRECTURI$"
+}'
