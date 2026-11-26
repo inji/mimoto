@@ -51,7 +51,8 @@ public class CredentialVerifierServiceImpl implements CredentialVerifierService 
                 credentialString, format, defaultStatusPurposeList);
         VerificationResult result = summary.getVerificationResult();
         assertSignatureValid(result);
-        return new CredentialVerificationResult(collectStatus(summary.getCredentialStatus()), isExpired(result));
+        boolean expired = isExpired(result);
+        return new CredentialVerificationResult(collectStatus(summary.getCredentialStatus(), expired), expired);
     }
 
     private boolean isExpired(VerificationResult result) {
@@ -70,7 +71,7 @@ public class CredentialVerifierServiceImpl implements CredentialVerifierService 
      * bits=1 VALID is only revocation. INVALID is only revocation. SUSPENDED is
      * only suspension. A failed GET/CWT puts error on the returned purposes.
      */
-    private List<CredentialStatusCheck> collectStatus(Map<String, CredentialStatusResult> statuses) {
+    private List<CredentialStatusCheck> collectStatus(Map<String, CredentialStatusResult> statuses, boolean expired) {
         if (statuses == null || statuses.isEmpty()) {
             log.info("Credential has no status list reference; skipping status check");
             return List.of();
@@ -81,7 +82,7 @@ public class CredentialVerifierServiceImpl implements CredentialVerifierService 
             if (result != null && result.getError() != null) {
                 String detail = result.getError().getErrorCode().name();
                 log.error("Credential status check failed: {}", detail);
-                throw new CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE, detail);
+                throw new CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE, detail, expired);
             }
             statusChecks.add(new CredentialStatusCheck(entry.getKey(), result.isValid()));
         }

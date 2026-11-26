@@ -170,22 +170,35 @@ class CredentialPDFGeneratorServiceTest {
     }
 
     @Test
-    void shouldRenderStoredStatusChecksInPdfTemplate() throws Exception {
+    void should_generatePdf_when_storedStatusChecksAreProvided() throws Exception {
         when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
         when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
-                .thenReturn("<html><body>#foreach($check in $statusChecks)$check.purpose #end</body></html>");
-        PresentationDefinitionDTO presentationDef = new PresentationDefinitionDTO();
-        when(presentationService.constructPresentationDefinition(any()))
-                .thenReturn(presentationDef);
-        when(objectMapper.writeValueAsString(any()))
-                .thenReturn("{\"presentation\":\"definition\"}");
+                .thenReturn("<html><body>Status: $status</body></html>");
+        issuerDTO.setQr_code_type(QRCodeType.None);
 
         PdfCredentialStatus pdfStatus = PdfCredentialStatus.of(
                 List.of(new CredentialStatusCheck("revocation", true)), false);
 
+        Map<String, Object> data = ReflectionTestUtils.invokeMethod(
+                credentialPDFGeneratorService,
+                "getPdfResourceFromVcProperties",
+                new LinkedHashMap<String, Map<CredentialIssuerDisplayResponse, Object>>(),
+                credentialsSupportedResponse,
+                vcCredentialResponse,
+                issuerDTO,
+                "",
+                "2025-12-31",
+                "en",
+                pdfStatus);
+
+        assertNotNull(data);
+        assertEquals("Valid", data.get("status"));
+        assertEquals("#2E7D32", data.get("statusColor"));
+        assertTrue(data.get("statusIcon").toString().startsWith("data:image/"));
+
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "2025-12-31", "en", pdfStatus);
+                "", "2025-12-31", "en", pdfStatus);
 
         assertNotNull(result);
     }

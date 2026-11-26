@@ -140,7 +140,7 @@ public class CredentialServiceImpl implements CredentialService {
         } catch (CredentialStatusException e) {
             log.info("Guest PDF still generated when status list is unavailable for issuerId: {}, credentialConfigurationId: {}, errorCode: {}",
                     issuerDTO.getIssuer_id(), credentialConfigurationId, e.getErrorCode());
-            pdfStatus = PdfCredentialStatus.of(List.of(), false);
+            pdfStatus = PdfCredentialStatus.of(List.of(), e.isExpired());
         } catch (VCVerificationException e) {
             if (e.getErrorCode() != null && e.getErrorCode().toUpperCase().contains("EXPIRED")) {
                 log.info("Guest PDF ignoring expiry for issuerId: {}, credentialConfigurationId: {}",

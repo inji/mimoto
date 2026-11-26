@@ -184,6 +184,22 @@ public class CredentialVerifierServiceTest {
         CredentialStatusException exception = assertThrows(CredentialStatusException.class,
                 () -> credentialVerifier.verify(mdocResponse()));
         assertEquals(ErrorConstants.CREDENTIAL_STATUS_UNAVAILABLE.getErrorCode(), exception.getErrorCode());
+        assertFalse(exception.isExpired());
+    }
+
+    @Test
+    public void should_preserveExpired_when_statusListCheckFailsAndVcIsExpired() throws Exception {
+        StatusCheckException error = new StatusCheckException("fetch failed", StatusCheckErrorCode.STATUS_RETRIEVAL_ERROR);
+        when(verificationResult.getVerificationStatus()).thenReturn(true);
+        when(verificationResult.getVerificationErrorCode()).thenReturn("ERR_VC_EXPIRED");
+        when(credentialsVerifier.verifyAndGetCredentialStatus(eq(MDOC), eq(CredentialFormat.MSO_MDOC), eq(DEFAULT_STATUS_PURPOSES)))
+                .thenReturn(new CredentialVerificationSummary(verificationResult,
+                        Map.of("revocation", new CredentialStatusResult(false, error))));
+
+        CredentialStatusException exception = assertThrows(CredentialStatusException.class,
+                () -> credentialVerifier.verify(mdocResponse()));
+        assertEquals(ErrorConstants.CREDENTIAL_STATUS_UNAVAILABLE.getErrorCode(), exception.getErrorCode());
+        assertTrue(exception.isExpired());
     }
 
     @Test

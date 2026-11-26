@@ -458,15 +458,14 @@ public class CredentialPDFGeneratorService {
             if (credentialPayload instanceof Map<?, ?> credentialMap) {
                 Map<String, Object> credential = new LinkedHashMap<>();
                 credentialMap.forEach((key, value) -> credential.put(String.valueOf(key), value));
-                Map<String, Object> subject = new LinkedHashMap<>();
-                if (credential.get("credentialSubject") instanceof Map<?, ?> subjectMap) {
-                    subjectMap.forEach((key, value) -> subject.put(String.valueOf(key), value));
+                Object credentialSubject = credential.get("credentialSubject");
+                if (credentialSubject instanceof List<?> subjects) {
+                    credential.put("credentialSubject", subjects.stream()
+                            .map(item -> enrichSubjectWithStatus(item, pdfStatus))
+                            .toList());
+                } else {
+                    credential.put("credentialSubject", enrichSubjectWithStatus(credentialSubject, pdfStatus));
                 }
-                String status = pdfStatus.displayValue();
-                subject.put("status", status);
-                subject.put("statusColor", credentialStatusDisplayConfig.statusColor(status));
-                subject.put("statusIcon", credentialStatusDisplayConfig.statusIconDataUri(status));
-                credential.put("credentialSubject", subject);
                 credentialPayload = credential;
             }
             String credentialJsonString = objectMapper.writeValueAsString(credentialPayload);
@@ -504,5 +503,17 @@ public class CredentialPDFGeneratorService {
             log.error("Error generating PDF for v2 credential using InjiVcRenderer: {}", e.getMessage(), e);
             throw new CredentialPdfGenerationException("PDF_GEN_002", "Failed to generate PDF for v2 credential: " + e.getMessage(), e);
         }
+    }
+
+    private Map<String, Object> enrichSubjectWithStatus(Object subjectPayload, PdfCredentialStatus pdfStatus) {
+        Map<String, Object> subject = new LinkedHashMap<>();
+        if (subjectPayload instanceof Map<?, ?> subjectMap) {
+            subjectMap.forEach((key, value) -> subject.put(String.valueOf(key), value));
+        }
+        String status = pdfStatus.displayValue();
+        subject.put("status", status);
+        subject.put("statusColor", credentialStatusDisplayConfig.statusColor(status));
+        subject.put("statusIcon", credentialStatusDisplayConfig.statusIconDataUri(status));
+        return subject;
     }
 }
