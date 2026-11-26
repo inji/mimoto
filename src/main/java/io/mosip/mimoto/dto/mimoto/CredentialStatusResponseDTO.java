@@ -20,7 +20,7 @@ public class CredentialStatusResponseDTO {
     @Schema(description = "Unique identifier of the credential")
     private String credentialId;
 
-    @Schema(description = "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose.")
+    @Schema(description = "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose. Empty list when status has not been checked.")
     private List<CredentialStatusCheck> statusChecks;
 
     @Schema(description = "Time at which the credential status was last checked")

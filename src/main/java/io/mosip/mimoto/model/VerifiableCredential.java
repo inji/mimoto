@@ -32,7 +32,7 @@ public class VerifiableCredential {
     @Column(name = "status_checks", columnDefinition = "jsonb")
     private List<CredentialStatusCheck> statusChecks;
 
-    @Column(name = "status_last_checked_at", nullable = false)
+    @Column(name = "status_last_checked_at")
     private Instant statusLastCheckedAt;
 
     @Column(name = "is_expired")

@@ -172,7 +172,8 @@ public class CredentialServiceTest {
                 eq(wellKnownResponse.getCredentialConfigurationsSupported().get("CredentialType1")),
                 eq(""),
                 eq("once"),
-                eq("en")
+                eq("en"),
+                any(PdfCredentialStatus.class)
         )).thenReturn(expectedPDFByteArray);
 
         ByteArrayInputStream actualPDFByteArray = downloadPdf();
@@ -200,7 +201,8 @@ public class CredentialServiceTest {
                 eq(wellKnownResponse.getCredentialConfigurationsSupported().get("CredentialType1")),
                 eq(""),
                 eq("once"),
-                eq("en")
+                eq("en"),
+                any(PdfCredentialStatus.class)
         )).thenReturn(expectedPDFByteArray);
         stubTokenExchange(expectedTokenResponse);
         when(dPoPSessionService.retryCredentialProof(any(), eq("oauth-state"), any(), eq("issuer-nonce"), any()))

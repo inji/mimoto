@@ -5214,7 +5214,7 @@
                     },
                     "statusChecks": {
                         "type": "array",
-                        "description": "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose.",
+                        "description": "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose. Empty list when status has not been checked.",
                         "items": {
                             "$ref": "#/components/schemas/CredentialStatusCheck"
                         }
@@ -5252,7 +5252,7 @@
                     },
                     "statusChecks": {
                         "type": "array",
-                        "description": "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose.",
+                        "description": "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose. Empty list when status has not been checked.",
                         "items": {
                             "$ref": "#/components/schemas/CredentialStatusCheck"
                         }

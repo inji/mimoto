@@ -8,6 +8,7 @@ import io.mosip.mimoto.dto.mimoto.CredentialStatusResponseDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialVerificationResult;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.dto.mimoto.IssuerConfig;
+import io.mosip.mimoto.dto.mimoto.PdfCredentialStatus;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
@@ -139,7 +140,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
         try {
             String decryptedCredential = dataProtectionService.decryptCredential(credential.getCredential(), base64Key);
 
-            WalletCredentialResponseDTO response = generateCredentialResponse(decryptedCredential, credential.getCredentialMetadata(), locale);
+            WalletCredentialResponseDTO response = generateCredentialResponse(decryptedCredential, credential, locale);
             log.debug("Credential fetched successfully: {}", credentialId);
             return response;
         } catch (DecryptionException e) {
@@ -164,7 +165,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
             repository.save(credential);
             return CredentialStatusResponseDTO.builder()
                     .credentialId(credential.getId())
-                    .statusChecks(credential.getStatusChecks())
+                    .statusChecks(credential.getStatusChecks() == null ? List.of() : credential.getStatusChecks())
                     .lastCheckedAt(credential.getStatusLastCheckedAt())
                     .expired(credential.getExpired())
                     .build();
@@ -195,7 +196,8 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
         };
     }
 
-    private WalletCredentialResponseDTO generateCredentialResponse(String decryptedCredential, CredentialMetadata credentialMetadata, String locale) throws CredentialProcessingException {
+    private WalletCredentialResponseDTO generateCredentialResponse(String decryptedCredential, VerifiableCredential credential, String locale) throws CredentialProcessingException {
+        CredentialMetadata credentialMetadata = credential.getCredentialMetadata();
         log.info("Generating credential response for issuerId: {}, credentialType: {}", credentialMetadata.getIssuerId(), credentialMetadata.getCredentialType());
         try {
             // Parse decrypted credential
@@ -232,7 +234,8 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
                     credentialsSupportedResponse,
                     dataShareUrl,
                     credentialValidity,
-                    locale
+                    locale,
+                    PdfCredentialStatus.of(credential.getStatusChecks(), credential.getExpired())
             );
 
             // Construct response

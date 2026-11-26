@@ -5,6 +5,7 @@ import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.injivcrenderer.InjiVcRenderer;
+import io.mosip.mimoto.config.CredentialStatusDisplayConfig;
 import io.mosip.mimoto.constant.LdpVcV1Constants;
 import io.mosip.mimoto.constant.LdpVcV2Constants;
 import io.mosip.mimoto.constant.SdJwtVcConstants;
@@ -14,6 +15,7 @@ import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.LogoDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
+import io.mosip.mimoto.model.CredentialStatusCheck;
 import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.service.impl.LdpVcCredentialFormatHandler;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
@@ -30,6 +32,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -54,6 +57,7 @@ class CredentialPDFGeneratorServiceTest {
     @Mock private PixelPass pixelPass;
     @Mock private SvgFixerUtil svgFixerUtil;
     @Mock private InjiVcRenderer injiVcRenderer;
+    @Spy private CredentialStatusDisplayConfig credentialStatusDisplayConfig = new CredentialStatusDisplayConfig();
     @Mock
     private CredentialFormatHandlerFactory credentialFormatHandlerFactory;
     @Mock
@@ -160,7 +164,28 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "2025-12-31", "en");
+                "https://example.com/share", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void shouldRenderStoredStatusChecksInPdfTemplate() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>#foreach($check in $statusChecks)$check.purpose #end</body></html>");
+        PresentationDefinitionDTO presentationDef = new PresentationDefinitionDTO();
+        when(presentationService.constructPresentationDefinition(any()))
+                .thenReturn(presentationDef);
+        when(objectMapper.writeValueAsString(any()))
+                .thenReturn("{\"presentation\":\"definition\"}");
+
+        PdfCredentialStatus pdfStatus = PdfCredentialStatus.of(
+                List.of(new CredentialStatusCheck("revocation", true)), false);
+
+        ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                "https://example.com/share", "2025-12-31", "en", pdfStatus);
 
         assertNotNull(result);
     }
@@ -181,7 +206,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             verify(pixelPass).generateQRData(anyString(), anyString());
             verify(presentationService, never()).constructPresentationDefinition(any());
@@ -204,7 +229,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test", "", "en");
+                    "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             verify(presentationService).constructPresentationDefinition(any());
             verify(presentationService).constructDcqlQuery(any());
@@ -230,7 +255,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test", "", "en");
+                    "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             mocked.verify(() -> Utilities.encodeToString(any(), anyString()), never());
@@ -257,7 +282,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
     }
@@ -279,7 +304,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
     }
@@ -303,7 +328,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "https://example.com/share", "", "en");
+                    "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
         }
@@ -330,7 +355,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // Verify the PDF generation succeeded - formatValue was called internally
@@ -356,7 +381,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // The formatValue method handles list formatting internally
@@ -386,7 +411,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // formatValue should select "English Name" based on locale "en"
@@ -412,7 +437,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // formatValue converts number to string internally
@@ -446,7 +471,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // Indirectly tests that "photo" was used as fallback for $face variable
@@ -477,7 +502,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
     }
@@ -512,7 +537,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // Should use "image" (highest priority) over "photo" and "picture"
@@ -553,7 +578,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // Only "image" should be excluded from rowProperties. "face", "photo" and "portrait" should appear in rowProperties
@@ -591,7 +616,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // All face-related keys should be excluded from rowProperties
@@ -625,7 +650,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         // Should handle gracefully when no face keys are available ($face will be null)
@@ -673,7 +698,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "credentialConfigId", sdJwtVcResponse, issuerDTO,
-                    credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+                    credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             mockedUtilities.verify(() -> Utilities.maskValue("John Doe"));
@@ -711,7 +736,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
     }
@@ -744,7 +769,7 @@ class CredentialPDFGeneratorServiceTest {
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en");
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);  // Verifies formatValue extracted "Bachelor's Degree"
     }
@@ -770,7 +795,7 @@ class CredentialPDFGeneratorServiceTest {
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en");
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);  // Verifies formatValue joined to "Java, Spring, Boot"
     }
@@ -800,7 +825,7 @@ class CredentialPDFGeneratorServiceTest {
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en");
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);  // Verifies formatValue selected "English Name" for locale "en"
     }
@@ -826,7 +851,7 @@ class CredentialPDFGeneratorServiceTest {
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en");
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);  // Verifies formatValue returned "" for empty list
     }
@@ -852,14 +877,14 @@ class CredentialPDFGeneratorServiceTest {
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
-                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en");
+                "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse, "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);  // Verifies formatValue converted 25 to "25"
     }
 
     @Test
     void testFormatValueWithMap_AtValue() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil, credentialStatusDisplayConfig );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -873,7 +898,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithMap_Value() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil, credentialStatusDisplayConfig );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -887,7 +912,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfMaps_AtLanguageAndAtValue() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil, credentialStatusDisplayConfig );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -896,7 +921,7 @@ class CredentialPDFGeneratorServiceTest {
         mapEn.put(LdpVcV2Constants.LANGUAGE, "en");
 
         Map<String, String> mapFr = new HashMap<>();
-        mapFr.put(LdpVcV2Constants.VALUE, "Ferme Vallée Verte");
+        mapFr.put(LdpVcV2Constants.VALUE, "Ferme Vall�e Verte");
         mapFr.put(LdpVcV2Constants.LANGUAGE, "fr");
 
         Map<String, String> mapFil = new HashMap<>();
@@ -912,7 +937,7 @@ class CredentialPDFGeneratorServiceTest {
         String resultNullLang = (String) formatValueMethod.invoke(service, value, null); // null language, should return empty string
 
         assertEquals("Green Valley Farm", resultEn);
-        assertEquals("Ferme Vallée Verte", resultFr);
+        assertEquals("Ferme Vall�e Verte", resultFr);
         assertEquals("Bukid sa Luntiang Lambak", resultFil);
         assertEquals("", resultNoMatchingLang);
         assertEquals("", resultNullLang);
@@ -920,7 +945,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfMaps_LanguageAndValue() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil, credentialStatusDisplayConfig );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -929,7 +954,7 @@ class CredentialPDFGeneratorServiceTest {
         mapEn.put(SdJwtVcConstants.LANGUAGE, "en");
 
         Map<String, String> mapFr = new HashMap<>();
-        mapFr.put(SdJwtVcConstants.VALUE, "Ferme Vallée Verte");
+        mapFr.put(SdJwtVcConstants.VALUE, "Ferme Vall�e Verte");
         mapFr.put(SdJwtVcConstants.LANGUAGE, "fr");
 
         Map<String, String> mapFil = new HashMap<>();
@@ -945,7 +970,7 @@ class CredentialPDFGeneratorServiceTest {
         String resultNullLang = (String) formatValueMethod.invoke(service, value, null); // null language, should return empty string
 
         assertEquals("Green Valley Farm", resultEn);
-        assertEquals("Ferme Vallée Verte", resultFr);
+        assertEquals("Ferme Vall�e Verte", resultFr);
         assertEquals("Bukid sa Luntiang Lambak", resultFil);
         assertEquals("", resultNoMatchingLang);
         assertEquals("", resultNullLang);
@@ -953,7 +978,7 @@ class CredentialPDFGeneratorServiceTest {
 
     @Test
     void testFormatValueWithListOfMaps_langAndValue() throws Exception {
-        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil );
+        CredentialPDFGeneratorService service = new CredentialPDFGeneratorService(objectMapper, presentationService, utilities, pixelPass, credentialFormatHandlerFactory, injiVcRenderer, svgFixerUtil, credentialStatusDisplayConfig );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
 
@@ -962,7 +987,7 @@ class CredentialPDFGeneratorServiceTest {
         mapEn.put(LdpVcV1Constants.LANGUAGE, "en");
 
         Map<String, String> mapFr = new HashMap<>();
-        mapFr.put(LdpVcV1Constants.VALUE, "Ferme Vallée Verte");
+        mapFr.put(LdpVcV1Constants.VALUE, "Ferme Vall�e Verte");
         mapFr.put(LdpVcV1Constants.LANGUAGE, "fr");
 
         Map<String, String> mapFil = new HashMap<>();
@@ -978,7 +1003,7 @@ class CredentialPDFGeneratorServiceTest {
         String resultNullLang = (String) formatValueMethod.invoke(service, value, null); // null language, should return empty string
 
         assertEquals("Green Valley Farm", resultEn);
-        assertEquals("Ferme Vallée Verte", resultFr);
+        assertEquals("Ferme Vall�e Verte", resultFr);
         assertEquals("Bukid sa Luntiang Lambak", resultFil);
         assertEquals("", resultNoMatchingLang);
         assertEquals("", resultNullLang);
@@ -1006,7 +1031,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer).generateCredentialDisplayContent(any(), any(), anyString(), any());
@@ -1049,7 +1074,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer).generateCredentialDisplayContent(any(), any(), anyString(), any());
@@ -1077,7 +1102,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vc, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
@@ -1105,7 +1130,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vc, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
@@ -1133,7 +1158,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en");
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
@@ -1169,7 +1194,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
             "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
-            "https://example.com/share", "", "en");
+            "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
@@ -1205,7 +1230,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
             "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
-            "https://example.com/share", "", "en");
+            "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
@@ -1238,7 +1263,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
             "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
-            "https://example.com/share", "", "en");
+            "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
@@ -1285,7 +1310,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
             "TestCredential", localVcResponse, issuerDTO, credentialsSupportedResponse,
-            "https://example.com/share", "", "en");
+            "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), anyString(), anyString(), anyString());
@@ -1311,7 +1336,7 @@ class CredentialPDFGeneratorServiceTest {
 
         assertThrows(Exception.class, () -> credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vc, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en"));
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false)));
 
         verify(injiVcRenderer).generateCredentialDisplayContent(any(), any(), anyString(), any());
     }
@@ -1336,7 +1361,7 @@ class CredentialPDFGeneratorServiceTest {
 
         assertThrows(Exception.class, () -> credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vc, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "", "en"));
+                "https://example.com/share", "", "en", PdfCredentialStatus.of(List.of(), false)));
     }
 
     @Test
@@ -1369,7 +1394,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             verify(pixelPass, never()).generateQRData(anyString(), anyString());
@@ -1406,7 +1431,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             // Should fallback to VC data QR generation since identityQRCode is null/empty/missing
@@ -1458,7 +1483,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             // Should fallback to VC data QR generation since claim169 is not a Map
@@ -1496,7 +1521,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             verify(pixelPass).generateQRData(anyString(), anyString());
@@ -1533,7 +1558,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             verify(pixelPass, never()).generateQRData(anyString(), anyString());
@@ -1582,7 +1607,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             verify(pixelPass, never()).generateQRData(anyString(), anyString());
@@ -1621,7 +1646,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             verify(pixelPass, never()).generateQRData(anyString(), anyString());
@@ -1660,7 +1685,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             verify(pixelPass).generateQRData(anyString(), anyString());
@@ -1696,7 +1721,7 @@ class CredentialPDFGeneratorServiceTest {
 
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                    "", "", "en");
+                    "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
             assertNotNull(result);
             verify(pixelPass).generateQRData(anyString(), anyString());
@@ -1729,7 +1754,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "", "", "en");
+                "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(pixelPass, never()).generateQRData(anyString(), anyString());
@@ -1762,7 +1787,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "", "", "en");
+                "", "", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(pixelPass, never()).generateQRData(anyString(), anyString());
@@ -1993,11 +2018,11 @@ class CredentialPDFGeneratorServiceTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> rowProperties = (Map<String, Object>) data.get("rowProperties");
 
-        // selectedFaceKey = null → isFaceKey = false for ALL keys → all must appear in rowProperties
+        // selectedFaceKey = null ? isFaceKey = false for ALL keys ? all must appear in rowProperties
         assertTrue(rowProperties.containsKey("name"),
-                "Expected 'name' in rowProperties because selectedFaceKey=null → isFaceKey=false");
+                "Expected 'name' in rowProperties because selectedFaceKey=null ? isFaceKey=false");
         assertTrue(rowProperties.containsKey("dateOfBirth"),
-                "Expected 'dateOfBirth' in rowProperties because selectedFaceKey=null → isFaceKey=false");
+                "Expected 'dateOfBirth' in rowProperties because selectedFaceKey=null ? isFaceKey=false");
         // face value in data must be null (no face key found)
         assertNull(data.get("face"),
                 "Expected data['face'] to be null when no face key exists in credential");
@@ -2043,7 +2068,7 @@ class CredentialPDFGeneratorServiceTest {
 
                 ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                         "TestCredential", sdJwtVcResponse, issuerDTO, credentialsSupportedResponse,
-                        "https://example.com/share", "2025-12-31", "en");
+                        "https://example.com/share", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
                 assertNotNull(result);
                 mockedUtilities.verify(() -> Utilities.maskValue(anyString()), never());
@@ -2078,7 +2103,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "https://example.com/share", "2025-12-31", "en");
+                "https://example.com/share", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
     }
@@ -2103,7 +2128,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "", "2025-12-31", "en");
+                "", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
     }
@@ -2129,7 +2154,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
-                "", "2025-12-31", "en");
+                "", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
     }
@@ -2143,7 +2168,8 @@ class CredentialPDFGeneratorServiceTest {
             pixelPass,
             credentialFormatHandlerFactory,
             injiVcRenderer,
-            svgFixerUtil
+            svgFixerUtil,
+            credentialStatusDisplayConfig
         );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
@@ -2164,7 +2190,8 @@ class CredentialPDFGeneratorServiceTest {
             pixelPass,
             credentialFormatHandlerFactory,
             injiVcRenderer,
-            svgFixerUtil
+            svgFixerUtil,
+            credentialStatusDisplayConfig
         );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
@@ -2189,7 +2216,8 @@ class CredentialPDFGeneratorServiceTest {
             pixelPass,
             credentialFormatHandlerFactory,
             injiVcRenderer,
-            svgFixerUtil
+            svgFixerUtil,
+            credentialStatusDisplayConfig
         );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
@@ -2213,7 +2241,8 @@ class CredentialPDFGeneratorServiceTest {
             pixelPass,
             credentialFormatHandlerFactory,
             injiVcRenderer,
-            svgFixerUtil
+            svgFixerUtil,
+            credentialStatusDisplayConfig
         );
         Method formatValueMethod = CredentialPDFGeneratorService.class.getDeclaredMethod("formatValue", Object.class, String.class);
         formatValueMethod.setAccessible(true);
@@ -2251,7 +2280,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "credentialConfigId", localVcResponse, issuerDTO,
-                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), any(), anyString(), any());
@@ -2287,7 +2316,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "credentialConfigId", localVcResponse, issuerDTO,
-                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), any(), anyString(), any());
@@ -2321,7 +2350,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "credentialConfigId", localVcResponse, issuerDTO,
-                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), any(), anyString(), any());
@@ -2355,7 +2384,7 @@ class CredentialPDFGeneratorServiceTest {
 
         ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                 "credentialConfigId", localVcResponse, issuerDTO,
-                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en");
+                credentialsSupportedResponse, "http://datashare.url", "2025-12-31", "en", PdfCredentialStatus.of(List.of(), false));
 
         assertNotNull(result);
         verify(injiVcRenderer, never()).generateCredentialDisplayContent(any(), any(), anyString(), any());

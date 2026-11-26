@@ -185,8 +185,8 @@ On `verifiable_credentials`:
 
 | Column | Content |
 |---|---|
-| `status_checks` | JSON list of `{purpose, valid}`. Empty map stored as null. |
-| `status_last_checked_at` | Set on every successful verify (including empty map). |
+| `status_checks` | JSON list of `{purpose, valid}`. Empty map stored as null. APIs return `[]` when the column is null. |
+| `status_last_checked_at` | Set on every successful verify (including empty map). `NULL` on credentials that have never been checked (including pre-migration rows). |
 | `is_expired` | From the verifier result. |
 
 ### APIs

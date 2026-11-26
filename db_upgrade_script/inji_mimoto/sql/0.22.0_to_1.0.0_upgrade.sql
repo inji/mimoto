@@ -2,7 +2,7 @@ ALTER TABLE verifiable_credentials
     ADD COLUMN IF NOT EXISTS status_checks JSONB;
 
 ALTER TABLE verifiable_credentials
-    ADD COLUMN IF NOT EXISTS status_last_checked_at TIMESTAMP NOT NULL DEFAULT now();
+    ADD COLUMN IF NOT EXISTS status_last_checked_at TIMESTAMP;
 
 ALTER TABLE verifiable_credentials
     ADD COLUMN IF NOT EXISTS is_expired BOOLEAN;

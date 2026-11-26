@@ -132,22 +132,27 @@ public class CredentialServiceImpl implements CredentialService {
         VCDownloadHandler processor = vcDownloadHandlerFactory.getHandler(credentialIssuerWellKnownResponse.getVersion());
         VCCredentialResponse vcCredentialResponse = processor.downloadCredential(issuerDTO, credentialConfigurationId, credentialIssuerWellKnownResponse, tokenResponse, null, null, false, dPoPProof);
 
+        PdfCredentialStatus pdfStatus;
         try {
-            verifyCredential(vcCredentialResponse, issuerDTO.getIssuer_id(), credentialConfigurationId);
+            CredentialVerificationResult verification = verifyCredential(
+                    vcCredentialResponse, issuerDTO.getIssuer_id(), credentialConfigurationId);
+            pdfStatus = PdfCredentialStatus.of(verification.getStatusChecks(), verification.isExpired());
         } catch (CredentialStatusException e) {
             log.info("Guest PDF still generated when status list is unavailable for issuerId: {}, credentialConfigurationId: {}, errorCode: {}",
                     issuerDTO.getIssuer_id(), credentialConfigurationId, e.getErrorCode());
+            pdfStatus = PdfCredentialStatus.of(List.of(), false);
         } catch (VCVerificationException e) {
             if (e.getErrorCode() != null && e.getErrorCode().toUpperCase().contains("EXPIRED")) {
                 log.info("Guest PDF ignoring expiry for issuerId: {}, credentialConfigurationId: {}",
                         issuerDTO.getIssuer_id(), credentialConfigurationId);
+                pdfStatus = PdfCredentialStatus.of(List.of(), true);
             } else {
                 throw new VCVerificationException(SIGNATURE_VERIFICATION_EXCEPTION.getErrorCode(),
                         SIGNATURE_VERIFICATION_EXCEPTION.getErrorMessage());
             }
         }
         String dataShareUrl = QRCodeType.OnlineSharing.equals(issuerDTO.getQr_code_type()) ? dataShareService.storeDataInDataShare(objectMapper.writeValueAsString(vcCredentialResponse), credentialValidity) : "";
-        return credentialPDFGeneratorService.generatePdfForVerifiableCredential(credentialConfigurationId, vcCredentialResponse, issuerDTO, credentialsSupportedResponse, dataShareUrl, credentialValidity, locale);
+        return credentialPDFGeneratorService.generatePdfForVerifiableCredential(credentialConfigurationId, vcCredentialResponse, issuerDTO, credentialsSupportedResponse, dataShareUrl, credentialValidity, locale, pdfStatus);
     }
 
     @Override
