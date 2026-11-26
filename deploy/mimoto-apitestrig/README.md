@@ -3,8 +3,12 @@
 ## Introduction
 ApiTestRig will test the working of APIs of the MOSIP modules.
 
+## Helm chart
+* The `mimoto-apitestrig` helm chart is maintained in this repository at [helm/mimoto-apitestrig](../../helm/mimoto-apitestrig) (earlier it was consumed from `mosip/apitestrig` in `mosip-functional-tests`).
+* `install.sh` installs the chart directly from that local path as the helm release `mimoto-apitestrig`.
+
 ## Install
-* Review `values.yaml` and, Make sure to enable required modules for apitestrig operation.
+* Review `values.yaml` (overrides) and [chart values](../../helm/mimoto-apitestrig/values.yaml).
 * Install
 ```sh
 ./install.sh
@@ -36,9 +40,9 @@ ApiTestRig will test the working of APIs of the MOSIP modules.
 * Install `kubectl` package to your local machine.
 * Run apitestrig manually via CLI by creating a new job from an existing k8s cronjob.
   ```
-  kubectl --kubeconfig=<k8s-config-file> -n apitestrig create job --from=cronjob/<cronjob-name> <job-name>
+  kubectl --kubeconfig=<k8s-config-file> -n injiweb create job --from=cronjob/<cronjob-name> <job-name>
   ```
   example:
   ```
-  kubectl --kubeconfig=/home/xxx/Downloads/qa4.config -n apitestrig create job --from=cronjob/cronjob-apitestrig-masterdata cronjob-apitestrig-masterdata
+  kubectl --kubeconfig=/home/xxx/Downloads/qa4.config -n injiweb create job --from=cronjob/cronjob-mimoto-apitestrig-mimoto cronjob-mimoto-apitestrig-mimoto-manual
   ```
