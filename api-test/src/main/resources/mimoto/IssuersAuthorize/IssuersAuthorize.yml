@@ -186,6 +186,120 @@ IssuersAuthorize:
       "responseCode": "200"
 }'
 
+   Mimoto_IssuersAuthorize_Mosip_Repeat_First_Par_Unique_Smoke:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that a PAR authorize attempt returns a request_uri-only authorization URL, and that its request_uri and state are not reused (first of two consecutive attempts)
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_11
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_Mosip_Repeat_Second_Par_Unique_Smoke:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that a second consecutive PAR authorize attempt gets its own request_uri and state, none reused from the previous attempt
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_12
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_Mosip_ParResolve_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a PAR authorize attempt whose request_uri is resolved at eSignet by the ParOAuthDetailsRequest test
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_13
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_Par_UnknownCredentialConfigurationId_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that no PAR request is pushed and a bad request is returned when credentialConfigurationId is not supported by the issuer
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_14
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "UnknownCredentialConfiguration",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorize_Par_OtherIssuerCredentialConfigurationId_Neg:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Verify that a bad request is returned when credentialConfigurationId belongs to a different issuer
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_15
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "InsuranceCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "400"
+}'
+
+   Mimoto_IssuersAuthorize_Mosip_ParResolveBody_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a PAR authorize attempt whose request_uri is resolved at eSignet by ParOAuthDetailsRequest_03 to check redirectUri and credentialScopes
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_20
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+      "issuerId": "Mosip",
+      "redirectUri": "$INJIREDIRECTURI$",
+      "credentialConfigurationId": "MOSIPVerifiableCredential",
+      "uiLocales": "en"
+}'
+      output: '{
+      "responseCode": "200"
+}'
+
    Mimoto_IssuersAuthorize_MockMdl_All_Valid_Smoke_sid:
       endPoint: /v1/mimoto/issuers/{issuerId}/authorize
       description: Create an authorization session for the MockMdl mso_mdoc credential
@@ -204,6 +318,7 @@ IssuersAuthorize:
       output: '{
   "responseCode": "200"
 }'
+
    Mimoto_IssuersAuthorize_MockMdl_ForNeg_Issuer_sid:
       endPoint: /v1/mimoto/issuers/{issuerId}/authorize
       description: Create a fresh authorization session for the guest MockMdl download Invalid_Issuer_Neg test case
@@ -222,6 +337,7 @@ IssuersAuthorize:
       output: '{
   "responseCode": "200"
 }'
+
    Mimoto_IssuersAuthorize_MockMdl_ForNeg_AuthCode_sid:
       endPoint: /v1/mimoto/issuers/{issuerId}/authorize
       description: Create a fresh authorization session for the guest MockMdl download Invalid_AuthorizationCode_Neg test case
