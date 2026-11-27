@@ -398,37 +398,39 @@ public class PresentationServiceTest {
     }
 
     @Test
-    public void should_omitMetaFromDcqlQuery_when_pixelPassReturnsNull() {
+    public void should_throwVPNotCreatedException_when_pixelPassReturnsNullInDcqlQuery() {
         VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
         vcCredentialResponse.setCredential("o2RkYXRh");
 
         when(pixelPass.toJson("o2RkYXRh")).thenReturn(null);
 
-        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructDcqlQuery(vcCredentialResponse));
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
-        assertNull(credentials.get(0).get("meta"));
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
     }
 
     @Test
-    public void should_omitMetaFromDcqlQuery_when_pixelPassThrowsException() {
+    public void should_throwVPNotCreatedException_when_pixelPassThrowsExceptionInDcqlQuery() {
         VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
         vcCredentialResponse.setCredential("o2RkYXRh");
 
         when(pixelPass.toJson("o2RkYXRh")).thenThrow(new RuntimeException("decode error"));
 
-        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructDcqlQuery(vcCredentialResponse));
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
-        assertNull(credentials.get(0).get("meta"));
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
     }
 
     @Test
-    public void should_omitMetaFromDcqlQuery_when_pixelPassReturnsMalformedJson() throws Exception {
+    public void should_throwVPNotCreatedException_when_pixelPassReturnsMalformedJsonInDcqlQuery() throws Exception {
         VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
         vcCredentialResponse.setCredential("o2RkYXRh");
@@ -438,11 +440,31 @@ public class PresentationServiceTest {
         when(objectMapper.readValue(eq(malformedJson), any(TypeReference.class)))
                 .thenThrow(new JsonProcessingException("parse error") {});
 
-        Map<String, Object> result = presentationService.constructDcqlQuery(vcCredentialResponse);
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructDcqlQuery(vcCredentialResponse));
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> credentials = (List<Map<String, Object>>) result.get("credentials");
-        assertNull(credentials.get(0).get("meta"));
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
+    }
+
+    @Test
+    public void should_throwVPNotCreatedException_when_docTypeIsMissingInAllMsoMdocShapesInDcqlQuery() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        String msoJson = "{\"nameSpaces\":{},\"issuerAuth\":[{\"1\":-7},{},\"sig\"]}";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(msoJson);
+        when(objectMapper.readValue(eq(msoJson), any(TypeReference.class)))
+                .thenReturn(Map.of("nameSpaces", Map.of(), "issuerAuth", List.of(Map.of("1", -7), Map.of(), "sig")));
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructDcqlQuery(vcCredentialResponse));
+
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
     }
 
     @Test
@@ -722,6 +744,10 @@ public class PresentationServiceTest {
 
         assertEquals("https://verifier.example.com/success", redirect);
 
+        ArgumentCaptor<Object> vpTokenMapCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(objectMapper).writeValueAsString(vpTokenMapCaptor.capture());
+        assertEquals(Map.of(queryId, List.of("o2d2ZXJzaW9uYzEuMA==")), vpTokenMapCaptor.getValue());
+
         ArgumentCaptor<MultiValueMap> bodyCaptor = ArgumentCaptor.forClass(MultiValueMap.class);
         verify(restApiClient).postApi(
                 eq("https://verifier.example.com/vp-submission"),
@@ -764,6 +790,11 @@ public class PresentationServiceTest {
 
         String expected = String.format("%s#vp_token=%s", redirectUri, URLEncoder.encode(vpTokenJson, StandardCharsets.UTF_8));
         assertEquals(expected, actual);
+
+        ArgumentCaptor<Object> vpTokenMapCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(objectMapper).writeValueAsString(vpTokenMapCaptor.capture());
+        assertEquals(Map.of(queryId, List.of("o2d2ZXJzaW9uYzEuMA==")), vpTokenMapCaptor.getValue());
+
         verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
     }
 
@@ -794,21 +825,81 @@ public class PresentationServiceTest {
     }
 
     @Test
-    public void should_includeLimitDisclosureWithoutFields_when_pixelPassReturnsNull() {
+    public void should_throwVPNotCreatedException_when_pixelPassReturnsNullInPresentationDefinition() {
         VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
         vcCredentialResponse.setCredential("o2RkYXRh");
 
         when(pixelPass.toJson("o2RkYXRh")).thenReturn(null);
 
-        PresentationDefinitionDTO result = presentationService.constructPresentationDefinition(vcCredentialResponse);
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructPresentationDefinition(vcCredentialResponse));
 
-        assertNotNull(result);
-        assertEquals(1, result.getInputDescriptors().size());
-        InputDescriptorDTO inputDescriptor = result.getInputDescriptors().get(0);
-        assertTrue(inputDescriptor.getFormat().containsKey("mso_mdoc"));
-        assertEquals("required", inputDescriptor.getConstraints().getLimitDisclosure());
-        assertNull(inputDescriptor.getConstraints().getFields());
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
+    }
+
+    @Test
+    public void should_throwVPNotCreatedException_when_docTypeIsMissingInAllMsoMdocShapesInPresentationDefinition() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2RkYXRh");
+
+        String msoJson = "{\"nameSpaces\":{},\"issuerAuth\":[{\"1\":-7},{},\"sig\"]}";
+        when(pixelPass.toJson("o2RkYXRh")).thenReturn(msoJson);
+        when(objectMapper.readValue(eq(msoJson), any(TypeReference.class)))
+                .thenReturn(Map.of("nameSpaces", Map.of(), "issuerAuth", List.of(Map.of("1", -7), Map.of(), "sig")));
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructPresentationDefinition(vcCredentialResponse));
+
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
+    }
+
+    @Test
+    public void should_throwVPNotCreatedException_when_msoMdocCredentialIsNotStringInDcqlQuery() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential(Map.of("issuerAuth", List.of()));
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructDcqlQuery(vcCredentialResponse));
+
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
+        verifyNoInteractions(pixelPass);
+    }
+
+    @Test
+    public void should_throwVPNotCreatedException_when_msoMdocCredentialIsNotStringInPresentationDefinition() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential(Map.of("issuerAuth", List.of()));
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructPresentationDefinition(vcCredentialResponse));
+
+        assertEquals(
+                ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
+        verifyNoInteractions(pixelPass);
+    }
+
+    @Test
+    public void should_throwVPNotCreatedException_when_msoMdocCredentialIsNull() {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential(null);
+
+        assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructDcqlQuery(vcCredentialResponse));
+        assertThrows(VPNotCreatedException.class,
+                () -> presentationService.constructPresentationDefinition(vcCredentialResponse));
+        verifyNoInteractions(pixelPass);
     }
 
     // Helper methods

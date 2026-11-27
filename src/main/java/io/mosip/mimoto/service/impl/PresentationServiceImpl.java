@@ -291,20 +291,18 @@ public class PresentationServiceImpl implements PresentationService {
                     .build());
 
         } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(vcFormat)) {
-            String docType = extractMdocDocType((String) vcRes.getCredential());
+            String docType = extractMdocDocType(vcRes.getCredential());
             Map<String, Map<String, List<String>>> format = Map.of("mso_mdoc", Map.of());
-            ConstraintsDTO.ConstraintsDTOBuilder constraintsBuilder = ConstraintsDTO.builder()
-                    .limitDisclosure("required");
-            if (docType != null) {
-                FieldDTO field = FieldDTO.builder()
-                        .path(new String[]{"$.docType"})
-                        .filter(FilterDTO.builder().type("string").pattern(docType).build())
-                        .build();
-                constraintsBuilder.fields(new FieldDTO[]{field});
-            }
+            FieldDTO field = FieldDTO.builder()
+                    .path(new String[]{"$.docType"})
+                    .filter(FilterDTO.builder().type("string").pattern(docType).build())
+                    .build();
             inputDescriptors.add(InputDescriptorDTO.builder()
                     .id(UUID.randomUUID().toString())
-                    .constraints(constraintsBuilder.build())
+                    .constraints(ConstraintsDTO.builder()
+                            .limitDisclosure("required")
+                            .fields(new FieldDTO[]{field})
+                            .build())
                     .format(format)
                     .build());
         }
@@ -338,10 +336,7 @@ public class PresentationServiceImpl implements PresentationService {
             Map<String, Object> jwtPayload = extractJwtPayloadFromSdJwt((String) vcRes.getCredential());
             buildSdJwtMetaFromPayload(jwtPayload, meta);
         } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(vcFormat)) {
-            String docType = extractMdocDocType((String) vcRes.getCredential());
-            if (docType != null) {
-                meta.put("doctype_value", docType);
-            }
+            meta.put("doctype_value", extractMdocDocType(vcRes.getCredential()));
         }
         if (!meta.isEmpty()) {
             credentialQuery.put("meta", meta);
@@ -352,41 +347,56 @@ public class PresentationServiceImpl implements PresentationService {
         return dcqlQuery;
     }
 
-    private String extractMdocDocType(String base64urlCbor) {
-        try {
-            Object json = pixelPass.toJson(base64urlCbor.trim());
-            if (json == null) return null;
-            Map<String, Object> root = objectMapper.readValue(json.toString(), new TypeReference<>() {});
-
-            // Latest (OpenID4VCI V1.0): flat structure — docType inside issuerAuth COSE_Sign1 array at root
-            Object issuerAuth = root.get("issuerAuth");
-            if (issuerAuth instanceof List<?>) {
-                for (Object element : (List<?>) issuerAuth) {
-                    if (element instanceof Map<?, ?> map && map.get("docType") != null) {
-                        return map.get("docType").toString();
-                    }
-                }
-            }
-
-            // Legacy variant 1: docType is a direct top-level field
-            Object docType = root.get("docType");
-            if (docType != null) return docType.toString();
-
-            // Legacy variant 2: wrapped in a documents array
-            Object documents = root.get("documents");
-            if (documents instanceof List<?>) {
-                for (Object doc : (List<?>) documents) {
-                    if (doc instanceof Map<?, ?> docMap && docMap.get("docType") != null) {
-                        return docMap.get("docType").toString();
-                    }
-                }
-            }
-
-            return null;
-        } catch (Exception e) {
-            log.warn("Could not extract docType from mso_mdoc credential: {}", e.getClass().getSimpleName());
-            return null;
+    private String extractMdocDocType(Object credential) {
+        if (!(credential instanceof String base64urlCbor)) {
+            log.warn("Unexpected credential type for mso_mdoc; expected base64url CBOR String, got {}",
+                    credential == null ? "null" : credential.getClass().getSimpleName());
+            throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
         }
+        String docType = null;
+        try {
+            docType = readDocTypeFromCbor(base64urlCbor.trim());
+        } catch (Exception e) {
+            log.warn("Could not parse mso_mdoc credential to extract docType: {}", e.getClass().getSimpleName());
+        }
+        if (docType == null) {
+            // A query without docType can never match a credential, so fail now instead of at scan time
+            log.warn("docType not found in mso_mdoc credential; cannot build a matching query");
+            throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+        }
+        return docType;
+    }
+
+    private String readDocTypeFromCbor(String base64urlCbor) throws JsonProcessingException {
+        Object json = pixelPass.toJson(base64urlCbor);
+        if (json == null) return null;
+        Map<String, Object> root = objectMapper.readValue(json.toString(), new TypeReference<>() {});
+
+        // Latest (OpenID4VCI V1.0): flat structure — docType inside issuerAuth COSE_Sign1 array at root
+        Object issuerAuth = root.get("issuerAuth");
+        if (issuerAuth instanceof List<?>) {
+            for (Object element : (List<?>) issuerAuth) {
+                if (element instanceof Map<?, ?> map && map.get("docType") != null) {
+                    return map.get("docType").toString();
+                }
+            }
+        }
+
+        // Legacy variant 1: docType is a direct top-level field
+        Object docType = root.get("docType");
+        if (docType != null) return docType.toString();
+
+        // Legacy variant 2: wrapped in a documents array
+        Object documents = root.get("documents");
+        if (documents instanceof List<?>) {
+            for (Object doc : (List<?>) documents) {
+                if (doc instanceof Map<?, ?> docMap && docMap.get("docType") != null) {
+                    return docMap.get("docType").toString();
+                }
+            }
+        }
+
+        return null;
     }
 
     private void buildSdJwtMetaFromPayload(Map<String, Object> jwtPayload, Map<String, Object> meta) {
