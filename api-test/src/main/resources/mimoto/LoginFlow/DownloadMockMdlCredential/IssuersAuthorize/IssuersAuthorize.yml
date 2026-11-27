@@ -1,0 +1,88 @@
+IssuersAuthorize:
+   Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_01:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a Google-login authorization session for the MockMdl mso_mdoc credential
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_01
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorizeResult
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en",
+  "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+  "cookieName": "SESSION"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_ForNeg_InvalidCode_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh Google-login authorization session for the MockMdl InvalidCode_Neg download test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_02
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorizeResult
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en",
+  "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+  "cookieName": "SESSION"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_ForNeg_EmptyCode_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh Google-login authorization session for the MockMdl EmptyCode_Neg download test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_03
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorizeResult
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en",
+  "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+  "cookieName": "SESSION"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_ForNeg_InvalidIssuer_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh Google-login authorization session for the MockMdl InvalidIssuer_Neg download test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_GoogleLogin_MockMdl_04
+      role: userDefinedCookie
+      restMethod: post
+      additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorizeResult
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en",
+  "cookie": "$ID:GoogleLoginToken_all_Valid_Smoke_sessionCookie$",
+  "cookieName": "SESSION"
+}'
+      output: '{
+  "responseCode": "200"
+}'

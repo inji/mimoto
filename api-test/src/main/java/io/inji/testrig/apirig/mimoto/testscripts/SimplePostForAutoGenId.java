@@ -153,7 +153,7 @@ public class SimplePostForAutoGenId extends MimotoUtil implements ITest {
 				if (MimotoConfigManager.isInServiceNotDeployedList(GlobalConstants.ESIGNET)) {
 					throw new SkipException("esignet is not deployed hence skipping the testcase");
 				}
-				String tempUrl = MimotoConfigManager.getEsignetBaseUrl();
+				String tempUrl = MimotoConfigManager.getEsignetBaseUrl(testCaseName);
 				if (testCaseDTO.getEndPoint().startsWith("$ESIGNETMOCKBASEURL$")
 						&& testCaseName.contains("SunBirdC")) {
 					if (MimotoConfigManager.isInServiceNotDeployedList("sunbirdrc"))

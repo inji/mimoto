@@ -299,3 +299,117 @@ IssuersAuthorize:
       output: '{
       "responseCode": "200"
 }'
+
+   Mimoto_IssuersAuthorize_MockMdl_All_Valid_Smoke_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create an authorization session for the MockMdl mso_mdoc credential
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_MockMdl_01
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_MockMdl_ForNeg_Issuer_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh authorization session for the guest MockMdl download Invalid_Issuer_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_MockMdl_02
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_MockMdl_ForNeg_AuthCode_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh authorization session for the guest MockMdl download Invalid_AuthorizationCode_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_MockMdl_03
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_MockMdl_ForNeg_Reused_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh authorization session for the guest MockMdl download Reused_AuthorizationCode_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_MockMdl_04
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_MockMdl_ForNeg_Credential_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh authorization session for the guest MockMdl download Invalid_Credential_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_MockMdl_06
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
+   Mimoto_IssuersAuthorize_MockMdl_ForNeg_EmptyCode_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh authorization session for the guest MockMdl download Empty_AuthorizationCode_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_MockMdl_05
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en"
+}'
+      output: '{
+  "responseCode": "200"
+}'
