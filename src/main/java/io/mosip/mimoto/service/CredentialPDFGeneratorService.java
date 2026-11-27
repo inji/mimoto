@@ -18,6 +18,7 @@ import io.mosip.injivcrenderer.InjiVcRenderer;
 import io.mosip.mimoto.config.CredentialStatusDisplayConfig;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.exception.CredentialPdfGenerationException;
+import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.constant.LdpVcV1Constants;
 import io.mosip.mimoto.constant.LdpVcV2Constants;
 import io.mosip.mimoto.constant.SdJwtVcConstants;
@@ -380,7 +381,13 @@ public class CredentialPDFGeneratorService {
     }
 
     private String constructQRCodeWithAuthorizeRequest(VCCredentialResponse vcCredentialResponse, String dataShareUrl) throws WriterException, JsonProcessingException {
-        String qrData = buildOnlineSharingQrData(vcCredentialResponse, dataShareUrl);
+        String qrData;
+        try {
+            qrData = buildOnlineSharingQrData(vcCredentialResponse, dataShareUrl);
+        } catch (VPNotCreatedException e) {
+            log.warn("Skipping OnlineSharing QR: could not build a valid presentation request for format {}", vcCredentialResponse.getFormat());
+            return "";
+        }
         log.info("OnlineSharing QR payload length: {}", qrData.length());
         if (qrData.length() >= allowedQRDataSizeLimit) {
             log.warn("OnlineSharing QR payload exceeds allowed size limit {}. Skipping QR generation.", allowedQRDataSizeLimit);

@@ -16,6 +16,8 @@ import io.mosip.mimoto.dto.LogoDTO;
 import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
 import io.mosip.mimoto.model.CredentialStatusCheck;
+import io.mosip.mimoto.exception.ErrorConstants;
+import io.mosip.mimoto.exception.VPNotCreatedException;
 import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.service.impl.LdpVcCredentialFormatHandler;
 import io.mosip.mimoto.service.impl.PresentationServiceImpl;
@@ -269,6 +271,28 @@ class CredentialPDFGeneratorServiceTest {
             ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
                     "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
                     "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test", "", "en", PdfCredentialStatus.of(List.of(), false));
+
+            assertNotNull(result);
+            mocked.verify(() -> Utilities.encodeToString(any(), anyString()), never());
+        }
+    }
+
+    @Test
+    void should_skipOnlineSharingQrAndStillGeneratePdf_when_presentationRequestCannotBeBuilt() throws Exception {
+        when(credentialFormatHandlerFactory.getHandler("ldp_vc")).thenReturn(credentialFormatHandler);
+        issuerDTO.setQr_code_type(QRCodeType.OnlineSharing);
+        when(utilities.getCredentialSupportedTemplateString(anyString(), anyString()))
+                .thenReturn("<html><body>Test</body></html>");
+        when(presentationService.constructPresentationDefinition(any()))
+                .thenThrow(new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage()));
+
+        try (MockedStatic<Utilities> mocked = mockStatic(Utilities.class)) {
+            mocked.when(() -> Utilities.encodeToString(any(), anyString()))
+                    .thenReturn("base64-encoded-qr");
+
+            ByteArrayInputStream result = credentialPDFGeneratorService.generatePdfForVerifiableCredential(
+                    "TestCredential", vcCredentialResponse, issuerDTO, credentialsSupportedResponse,
+                    "http://datashare.datashare/v1/datashare/get/static-policyid/static-subscriberid/test", "", "en");
 
             assertNotNull(result);
             mocked.verify(() -> Utilities.encodeToString(any(), anyString()), never());
