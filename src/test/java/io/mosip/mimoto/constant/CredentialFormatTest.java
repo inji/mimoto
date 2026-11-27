@@ -61,4 +61,21 @@ class CredentialFormatTest {
     void isSdJwtShouldBeFalseForUnknownFormat() {
         assertFalse(CredentialFormat.isSdJwt("mso_mdoc"));
     }
+
+    @Test
+    void isMdocShouldBeTrueForMsoMdoc() {
+        assertTrue(CredentialFormat.isMdoc("mso_mdoc"));
+        assertTrue(CredentialFormat.isMdoc("MSO_MDOC"));
+        assertFalse(CredentialFormat.isMdoc("vc+sd-jwt"));
+        assertFalse(CredentialFormat.isMdoc(null));
+    }
+
+    @Test
+    void isSelectivelyDisclosableShouldBeTrueForSdJwtAndMdoc() {
+        assertTrue(CredentialFormat.isSelectivelyDisclosable("vc+sd-jwt"));
+        assertTrue(CredentialFormat.isSelectivelyDisclosable("dc+sd-jwt"));
+        assertTrue(CredentialFormat.isSelectivelyDisclosable("mso_mdoc"));
+        assertFalse(CredentialFormat.isSelectivelyDisclosable("ldp_vc"));
+        assertFalse(CredentialFormat.isSelectivelyDisclosable(null));
+    }
 }

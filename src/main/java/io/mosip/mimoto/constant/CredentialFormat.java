@@ -32,4 +32,12 @@ public enum CredentialFormat {
     public static boolean isSdJwt(String format) {
         return VC_SD_JWT.format.equalsIgnoreCase(format) || DC_SD_JWT.format.equalsIgnoreCase(format);
     }
+
+    public static boolean isMdoc(String format) {
+        return MSO_MDOC.format.equalsIgnoreCase(format);
+    }
+
+    public static boolean isSelectivelyDisclosable(String format) {
+        return isSdJwt(format) || isMdoc(format);
+    }
 }
