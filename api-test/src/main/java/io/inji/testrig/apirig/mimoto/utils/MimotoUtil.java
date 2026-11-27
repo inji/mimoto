@@ -288,10 +288,6 @@ public class MimotoUtil extends AdminTestUtil {
 			jsonString = replaceKeywordWithValue(jsonString, "$GETCLIENTIDFORINSURANCEFROMMIMOTOISSUERS$",
 					getInsuranceClientIdFromMimotoIssuers());
 		}
-		if (jsonString.contains("$GETCLIENTIDFORMOCKFROMMIMOTOACTUATOR$")) {
-			jsonString = replaceKeywordWithValue(jsonString, "$GETCLIENTIDFORMOCKFROMMIMOTOACTUATOR$",
-					getMdlClientIdFromMimotoActuator());
-		}
 		if (jsonString.contains("$GETCLIENTIDFORMDLFROMMIMOTOACTUATOR$")) {
 			jsonString = replaceKeywordWithValue(jsonString, "$GETCLIENTIDFORMDLFROMMIMOTOACTUATOR$",
 					getMdlClientIdFromMimotoActuator());
@@ -363,7 +359,11 @@ public class MimotoUtil extends AdminTestUtil {
 			return stayProtectedClientId;
 		}
 
-		String url = ApplnURI + MIMOTO_ISSUERS_ENDPOINT;
+		String issuersEndpoint = MIMOTO_ISSUERS_ENDPOINT;
+		if ("true".equalsIgnoreCase(System.getenv("useOldContextURL"))) {
+			issuersEndpoint = issuersEndpoint.replace("/v1/mimoto/", "/residentmobileapp/");
+		}
+		String url = ApplnURI + issuersEndpoint;
 		try {
 			Response response = RestClient.getRequest(url, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON);
 			JSONArray issuers = new JSONObject(response.asString()).getJSONObject("response").getJSONArray("issuers");
@@ -524,6 +524,9 @@ public class MimotoUtil extends AdminTestUtil {
 	 * JSON (both are removed from the form body since the backend expects them as
 	 * a header/cookie, not form fields).
 	 */
+	// True when the last guest download response was already reported (boxed) by the helper below
+	protected boolean downloadResponseReported = false;
+
 	protected byte[] postWithFormDataBodyForPdfWithStateHeaderAndCookie(String url, String inputJson) {
 		JSONObject json = new JSONObject(inputJson);
 		String state = json.optString("state", "");
@@ -537,6 +540,16 @@ public class MimotoUtil extends AdminTestUtil {
 			formParams.put(key, String.valueOf(json.get(key)));
 		}
 
+		Map<String, String> reportedHeaders = new HashMap<>();
+		reportedHeaders.put(XSRF_HEADERNAME, CSRF_TOKEN);
+		if (!state.isBlank()) {
+			reportedHeaders.put("state", state);
+		}
+		String cookieStatus = cookie.value().isBlank() ? "<empty>"
+				: cookie.value().startsWith("$ID:") ? "<unresolved placeholder>" : "<set>";
+		reportedHeaders.put("Cookie " + (cookie.name().isBlank() ? "(none)" : cookie.name()), cookieStatus);
+		GlobalMethods.reportRequest(reportedHeaders.toString(), formParams.toString(), url);
+
 		RequestSpecification request = RestAssured.given().relaxedHTTPSValidation().contentType(ContentType.URLENC)
 				.formParams(formParams)
 				.header(XSRF_HEADERNAME, CSRF_TOKEN)
@@ -548,6 +561,12 @@ public class MimotoUtil extends AdminTestUtil {
 			request = request.cookie(cookie.name(), cookie.value());
 		}
 		Response response = request.post(url);
+		// A PDF body can't be shown as text, so only non-PDF (error) responses are reported here
+		String contentType = response.getContentType();
+		downloadResponseReported = contentType == null || !contentType.toLowerCase().contains("pdf");
+		if (downloadResponseReported) {
+			GlobalMethods.reportResponse(response.getHeaders().asList().toString(), url, response);
+		}
 		return response.asByteArray();
 	}
 

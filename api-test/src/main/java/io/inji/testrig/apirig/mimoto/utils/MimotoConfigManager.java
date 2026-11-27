@@ -91,6 +91,7 @@ public class MimotoConfigManager extends ConfigManager{
 		try {
 			return getproperty(key);
 		} catch (RuntimeException e) {
+			LOGGER.debug("Optional property '" + key + "' could not be read: " + e.getMessage());
 			return null;
 		}
 	}
@@ -110,27 +111,6 @@ public class MimotoConfigManager extends ConfigManager{
 		return "https://" + MimotoUtil.getValueFromMimotoActuator("overrides", getproperty("sunbirdrc-insurance-esignet-host"));
 	}
 
-	public static String getMockIdentitySystemBaseURL() {
-		String host = MimotoUtil.getValueFromMimotoActuator("overrides",
-				getproperty("mock-identity-system-host"));
-		if (host == null || host.isBlank() || "null".equalsIgnoreCase(host)) {
-			String componentBaseUrls = getproperty("mosip_components_base_urls");
-			if (componentBaseUrls != null) {
-				for (String component : componentBaseUrls.split(";")) {
-					String[] nameAndHost = component.split("=", 2);
-					if (nameAndHost.length == 2 && "mock-identity-system".equals(nameAndHost[0].trim())) {
-						host = nameAndHost[1].trim();
-						break;
-					}
-				}
-			}
-		}
-		if (host == null || host.isBlank()) {
-			return null;
-		}
-		return host.startsWith("http://") || host.startsWith("https://") ? host : "https://" + host;
-	}
-	
 	public static String getInjiVerifyBaseURL() {
 		return "https://" + MimotoUtil.getValueFromMimotoActuator("overrides", "mosip.injiverify.host");
 	}

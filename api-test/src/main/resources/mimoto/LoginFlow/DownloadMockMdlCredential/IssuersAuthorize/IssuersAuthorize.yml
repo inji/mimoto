@@ -7,8 +7,8 @@ IssuersAuthorize:
       restMethod: post
       additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
       checkOnlyStatusCodeInResponse: true
-      inputTemplate: mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorize
-      outputTemplate: mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorizeResult
+      inputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorizeResult
       input: '{
   "issuerId": "MockMdl",
   "redirectUri": "$INJIREDIRECTURI$",
@@ -29,8 +29,8 @@ IssuersAuthorize:
       restMethod: post
       additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
       checkOnlyStatusCodeInResponse: true
-      inputTemplate: mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorize
-      outputTemplate: mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorizeResult
+      inputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorizeResult
       input: '{
   "issuerId": "MockMdl",
   "redirectUri": "$INJIREDIRECTURI$",
@@ -51,8 +51,8 @@ IssuersAuthorize:
       restMethod: post
       additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
       checkOnlyStatusCodeInResponse: true
-      inputTemplate: mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorize
-      outputTemplate: mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorizeResult
+      inputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorizeResult
       input: '{
   "issuerId": "MockMdl",
   "redirectUri": "$INJIREDIRECTURI$",
@@ -73,8 +73,8 @@ IssuersAuthorize:
       restMethod: post
       additionalDependencies: TC_Mimoto_GoogleLoginToken_01,TC_Mimoto_UnlockWallet_01
       checkOnlyStatusCodeInResponse: true
-      inputTemplate: mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorize
-      outputTemplate: mimoto/LoginFlow/DownloadMockCredential/IssuersAuthorize/IssuersAuthorizeResult
+      inputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/LoginFlow/DownloadMockMdlCredential/IssuersAuthorize/IssuersAuthorizeResult
       input: '{
   "issuerId": "MockMdl",
   "redirectUri": "$INJIREDIRECTURI$",

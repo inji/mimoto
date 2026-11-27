@@ -1,6 +1,9 @@
 package io.inji.testrig.apirig.mimoto.testscripts;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -20,6 +23,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 
 import io.inji.testrig.apirig.mimoto.utils.MimotoConfigManager;
 import io.inji.testrig.apirig.mimoto.utils.MimotoUtil;
+import io.mosip.testrig.apirig.dto.OutputValidationDto;
 import io.mosip.testrig.apirig.dto.TestCaseDTO;
 import io.mosip.testrig.apirig.testrunner.BaseTestCase;
 import io.mosip.testrig.apirig.testrunner.HealthChecker;
@@ -27,6 +31,8 @@ import io.mosip.testrig.apirig.utils.AdminTestException;
 import io.mosip.testrig.apirig.utils.AuthenticationTestException;
 import io.mosip.testrig.apirig.utils.GlobalConstants;
 import io.mosip.testrig.apirig.utils.GlobalMethods;
+import io.mosip.testrig.apirig.utils.OutputValidationUtil;
+import io.mosip.testrig.apirig.utils.ReportUtil;
 import io.mosip.testrig.apirig.utils.SecurityXSSException;
 import io.restassured.response.Response;
 
@@ -95,34 +101,42 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 		inputJson = MimotoUtil.inputstringKeyWordHandeler(inputJson, testCaseName);
 
 		pdf = postWithFormDataBodyForPdfWithStateHeaderAndCookie(ApplnURI + testCaseDTO.getEndPoint(), inputJson);
+
+		String outputTemplate = testCaseDTO.getOutputTemplate();
+		if (outputTemplate != null && (outputTemplate.endsWith("/error") || outputTemplate.endsWith("/error2"))) {
+			validateErrorResponse(testCaseDTO);
+			return;
+		}
+
 		PDDocument pdfReader = null;
+		pdfAsText = null;
 		
-		try {
-			pdfAsText = null;
-			pdfReader = Loader.loadPDF(pdf);
-			if (pdfReader.getNumberOfPages() == 0) {
-				throw new IOException("PDF has no pages");
-			}
-			PDFTextStripper stripper = new PDFTextStripper();
-			stripper.setStartPage(1);
-			stripper.setEndPage(1);
-			pdfAsText = stripper.getText(pdfReader);
-		} catch (IOException e) {
-			Reporter.log("Exception : " + e.getMessage());
-		} finally {
-			if (pdfReader != null) {
-				try {
-					pdfReader.close();
-				} catch (IOException e) {
-					Reporter.log("Exception while closing PDF document : " + e.getMessage());
+		// Error bodies were already reported (boxed) by the download helper, so skip PDF parsing for them
+		if (!downloadResponseReported) {
+			try {
+				pdfReader = Loader.loadPDF(pdf);
+				if (pdfReader.getNumberOfPages() == 0) {
+					throw new IOException("PDF has no pages");
+				}
+				PDFTextStripper stripper = new PDFTextStripper();
+				stripper.setStartPage(1);
+				stripper.setEndPage(1);
+				pdfAsText = stripper.getText(pdfReader);
+			} catch (IOException e) {
+				Reporter.log("Exception : " + e.getMessage());
+			} finally {
+				if (pdfReader != null) {
+					try {
+						pdfReader.close();
+					} catch (IOException e) {
+						Reporter.log("Exception while closing PDF document : " + e.getMessage());
+					}
 				}
 			}
 		}
 		 
 		if (pdf != null && (new String(pdf).contains("errors") || pdfAsText == null)) {
-			// pdf bytes are actually a JSON error body here, not a PDF - surface it instead of "null"
-			GlobalMethods.reportResponse(null, ApplnURI + testCaseDTO.getEndPoint(),
-					"Not able to download issuer credential. Raw response: " + new String(pdf));
+			Reporter.log("Not able to download issuer credential");
 			if (!testCaseName.contains("_Neg")) {
 				throw new AdminTestException("Not able to download issuer credential");
 			}
@@ -130,6 +144,20 @@ public class PostWithFormDataBodyForPdfDownload extends MimotoUtil implements IT
 			GlobalMethods.reportResponse(null, ApplnURI + testCaseDTO.getEndPoint(), pdfAsText);
 		}
 		
+	}
+
+	// Negative cases must return a JSON error body whose errorCode matches the expected output
+	private void validateErrorResponse(TestCaseDTO testCaseDTO) throws AdminTestException {
+		String responseBody = pdf == null ? "" : new String(pdf, StandardCharsets.UTF_8);
+		if (!responseBody.trim().startsWith("{")) {
+			throw new AdminTestException("Expected an error response but received a non-JSON response");
+		}
+		Map<String, List<OutputValidationDto>> ouputValid = OutputValidationUtil.doJsonOutputValidation(responseBody,
+				getJsonFromTemplate(testCaseDTO.getOutput(), testCaseDTO.getOutputTemplate()), testCaseDTO,
+				400);
+		Reporter.log(ReportUtil.getOutputValidationReport(ouputValid));
+		if (!OutputValidationUtil.publishOutputResult(ouputValid))
+			throw new AdminTestException("Failed at output validation");
 	}
 
 	/**

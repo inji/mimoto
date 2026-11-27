@@ -376,6 +376,25 @@ IssuersAuthorize:
   "responseCode": "200"
 }'
 
+   Mimoto_IssuersAuthorize_MockMdl_ForNeg_Credential_sid:
+      endPoint: /v1/mimoto/issuers/{issuerId}/authorize
+      description: Create a fresh authorization session for the guest MockMdl download Invalid_Credential_Neg test case
+      uniqueIdentifier: TC_Mimoto_IssuersAuthorize_MockMdl_06
+      role: userDefinedCookie
+      restMethod: post
+      checkOnlyStatusCodeInResponse: true
+      inputTemplate: mimoto/IssuersAuthorize/IssuersAuthorize
+      outputTemplate: mimoto/responseCode
+      input: '{
+  "issuerId": "MockMdl",
+  "redirectUri": "$INJIREDIRECTURI$",
+  "credentialConfigurationId": "DrivingLicenseCredential",
+  "uiLocales": "en"
+}'
+      output: '{
+  "responseCode": "200"
+}'
+
    Mimoto_IssuersAuthorize_MockMdl_ForNeg_EmptyCode_sid:
       endPoint: /v1/mimoto/issuers/{issuerId}/authorize
       description: Create a fresh authorization session for the guest MockMdl download Empty_AuthorizationCode_Neg test case
