@@ -164,6 +164,11 @@ public class PresentationServiceImpl implements PresentationService {
                 || CredentialFormat.DC_SD_JWT.getFormat().equalsIgnoreCase(format)) {
             presentation = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
         } else if (CredentialFormat.MSO_MDOC.getFormat().equalsIgnoreCase(format)) {
+            // No wallet or holder key on this unauthenticated call: the stored mdoc is sent whole (no DeviceResponse, no per-claim disclosure).
+            if (matchingQuery.get("claims") instanceof List<?> claims && !claims.isEmpty()) {
+                log.error("DCQL: mso_mdoc claim-level disclosure is not supported on Data Share; rejecting claims-constrained query");
+                throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());
+            }
             presentation = objectMapper.convertValue(vcCredentialResponse.getCredential(), String.class);
         } else {
             throw new VPNotCreatedException(ErrorConstants.INVALID_REQUEST.getErrorMessage());

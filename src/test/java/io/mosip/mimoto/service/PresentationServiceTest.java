@@ -799,6 +799,42 @@ public class PresentationServiceTest {
     }
 
     @Test
+    public void should_rejectMsoMdocDcqlAuthorize_when_queryDeclaresClaims() throws Exception {
+        VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
+        vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
+        vcCredentialResponse.setCredential("o2d2ZXJzaW9uYzEuMA==");
+
+        String queryId = "mdoc-query-1";
+        String dcqlQuery = "{\"credentials\":[{\"id\":\"" + queryId + "\",\"format\":\"mso_mdoc\","
+                + "\"claims\":[{\"path\":[\"org.iso.18013.5.1\",\"family_name\"]}]}]}";
+        Map<String, Object> dcqlQueryMap = Map.of(
+                "credentials", List.of(Map.of(
+                        "id", queryId,
+                        "format", "mso_mdoc",
+                        "claims", List.of(Map.of("path", List.of("org.iso.18013.5.1", "family_name"))))));
+
+        PresentationRequestDTO presentationRequestDTO = PresentationRequestDTO.builder()
+                .resource("http://datashare.example/resource")
+                .dcqlQuery(dcqlQuery)
+                .clientId("test-client")
+                .responseMode("direct_post")
+                .responseUri("https://verifier.example.com/vp-submission")
+                .redirectUri("https://verifier.example.com/redirect")
+                .state("session-state")
+                .build();
+
+        when(dataShareService.downloadCredentialFromDataShare(eq(presentationRequestDTO))).thenReturn(vcCredentialResponse);
+        when(objectMapper.readValue(eq(dcqlQuery), any(TypeReference.class))).thenReturn(dcqlQueryMap);
+
+        VPNotCreatedException ex = assertThrows(VPNotCreatedException.class,
+                () -> presentationService.processVPRequest(presentationRequestDTO, SpecVersion.V1));
+
+        assertEquals(ErrorConstants.INVALID_REQUEST.getErrorCode() + " --> " + ErrorConstants.INVALID_REQUEST.getErrorMessage(),
+                ex.getMessage());
+        verify(restApiClient, never()).postApi(anyString(), any(), any(), eq(Map.class));
+    }
+
+    @Test
     public void should_includeLimitDisclosureAndDocTypeField_when_msoMdocDocTypeIsExtracted() throws Exception {
         VCCredentialResponse vcCredentialResponse = new VCCredentialResponse();
         vcCredentialResponse.setFormat(CredentialFormat.MSO_MDOC.getFormat());
