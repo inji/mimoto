@@ -3415,6 +3415,102 @@
                 }
             }
         },
+        "/wallets/{walletId}/credentials/{credentialId}/status": {
+            "get": {
+                "tags": [
+                    "Wallet Credentials"
+                ],
+                "summary": "Check the status of a stored credential",
+                "description": "Decrypts the stored credential, checks its status with the issuer status list, and stores the result. Revoked and suspended credentials are returned with valid=false. If the check fails, the stored status is left unchanged.",
+                "operationId": "checkCredentialStatus",
+                "parameters": [
+                    {
+                        "name": "walletId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Unique identifier of the wallet",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "credentialId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Unique identifier of the credential",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status checked and stored",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CredentialStatusResponseDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "The credential could not be verified",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDTO"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Credential not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDTO"
+                                }
+                            }
+                        }
+                    },
+                    "424": {
+                        "description": "Failed Dependency: the issuer status list could not be fetched or parsed. Stored status is left unchanged so the client can retry.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDTO"
+                                },
+                                "examples": {
+                                    "Status list unavailable": {
+                                        "description": "Status list unavailable",
+                                        "value": {
+                                            "errorCode": "credential_status_unavailable",
+                                            "errorMessage": "Could not confirm the credential status. Please try again."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDTO"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ]
+            }
+        },
         "/verifiers": {
             "get": {
                 "operationId": "getAllTrustedVerifiers",
@@ -5115,6 +5211,60 @@
                     "credentialId": {
                         "type": "string",
                         "description": "Unique Identifier of the Credential in database"
+                    },
+                    "statusChecks": {
+                        "type": "array",
+                        "description": "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose. Empty list when status has not been checked.",
+                        "items": {
+                            "$ref": "#/components/schemas/CredentialStatusCheck"
+                        }
+                    },
+                    "lastCheckedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Time at which the credential status was last checked"
+                    },
+                    "isExpired": {
+                        "type": "boolean",
+                        "description": "Whether the credential was expired at the last check. Null when expiry has not been checked."
+                    }
+                }
+            },
+            "CredentialStatusCheck": {
+                "type": "object",
+                "properties": {
+                    "purpose": {
+                        "type": "string",
+                        "description": "Status purpose, for example revocation or suspension"
+                    },
+                    "valid": {
+                        "type": "boolean",
+                        "description": "false when the credential is revoked or suspended for this purpose"
+                    }
+                }
+            },
+            "CredentialStatusResponseDTO": {
+                "type": "object",
+                "properties": {
+                    "credentialId": {
+                        "type": "string",
+                        "description": "Unique identifier of the credential"
+                    },
+                    "statusChecks": {
+                        "type": "array",
+                        "description": "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose. Empty list when status has not been checked.",
+                        "items": {
+                            "$ref": "#/components/schemas/CredentialStatusCheck"
+                        }
+                    },
+                    "lastCheckedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Time at which the credential status was last checked"
+                    },
+                    "isExpired": {
+                        "type": "boolean",
+                        "description": "Whether the credential was expired at the last check. Null when expiry has not been checked."
                     }
                 }
             },

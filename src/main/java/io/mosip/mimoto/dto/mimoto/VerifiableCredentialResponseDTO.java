@@ -2,12 +2,17 @@ package io.mosip.mimoto.dto.mimoto;
 
 import io.mosip.mimoto.dto.DisplayDTO;
 import io.mosip.mimoto.dto.IssuerDTO;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import io.mosip.mimoto.model.CredentialStatusCheck;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.Instant;
+import java.util.List;
 
 import static io.mosip.mimoto.util.LocaleUtils.getCredentialDisplayDTOBasedOnLocale;
 import static io.mosip.mimoto.util.LocaleUtils.getIssuerDisplayDTOBasedOnLocale;
@@ -39,8 +44,19 @@ public class VerifiableCredentialResponseDTO {
     @Schema(description = "Unique Identifier of the Credential in database")
     private String credentialId;
 
+    @Schema(description = "Status purposes recorded for the credential. valid=false means revoked or suspended for that purpose. Empty list when status has not been checked.")
+    private List<CredentialStatusCheck> statusChecks;
+
+    @Schema(description = "Time at which the credential status was last checked")
+    private Instant lastCheckedAt;
+
+    @JsonProperty("isExpired")
+    @Schema(description = "Whether the credential was expired at the last check. Null when expiry has not been checked.")
+    private Boolean expired;
+
     public static VerifiableCredentialResponseDTO fromIssuerConfig(
-            IssuerConfig issuerConfig, String locale, String credentialId) {
+            IssuerConfig issuerConfig, String locale, String credentialId,
+            List<CredentialStatusCheck> statusChecks, Instant lastCheckedAt, Boolean expired) {
         String issuerName = "";
         String issuerLogo = "";
         String credentialType = "";
@@ -69,6 +85,9 @@ public class VerifiableCredentialResponseDTO {
                 .credentialTypeDisplayName(credentialType)
                 .credentialTypeLogo(credentialTypeLogo)
                 .credentialId(credentialId)
+                .statusChecks(statusChecks)
+                .lastCheckedAt(lastCheckedAt)
+                .expired(expired)
                 .build();
     }
 }

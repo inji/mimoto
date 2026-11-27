@@ -1290,7 +1290,17 @@
 							"mode": "raw",
 							"raw": "{\n    \"issuer\": \"{{issuer}}\",\n    \"credentialConfigurationId\": \"{{credentialConfigurationId}}\",\n    \"code\": \"{{code}}\"\n}"
 						},
-						"url": "{{HOST}}/wallets/{{walletId}}/credentials"
+						"url": {
+							"raw": "{{HOST}}/wallets/{{walletId}}/credentials",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"wallets",
+								"{{walletId}}",
+								"credentials"
+							]
+						}
 					},
 					"response": []
 				},
@@ -1360,6 +1370,28 @@
 								}
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check Credential Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{HOST}}/wallets/{{walletId}}/credentials/{{credentialId}}/status",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"wallets",
+								"{{walletId}}",
+								"credentials",
+								"{{credentialId}}",
+								"status"
+							]
+						},
+						"description": "Decrypts the stored credential, checks issuer status list using mosip.inji.credential.status.purpose-list, and stores the result. Revoked and suspended are returned with valid=false. Status list fetch failure returns 424 and leaves stored status unchanged."
 					},
 					"response": []
 				},

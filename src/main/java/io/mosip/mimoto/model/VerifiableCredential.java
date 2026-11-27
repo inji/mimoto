@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Table(name = "verifiable_credentials")
@@ -26,6 +27,16 @@ public class VerifiableCredential {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private CredentialMetadata credentialMetadata;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "status_checks", columnDefinition = "jsonb")
+    private List<CredentialStatusCheck> statusChecks;
+
+    @Column(name = "status_last_checked_at")
+    private Instant statusLastCheckedAt;
+
+    @Column(name = "is_expired")
+    private Boolean expired;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();

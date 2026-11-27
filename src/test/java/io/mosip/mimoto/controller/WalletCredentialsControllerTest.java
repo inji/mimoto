@@ -2,7 +2,9 @@ package io.mosip.mimoto.controller;
 
 import com.jayway.jsonpath.JsonPath;
 import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
+import io.mosip.mimoto.dto.mimoto.CredentialStatusResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
+import io.mosip.mimoto.model.CredentialStatusCheck;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.service.DPoPSessionService;
@@ -26,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import java.io.ByteArrayInputStream;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -603,6 +606,57 @@ public class WalletCredentialsControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.errorCode").value(CREDENTIAL_FETCH_EXCEPTION.getErrorCode()))
                 .andExpect(jsonPath("$.errorMessage").value("CORRUPTED_DATA"));
+    }
+
+    @Test
+    public void should_returnStoredStatus_when_checkSucceeds() throws Exception {
+        Instant checkedAt = Instant.parse("2026-11-13T12:00:00Z");
+        CredentialStatusResponseDTO statusResponse = CredentialStatusResponseDTO.builder()
+                .credentialId(credentialId)
+                .statusChecks(List.of(
+                        new CredentialStatusCheck("revocation", true),
+                        new CredentialStatusCheck("suspension", true)))
+                .lastCheckedAt(checkedAt)
+                .build();
+        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey))).thenReturn(statusResponse);
+
+        mockMvc.perform(get("/wallets/{walletId}/credentials/{credentialId}/status", walletId, credentialId)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .sessionAttr("wallet_id", walletId)
+                        .sessionAttr("wallet_key", walletKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.credentialId").value(credentialId))
+                .andExpect(jsonPath("$.statusChecks[0].purpose").value("revocation"))
+                .andExpect(jsonPath("$.statusChecks[0].valid").value(true))
+                .andExpect(jsonPath("$.statusChecks[1].purpose").value("suspension"))
+                .andExpect(jsonPath("$.statusChecks[1].valid").value(true))
+                .andExpect(jsonPath("$.lastCheckedAt").exists());
+    }
+
+    @Test
+    public void should_returnNotFound_when_credentialStatusCannotBeChecked() throws Exception {
+        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey)))
+                .thenThrow(new CredentialNotFoundException(RESOURCE_NOT_FOUND.getErrorCode(), RESOURCE_NOT_FOUND.getErrorMessage()));
+
+        mockMvc.perform(get("/wallets/{walletId}/credentials/{credentialId}/status", walletId, credentialId)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .sessionAttr("wallet_id", walletId)
+                        .sessionAttr("wallet_key", walletKey))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("resource_not_found"));
+    }
+
+    @Test
+    public void should_returnFailedDependency_when_statusListCannotBeReached() throws Exception {
+        when(walletCredentialService.checkCredentialStatus(eq(walletId), eq(credentialId), eq(walletKey)))
+                .thenThrow(new CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE));
+
+        mockMvc.perform(get("/wallets/{walletId}/credentials/{credentialId}/status", walletId, credentialId)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .sessionAttr("wallet_id", walletId)
+                        .sessionAttr("wallet_key", walletKey))
+                .andExpect(status().isFailedDependency())
+                .andExpect(jsonPath("$.errorCode").value("credential_status_unavailable"));
     }
 
     // Tests for deleteCredential

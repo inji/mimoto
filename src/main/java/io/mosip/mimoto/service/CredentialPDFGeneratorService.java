@@ -15,6 +15,7 @@ import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.nimbusds.jose.util.Base64URL;
 import io.mosip.injivcrenderer.InjiVcRenderer;
+import io.mosip.mimoto.config.CredentialStatusDisplayConfig;
 import io.mosip.mimoto.constant.CredentialFormat;
 import io.mosip.mimoto.exception.CredentialPdfGenerationException;
 import io.mosip.mimoto.exception.VPNotCreatedException;
@@ -25,6 +26,7 @@ import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.mimoto.CredentialIssuerDisplayResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialSupportedDisplayResponse;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
+import io.mosip.mimoto.dto.mimoto.PdfCredentialStatus;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.openid.presentation.PresentationDefinitionDTO;
 import io.mosip.mimoto.model.QRCodeType;
@@ -72,7 +74,9 @@ public class CredentialPDFGeneratorService {
 
     private final SvgFixerUtil svgFixerUtil;
 
-    public CredentialPDFGeneratorService(ObjectMapper objectMapper, PresentationServiceImpl presentationService, Utilities utilities, PixelPass pixelPass, CredentialFormatHandlerFactory credentialFormatHandlerFactory, InjiVcRenderer injiVcRenderer, SvgFixerUtil svgFixerUtil) {
+    private final CredentialStatusDisplayConfig credentialStatusDisplayConfig;
+
+    public CredentialPDFGeneratorService(ObjectMapper objectMapper, PresentationServiceImpl presentationService, Utilities utilities, PixelPass pixelPass, CredentialFormatHandlerFactory credentialFormatHandlerFactory, InjiVcRenderer injiVcRenderer, SvgFixerUtil svgFixerUtil, CredentialStatusDisplayConfig credentialStatusDisplayConfig) {
         this.objectMapper = objectMapper;
         this.presentationService = presentationService;
         this.utilities = utilities;
@@ -80,6 +84,7 @@ public class CredentialPDFGeneratorService {
         this.credentialFormatHandlerFactory = credentialFormatHandlerFactory;
         this.injiVcRenderer = injiVcRenderer;
         this.svgFixerUtil = svgFixerUtil;
+        this.credentialStatusDisplayConfig = credentialStatusDisplayConfig;
     }
 
     @Value("${mosip.inji.ovp.qrdata.pattern}")
@@ -102,11 +107,11 @@ public class CredentialPDFGeneratorService {
 
     private static final String CLAIM_169_KEY = "claim169";
     
-    public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale) throws IOException, WriterException {
+    public ByteArrayInputStream generatePdfForVerifiableCredential(String credentialConfigurationId, VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String dataShareUrl, String credentialValidity, String locale, PdfCredentialStatus pdfStatus) throws IOException, WriterException {
         // Check if the credential can support SVG based rendering
         if (isSvgBasedRenderingSupported(vcCredentialResponse)) {
             log.info("Detected LDP VC v2 credential with svg template, using InjiVcRenderer for PDF generation");
-            return generatePdfUsingSvgTemplate(vcCredentialResponse, issuerDTO, dataShareUrl);
+            return generatePdfUsingSvgTemplate(vcCredentialResponse, issuerDTO, dataShareUrl, pdfStatus);
         } else {
             log.info("Using v1 data model flow for credential");
             // Get the appropriate processor based on format
@@ -120,7 +125,7 @@ public class CredentialPDFGeneratorService {
                     processor.loadDisplayPropertiesFromWellknown(credentialProperties, credentialsSupportedResponse, locale);
 
             Map<String, Object> data = getPdfResourceFromVcProperties(displayProperties, credentialsSupportedResponse,
-                    vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity, locale);
+                    vcCredentialResponse, issuerDTO, dataShareUrl, credentialValidity, locale, pdfStatus);
 
             return renderVCInCredentialTemplate(data, issuerDTO.getIssuer_id(), credentialConfigurationId);
         }
@@ -133,7 +138,8 @@ public class CredentialPDFGeneratorService {
             IssuerDTO issuerDTO,
             String dataShareUrl,
             String credentialValidity,
-            String userLocale) throws IOException, WriterException {
+            String userLocale,
+            PdfCredentialStatus pdfStatus) throws IOException, WriterException {
 
         Map<String, Object> data = new HashMap<>();
 
@@ -171,6 +177,10 @@ public class CredentialPDFGeneratorService {
         data.put("backgroundImage", backgroundImage);
         data.put("titleName", credentialSupportedType);
         data.put("face", selectedFace.face());
+        String status = pdfStatus.displayValue();
+        data.put("status", status);
+        data.put("statusIcon", credentialStatusDisplayConfig.statusIconDataUri(status));
+        data.put("statusColor", credentialStatusDisplayConfig.statusColor(status));
         return data;
     }
 
@@ -447,10 +457,25 @@ public class CredentialPDFGeneratorService {
         return false;
     }
 
-    private ByteArrayInputStream generatePdfUsingSvgTemplate(VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, String dataShareUrl) {
+    private ByteArrayInputStream generatePdfUsingSvgTemplate(VCCredentialResponse vcCredentialResponse, IssuerDTO issuerDTO, String dataShareUrl, PdfCredentialStatus pdfStatus) {
         try {
-            // Get the ldp_vc credential and convert to string
-            String credentialJsonString = objectMapper.writeValueAsString(vcCredentialResponse.getCredential());
+            Object credentialPayload = vcCredentialResponse.getCredential();
+            // Copy the VC and set credentialSubject status, color, and icon so issuer SVG
+            // placeholders can render the same Status row as the HTML PDF.
+            if (credentialPayload instanceof Map<?, ?> credentialMap) {
+                Map<String, Object> credential = new LinkedHashMap<>();
+                credentialMap.forEach((key, value) -> credential.put(String.valueOf(key), value));
+                Object credentialSubject = credential.get("credentialSubject");
+                if (credentialSubject instanceof List<?> subjects) {
+                    credential.put("credentialSubject", subjects.stream()
+                            .map(item -> enrichSubjectWithStatus(item, pdfStatus))
+                            .toList());
+                } else {
+                    credential.put("credentialSubject", enrichSubjectWithStatus(credentialSubject, pdfStatus));
+                }
+                credentialPayload = credential;
+            }
+            String credentialJsonString = objectMapper.writeValueAsString(credentialPayload);
 
             // Generate the QR code data to embed into the svg for Online Sharing
             String qrCodeData = null;
@@ -485,5 +510,17 @@ public class CredentialPDFGeneratorService {
             log.error("Error generating PDF for v2 credential using InjiVcRenderer: {}", e.getMessage(), e);
             throw new CredentialPdfGenerationException("PDF_GEN_002", "Failed to generate PDF for v2 credential: " + e.getMessage(), e);
         }
+    }
+
+    private Map<String, Object> enrichSubjectWithStatus(Object subjectPayload, PdfCredentialStatus pdfStatus) {
+        Map<String, Object> subject = new LinkedHashMap<>();
+        if (subjectPayload instanceof Map<?, ?> subjectMap) {
+            subjectMap.forEach((key, value) -> subject.put(String.valueOf(key), value));
+        }
+        String status = pdfStatus.displayValue();
+        subject.put("status", status);
+        subject.put("statusColor", credentialStatusDisplayConfig.statusColor(status));
+        subject.put("statusIcon", credentialStatusDisplayConfig.statusIconDataUri(status));
+        return subject;
     }
 }

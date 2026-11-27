@@ -8,8 +8,10 @@ import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.CredentialMetadata;
+import io.mosip.mimoto.model.CredentialStatusCheck;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.repository.WalletCredentialsRepository;
+import io.mosip.mimoto.service.CredentialVerifierService;
 import io.mosip.mimoto.service.impl.WalletCredentialServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,9 @@ public class WalletCredentialServiceTest {
 
     @Mock
     private CredentialService credentialService;
+
+    @Mock
+    private CredentialVerifierService credentialVerifierService;
 
     @Mock
     private CredentialPDFGeneratorService credentialPDFGeneratorService;
@@ -171,11 +176,18 @@ public class WalletCredentialServiceTest {
         VerifiableCredentialResponseDTO responseDTO = new VerifiableCredentialResponseDTO();
         responseDTO.setCredentialId(credentialId);
 
+        Instant checkedAt = Instant.parse("2026-11-13T06:56:24.366674Z");
+        List<CredentialStatusCheck> statusChecks = List.of(
+                new CredentialStatusCheck("revocation", true),
+                new CredentialStatusCheck("suspension", true));
+        verifiableCredential.setStatusChecks(statusChecks);
+        verifiableCredential.setStatusLastCheckedAt(checkedAt);
+        verifiableCredential.setExpired(false);
         when(walletCredentialsRepository.findByWalletIdOrderByCreatedAtDesc(walletId)).thenReturn(List.of(verifiableCredential));
         when(issuersService.getIssuerConfig(issuerId, credentialType)).thenReturn(issuerConfig);
-
         try (MockedStatic<VerifiableCredentialResponseDTO> factoryMock = mockStatic(VerifiableCredentialResponseDTO.class)) {
-            factoryMock.when(() -> VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, locale, credentialId))
+            factoryMock.when(() -> VerifiableCredentialResponseDTO.fromIssuerConfig(
+                            issuerConfig, locale, credentialId, statusChecks, checkedAt, false))
                     .thenReturn(responseDTO);
 
             List<VerifiableCredentialResponseDTO> actualCredentials = walletCredentialService.fetchAllCredentialsForWallet(walletId, base64Key, locale);
@@ -184,7 +196,8 @@ public class WalletCredentialServiceTest {
             assertEquals(responseDTO, actualCredentials.getFirst());
             verify(walletCredentialsRepository).findByWalletIdOrderByCreatedAtDesc(walletId);
             verify(issuersService).getIssuerConfig(issuerId, credentialType);
-            factoryMock.verify(() -> VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, locale, credentialId));
+            factoryMock.verify(() -> VerifiableCredentialResponseDTO.fromIssuerConfig(
+                    issuerConfig, locale, credentialId, statusChecks, checkedAt, false));
         }
     }
 
@@ -197,7 +210,9 @@ public class WalletCredentialServiceTest {
         when(issuersService.getIssuerConfig(issuerId, credentialType)).thenThrow(new ApiNotAccessibleException("API error"));
 
         try (MockedStatic<VerifiableCredentialResponseDTO> factoryMock = mockStatic(VerifiableCredentialResponseDTO.class)) {
-            factoryMock.when(() -> VerifiableCredentialResponseDTO.fromIssuerConfig(null, locale, credentialId))
+            factoryMock.when(() -> VerifiableCredentialResponseDTO.fromIssuerConfig(
+                            null, locale, credentialId, verifiableCredential.getStatusChecks(),
+                            verifiableCredential.getStatusLastCheckedAt(), verifiableCredential.getExpired()))
                     .thenReturn(responseDTO);
 
             List<VerifiableCredentialResponseDTO> actualCredentials = walletCredentialService.fetchAllCredentialsForWallet(walletId, base64Key, locale);
@@ -206,8 +221,75 @@ public class WalletCredentialServiceTest {
             assertEquals(responseDTO, actualCredentials.getFirst());
             verify(walletCredentialsRepository).findByWalletIdOrderByCreatedAtDesc(walletId);
             verify(issuersService).getIssuerConfig(issuerId, credentialType);
-            factoryMock.verify(() -> VerifiableCredentialResponseDTO.fromIssuerConfig(null, locale, credentialId));
+            factoryMock.verify(() -> VerifiableCredentialResponseDTO.fromIssuerConfig(
+                    null, locale, credentialId, verifiableCredential.getStatusChecks(),
+                    verifiableCredential.getStatusLastCheckedAt(), verifiableCredential.getExpired()));
         }
+    }
+
+    @Test
+    public void should_storeRefreshedStatus_when_checkSucceeds() throws Exception {
+        VCCredentialResponse vcResponse = VCCredentialResponse.builder().format("mso_mdoc").credential("mdoc").build();
+        List<CredentialStatusCheck> statusChecks = List.of(new CredentialStatusCheck("revocation", false));
+        when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("stored-credential");
+        when(objectMapper.readValue("stored-credential", VCCredentialResponse.class)).thenReturn(vcResponse);
+        when(credentialVerifierService.verify(eq(vcResponse))).thenReturn(new CredentialVerificationResult(statusChecks, false));
+
+        CredentialStatusResponseDTO response = walletCredentialService.checkCredentialStatus(walletId, credentialId, base64Key);
+
+        assertEquals(credentialId, response.getCredentialId());
+        assertEquals(statusChecks, response.getStatusChecks());
+        assertEquals(statusChecks, verifiableCredential.getStatusChecks());
+        assertEquals(response.getLastCheckedAt(), verifiableCredential.getStatusLastCheckedAt());
+        assertEquals(Boolean.FALSE, response.getExpired());
+        assertEquals(Boolean.FALSE, verifiableCredential.getExpired());
+        verify(walletCredentialsRepository).save(verifiableCredential);
+    }
+
+    @Test
+    public void should_returnEmptyStatusChecks_when_storedStatusIsNull() throws Exception {
+        VCCredentialResponse vcResponse = VCCredentialResponse.builder().format("mso_mdoc").credential("mdoc").build();
+        when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("stored-credential");
+        when(objectMapper.readValue("stored-credential", VCCredentialResponse.class)).thenReturn(vcResponse);
+        when(credentialVerifierService.verify(eq(vcResponse))).thenReturn(new CredentialVerificationResult(List.of(), false));
+
+        CredentialStatusResponseDTO response = walletCredentialService.checkCredentialStatus(walletId, credentialId, base64Key);
+
+        assertEquals(List.of(), response.getStatusChecks());
+        assertNull(verifiableCredential.getStatusChecks());
+        verify(walletCredentialsRepository).save(verifiableCredential);
+    }
+
+    @Test
+    public void should_storeExpired_when_verifierReportsVcExpired() throws Exception {
+        VCCredentialResponse vcResponse = VCCredentialResponse.builder().format("mso_mdoc").credential("mdoc").build();
+        List<CredentialStatusCheck> statusChecks = List.of(new CredentialStatusCheck("revocation", true));
+        when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("stored-credential");
+        when(objectMapper.readValue("stored-credential", VCCredentialResponse.class)).thenReturn(vcResponse);
+        when(credentialVerifierService.verify(eq(vcResponse))).thenReturn(new CredentialVerificationResult(statusChecks, true));
+
+        CredentialStatusResponseDTO response = walletCredentialService.checkCredentialStatus(walletId, credentialId, base64Key);
+
+        assertEquals(Boolean.TRUE, response.getExpired());
+        assertEquals(Boolean.TRUE, verifiableCredential.getExpired());
+        verify(walletCredentialsRepository).save(verifiableCredential);
+    }
+
+    @Test
+    public void should_leaveStoredStatusUnchanged_when_statusCheckFails() throws Exception {
+        VCCredentialResponse vcResponse = VCCredentialResponse.builder().format("mso_mdoc").credential("mdoc").build();
+        when(walletCredentialsRepository.findByIdAndWalletId(credentialId, walletId)).thenReturn(Optional.of(verifiableCredential));
+        when(dataProtectionService.decryptCredential("encryptedCredential", base64Key)).thenReturn("stored-credential");
+        when(objectMapper.readValue("stored-credential", VCCredentialResponse.class)).thenReturn(vcResponse);
+        when(credentialVerifierService.verify(eq(vcResponse))).thenThrow(new CredentialStatusException(CREDENTIAL_STATUS_UNAVAILABLE));
+
+        assertThrows(CredentialStatusException.class,
+                () -> walletCredentialService.checkCredentialStatus(walletId, credentialId, base64Key));
+
+        verify(walletCredentialsRepository, never()).save(any());
     }
 
     @Test
@@ -266,7 +348,8 @@ public class WalletCredentialServiceTest {
                 eq(supportedResponse),
                 eq(""),
                 eq(null),
-                eq(locale)
+                eq(locale),
+                any(PdfCredentialStatus.class)
         )).thenReturn(pdfContent);
 
         // Run
@@ -288,7 +371,9 @@ public class WalletCredentialServiceTest {
                 eq(supportedResponse),
                 eq(""),
                 eq(null),
-                eq(locale)
+                eq(locale),
+                eq(PdfCredentialStatus.of(
+                        verifiableCredential.getStatusChecks(), verifiableCredential.getExpired()))
         );
     }
 
@@ -427,7 +512,7 @@ public class WalletCredentialServiceTest {
         IssuerConfig localIssuerConfig = new IssuerConfig(new IssuerDTO(), new CredentialIssuerWellKnownResponse(), supportedResponse);
         when(issuersService.getIssuerConfig(issuerId, credentialType)).thenReturn(localIssuerConfig);
 
-        when(credentialPDFGeneratorService.generatePdfForVerifiableCredential(any(), any(), any(), any(), any(), any(), any()))
+        when(credentialPDFGeneratorService.generatePdfForVerifiableCredential(any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("PDF error"));
 
         CredentialProcessingException exception = assertThrows(CredentialProcessingException.class, () ->

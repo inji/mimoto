@@ -5,6 +5,7 @@ import io.mosip.mimoto.constant.SwaggerExampleConstants;
 import io.mosip.mimoto.constant.SwaggerLiteralConstants;
 import io.mosip.mimoto.dto.ErrorDTO;
 import io.mosip.mimoto.dto.VerifiableCredentialRequestDTO;
+import io.mosip.mimoto.dto.mimoto.CredentialStatusResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
@@ -163,6 +164,13 @@ public class WalletCredentialsController {
                 ex, ex.getErrorCode(), HttpStatus.SERVICE_UNAVAILABLE, MediaType.APPLICATION_JSON);
     }
 
+    @ExceptionHandler(CredentialStatusException.class)
+    public ResponseEntity<Object> handleCredentialStatusException(CredentialStatusException ex) {
+        log.error("Credential status check failed during wallet credential download", ex);
+        return Utilities.getErrorResponseEntityWithoutWrapper(
+                ex, ex.getErrorCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
+    }
+
     @ExceptionHandler(CredentialProcessingException.class)
     public ResponseEntity<Object> handleCredentialProcessingException(CredentialProcessingException ex) {
         log.error("Error processing wallet credential", ex);
@@ -210,6 +218,32 @@ public class WalletCredentialsController {
                 walletId, base64EncodedWalletKey, locale);
         return ResponseEntity.status(HttpStatus.OK).body(credentials);
 
+    }
+
+    @Operation(summary = "Check the status of a stored credential", description = "Decrypts the stored credential, checks its status with the issuer status list, and stores the result. Revoked and suspended credentials are returned with valid=false. If the check fails, the stored status is left unchanged.", operationId = "checkCredentialStatus", security = @SecurityRequirement(name = "SessionAuth"), parameters = {
+            @Parameter(name = "walletId", in = ParameterIn.PATH, required = true, description = "Unique identifier of the wallet", schema = @Schema(type = "string")),
+            @Parameter(name = "credentialId", in = ParameterIn.PATH, required = true, description = "Unique identifier of the credential", schema = @Schema(type = "string"))})
+    @ApiResponse(responseCode = "200", description = "Status checked and stored", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CredentialStatusResponseDTO.class)))
+    @ApiResponse(responseCode = "400", description = "The credential could not be verified", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Credential not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class)))
+    @ApiResponse(responseCode = "424", description = "Failed Dependency: the issuer status list could not be fetched or parsed. Stored status is left unchanged so the client can retry.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class)))
+    @GetMapping("/{credentialId}/status")
+    public ResponseEntity<CredentialStatusResponseDTO> checkCredentialStatus(
+            @PathVariable("walletId") @NotBlank(message = "Wallet ID cannot be blank") String walletId,
+            @PathVariable("credentialId") @NotBlank(message = "Credential ID cannot be blank") String credentialId,
+            HttpSession httpSession) throws InvalidRequestException, CredentialNotFoundException, CredentialProcessingException {
+        validateWalletId(httpSession, walletId);
+        String base64EncodedWalletKey = WalletUtil.getSessionWalletKey(httpSession);
+        try {
+            return ResponseEntity.ok(walletCredentialService.checkCredentialStatus(walletId, credentialId, base64EncodedWalletKey));
+        } catch (CredentialStatusException ex) {
+            HttpStatus status = ErrorConstants.CREDENTIAL_STATUS_UNAVAILABLE.getErrorCode().equals(ex.getErrorCode())
+                    ? HttpStatus.FAILED_DEPENDENCY
+                    : HttpStatus.BAD_REQUEST;
+            return Utilities.getErrorResponseEntityWithoutWrapper(ex, ex.getErrorCode(), status, MediaType.APPLICATION_JSON);
+        } catch (VCVerificationException ex) {
+            return Utilities.getErrorResponseEntityWithoutWrapper(ex, ex.getErrorCode(), HttpStatus.BAD_REQUEST, MediaType.APPLICATION_JSON);
+        }
     }
 
     /**

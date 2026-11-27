@@ -1,6 +1,7 @@
 package io.mosip.mimoto.service;
 
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
+import io.mosip.mimoto.dto.mimoto.CredentialStatusResponseDTO;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
@@ -60,6 +61,13 @@ public interface WalletCredentialService {
             throws CredentialNotFoundException, CredentialProcessingException;
 
     void deleteCredential(String credentialId, String walletId) throws CredentialNotFoundException;
+
+    /**
+     * Checks a stored credential against the issuer status list and saves the result.
+     * A failed check leaves the stored status unchanged.
+     */
+    CredentialStatusResponseDTO checkCredentialStatus(String walletId, String credentialId, String base64Key)
+            throws CredentialNotFoundException, CredentialProcessingException, VCVerificationException;
 
     List<DecryptedCredentialDTO> getDecryptedCredentials(String walletId, String base64Key);
 

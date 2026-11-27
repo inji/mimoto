@@ -4,18 +4,23 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.mimoto.dto.DecryptedCredentialDTO;
 import io.mosip.mimoto.dto.IssuerDTO;
+import io.mosip.mimoto.dto.mimoto.CredentialStatusResponseDTO;
+import io.mosip.mimoto.dto.mimoto.CredentialVerificationResult;
 import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
 import io.mosip.mimoto.dto.mimoto.IssuerConfig;
+import io.mosip.mimoto.dto.mimoto.PdfCredentialStatus;
 import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
 import io.mosip.mimoto.dto.mimoto.VerifiableCredentialResponseDTO;
 import io.mosip.mimoto.dto.resident.WalletCredentialResponseDTO;
 import io.mosip.mimoto.exception.*;
 import io.mosip.mimoto.model.CredentialMetadata;
+import io.mosip.mimoto.model.CredentialStatusCheck;
 import io.mosip.mimoto.model.QRCodeType;
 import io.mosip.mimoto.model.VerifiableCredential;
 import io.mosip.mimoto.repository.WalletCredentialsRepository;
 import io.mosip.mimoto.service.CredentialPDFGeneratorService;
 import io.mosip.mimoto.service.CredentialService;
+import io.mosip.mimoto.service.CredentialVerifierService;
 import io.mosip.mimoto.service.IssuersService;
 import io.mosip.mimoto.service.WalletCredentialService;
 import io.mosip.mimoto.service.DataProtectionService;
@@ -30,6 +35,7 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.IllegalArgumentException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -59,13 +65,15 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
     private final DataProtectionService dataProtectionService;
     private final CredentialPDFGeneratorService credentialPDFGeneratorService;
     private final DataShareServiceImpl dataShareService;
+    private final CredentialVerifierService credentialVerifierService;
 
     @Autowired
     public WalletCredentialServiceImpl(WalletCredentialsRepository repository,
                                        IssuersService issuersService,
                                        CredentialService credentialService,
                                        ObjectMapper objectMapper,
-                                       DataProtectionService dataProtectionService,CredentialPDFGeneratorService credentialPDFGeneratorService,DataShareServiceImpl dataShareService) {
+                                       DataProtectionService dataProtectionService,CredentialPDFGeneratorService credentialPDFGeneratorService,DataShareServiceImpl dataShareService,
+                                       CredentialVerifierService credentialVerifierService) {
         this.repository = repository;
         this.issuersService = issuersService;
         this.credentialService = credentialService;
@@ -73,6 +81,7 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
         this.dataProtectionService = dataProtectionService;
         this.credentialPDFGeneratorService = credentialPDFGeneratorService;
         this.dataShareService = dataShareService;
+        this.credentialVerifierService = credentialVerifierService;
     }
 
     @Override
@@ -113,7 +122,9 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
             } catch (InvalidIssuerIdException | ApiNotAccessibleException  e) {
                 log.error("Failed to fetch issuer details for issuerId: {}", issuerId, e);
             }
-            return VerifiableCredentialResponseDTO.fromIssuerConfig(issuerConfig, locale, credential.getId());
+            return VerifiableCredentialResponseDTO.fromIssuerConfig(
+                    issuerConfig, locale, credential.getId(),
+                    credential.getStatusChecks(), credential.getStatusLastCheckedAt(), credential.getExpired());
         }).toList();
 
     }
@@ -129,12 +140,40 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
         try {
             String decryptedCredential = dataProtectionService.decryptCredential(credential.getCredential(), base64Key);
 
-            WalletCredentialResponseDTO response = generateCredentialResponse(decryptedCredential, credential.getCredentialMetadata(), locale);
+            WalletCredentialResponseDTO response = generateCredentialResponse(decryptedCredential, credential, locale);
             log.debug("Credential fetched successfully: {}", credentialId);
             return response;
         } catch (DecryptionException e) {
             log.error("Decryption failed for credential: {}", credentialId, e);
             throw new CredentialProcessingException(CREDENTIAL_FETCH_EXCEPTION.getErrorCode(), "Decryption failed", e);
+        }
+    }
+
+    @Override
+    public CredentialStatusResponseDTO checkCredentialStatus(String walletId, String credentialId, String base64Key)
+            throws CredentialNotFoundException, CredentialProcessingException, VCVerificationException {
+        VerifiableCredential credential = repository.findByIdAndWalletId(credentialId, walletId)
+                .orElseThrow(getCredentialNotFoundExceptionSupplier(walletId, credentialId));
+        try {
+            String decryptedCredential = dataProtectionService.decryptCredential(credential.getCredential(), base64Key);
+            VCCredentialResponse credentialResponse = objectMapper.readValue(decryptedCredential, VCCredentialResponse.class);
+            CredentialVerificationResult verificationResult = credentialVerifierService.verify(credentialResponse);
+            List<CredentialStatusCheck> statusChecks = verificationResult.getStatusChecks();
+            credential.setStatusChecks(statusChecks == null || statusChecks.isEmpty() ? null : statusChecks);
+            credential.setStatusLastCheckedAt(Instant.now());
+            credential.setExpired(verificationResult.isExpired());
+            repository.save(credential);
+            return CredentialStatusResponseDTO.builder()
+                    .credentialId(credential.getId())
+                    .statusChecks(credential.getStatusChecks() == null ? List.of() : credential.getStatusChecks())
+                    .lastCheckedAt(credential.getStatusLastCheckedAt())
+                    .expired(credential.getExpired())
+                    .build();
+        } catch (VCVerificationException exception) {
+            throw exception;
+        } catch (JsonProcessingException | DecryptionException exception) {
+            log.error("Failed to read stored credential {} for status check", credentialId, exception);
+            throw new CredentialProcessingException(CREDENTIAL_FETCH_EXCEPTION.getErrorCode(), "Failed to read stored credential", exception);
         }
     }
 
@@ -157,7 +196,8 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
         };
     }
 
-    private WalletCredentialResponseDTO generateCredentialResponse(String decryptedCredential, CredentialMetadata credentialMetadata, String locale) throws CredentialProcessingException {
+    private WalletCredentialResponseDTO generateCredentialResponse(String decryptedCredential, VerifiableCredential credential, String locale) throws CredentialProcessingException {
+        CredentialMetadata credentialMetadata = credential.getCredentialMetadata();
         log.info("Generating credential response for issuerId: {}, credentialType: {}", credentialMetadata.getIssuerId(), credentialMetadata.getCredentialType());
         try {
             // Parse decrypted credential
@@ -194,7 +234,8 @@ public class WalletCredentialServiceImpl implements WalletCredentialService {
                     credentialsSupportedResponse,
                     dataShareUrl,
                     credentialValidity,
-                    locale
+                    locale,
+                    PdfCredentialStatus.of(credential.getStatusChecks(), credential.getExpired())
             );
 
             // Construct response

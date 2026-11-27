@@ -117,6 +117,9 @@ CREATE TABLE IF NOT EXISTS verifiable_credentials (
     wallet_id character varying(36) NOT NULL,  -- Foreign key referring to the wallet table (wallet.id)
     credential TEXT NOT NULL,  -- Encrypted credential (using wallet_key for encryption/decryption)
     credential_metadata JSONB NOT NULL,  -- Metadata about the credential
+    status_checks JSONB,  -- Status purposes such as revocation and suspension
+    status_last_checked_at TIMESTAMP,  -- Time of the last status check; NULL until checked
+    is_expired BOOLEAN,  -- Whether the credential was expired at the last check; NULL until checked
     created_at TIMESTAMP DEFAULT now(),  -- Timestamp of record creation (defaults to current time)
     updated_at TIMESTAMP DEFAULT now(),  -- Timestamp of last update (defaults to current time)
 
