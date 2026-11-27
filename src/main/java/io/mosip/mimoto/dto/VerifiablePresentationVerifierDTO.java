@@ -35,4 +35,20 @@ public class VerifiablePresentationVerifierDTO {
     @Schema(description = "Redirect URI used to redirect the User back to the Verifier after the presentation is completed",
             example = "https://injiverify.collab.mosip.net/redirect")
     private String redirectUri;
+
+    @Schema(description = "Client identifier scheme used by the Verifier",
+            example = "x509_san_dns", allowableValues = {"pre-registered", "x509_san_dns"})
+    private String clientIdScheme;
+
+    @Schema(description = "DNS name verified from the Verifier's certificate SAN — present only when clientIdScheme is x509_san_dns",
+            example = "verifier.example.com")
+    private String certVerifiedDnsName;
+
+    @Schema(description = "Organization name from the Verifier's certificate — present only when clientIdScheme is x509_san_dns",
+            example = "Example Verifier Inc.")
+    private String certOrganization;
+
+    @Schema(description = "Expiry date of the Verifier's certificate in ISO 8601 format — present only when clientIdScheme is x509_san_dns",
+            example = "2027-06-01T00:00:00Z")
+    private String certValidUntil;
 }

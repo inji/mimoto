@@ -77,7 +77,7 @@ public class WalletPresentationsControllerTest {
     @Before
     public void setup() {
         MockitoAnnotations.openMocks(this);
-        VerifiablePresentationVerifierDTO presentationVerifierDTO = new VerifiablePresentationVerifierDTO("mock-client", "verifier123", "https://veriifer-logo.png", false, true, "https://verifier-redirect");
+        VerifiablePresentationVerifierDTO presentationVerifierDTO = new VerifiablePresentationVerifierDTO("mock-client", "verifier123", "https://veriifer-logo.png", false, true, "https://verifier-redirect", null, null, null, null);
         presentationResponseDTO = new VPResponseDTO("presentationId-123", presentationVerifierDTO, false);
 
         when(httpSession.getAttribute("wallet_id")).thenReturn(walletId);
